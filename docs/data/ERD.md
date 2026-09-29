@@ -1,6 +1,6 @@
 # 数据模型与实体关系（ERD）
 
-版本：D0.10；日期：2026-09-29；状态：候选逻辑模型，待依据真实备份反推修订，未创建表、未执行迁移。
+版本：D0.12；日期：2026-09-29；状态：候选逻辑模型，待依据真实备份反推修订，未创建表、未执行迁移。
 
 本文描述服务器版目标。现有 V1.050 是 JSON 对象与浏览器存储，不具备本文关系约束。待决业务规则可能改变字段及表结构。
 
@@ -48,7 +48,7 @@ erDiagram
 | sessions | id、token_hash、user_id、expires_at、revoked_at | 原始随机令牌仅在 Cookie；索引 user_id、expires_at |
 | projects | id、name、customer_id、created_by、status、version、original_due_date、current_due_date、closure_type、maintenance_enabled、created_at、updated_at、deleted_at | version 原子递增；结案类型与维护组合受规则约束 |
 | project_responsibilities | project_id、user_id、joined_at | 项目与登录账号多对多、联合唯一；当前负责关系，加入/退出历史归审计；行为见 SPEC-014 |
-| project_stages | id、project_id、stage_code、state、note、started_at、done_at、planned_days | project_id + stage_code 唯一；需表达独立开始与完成，未解锁/待开始可派生；日期精度及纠错处置待 Q-002，状态契约见 SPEC-003 |
+| project_stages | id、project_id、stage_code、state、note、started_at、done_at、planned_days | project_id + stage_code 唯一；需表达独立开始与完成，未解锁/待开始可派生；实际日期使用 DATE，纠错规则已由 DEC-024 确认；state 契约见 SPEC-003，返工落点待 Q-021 |
 | project_nodes | id、project_id、kind、stage_id、title、target_date、completed_at、output、position_json | kind 区分项目/客户节点；同项目约束由服务端校验 |
 | flow_links | id、project_id、from_node_id、to_node_id | 两端必须属于同项目；重复边限制；是否允许环待业务核实 |
 | project_people | project_id、engineer_id、role | 相同项目/人员/角色不能重复；单负责人角色的数量需约束 |
@@ -69,7 +69,9 @@ erDiagram
 
 project_responsibilities 是服务器新增授权关系，不等于原业务 PM、工程师及 project_people；不能按旧名称自动授予权限。新项目 created_by 来自登录账号；历史创建人未知时保留未知与来源，不能伪造。在线编辑心跳是短期运行态，首版不建持久业务表，不推进项目 version。
 
-阶段模型增量（DEC-023）：started_at 为目标候选业务时间字段，不等于审计中的保存时间；最终采用日期还是时间点待业务边界明确。旧 done=false 不能证明阶段已开始，原备份缺失的实际日期不能根据旧页面“进行中”标签或导入时间伪造。迁移映射须将不确定项报告并确认；完整逐字段反推仍未完成。
+阶段模型增量（DEC-023）：started_at 为目标候选业务时间字段，不等于审计中的保存时间；业务日期精度已按 DEC-024 确认为 DATE，字段命名在逐字段反推时统一。旧 done=false 不能证明阶段已开始，原备份缺失的实际日期不能根据旧页面“进行中”标签或导入时间伪造。迁移映射须将不确定项报告并确认；完整逐字段反推仍未完成。
+
+真实返工的最小数据表达：复用 audit_log 的动作及 before_json/after_json 记录来源阶段、目标阶段、原因和状态/日期变化，以 action 区分阶段回退与信息纠错；每次追加，历史可从项目中查看。不为这一入口先建返工子项目或独立工作流表。业务实际日期与审计时间分开，重做时本轮日期不得覆盖原轮次的历史事实；回退后的有效日期处置待 Q-021。
 
 ## 3. 基础资料与遗漏防护
 
