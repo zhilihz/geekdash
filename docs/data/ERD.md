@@ -1,6 +1,6 @@
 # 数据模型与实体关系（ERD）
 
-版本：D0.3；日期：2026-09-29；状态：候选逻辑模型，待依据真实备份反推修订，未创建表、未执行迁移。
+版本：D0.4；日期：2026-09-29；状态：候选逻辑模型，待依据真实备份反推修订，未创建表、未执行迁移。
 
 本文描述服务器版目标。现有 V1.050 是 JSON 对象与浏览器存储，不具备本文关系约束。待决业务规则可能改变字段及表结构。
 
@@ -14,6 +14,9 @@ erDiagram
     USERS ||--o{ USER_PREFERENCES : owns
     USERS ||--o{ PROJECT_DRAFTS : owns
     USERS ||--o{ AUDIT_LOG : acts
+    USERS ||--o{ PROJECT_RESPONSIBILITIES : responsible
+    PROJECTS ||--o{ PROJECT_RESPONSIBILITIES : managed_by
+    USERS o|--o{ PROJECTS : created_by
     CUSTOMERS o|--o{ PROJECTS : commissions
     PROJECTS ||--o{ PROJECT_STAGES : contains
     PROJECTS ||--o{ PROJECT_NODES : contains
@@ -43,7 +46,8 @@ erDiagram
 |---|---|---|
 | users | id、login_name、password_hash、display_name、enabled | 登录名唯一；本期统一管理员角色；历史操作者不能因停用而消失 |
 | sessions | id、token_hash、user_id、expires_at、revoked_at | 原始随机令牌仅在 Cookie；索引 user_id、expires_at |
-| projects | id、name、customer_id、status、version、original_due_date、current_due_date、closure_type、maintenance_enabled、created_at、updated_at、deleted_at | version 原子递增；结案类型与维护组合受规则约束 |
+| projects | id、name、customer_id、created_by、status、version、original_due_date、current_due_date、closure_type、maintenance_enabled、created_at、updated_at、deleted_at | version 原子递增；结案类型与维护组合受规则约束 |
+| project_responsibilities | project_id、user_id、joined_at | 项目与登录账号多对多、联合唯一；当前负责关系，加入/退出历史归审计；行为见 SPEC-014 |
 | project_stages | id、project_id、stage_code、state、note、done_at、planned_days | project_id + stage_code 唯一；是否支持 skipped 待 Q-002 |
 | project_nodes | id、project_id、kind、stage_id、title、target_date、completed_at、output、position_json | kind 区分项目/客户节点；同项目约束由服务端校验 |
 | flow_links | id、project_id、from_node_id、to_node_id | 两端必须属于同项目；重复边限制；是否允许环待业务核实 |
@@ -62,6 +66,8 @@ erDiagram
 | reports | id、created_by、scope_json、snapshot_json、data_version、status、artifact_ref、created_at | 固定所选范围和输出依据；结果下载需认证 |
 | import_batches | id、source_hash、schema_version、mapping_json、result_json、created_by、status | 预检与提交可追踪；原始数据来源明确 |
 | jobs | id、type、requested_by、business_key、status、attempts、result_ref、error_code、created_at | 仅当确定异步任务时实施；business_key 用于必要的去重 |
+
+project_responsibilities 是服务器新增授权关系，不等于原业务 PM、工程师及 project_people；不能按旧名称自动授予权限。新项目 created_by 来自登录账号；历史创建人未知时保留未知与来源，不能伪造。在线编辑心跳是短期运行态，首版不建持久业务表，不推进项目 version。
 
 ## 3. 基础资料与遗漏防护
 

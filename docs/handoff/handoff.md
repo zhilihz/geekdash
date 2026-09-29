@@ -10,12 +10,10 @@
 
 ## 2. Git 与交付位置
 
-- 工作分支：main。本轮起点：`b0c6bd2fc707bf36e6abcb95572dbaeb46c33f0c`。
-- 本轮变更组：D0.3 技术基线、根目录 AGENTS、文档集中与交接，范围见 [CHANGELOG](../changelog/CHANGELOG.md)。交接与这些文档一同提交；最新提交和未提交文件以 `git log -1`、`git status --short` 为准，避免在提交内写自身哈希。
-- 交接写入时的变更：新增 AGENTS、technology-stack、handoff；移除根 README，CHANGELOG 移至 docs；更新 docs 内 README、architecture、decisions、current-system-truth、requirements、PRD、specification、testing、release-maintenance、ERD。提交后接手者重新检查是否存在额外未提交文件。
-- 后续按用户确认将现有文档迁入分类目录，路径以 docs/README 为准；api、reports、deployments 尚无实际文档，仅保留 `.gitkeep`。
-- 工作区原始源码位于 `source-review/AIGeekDashCX/`，已忽略；它不是新后端工程。
-- 真实备份文件名为 `项目数据备份_2026-09-01_18-49-12.bak`，位于用户提供的微信文件目录，未复制进 Git。校验指纹和结构摘要见系统真相第 2 节。
+- 工作分支 main；D0.4 起点 a2b5e3cbd8495ca808e8ef67367a8e7b24f8efa0。
+- 当前变更组为 D0.4 明确保存、项目授权、固定版本协作和完整备份，涉及 requirements、PRD、specification、decisions、architecture、ERD、testing、user-guide、release-maintenance、system-truth、README、CHANGELOG 及本交接；这些文件一同提交。最新提交和额外未提交工作由 git log -1、git status --short 重新核实。
+- 原始源码在忽略目录 source-review/AIGeekDashCX；真实备份保留在用户提供位置，不纳入 Git。
+- api、reports、deployments 目录仍只有 .gitkeep，未生成对应实施成果。
 
 ## 3. 已有结果与证据
 
@@ -23,6 +21,12 @@
 - 真实备份已读取结构，用户明确其真实性；尚未执行导入。备份标记 V1.044，不能当作 V1.050 完整字段集合。
 - 当前 ERD 仍为先前候选服务器模型，尚未完成用户要求的逐字段反推，不可据此直接建表。
 - 本轮仅验证文档链接、差异与内容一致性；应用构建、浏览器业务测试、MySQL 迁移和四人压测均未执行。
+
+### 本轮新增确认
+
+全部业务修改点击保存；四人全项目可见，负责范围内可编辑，可自行加入/退出，多人负责；新建账号自动负责。编辑者只显示身份；他人保存后旧详情固定并提示过期，保留文字供复制，重新进入读最新版。规则正文见 SPEC-002/014/015，完整备份见 SPEC-016。
+
+用户认可整体施工建议方向，尚未讨论的具体公式不可当已确认。Q-013/014 已解决，不重复询问。下一轮聚焦 Q-018 信号灯/优先级的真实联动，再讨论阶段和日期。旧项目负责人映射、最后负责人退出、全局权限、保存区域和持久草稿仍待定。
 
 ## 4. 未完成项与接手顺序
 
