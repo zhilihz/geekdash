@@ -1,0 +1,37 @@
+{
+  "recordedDate": "2026-09-29",
+  "baseline": "V1.050",
+  "sourceCommit": "d40fac4a2cda429e8fc1129f9c2174d43b2fd74d",
+  "sourceFile": "geekdash-system-builder/releases/GeekDash1050/projects-data.js",
+  "sourceSha256": "A0465A0CD2AAC1FAD73030FD80D90C06E4196CF9916E0C2990A17FA90453C52F",
+  "execution": "实际使用 Node vm 加载原模块，localStorage 使用内存 Map，计时器为空实现。只验证以下函数行为，没有执行页面或数据库测试。",
+  "cases": [
+    {
+      "issue": "ISSUE-001",
+      "input": {
+        "status": "进行中",
+        "dueDate": "2026-09-01",
+        "isDelayed": false,
+        "delays": [
+          { "id": 1, "newTargetDate": "2026-09-15", "reason": "第一次调整" },
+          { "id": 2, "newTargetDate": "", "reason": "补充原因" }
+        ]
+      },
+      "call": "PROJECT_DB.latestTargetDate(input)",
+      "actual": ""
+    },
+    {
+      "issue": "ISSUE-002",
+      "inputReference": "ISSUE-001.input",
+      "calls": ["PROJECT_DB.hasDelay(input)", "PROJECT_DB.projectDelayState(input)"],
+      "actual": { "hasDelay": true, "projectDelayState": "normal" },
+      "interpretation": "两个函数采用不同含义；历史延期与当前逾期的业务口径待确认。"
+    },
+    {
+      "issue": "ISSUE-003",
+      "inputConstruction": "stages = PROJECT_DB.normalizeStages(null); stages[4].done = true; input = { stages }",
+      "actual": { "completedStage": "DVT", "currentStage": "需求立项", "progress": 5 },
+      "limitation": "人工构造的非连续阶段数据，未证明正常 UI 可产生此组合。"
+    }
+  ]
+}
