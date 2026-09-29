@@ -1,6 +1,6 @@
 # 数据模型与实体关系（ERD）
 
-版本：D0.13；日期：2026-09-29；状态：候选逻辑模型，待依据真实备份反推修订，未创建表、未执行迁移。
+版本：D0.15；日期：2026-09-29；状态：候选逻辑模型，待依据真实备份反推修订，未创建表、未执行迁移。
 
 本文描述服务器版目标。现有 V1.050 是 JSON 对象与浏览器存储，不具备本文关系约束。待决业务规则可能改变字段及表结构。
 
@@ -46,7 +46,7 @@ erDiagram
 |---|---|---|
 | users | id、login_name、password_hash、display_name、enabled | 登录名唯一；本期统一管理员角色；历史操作者不能因停用而消失 |
 | sessions | id、token_hash、user_id、expires_at、revoked_at | 原始随机令牌仅在 Cookie；索引 user_id、expires_at |
-| projects | id、name、customer_id、created_by、status、version、original_due_date、current_due_date、closure_type、maintenance_enabled、created_at、updated_at、deleted_at | version 原子递增；结案类型与维护组合受规则约束 |
+| projects | id、name、customer_id、created_by、status、version、started_on、original_due_date、current_due_date、resume_status、pre_close_status、closure_type、closed_on、closure_note、remaining_work_note、maintenance_enabled、created_at、updated_at、deleted_at | version 原子递增；日期与恢复状态支撑 SPEC-003；结案类型与维护组合受规则约束 |
 | project_responsibilities | project_id、user_id、joined_at | 项目与登录账号多对多、联合唯一；当前负责关系，加入/退出历史归审计；行为见 SPEC-014 |
 | project_stages | id、project_id、stage_code、state、note、started_at、done_at、planned_days | project_id + stage_code 唯一；需表达独立开始与完成，未解锁/待开始可派生；实际日期使用 DATE，纠错规则已由 DEC-024 确认；state 契约及已确认回退落点见 SPEC-003 |
 | project_nodes | id、project_id、kind、stage_id、title、target_date、completed_at、output、position_json | kind 区分项目/客户节点；同项目约束由服务端校验 |
@@ -73,6 +73,8 @@ project_responsibilities 是服务器新增授权关系，不等于原业务 PM�
 
 真实返工的最小数据表达：复用 audit_log 的动作及 before_json/after_json 记录来源阶段、目标阶段、原因和状态/日期变化，以 action 区分阶段回退与信息纠错；每次追加，历史可从项目中查看。不为这一入口先建返工子项目或独立工作流表。业务实际日期与审计时间分开，重做时本轮日期不得覆盖原轮次的历史事实；按 DEC-026，回退后目标及后续的当前有效实际日期为空，原日期保留审计；重新开始时写本次实际日期。阶段业务日期可空不能单独用于判断历史是否曾经开始或完成。
 
+项目生命周期的目标字段增量：started_on/closed_on 为业务 DATE，resume_status 保存暂缓前提案/进行中状态，pre_close_status 保存结案前状态；从暂缓结案再重开时仍需保留 resume_status。closure_type 区分正常完成/中途终止，说明和遗留事项记录本次结案；再次重开及结案前的旧值写入追加审计，不能覆盖历史。字段名和物理结构仍待完整反推收敛，动作规则唯一正文为 SPEC-003。
+
 ## 3. 基础资料与遗漏防护
 
 客户、工程师、芯片、产品线、APP、标签、分组和企业信息都在迁移范围内；项目中的 ODM 工厂可按客户类型关联，是否允许多客户待确认。
@@ -97,4 +99,4 @@ project_responsibilities 是服务器新增授权关系，不等于原业务 PM�
 
 人员和芯片原本按名称引用，必须保存来源名称与映射结果。无法确定的引用进入待处理清单，不自动丢弃。旧历史的操作人或时间无法可靠证明时标记为 legacy/来源时间，不伪造为当前账号操作。
 
-本文不提供可直接执行的 DDL。待 Q-001～Q-007 的关键业务语义确定后生成版本化迁移文件，并执行升级与恢复演练。
+本文不提供可直接执行的 DDL。待逐字段反推及 Q-005/006/007 等剩余关键语义明确后生成版本化迁移文件，并执行升级与恢复演练。
