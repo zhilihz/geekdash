@@ -10,8 +10,8 @@
 
 ## 2. Git 与交付位置
 
-- 工作分支 main；本轮 D0.7 起点为 378909cf3efb186977f3a987adf8c7da12026d27。
-- 当前变更为优先级和统一查询范围的确认，涉及 decisions、specification、requirements、testing、PRD、system-truth、README、CHANGELOG 和本交接。最新提交与额外未提交文件以 git log -1、git status --short 核实，不在提交内填自身哈希。
+- 工作分支 main；本轮 D0.8 起点为 e9ffb785809412285bf6d8c75bdb18a67683d9ad。
+- 当前变更为阶段/进度/纠错链路核查和候选方案，涉及 decisions、specification、system-truth、README、CHANGELOG 和本交接。最新提交与额外未提交文件以 git log -1、git status --short 核实，不在提交内填自身哈希。
 - 原始源码位于忽略目录 source-review/AIGeekDashCX；真实备份保留在用户给定位置，不纳入 Git。
 - api、reports、deployments 仍仅有 .gitkeep，没有对应实施成果。
 
@@ -28,7 +28,7 @@
 
 用户认可整体施工建议方向，未讨论的具体公式不可当已确认。Q-013/014/018/019 均已解决，不重复询问。灯色沿用见 SPEC-017；紧急程度对应人工 priority，各展示区域统一范围，规则见 SPEC-018。以上仍未实施。
 
-下一块讨论阶段、进度、纠错及项目状态联动，需要完整展示原有行为和拟修改影响。旧项目负责人映射、最后负责人退出、全局权限、保存粒度、持久草稿和发布策略仍待定。逐字段 ERD 反推仍需完成。
+阶段、进度、纠错及结案链路已按源码核查并展开候选方案：事实见系统真相，建议见 SPEC-003。连续完成进度算法、纠错日期处置及跳过需求尚未确认，不能实施。旧项目负责人映射、最后负责人退出、全局权限、保存粒度、持久草稿和发布策略仍待定。逐字段 ERD 反推仍需完成。
 
 ## 4. 未完成项与接手顺序
 
