@@ -1,6 +1,6 @@
 # 系统架构
 
-版本：D0.28；日期：2026-09-30；状态：测试部署拓扑已确认，服务器应用未实现。
+版本：D0.30；日期：2026-09-30；状态：深接口执行架构与实现思路已形成，服务器应用未实现。
 
 ## 1. 现状与约束
 
@@ -34,24 +34,32 @@ API 与前端同站点，通过 Nginx HTTPS 入口访问，便于会话与 CSRF 
 
 ## 4. 深模块边界
 
+交互图：[深接口执行架构](../evidence/diagrams/geekdash-execution.html)。图展示主要调用和持久边界，不是所有 HTTP 路由或 SQL 调用的展开：资料维护、会议/报告同样从认证入口调用；身份、个人状态和导入也使用 MySQL。完整依赖约束见下表与正文。图中的模块属于施工目标，尚未实现；ERD 仍独立维护于数据文档。
+
 | 模块 | 公开能力示例 | 内部负责 | 数据归属 |
 |---|---|---|---|
-| 身份与会话 | login、logout、resolveActor、revokeSessions | 凭据验证、期限、撤销、登录限速 | users、sessions |
-| 项目生命周期 | createProject、completeStage、reschedule、closeProject、joinResponsibility、leaveResponsibility | 项目授权、状态规则、日期、风险、节点、并发、事务和审计 | projects 及业务子表 |
-| 基础资料 | maintainReference、deactivateReference | 重名匹配、引用保护、历史名称兼容 | 客户、工程师、芯片等 |
-| 会议与报告 | saveMeeting、createReport、getReport | 项目范围、快照、字段规则、输出一致性 | meetings、reports 等 |
-| 个人工作状态 | savePreferences、saveDraft、restoreContext | 按用户隔离、恢复、过期和清理 | user_preferences、project_drafts |
-| 数据维护 | previewImport、saveImportCorrection、commitReviewedImport、runBackup | 持久待审区、映射预检、版本保护、导入事务、维护互斥、恢复 | import_batches、import_items；首版不建 jobs |
+| 身份与会话 | login、changePassword、logout、resolveActor、resetPassword、disableAccount | 凭据验证、期限、撤销、首次改密、交接校验及登录限速 | users、sessions；维护资格读取配置 |
+| 项目生命周期 | getProjectSnapshot、createProject、saveProject、applyProjectAction、joinResponsibility、leaveResponsibility | 项目授权、有限的明确状态动作、日期、风险/节点已确认范围、版本、事务和审计 | projects 及业务子表 |
+| 基础资料与设置 | previewReferenceImpact、saveReference、deactivateReference、saveCheckRule | 维护资格、稳定 ID、引用保护、受影响项目版本、规则修订 | 客户、工程师、芯片等；system_configuration、check_rule_revisions |
+| 会议与报告 | saveMeeting、createReport、getReport | 权限确认后的写入、项目范围、固定快照及产物一致性 | meetings、reports、feedback_entries；具体业务写权限仍待决 |
+| 个人工作状态 | savePreferences、saveDraft、getRecoveryContext | 按用户隔离、修订/乱序保护、容量和恢复；终态自动清理仍待决 | user_preferences、project_drafts |
+| 导入审查 | previewImport、saveImportCorrection、commitReviewedImport、takeOverImport | 持久待审区、映射预检、处理资格、卡片/项目版本、逐项事务和可恢复结果 | import_batches、import_items；首版不建 jobs |
+
+这些名字是内部公开能力设计，不是已生成的 HTTP 协议。`applyProjectAction` 只接受 SPEC 已确认的有限动作，不能任意改状态或表。backup/restore 属于受控运维入口，按 SPEC-016 和发布维护执行，不作为任意业务用户可调用的接口。
 
 页面和 API 路由仅承担输入转换、调用和结果呈现。核心动作在模块内部完成校验、事务、审计及结果构造。
 
 跨模块不得直接修改对方表。导入可通过各模块提供的批量写入能力，在同一应用的统一工作单元内协调事务；不能绕过业务约束直接灌表。审计是公共内部能力，写入必须参与发起动作的同一事务。
+
+公开接口接收可信操作人、业务输入、预期版本及必要幂等键，返回完整业务结果；SQL 连接、锁、审计表及回执写入留在内部。导入协调事务时使用内部事务参与能力，项目规则只有一份，不能从 HTTP 回调自身接口或复制保存逻辑。草稿精确提交终态通过个人状态内部能力参与同一事务，项目模块不直接越界修改其表。
 
 模块数量不是质量指标。不要为每个字段或单次调用创建接口、工厂和转发层；也不要把所有职责挤在一个无边界大文件。
 
 独立卡片审查页面仍由数据维护模块承接，不另建审批服务。待审数据持久化于 MySQL，正式查询仅消费已提交业务表；批量通过动作协调项目及基础资料模块与审计，复用权限、规则和事务能力。行为契约见 SPEC-009，按 DEC-033 逐项目短事务允许部分成功，保留各项提交结果用于恢复；数据量大不等于需要排队，后台执行与 Redis 仍须测量依据。
 
 ## 5. 核心保存链路
+
+交互时序：[一个深接口完成项目提交](../evidence/diagrams/geekdash-save.html)。图展示成功路径；权限、版本、关联、审计失败的退出语义以 SPEC-002 为准。
 
 ```mermaid
 sequenceDiagram
@@ -109,3 +117,9 @@ DEC-049 已确认沿用现有新加坡测试机，使用独立 Docker 应用及�
 工程建议：首版一个应用进程，限制数据库连接与缓冲规模，镜像在本地或构建环境生成；通过四人混合读写和既有服务健康观察确定实际资源预算。证书入口和监听端口按服务器现状配置，不抢占既有端口；不得停止或重配其他系统来为本项目腾资源。
 
 业务代码更新、数据库生命周期和备份分别管理。更新应用不应重建或清空数据库数据卷。
+
+## 10. 施工入口
+
+[执行文档](../implementation/execution-plan.md)按 E01～E12 描述每个功能的实现思路、依赖、失败恢复及验证入口。先工程/迁移/认证，再打通项目聚合保存的真实 MySQL 链路，随后接入状态动作、私人草稿、SSE、资料和六页面，最后完成审查导入、恢复与测试发布。准确业务规则和字段分别引用 SPEC 与 ERD，不在执行文档重新定义。
+
+图源及交付回执在 `docs/evidence/diagrams/`，由本架构派生。两图的确定性产物检查通过；浏览器自动核验因本机调试进程失败而未完成，视觉范围另记证据，不能称完整浏览器验收通过。应用、数据库及部署验证仍未执行。

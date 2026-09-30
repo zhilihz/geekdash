@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-30",
+  "scope": "GeekDash 深接口目标架构与保存时序；不是软件验收",
+  "diagrams": [
+    {
+      "diagram_type": "architecture",
+      "output": "geekdash-execution.html",
+      "specification_sha256": "e83ca77f9023de8dcbc5be0e913d01592827a91f875c0b508ac1ca077f8fed50",
+      "artifact_sha256": "b0584cdf402473c346601b4fcd16a97115b47454cfaec4da4eb995b2ac70f1a2",
+      "validation": "9/9 showcase, 0 errors, 0 warnings",
+      "browser_evidence": "failed",
+      "visual_review": "incomplete: 浏览器查看器与四视口未能复核",
+      "static_diagram_review": "passed: 已查看浅深 SVG 派生图，中文清晰，节点/连线/标签无可见遮挡",
+      "correction_rounds": 0,
+      "delivery_receipt": "geekdash-execution.delivery.json",
+      "browser_receipt": "geekdash-execution.visual-check.json"
+    },
+    {
+      "diagram_type": "sequence",
+      "output": "geekdash-save.html",
+      "specification_sha256": "9250afd0cb72cb092a42ad25e124a6c6c814d43180f41bc9f31fa8fe7eb733c3",
+      "artifact_sha256": "6d6547239577676f8082c9839542890100ede9304fe51725dfa3b09ba6dba998",
+      "validation": "9/9 showcase, 0 errors, 0 warnings",
+      "browser_evidence": "failed",
+      "visual_review": "incomplete: 浏览器查看器与四视口未能复核",
+      "static_diagram_review": "passed: 已查看浅深 SVG 派生图，保存/事务/提交后分段明确，文字与消息可读",
+      "correction_rounds": 0,
+      "delivery_receipt": "geekdash-save.delivery.json",
+      "browser_receipt": "geekdash-save.visual-check.json"
+    }
+  ],
+  "browser_failure": "Edge 已定位，Chrome DevTools process exit failed: Chrome closed with exit code 0；独立浏览器工具打开本地 HTML 也出现 nodeRepl.fetch request failed，没有取得页面状态",
+  "preview_method": "从精确交付 HTML 提取 SVG 与原主题颜色，由已安装 sharp 渲染；哈希见 execution-static-preview.json。预览不是浏览器截图，不覆盖卡片、搜索、聚焦、导出或桌面容纳检查",
+  "application_tests_executed": false,
+  "database_migrations_executed": false,
+  "deployment_executed": false
+}

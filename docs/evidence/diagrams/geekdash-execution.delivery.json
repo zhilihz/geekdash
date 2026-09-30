@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "deliver",
+  "type": "architecture",
+  "input": "D:\\geekwon\\geekdash\\docs\\evidence\\diagrams\\geekdash-execution.architecture.json",
+  "output": "D:\\geekwon\\geekdash\\docs\\evidence\\diagrams\\geekdash-execution.html",
+  "specification": {
+    "sha256": "e83ca77f9023de8dcbc5be0e913d01592827a91f875c0b508ac1ca077f8fed50",
+    "bytes": 5139
+  },
+  "artifact": {
+    "sha256": "b0584cdf402473c346601b4fcd16a97115b47454cfaec4da4eb995b2ac70f1a2",
+    "bytes": 715514
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  }
+}

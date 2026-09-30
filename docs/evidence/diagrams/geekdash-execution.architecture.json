@@ -1,0 +1,269 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "GeekDash 深接口执行架构",
+    "locale": "zh-CN",
+    "animation": "none",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1380,
+      860
+    ]
+  },
+  "components": [
+    {
+      "id": "pages",
+      "type": "frontend",
+      "label": "原有六个页面",
+      "sublabel": "共享 API 客户端与个人状态",
+      "pos": [
+        60,
+        350
+      ],
+      "size": [
+        220,
+        86
+      ]
+    },
+    {
+      "id": "entry",
+      "type": "security",
+      "label": "HTTP / SSE 入口",
+      "sublabel": "会话、CSRF、输入校验",
+      "pos": [
+        365,
+        350
+      ],
+      "size": [
+        220,
+        86
+      ]
+    },
+    {
+      "id": "identity",
+      "type": "security",
+      "label": "身份与账号",
+      "sublabel": "登录 · 改密 · 交接停用",
+      "pos": [
+        685,
+        95
+      ],
+      "size": [
+        220,
+        86
+      ]
+    },
+    {
+      "id": "projects",
+      "type": "backend",
+      "label": "项目业务深模块",
+      "sublabel": "快照 · 保存 · 状态 · 负责范围",
+      "pos": [
+        685,
+        350
+      ],
+      "size": [
+        220,
+        86
+      ]
+    },
+    {
+      "id": "personal",
+      "type": "backend",
+      "label": "个人工作状态",
+      "sublabel": "草稿 · 筛选 · 阅读位置",
+      "pos": [
+        365,
+        95
+      ],
+      "size": [
+        220,
+        86
+      ]
+    },
+    {
+      "id": "references",
+      "type": "backend",
+      "label": "共享资料维护",
+      "sublabel": "影响预览 · 改名 · 停用",
+      "pos": [
+        1005,
+        95
+      ],
+      "size": [
+        220,
+        86
+      ]
+    },
+    {
+      "id": "imports",
+      "type": "backend",
+      "label": "导入审查深模块",
+      "sublabel": "预览 · 纠正 · 分项提交",
+      "pos": [
+        365,
+        605
+      ],
+      "size": [
+        220,
+        86
+      ]
+    },
+    {
+      "id": "documents",
+      "type": "backend",
+      "label": "会议与固定报告",
+      "sublabel": "权限待确认后实现写入",
+      "pos": [
+        1005,
+        605
+      ],
+      "size": [
+        220,
+        86
+      ]
+    },
+    {
+      "id": "mysql",
+      "type": "database",
+      "label": "MySQL 8.4",
+      "sublabel": "业务、会话、审计、草稿",
+      "pos": [
+        1005,
+        350
+      ],
+      "size": [
+        220,
+        86
+      ]
+    },
+    {
+      "id": "files",
+      "type": "database",
+      "label": "独立文件数据卷",
+      "sublabel": "受控导入文件与报告产物",
+      "pos": [
+        685,
+        605
+      ],
+      "size": [
+        220,
+        86
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "request",
+      "from": "pages",
+      "to": "entry",
+      "label": "HTTPS / SSE",
+      "variant": "emphasis"
+    },
+    {
+      "id": "project-command",
+      "from": "entry",
+      "to": "projects",
+      "label": "完整业务命令",
+      "variant": "emphasis",
+      "labelAt": [
+        595,
+        455
+      ]
+    },
+    {
+      "id": "project-transaction",
+      "from": "projects",
+      "to": "mysql",
+      "label": "短事务",
+      "variant": "emphasis"
+    },
+    {
+      "id": "session",
+      "from": "entry",
+      "to": "identity",
+      "label": "身份解析"
+    },
+    {
+      "id": "private-state",
+      "from": "entry",
+      "to": "personal",
+      "label": "本人状态"
+    },
+    {
+      "id": "review-command",
+      "from": "entry",
+      "to": "imports",
+      "label": "审查命令",
+      "labelAt": [
+        475,
+        505
+      ]
+    },
+    {
+      "id": "import-project",
+      "from": "imports",
+      "to": "projects",
+      "label": "复用项目写入"
+    },
+    {
+      "id": "import-file",
+      "from": "imports",
+      "to": "files",
+      "label": "受控文件",
+      "labelAt": [
+        635,
+        695
+      ]
+    },
+    {
+      "id": "reference-write",
+      "from": "references",
+      "to": "mysql",
+      "label": "引用联动",
+      "labelAt": [
+        1115,
+        245
+      ]
+    },
+    {
+      "id": "report-read",
+      "from": "documents",
+      "to": "mysql",
+      "label": "一致快照"
+    },
+    {
+      "id": "report-file",
+      "from": "documents",
+      "to": "files",
+      "label": "固定产物"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "页面只负责交互",
+      "items": [
+        "固定版本进入项目；正式修改明确保存",
+        "他人更新时保留文字并提示重新进入"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "模块内部承担复杂度",
+      "items": [
+        "负责范围、状态前置、版本校验、事务与审计",
+        "提交后发送 SSE；在线编辑者保存在进程内"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "目标架构，尚未实现",
+      "items": [
+        "单个 Node.js + Fastify 常驻服务；首版不引入 Redis",
+        "资料、身份、个人状态同样直接使用 MySQL"
+      ]
+    }
+  ]
+}

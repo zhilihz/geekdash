@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "项目保存：一个深接口完成一次提交",
+    "locale": "zh-CN",
+    "animation": "none",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1060,
+      900
+    ]
+  },
+  "participants": [
+    {
+      "id": "editor",
+      "type": "frontend",
+      "label": "当前页面",
+      "sublabel": "固定版本副本"
+    },
+    {
+      "id": "entry",
+      "type": "security",
+      "label": "API 入口",
+      "sublabel": "可信身份"
+    },
+    {
+      "id": "project",
+      "type": "backend",
+      "label": "项目深接口",
+      "sublabel": "saveProject"
+    },
+    {
+      "id": "database",
+      "type": "database",
+      "label": "MySQL",
+      "sublabel": "短事务"
+    },
+    {
+      "id": "other",
+      "type": "frontend",
+      "label": "其他页面",
+      "sublabel": "独立进入版本"
+    }
+  ],
+  "segments": [
+    {
+      "from": 150,
+      "to": 295,
+      "label": "明确保存"
+    },
+    {
+      "from": 320,
+      "to": 610,
+      "label": "模块内部"
+    },
+    {
+      "from": 635,
+      "to": 815,
+      "label": "提交以后"
+    }
+  ],
+  "messages": [
+    {
+      "id": "submit",
+      "from": "editor",
+      "to": "entry",
+      "y": 180,
+      "label": "变更集 / 版本 / 幂等键",
+      "variant": "emphasis"
+    },
+    {
+      "id": "invoke",
+      "from": "entry",
+      "to": "project",
+      "y": 250,
+      "label": "可信身份与业务输入",
+      "variant": "security"
+    },
+    {
+      "id": "begin",
+      "from": "project",
+      "to": "database",
+      "y": 340,
+      "label": "开始事务并锁定项目",
+      "variant": "emphasis"
+    },
+    {
+      "id": "guard",
+      "from": "project",
+      "to": "database",
+      "y": 405,
+      "label": "核验负责关系与旧版本"
+    },
+    {
+      "id": "persist",
+      "from": "project",
+      "to": "database",
+      "y": 470,
+      "label": "业务 / 审计 / 回执 / 对应草稿",
+      "variant": "emphasis"
+    },
+    {
+      "id": "commit",
+      "from": "project",
+      "to": "database",
+      "y": 535,
+      "label": "提交完整事务",
+      "variant": "emphasis"
+    },
+    {
+      "id": "committed",
+      "from": "database",
+      "to": "project",
+      "y": 600,
+      "label": "提交成功",
+      "variant": "return"
+    },
+    {
+      "id": "result",
+      "from": "project",
+      "to": "editor",
+      "y": 670,
+      "label": "保存结果与新版本",
+      "variant": "return"
+    },
+    {
+      "id": "notify",
+      "from": "entry",
+      "to": "other",
+      "y": 740,
+      "label": "SSE：项目 ID / 版本 / 提交标识",
+      "variant": "dashed"
+    },
+    {
+      "id": "readback",
+      "from": "editor",
+      "to": "entry",
+      "y": 805,
+      "label": "新请求读取并核对结果"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "成功必须可回读",
+      "items": [
+        "页面收到提交结果后才显示已保存",
+        "通知发生在提交之后；丢通知仍有版本校验"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "失败退出事务",
+      "items": [
+        "权限、版本、关联或审计失败均整体回滚",
+        "旧版本拒绝覆盖；保留输入供复制并重新进入"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "不拆成表级接口",
+      "items": [
+        "页面不依次保存项目、阶段、审计和芯片表",
+        "导入复用内部写入能力；同一项目提交一次"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "method": "从已交付 HTML 提取 SVG、解析原主题颜色，由 sharp 渲染；不是浏览器截图或交互验收",
+  "outputs": [
+    {
+      "file": "geekdash-execution.preview-light.png",
+      "sha256": "153c4aea3b8d7c339e1ac189cde1a4286cde09031b11dc1d0ba144911e6bde60",
+      "sourceHtmlSha256": "b0584cdf402473c346601b4fcd16a97115b47454cfaec4da4eb995b2ac70f1a2",
+      "theme": "light",
+      "kind": "static-svg-preview",
+      "browserEvidence": false
+    },
+    {
+      "file": "geekdash-execution.preview-dark.png",
+      "sha256": "5b85b8531239cc6675f122f417498a228c56ab9b4eeedf8fb42434f7a0b70e0d",
+      "sourceHtmlSha256": "b0584cdf402473c346601b4fcd16a97115b47454cfaec4da4eb995b2ac70f1a2",
+      "theme": "dark",
+      "kind": "static-svg-preview",
+      "browserEvidence": false
+    },
+    {
+      "file": "geekdash-save.preview-light.png",
+      "sha256": "f30a1407b70b38c301eef5290c30748d465605c51e602fd9eef2414f2baa95a5",
+      "sourceHtmlSha256": "6d6547239577676f8082c9839542890100ede9304fe51725dfa3b09ba6dba998",
+      "theme": "light",
+      "kind": "static-svg-preview",
+      "browserEvidence": false
+    },
+    {
+      "file": "geekdash-save.preview-dark.png",
+      "sha256": "865707bd7c070c069db407e0204460da9742846f57e3e6cfabb01a472dba7302",
+      "sourceHtmlSha256": "6d6547239577676f8082c9839542890100ede9304fe51725dfa3b09ba6dba998",
+      "theme": "dark",
+      "kind": "static-svg-preview",
+      "browserEvidence": false
+    }
+  ]
+}

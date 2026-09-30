@@ -1,6 +1,6 @@
 # 文档中心
 
-文档基线：D0.29；更新日期：2026-09-30。技术路线、测试目标和首批账号初始化已确定；数据库 34 表/313 列施工设计、私人底稿及保存粒度已收敛，会话恢复、草稿容量及备份/人工择时发布已确认，真实 MySQL/性能待实施；未改定旧判断优先复用，服务器版尚未构建。未变更的单篇文档保留原版本号。
+文档基线：D0.30；更新日期：2026-09-30。深接口执行架构、保存时序和按功能描述实现思路的执行文档已形成。数据库、认证、个人状态及首版发布策略已收敛；真实 MySQL/性能待实施，服务器版尚未构建。未变更的单篇文档保留原版本号。
 
 项目事实及施工准备状态以[当前系统真相](status/current-system-truth.md)为入口。GitHub 当前只有文档，原应用源码在本地核查副本；服务器版尚未实现或部署。
 
@@ -14,6 +14,7 @@ docs/
 ├── requirements/                用户目标与验收映射
 ├── product/                     PRD 与操作体验
 ├── architecture/                架构与技术栈
+├── implementation/              功能施工思路、依赖与验证入口
 ├── data/                        ERD 与字段关系
 ├── specifications/              业务规格
 │   └── api/                     接口说明，暂无内容
@@ -40,6 +41,7 @@ docs/
 | [需求清单](requirements/requirements.md) | 用户明确要求什么，怎样算完成？ | REQ 编号、来源、优先级、验收要求 |
 | [PRD](product/PRD.md) | 给谁用，怎样完成业务？ | 用户场景、产品流程、界面行为 |
 | [架构](architecture/architecture.md) | 系统如何组织，模块怎样协作？ | 目标架构、深模块边界、运行方式 |
+| [执行文档](implementation/execution-plan.md) | 每项功能具体怎样实现和验证？ | 工作包、代码落位、实现步骤、依赖及失败恢复；引用 SPEC/ERD/TEST |
 | [ERD](data/ERD.md) | 数据如何关联和持久化？ | 来源字段/关系、首版完整物理字段及逐列用途、实体取舍和映射约束 |
 | [规格书](specifications/specification.md) | 一个业务动作准确如何执行？ | SPEC 编号、规则、接口与失败语义 |
 | [测试与验收](testing/testing.md) | 如何证明业务正确且可以长期维护？ | TEST 编号、真实数据库验证、回归门槛 |
@@ -63,3 +65,5 @@ docs/
 ## 阅读顺序
 
 接手工作先读 handoff 与系统真相，再读技术栈、需求和本次相关规格。字段反推及正式实体关系图读 ERD（内含核心 PNG 与完整 SVG 入口）；规则确认查 decisions；实施和文档维护遵循根目录 AGENTS。需求到规格、测试的完整映射只在 requirements 维护。
+
+实际施工接着读[执行文档](implementation/execution-plan.md)。图示可打开[深接口架构](evidence/diagrams/geekdash-execution.html)和[项目保存时序](evidence/diagrams/geekdash-save.html)，静态预览与浏览器核验范围见[图示复核记录](evidence/diagrams/execution-review.json)。

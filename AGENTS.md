@@ -36,6 +36,7 @@
 | `docs/product/PRD.md` | 用户场景、页面交互、业务操作体验；通过 REQ/SPEC 引用规则 | SQL 字段、接口协议、另造状态转换规则 |
 | `docs/architecture/technology-stack.md` | 技术、主要版本线、依赖用途和选型边界 | 业务判断、发布步骤、运行事实 |
 | `docs/architecture/architecture.md` | 模块职责、调用与数据流、事务和部署拓扑 | 完整字段字典、接口逐项契约、重复的依赖清单 |
+| `docs/implementation/execution-plan.md` | 功能工作包的实现思路、代码落位、依赖、失败恢复与验证入口；引用 SPEC/ERD/TEST | 第二份业务规则、字段字典、实时进度或测试通过记录 |
 | `docs/data/ERD.md` | 实体、字段、关系、约束、旧数据映射；明确实测结构与目标结构 | 擅自批准阶段或延期自动化、声称表已创建 |
 | `docs/specifications/specification.md` | SPEC 行为契约：输入、前置、处理、输出、失败和联动；注明待决规则 | 测试执行记录、运维步骤、用户未批准的规则冒充定稿 |
 | `docs/specifications/api/` | 实际产生接口后保存协议说明，引用 SPEC；生成内容注明对应代码版本 | 实施前虚构接口已可调用、独立定义业务规则 |

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "deliver",
+  "type": "sequence",
+  "input": "D:\\geekwon\\geekdash\\docs\\evidence\\diagrams\\geekdash-save.sequence.json",
+  "output": "D:\\geekwon\\geekdash\\docs\\evidence\\diagrams\\geekdash-save.html",
+  "specification": {
+    "sha256": "9250afd0cb72cb092a42ad25e124a6c6c814d43180f41bc9f31fa8fe7eb733c3",
+    "bytes": 3603
+  },
+  "artifact": {
+    "sha256": "6d6547239577676f8082c9839542890100ede9304fe51725dfa3b09ba6dba998",
+    "bytes": 711063
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  }
+}
