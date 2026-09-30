@@ -1,6 +1,6 @@
 # 数据模型与实体关系（ERD）
 
-版本：D0.22；日期：2026-09-30；状态：候选逻辑模型，待依据真实备份反推修订，未创建表、未执行迁移。
+版本：D0.23；日期：2026-09-30；状态：候选逻辑模型，待依据真实备份反推修订，未创建表、未执行迁移。
 
 本文描述服务器版目标。现有 V1.050 是 JSON 对象与浏览器存储，不具备本文关系约束。待决业务规则可能改变字段及表结构。
 
@@ -11,6 +11,7 @@
 ```mermaid
 erDiagram
     USERS ||--o{ SESSIONS : owns
+    USERS ||--o| SYSTEM_CONFIGURATION : maintains
     USERS ||--o{ USER_PREFERENCES : owns
     USERS ||--o{ PROJECT_DRAFTS : owns
     USERS ||--o{ AUDIT_LOG : acts
@@ -48,7 +49,8 @@ erDiagram
 
 | 实体 | 关键字段建议 | 约束和用途 |
 |---|---|---|
-| users | id、login_name、password_hash、display_name、enabled、can_maintain_system、version | 统一项目管理员身份，can_maintain_system 表达指定维护资格；账号与维护资格修改受版本保护；停用保留历史 |
+| users | id、login_name、password_hash、display_name、enabled、version | 四个业务使用账号及一个额外维护账号；唯一维护账号由 system_configuration 指定，账号修改受版本保护；停用保留历史 |
+| system_configuration | id、maintenance_user_id、version | 目标新增单例配置；唯一启用维护账号引用，换任原子替换；首批身份待用户指定，非旧备份实体 |
 | sessions | id、token_hash、user_id、expires_at、revoked_at | 原始随机令牌仅在 Cookie；索引 user_id、expires_at |
 | projects | id、name、customer_id、created_by、status、version、started_on、original_due_date、current_due_date、manual_delayed、closure_due_date、resume_status、pre_close_status、closure_type、closed_on、closure_note、remaining_work_note、maintenance_enabled、created_at、updated_at、deleted_at | version 原子递增；日期与恢复状态支撑 SPEC-003；结案类型与维护组合受规则约束 |
 | project_responsibilities | project_id、user_id、joined_at | 项目与登录账号多对多、联合唯一；当前负责关系，加入/退出历史归审计；行为见 SPEC-014 |
@@ -61,7 +63,7 @@ erDiagram
 | project_risks | id、project_id、content、level、resolved_at、resolution、actor_id | 解除必须保留原风险和处理结果 |
 | project_changes | id、project_id、source、content、decision、reason、actor_id | 业务需求变更记录，不代替系统更新记录 |
 | schedule_changes | id、project_id、kind、old_date、new_date、reason、measures、actor_id、created_at | kind 区分有效改期与补充说明；说明记录日期可空，改期记录具备有效目标；当前计划与记录同事务，纠错审计独立留痕，行为见 SPEC-004 |
-| project_checks | id、project_id、actor_id、checked_at、conclusion、note、observed_version、result_version | 追加记录；业务周期按 SPEC-005 解释；操作者及时间来自服务器，版本表达检查依据及后续更新 |
+| project_checks | id、project_id、actor_id、checked_at、conclusion、note、rule_version、observed_version、result_version | 追加记录；业务周期按 SPEC-005 解释；操作者及时间来自服务器，版本表达检查依据及后续更新 |
 | audit_log | id、actor_id、action、entity_type、entity_id、before_json、after_json、request_id、created_at | 与业务同事务；历史保留显示名称；应用界面不提供无痕修改 |
 | user_preferences | user_id、scope、value_json、updated_at | user_id + scope 唯一；只保存个人配置 |
 | project_drafts | id、user_id、project_id、client_draft_id、base_version、payload_json、updated_at | 新建草稿 project_id 可空；同用户/草稿键唯一 |
@@ -84,9 +86,9 @@ project_responsibilities 是服务器新增授权关系，不等于原业务 PM�
 
 旧 dueDate 与 delays 不能机械映射成完整历史原始计划：dueDate 曾可直接编辑，末条记录也可能只有说明。迁移应保留原字段和记录，预检展示可证明的日期及不确定项，由人核对原始/当前计划；禁止用首次导入日期补造计划、按旧数组长度制造延期次数或把人工 isDelayed 转成自动超期事实。
 
-检查数据表达按 DEC-031 补充；旧 lastCheckAt 只保留 legacy 来源，不伪造可信检查人。独立导入审查的 import_items 为服务器新增目标实体，不能冒充旧备份已有表；原始与修正内容、目标版本和提交结果支持 SPEC-009，待审数据持久化并纳入完整备份。来源 ID 仅用于映射，不能机械当作正式 ID。首次入库负责、待审权限及最后退出按 DEC-034/035/036 表达：保留上传账号与各动作身份，首次入库项目和提交者负责关系同事务建立，退出事务维护已确认前置；账号/全局维护资格及批次接管按 DEC-037～040 表达；交接资格由当前负责关系和 users.enabled 按 DEC-041 校验，不另存容易过期的“已交接”布尔值；公共设置有效区间按 DEC-042 表达；批量部分成功按 DEC-033/SPEC-009，各待审项与正式结果同事务记录，批次汇总可由逐项结果得出；物理字段和状态枚举尚未锁定。
+检查数据表达按 DEC-031 补充；旧 lastCheckAt 只保留 legacy 来源，不伪造可信检查人。独立导入审查的 import_items 为服务器新增目标实体，不能冒充旧备份已有表；原始与修正内容、目标版本和提交结果支持 SPEC-009，待审数据持久化并纳入完整备份。来源 ID 仅用于映射，不能机械当作正式 ID。首次入库负责、待审权限及最后退出按 DEC-034/035/036 表达：保留上传账号与各动作身份，首次入库项目和提交者负责关系同事务建立，退出事务维护已确认前置；账号/全局维护资格及批次接管按 DEC-037～040 表达；交接资格由当前负责关系和 users.enabled 按 DEC-041 校验，不另存容易过期的“已交接”布尔值；公共检查规则的适用周、本周修订版本与追加历史按 SPEC-019/DEC-044 表达；批量部分成功按 DEC-033/SPEC-009，各待审项与正式结果同事务记录，批次汇总可由逐项结果得出；物理字段和状态枚举尚未锁定。
 
-共享业务设置保存带 version、effective_from 的规则值及有效区间，精确表名/字段在逐字段反推后定稿；检查历史引用对应有效规则，不用浏览器本地配置覆盖公共设置。规则 effective_from 按已确认的下一自然周边界保存，历史有效区间不被改写（DEC-042）。原始上传人、当前处理人和实际提交者有不同数据职责；接管原因与处理人变更复用追加审计，不单独建立审批工作流。维护资格为本期固定用途的账号标记候选，不预建通用角色权限平台。
+共享业务设置保存带 version、effective_from 的规则值及有效区间，精确表名/字段在逐字段反推后定稿；检查历史引用对应有效规则，不用浏览器本地配置覆盖公共设置。本周修改以当前自然周及服务器保存时间记录立即生效；保存原规则修订历史，已结束周保持规则快照。每周默认与仅本周覆盖如何存储仍待本轮问答，不能将 effective_from 固定为下一周一。原始上传人、当前处理人和实际提交者有不同数据职责；接管原因与处理人变更复用追加审计，不单独建立审批工作流。维护资格改为单例 maintenance_user_id 候选，不再由多个用户独立布尔标记授予；额外维护账号按 DEC-045 创建，不预建通用角色权限平台。
 
 ## 3. 基础资料与遗漏防护
 
