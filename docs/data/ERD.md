@@ -1,6 +1,6 @@
 # 数据模型与实体关系（ERD）
 
-版本：D0.15；日期：2026-09-29；状态：候选逻辑模型，待依据真实备份反推修订，未创建表、未执行迁移。
+版本：D0.17；日期：2026-09-30；状态：候选逻辑模型，待依据真实备份反推修订，未创建表、未执行迁移。
 
 本文描述服务器版目标。现有 V1.050 是 JSON 对象与浏览器存储，不具备本文关系约束。待决业务规则可能改变字段及表结构。
 
@@ -46,7 +46,7 @@ erDiagram
 |---|---|---|
 | users | id、login_name、password_hash、display_name、enabled | 登录名唯一；本期统一管理员角色；历史操作者不能因停用而消失 |
 | sessions | id、token_hash、user_id、expires_at、revoked_at | 原始随机令牌仅在 Cookie；索引 user_id、expires_at |
-| projects | id、name、customer_id、created_by、status、version、started_on、original_due_date、current_due_date、resume_status、pre_close_status、closure_type、closed_on、closure_note、remaining_work_note、maintenance_enabled、created_at、updated_at、deleted_at | version 原子递增；日期与恢复状态支撑 SPEC-003；结案类型与维护组合受规则约束 |
+| projects | id、name、customer_id、created_by、status、version、started_on、original_due_date、current_due_date、manual_delayed、closure_due_date、resume_status、pre_close_status、closure_type、closed_on、closure_note、remaining_work_note、maintenance_enabled、created_at、updated_at、deleted_at | version 原子递增；日期与恢复状态支撑 SPEC-003；结案类型与维护组合受规则约束 |
 | project_responsibilities | project_id、user_id、joined_at | 项目与登录账号多对多、联合唯一；当前负责关系，加入/退出历史归审计；行为见 SPEC-014 |
 | project_stages | id、project_id、stage_code、state、note、started_at、done_at、planned_days | project_id + stage_code 唯一；需表达独立开始与完成，未解锁/待开始可派生；实际日期使用 DATE，纠错规则已由 DEC-024 确认；state 契约及已确认回退落点见 SPEC-003 |
 | project_nodes | id、project_id、kind、stage_id、title、target_date、completed_at、output、position_json | kind 区分项目/客户节点；同项目约束由服务端校验 |
@@ -56,7 +56,7 @@ erDiagram
 | project_status_updates | id、project_id、body、actor_id、created_at | 状态描述按多行原文保存；展示历史与系统审计分开 |
 | project_risks | id、project_id、content、level、resolved_at、resolution、actor_id | 解除必须保留原风险和处理结果 |
 | project_changes | id、project_id、source、content、decision、reason、actor_id | 业务需求变更记录，不代替系统更新记录 |
-| schedule_changes | id、project_id、old_date、new_date、reason、actor_id、created_at | 有效改期与补充说明的最终建模待 Q-005；说明不得清空当前计划 |
+| schedule_changes | id、project_id、kind、old_date、new_date、reason、measures、actor_id、created_at | kind 区分有效改期与补充说明；说明记录日期可空，改期记录具备有效目标；当前计划与记录同事务，纠错审计独立留痕，行为见 SPEC-004 |
 | project_checks | id、project_id、actor_id、checked_at、conclusion | 主动确认检查，与浏览访问分开 |
 | audit_log | id、actor_id、action、entity_type、entity_id、before_json、after_json、request_id、created_at | 与业务同事务；历史保留显示名称；应用界面不提供无痕修改 |
 | user_preferences | user_id、scope、value_json、updated_at | user_id + scope 唯一；只保存个人配置 |
@@ -75,6 +75,10 @@ project_responsibilities 是服务器新增授权关系，不等于原业务 PM�
 
 项目生命周期的目标字段增量：started_on/closed_on 为业务 DATE，resume_status 保存暂缓前提案/进行中状态，pre_close_status 保存结案前状态；从暂缓结案再重开时仍需保留 resume_status。closure_type 区分正常完成/中途终止，说明和遗留事项记录本次结案；再次重开及结案前的旧值写入追加审计，不能覆盖历史。字段名和物理结构仍待完整反推收敛，动作规则唯一正文为 SPEC-003。
 
+交期模型增量（DEC-030）：original_due_date/current_due_date 为可空 DATE，manual_delayed 独立保存旧人工标记；当前超期与天数按 SPEC-004 派生，不与人工值共用字段。closure_due_date 保存本次结案的有效计划快照，与 closed_on 推导历史结果；重开及再次结案的旧快照保留追加审计。schedule_changes.kind 区分改期和说明，方向由日期关系派生；字段名及物理约束仍待逐字段反推时统一。本段定义数据表达，规则正文仅维护于 SPEC-004。
+
+旧 dueDate 与 delays 不能机械映射成完整历史原始计划：dueDate 曾可直接编辑，末条记录也可能只有说明。迁移应保留原字段和记录，预检展示可证明的日期及不确定项，由人核对原始/当前计划；禁止用首次导入日期补造计划、按旧数组长度制造延期次数或把人工 isDelayed 转成自动超期事实。
+
 ## 3. 基础资料与遗漏防护
 
 客户、工程师、芯片、产品线、APP、标签、分组和企业信息都在迁移范围内；项目中的 ODM 工厂可按客户类型关联，是否允许多客户待确认。
@@ -86,7 +90,7 @@ project_responsibilities 是服务器新增授权关系，不等于原业务 PM�
 ## 4. 数据约束
 
 1. ID 由服务器生成，API 对 ID 的序列化采用统一约定，避免 JavaScript 大整数精度问题。
-2. 数据库存业务时间点使用统一 UTC；业务日期使用 DATE。展示与逾期按待确认的公司时区解释。
+2. 数据库存业务时间点使用统一 UTC；业务日期使用 DATE。业务日期展示与超期计算按 SPEC-004 已确认的 Asia/Shanghai 解释。
 3. 当前逾期、当前阶段、整体进度优先由统一规则派生，避免多个字段互相矛盾。基于“今天”的结果必须随日期重新计算。
 4. 业务记录和审计同事务；并发通过 project.version 条件更新。具体子对象冲突粒度先按项目统一，后续有证据再细化。
 5. 基础资料有引用时优先停用，不级联删除项目历史。项目软删除不清除审计和报告快照。
@@ -99,4 +103,4 @@ project_responsibilities 是服务器新增授权关系，不等于原业务 PM�
 
 人员和芯片原本按名称引用，必须保存来源名称与映射结果。无法确定的引用进入待处理清单，不自动丢弃。旧历史的操作人或时间无法可靠证明时标记为 legacy/来源时间，不伪造为当前账号操作。
 
-本文不提供可直接执行的 DDL。待逐字段反推及 Q-005/006/007 等剩余关键语义明确后生成版本化迁移文件，并执行升级与恢复演练。
+本文不提供可直接执行的 DDL。待逐字段反推及 Q-006/007 等剩余关键语义明确后生成版本化迁移文件，并执行升级与恢复演练。
