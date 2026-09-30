@@ -1,6 +1,6 @@
 # 系统架构
 
-版本：D0.4；日期：2026-09-29；状态：技术路线已确定，业务规则仍待讨论，未实现。
+版本：D0.19；日期：2026-09-30；状态：技术路线已确定，业务规则仍待讨论，未实现。
 
 ## 1. 现状与约束
 
@@ -38,13 +38,15 @@ API 与前端同站点，通过 Nginx HTTPS 入口访问，便于会话与 CSRF 
 | 基础资料 | maintainReference、deactivateReference | 重名匹配、引用保护、历史名称兼容 | 客户、工程师、芯片等 |
 | 会议与报告 | saveMeeting、createReport、getReport | 项目范围、快照、字段规则、输出一致性 | meetings、reports 等 |
 | 个人工作状态 | savePreferences、saveDraft、restoreContext | 按用户隔离、恢复、过期和清理 | preferences、drafts |
-| 数据维护 | previewImport、commitImport、restoreDeleted、runBackup | 映射预检、导入事务、维护互斥、恢复 | import_batches、jobs 等 |
+| 数据维护 | previewImport、saveImportCorrection、commitReviewedImport、restoreDeleted、runBackup | 持久待审区、映射预检、版本保护、导入事务、维护互斥、恢复 | import_batches、import_items、jobs 等 |
 
 页面和 API 路由仅承担输入转换、调用和结果呈现。核心动作在模块内部完成校验、事务、审计及结果构造。
 
 跨模块不得直接修改对方表。导入可通过各模块提供的批量写入能力，在同一应用的统一工作单元内协调事务；不能绕过业务约束直接灌表。审计是公共内部能力，写入必须参与发起动作的同一事务。
 
 模块数量不是质量指标。不要为每个字段或单次调用创建接口、工厂和转发层；也不要把所有职责挤在一个无边界大文件。
+
+独立卡片审查页面仍由数据维护模块承接，不另建审批服务。待审数据持久化于 MySQL，正式查询仅消费已提交业务表；批量通过动作协调项目及基础资料模块与审计，复用权限、规则和事务能力。行为契约见 SPEC-009，按 DEC-033 逐项目短事务允许部分成功，保留各项提交结果用于恢复；数据量大不等于需要排队，后台执行与 Redis 仍须测量依据。
 
 ## 5. 核心保存链路
 

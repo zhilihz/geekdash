@@ -1,6 +1,6 @@
 # 数据模型与实体关系（ERD）
 
-版本：D0.17；日期：2026-09-30；状态：候选逻辑模型，待依据真实备份反推修订，未创建表、未执行迁移。
+版本：D0.19；日期：2026-09-30；状态：候选逻辑模型，待依据真实备份反推修订，未创建表、未执行迁移。
 
 本文描述服务器版目标。现有 V1.050 是 JSON 对象与浏览器存储，不具备本文关系约束。待决业务规则可能改变字段及表结构。
 
@@ -35,6 +35,9 @@ erDiagram
     PROJECTS ||--o{ MEETING_PROJECTS : discussed
     USERS ||--o{ REPORTS : creates
     USERS ||--o{ IMPORT_BATCHES : imports
+    IMPORT_BATCHES ||--o{ IMPORT_ITEMS : stages
+    USERS o|--o{ IMPORT_ITEMS : reviews
+    PROJECTS o|--o{ IMPORT_ITEMS : targets
     USERS o|--o{ JOBS : requests
 ```
 
@@ -57,14 +60,15 @@ erDiagram
 | project_risks | id、project_id、content、level、resolved_at、resolution、actor_id | 解除必须保留原风险和处理结果 |
 | project_changes | id、project_id、source、content、decision、reason、actor_id | 业务需求变更记录，不代替系统更新记录 |
 | schedule_changes | id、project_id、kind、old_date、new_date、reason、measures、actor_id、created_at | kind 区分有效改期与补充说明；说明记录日期可空，改期记录具备有效目标；当前计划与记录同事务，纠错审计独立留痕，行为见 SPEC-004 |
-| project_checks | id、project_id、actor_id、checked_at、conclusion | 主动确认检查，与浏览访问分开 |
+| project_checks | id、project_id、actor_id、checked_at、conclusion、note、observed_version、result_version | 追加记录；业务周期按 SPEC-005 解释；操作者及时间来自服务器，版本表达检查依据及后续更新 |
 | audit_log | id、actor_id、action、entity_type、entity_id、before_json、after_json、request_id、created_at | 与业务同事务；历史保留显示名称；应用界面不提供无痕修改 |
 | user_preferences | user_id、scope、value_json、updated_at | user_id + scope 唯一；只保存个人配置 |
 | project_drafts | id、user_id、project_id、client_draft_id、base_version、payload_json、updated_at | 新建草稿 project_id 可空；同用户/草稿键唯一 |
 | meetings | id、title、state、started_at、ended_at、minutes、created_by | 状态变化由服务器保存；计时不依赖某浏览器持续运行 |
 | meeting_projects | meeting_id、project_id | 会议项目范围；是否固定讨论时快照待确认 |
 | reports | id、created_by、scope_json、snapshot_json、data_version、status、artifact_ref、created_at | 固定所选范围和输出依据；结果下载需认证 |
-| import_batches | id、source_hash、schema_version、mapping_json、result_json、created_by、status | 预检与提交可追踪；原始数据来源明确 |
+| import_batches | id、source_hash、schema_version、mapping_json、result_json、created_by、status、created_at | 独立待审批次，来源明确，保存进度和汇总结果 |
+| import_items | id、batch_id、source_key、target_project_id、expected_project_version、review_version、source_payload_json、corrected_payload_json、validation_json、selected_by、reviewed_by、reviewed_at、status、result_json | 待审原值与纠正值分开；审查版本防止覆盖待审修正；目标项目可空，新增提交成功后记录实际 ID；字段为目标候选，精确结构待反推 |
 | jobs | id、type、requested_by、business_key、status、attempts、result_ref、error_code、created_at | 仅当确定异步任务时实施；business_key 用于必要的去重 |
 
 project_responsibilities 是服务器新增授权关系，不等于原业务 PM、工程师及 project_people；不能按旧名称自动授予权限。新项目 created_by 来自登录账号；历史创建人未知时保留未知与来源，不能伪造。在线编辑心跳是短期运行态，首版不建持久业务表，不推进项目 version。
@@ -78,6 +82,8 @@ project_responsibilities 是服务器新增授权关系，不等于原业务 PM�
 交期模型增量（DEC-030）：original_due_date/current_due_date 为可空 DATE，manual_delayed 独立保存旧人工标记；当前超期与天数按 SPEC-004 派生，不与人工值共用字段。closure_due_date 保存本次结案的有效计划快照，与 closed_on 推导历史结果；重开及再次结案的旧快照保留追加审计。schedule_changes.kind 区分改期和说明，方向由日期关系派生；字段名及物理约束仍待逐字段反推时统一。本段定义数据表达，规则正文仅维护于 SPEC-004。
 
 旧 dueDate 与 delays 不能机械映射成完整历史原始计划：dueDate 曾可直接编辑，末条记录也可能只有说明。迁移应保留原字段和记录，预检展示可证明的日期及不确定项，由人核对原始/当前计划；禁止用首次导入日期补造计划、按旧数组长度制造延期次数或把人工 isDelayed 转成自动超期事实。
+
+检查数据表达按 DEC-031 补充；旧 lastCheckAt 只保留 legacy 来源，不伪造可信检查人。独立导入审查的 import_items 为服务器新增目标实体，不能冒充旧备份已有表；原始与修正内容、目标版本和提交结果支持 SPEC-009，待审数据持久化并纳入完整备份。来源 ID 仅用于映射，不能机械当作正式 ID。负责人映射、共享待审项的修改权限仍按 Q-015/016 收敛；批量部分成功按 DEC-033/SPEC-009，各待审项与正式结果同事务记录，批次汇总可由逐项结果得出；物理字段和状态枚举尚未锁定。
 
 ## 3. 基础资料与遗漏防护
 
@@ -99,8 +105,8 @@ project_responsibilities 是服务器新增授权关系，不等于原业务 PM�
 
 ## 5. 旧数据迁移
 
-旧 JSON → 校验 schema 和语义 ID → 基础资料映射 → 异常阶段/日期报告 → 用户确认冲突策略 → 事务写入 → 新请求读取并对账 → 看板、详情和导出核对。
+旧 JSON → 校验 schema 和语义 ID → 基础资料映射 → 异常阶段/日期报告 → 独立卡片审查及纠正 → 选择通过项并确认保存 → 事务写入 → 新请求读取并对账 → 看板、详情和导出核对。
 
 人员和芯片原本按名称引用，必须保存来源名称与映射结果。无法确定的引用进入待处理清单，不自动丢弃。旧历史的操作人或时间无法可靠证明时标记为 legacy/来源时间，不伪造为当前账号操作。
 
-本文不提供可直接执行的 DDL。待逐字段反推及 Q-006/007 等剩余关键语义明确后生成版本化迁移文件，并执行升级与恢复演练。
+本文不提供可直接执行的 DDL。待逐字段反推及 Q-007/015/022 等剩余关键语义明确后生成版本化迁移文件，并执行升级与恢复演练。
