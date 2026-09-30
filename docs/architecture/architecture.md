@@ -1,6 +1,6 @@
 # 系统架构
 
-版本：D0.27；日期：2026-09-30；状态：测试部署拓扑已确认，服务器应用未实现。
+版本：D0.28；日期：2026-09-30；状态：测试部署拓扑已确认，服务器应用未实现。
 
 ## 1. 现状与约束
 
@@ -40,8 +40,8 @@ API 与前端同站点，通过 Nginx HTTPS 入口访问，便于会话与 CSRF 
 | 项目生命周期 | createProject、completeStage、reschedule、closeProject、joinResponsibility、leaveResponsibility | 项目授权、状态规则、日期、风险、节点、并发、事务和审计 | projects 及业务子表 |
 | 基础资料 | maintainReference、deactivateReference | 重名匹配、引用保护、历史名称兼容 | 客户、工程师、芯片等 |
 | 会议与报告 | saveMeeting、createReport、getReport | 项目范围、快照、字段规则、输出一致性 | meetings、reports 等 |
-| 个人工作状态 | savePreferences、saveDraft、restoreContext | 按用户隔离、恢复、过期和清理 | preferences、drafts |
-| 数据维护 | previewImport、saveImportCorrection、commitReviewedImport、restoreDeleted、runBackup | 持久待审区、映射预检、版本保护、导入事务、维护互斥、恢复 | import_batches、import_items、jobs 等 |
+| 个人工作状态 | savePreferences、saveDraft、restoreContext | 按用户隔离、恢复、过期和清理 | user_preferences、project_drafts |
+| 数据维护 | previewImport、saveImportCorrection、commitReviewedImport、runBackup | 持久待审区、映射预检、版本保护、导入事务、维护互斥、恢复 | import_batches、import_items；首版不建 jobs |
 
 页面和 API 路由仅承担输入转换、调用和结果呈现。核心动作在模块内部完成校验、事务、审计及结果构造。
 
@@ -80,8 +80,8 @@ SSE 在事务提交后发送资源 ID、版本与提交标识。列表可刷新�
 ## 6. 状态与缓存
 
 - MySQL 是共享业务、会话、审计的持久来源。
-- 当前用户的页面偏好可在浏览器快速恢复，同时保存到用户偏好表。
-- 草稿不自动变成正式数据；提交时重新校验项目版本。
+- 个人偏好、设备阅读上下文由 user_preferences 分范围持久化；project_drafts 保存本人未提交底稿，projects 保存正式业务。恢复顺序、同步节流、多标签冲突与提交粒度统一按 SPEC-002/007，不在页面另写规则。
+- 当前首版数据库施工设计为 34 表，完整字段、约束及合并取舍只维护于 [ERD 第 3～5 节](../data/ERD.md#3-首版完整物理字段字典施工设计未建表)；command_receipts 与业务审计同事务，schema_migrations 登记实际结构升级。真实 MySQL 性能待验收。
 - 初期业务缓存优先使用登录期间的内存缓存，避免把全部敏感数据长期留在浏览器。需要持久缓存时单独定范围、期限和清理规则。
 - 退出、账号切换、会话撤销时清理相关缓存；静态文件可按内容哈希长期缓存。
 - 不在浏览器存储里放可读的长期登录令牌。

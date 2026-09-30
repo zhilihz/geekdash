@@ -1,71 +1,82 @@
-%% 派生自 docs/data/ERD.md；勿独立修改
 erDiagram
-    USERS ||--o{ SESSIONS : owns
-    USERS ||--o| SYSTEM_CONFIGURATION : maintains
-    USERS ||--o{ USER_PREFERENCES : owns
-    USERS ||--o{ PROJECT_DRAFTS : owns
-    USERS ||--o{ AUDIT_LOG : acts
-    USERS ||--o{ PROJECT_RESPONSIBILITIES : responsible
-    PROJECTS ||--o{ PROJECT_RESPONSIBILITIES : managed_by
+    USERS ||--o{ SESSIONS : user
+    USERS ||--o| SYSTEM_CONFIGURATION : maintenance_user
+    USERS ||--o| SYSTEM_CONFIGURATION : updated_by
+    USERS ||--o{ CHECK_RULE_REVISIONS : saved_by
+    CUSTOMERS o|--o{ PROJECTS : customer
+    CUSTOMERS o|--o{ PROJECTS : odm_customer
+    PRODUCT_LINES o|--o{ PROJECTS : product_line
+    APPS o|--o{ PROJECTS : app
+    PROJECT_GROUPS o|--o{ PROJECTS : group
+    CHECK_RULE_REVISIONS o|--o{ PROJECTS : first_check_rule_version
     USERS o|--o{ PROJECTS : created_by
-    CUSTOMERS o|--o{ PROJECTS : commissions
-    PROJECTS ||--o{ PROJECT_STAGES : contains
-    PROJECTS ||--o{ PROJECT_NODES : contains
-    PRODUCT_LINES o|--o{ PROJECTS : groups
-    APPS o|--o{ PROJECTS : used_by
-    PROJECT_GROUPS o|--o{ PROJECTS : groups
-    CUSTOMERS o|--o{ PROJECTS : odm_factory
-    PROJECTS ||--o{ LEGACY_PROJECT_HISTORY : preserves
-    PROJECTS ||--o{ PROJECT_VIEW_NOTES : annotates
-    PROJECTS ||--o{ PROJECT_TAGS : classified
-    TAGS ||--o{ PROJECT_TAGS : referenced
-    CUSTOMERS ||--o{ CUSTOMER_TAGS : classified
-    TAGS ||--o{ CUSTOMER_TAGS : referenced
-    PROJECTS ||--o{ PROJECT_PEOPLE : assigns
-    ENGINEERS ||--o{ PROJECT_PEOPLE : participates
-    PROJECTS ||--o{ PROJECT_CHIPS : uses
-    CHIPS ||--o{ PROJECT_CHIPS : referenced
-    PROJECTS ||--o{ PROJECT_STATUS_UPDATES : records
-    PROJECTS ||--o{ PROJECT_RISKS : tracks
-    PROJECTS ||--o{ PROJECT_CHANGES : records
-    PROJECTS ||--o{ SCHEDULE_CHANGES : reschedules
-    PROJECTS ||--o{ PROJECT_CHECKS : checks
-    PROJECTS ||--o{ PROJECT_DRAFTS : drafts
-    MEETINGS ||--o{ MEETING_PROJECTS : covers
-    PROJECTS ||--o{ MEETING_PROJECTS : discussed
-    USERS ||--o{ REPORTS : creates
-    USERS ||--o{ IMPORT_BATCHES : imports
-    USERS ||--o{ IMPORT_BATCHES : handles
-    IMPORT_BATCHES ||--o{ IMPORT_ITEMS : stages
-    USERS o|--o{ IMPORT_ITEMS : reviews
-    PROJECTS o|--o{ IMPORT_ITEMS : targets
-    USERS o|--o{ JOBS : requests
-    USERS ||--o{ PROJECT_CHECKS : checks
-    USERS ||--o{ CHECK_RULE_REVISIONS : saves
+    IMPORT_ITEMS o|--o{ PROJECTS : source_import_item
+    PROJECTS ||--o{ PROJECT_RESPONSIBILITIES : project
+    USERS ||--o{ PROJECT_RESPONSIBILITIES : user
+    PROJECTS ||--o{ PROJECT_STAGES : project
+    PROJECTS ||--o{ PROJECT_NODES : project
+    PROJECT_STAGES o|--o{ PROJECT_NODES : stage
+    PROJECT_NODES o|--o{ PROJECT_NODES : previous_node
+    PROJECT_NODES o|--o{ PROJECT_NODES : next_node
+    PROJECTS ||--o{ PROJECT_PEOPLE : project
+    ENGINEERS ||--o{ PROJECT_PEOPLE : engineer
+    PROJECTS ||--o{ PROJECT_CHIPS : project
+    CHIPS ||--o{ PROJECT_CHIPS : chip
+    PROJECTS ||--o{ PROJECT_TAGS : project
+    TAGS ||--o{ PROJECT_TAGS : tag
+    CUSTOMERS ||--o{ CUSTOMER_TAGS : customer
+    TAGS ||--o{ CUSTOMER_TAGS : tag
+    PROJECTS ||--o{ LEGACY_PROJECT_HISTORY : project
+    IMPORT_ITEMS ||--o{ LEGACY_PROJECT_HISTORY : source_import_item
+    PROJECTS ||--o{ PROJECT_RISKS : project
+    USERS o|--o{ PROJECT_RISKS : actor
+    PROJECTS ||--o{ PROJECT_CHANGES : project
+    USERS o|--o{ PROJECT_CHANGES : actor
+    PROJECTS ||--o{ SCHEDULE_CHANGES : project
+    USERS o|--o{ SCHEDULE_CHANGES : actor
+    PROJECTS ||--o{ PROJECT_CHECKS : project
+    USERS ||--o{ PROJECT_CHECKS : actor
     CHECK_RULE_REVISIONS ||--o{ PROJECT_CHECKS : rule_version
-    USERS o|--o{ PROJECT_VIEW_NOTES : updates
-    USERS o|--o{ FEEDBACK_ENTRIES : submits
-    IMPORT_ITEMS o|--o{ PROJECTS : source_of
-    IMPORT_ITEMS o|--o{ LEGACY_PROJECT_HISTORY : source_of
-    IMPORT_ITEMS o|--o{ FEEDBACK_ENTRIES : source_of
+    USERS o|--o{ AUDIT_LOG : actor
+    PROJECTS o|--o{ AUDIT_LOG : project
+    USERS ||--o{ USER_PREFERENCES : user
+    USERS ||--o{ PROJECT_DRAFTS : user
+    PROJECTS o|--o{ PROJECT_DRAFTS : project
+    USERS ||--o{ MEETINGS : created_by
+    USERS ||--o{ REPORTS : created_by
+    MEETINGS o|--o{ REPORTS : meeting
+    USERS ||--o{ IMPORT_BATCHES : created_by
+    USERS ||--o{ IMPORT_BATCHES : current_handler
+    IMPORT_BATCHES ||--o{ IMPORT_ITEMS : batch
+    PROJECTS o|--o{ IMPORT_ITEMS : target_project
+    USERS o|--o{ IMPORT_ITEMS : corrected_by
+    USERS o|--o{ IMPORT_ITEMS : reviewed_by
+    USERS o|--o{ FEEDBACK_ENTRIES : created_by
+    IMPORT_ITEMS o|--o{ FEEDBACK_ENTRIES : source_import_item
+    USERS ||--o{ COMMAND_RECEIPTS : actor
     USERS {
         ID id PK
         string login_name UK
-        string display_name
-        boolean enabled
+        string password_hash
+        boolean must_change_password
         number version
+    }
+    SESSIONS {
+        string token_hash PK
+        ID user_id FK
     }
     SYSTEM_CONFIGURATION {
         ID id PK
         ID maintenance_user_id FK
+        string full_name
         number version
+        ID updated_by FK
     }
-    SESSIONS {
-        ID id PK
-        ID user_id FK
-        string token_hash
-        datetime expires_at
-        datetime revoked_at
+    CHECK_RULE_REVISIONS {
+        ID version PK
+        number deadline_weekday
+        date effective_week
+        ID saved_by FK
     }
     PROJECTS {
         ID id PK
@@ -77,10 +88,8 @@ erDiagram
         ID group_id FK
         ID created_by FK
         ID source_import_item_id FK
-        string status
+        ID first_check_rule_version FK
         number version
-        date started_on
-        date current_due_date
     }
     PROJECT_RESPONSIBILITIES {
         ID project_id PK, FK
@@ -92,224 +101,170 @@ erDiagram
         ID project_id FK
         string stage_code
         string state
-        date started_on
-        date completed_on
     }
     PROJECT_NODES {
         ID id PK
         ID project_id FK
+        string kind
         ID stage_id FK
         ID previous_node_id FK
         ID next_node_id FK
-        string kind
-        string title
     }
     PROJECT_PEOPLE {
         ID project_id PK, FK
         ID engineer_id PK, FK
         string role PK
     }
-    ENGINEERS {
-        ID id PK
-        string name
-        string role
-        boolean enabled
-    }
     CUSTOMERS {
         ID id PK
         string name
         string contact
-        string background
-        boolean enabled
+        number version
+    }
+    ENGINEERS {
+        ID id PK
+        string name
+        string role
+        number version
     }
     PRODUCT_LINES {
         ID id PK
         string name
         boolean enabled
+        number version
     }
     APPS {
         ID id PK
         string name
-        string version
-        string desc
-        boolean enabled
+        string app_version
+        number version
     }
     PROJECT_GROUPS {
         ID id PK
         string name
         boolean enabled
-    }
-    CHIPS {
-        ID id PK
-        string name
-        string originalModel
-        string manufacturer
-        string firmwareVersion
-        boolean enabled
+        number version
     }
     TAGS {
         ID id PK
         string name
         boolean enabled
+        number version
+    }
+    CHIPS {
+        ID id PK
+        string name
+        string original_model
+        number version
     }
     PROJECT_CHIPS {
         ID project_id PK, FK
         ID chip_id PK, FK
+        number sort_order
     }
     PROJECT_TAGS {
         ID project_id PK, FK
         ID tag_id PK, FK
+        number sort_order
     }
     CUSTOMER_TAGS {
         ID customer_id PK, FK
         ID tag_id PK, FK
-    }
-    PROJECT_STATUS_UPDATES {
-        ID id PK
-        ID project_id FK
-        ID actor_id FK
-        string body
-        datetime created_at
+        number sort_order
     }
     LEGACY_PROJECT_HISTORY {
         ID id PK
         ID project_id FK
         ID source_import_item_id FK
-        number source_sequence
-        string source_date_text
-        string body
-    }
-    PROJECT_VIEW_NOTES {
-        ID project_id PK, FK
-        string view_kind PK
-        string body
-        ID updated_by FK
-        number version
     }
     PROJECT_RISKS {
         ID id PK
         ID project_id FK
         string content
-        string level
-        boolean resolved
-        string resolution
+        ID actor_id FK
     }
     PROJECT_CHANGES {
         ID id PK
         ID project_id FK
         string source
-        string content
-        string decision
-        string reason
+        ID actor_id FK
     }
     SCHEDULE_CHANGES {
         ID id PK
         ID project_id FK
-        ID actor_id FK
         string kind
-        date old_date
-        date new_date
-        string reason
+        ID actor_id FK
     }
     PROJECT_CHECKS {
         ID id PK
         ID project_id FK
         ID actor_id FK
-        number rule_version FK
-        datetime checked_at
-        string conclusion
-        number observed_version
-        number result_version
-    }
-    CHECK_RULE_REVISIONS {
-        ID id PK
-        number version UK
-        number deadline_weekday
-        date effective_week
-        datetime saved_at
-        ID saved_by FK
+        ID rule_version FK
     }
     AUDIT_LOG {
         ID id PK
         ID actor_id FK
-        string entity_type
-        ID entity_id
-        string action
-        json before_json
-        json after_json
+        string actor_display_name
+        ID project_id FK
     }
     USER_PREFERENCES {
         ID user_id PK, FK
+        string device_key PK
         string scope PK
-        json value_json
-        datetime updated_at
+        number version
     }
     PROJECT_DRAFTS {
         ID id PK
         ID user_id FK
         ID project_id FK
-        number base_version
-        json payload_json
+        string client_draft_id
+        ID base_version
+        number draft_version
+        string state
     }
     MEETINGS {
         ID id PK
         string title
         string state
-        datetime started_at
-        datetime ended_at
-        number elapsed_ms
         ID created_by FK
-    }
-    MEETING_PROJECTS {
-        ID meeting_id PK, FK
-        ID project_id PK, FK
+        number version
     }
     REPORTS {
         ID id PK
         ID created_by FK
-        json scope_json
-        json snapshot_json
-        string artifact_ref
+        ID meeting_id FK
     }
     IMPORT_BATCHES {
         ID id PK
+        string source_hash
+        string source_file_ref
         ID created_by FK
         ID current_handler_id FK
         number version
-        string status
-        string source_hash
     }
     IMPORT_ITEMS {
         ID id PK
         ID batch_id FK
+        string item_kind
         ID target_project_id FK
+        ID corrected_by FK
         ID reviewed_by FK
-        number expected_project_version
-        number review_version
-        json source_payload_json
-        json corrected_payload_json
-        string status
     }
     FEEDBACK_ENTRIES {
         ID id PK
+        string type
+        string author_text
         ID created_by FK
         ID source_import_item_id FK
-        string author_text
-        date reported_on
-        string content
-    }
-    COMPANY_PROFILE {
-        ID id PK
-        string full_name
-        string short_name
-        string manager_text
-        string name_prefix
         number version
     }
-    JOBS {
-        ID id PK
-        ID requested_by FK
-        string type
-        string status
-        string business_key
+    COMMAND_RECEIPTS {
+        ID actor_id PK, FK
+        string command_scope PK
+        string idempotency_key PK
+    }
+    SCHEMA_MIGRATIONS {
+        string version PK
+        string checksum
+        datetime applied_at
     }

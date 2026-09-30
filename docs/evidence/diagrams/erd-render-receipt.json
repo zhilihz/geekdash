@@ -1,38 +1,52 @@
 {
   "diagram_type": "ERD",
   "source": "docs/data/ERD.md 第2节 Mermaid erDiagram",
-  "source_sha256": "d480074f17d43936b0ec3d22043dc1d7a3659c60618cc9b49e0752983811ec2a",
-  "model_status": "候选逻辑模型，未创建MySQL表；图中关键字段，完整字典见ERD第3节",
+  "source_sha256": "e36ff9ffa657dd399903ecf0f8d4fdbb753a6d84ff470d5e0888c478a939ddbb",
+  "model_status": "首版施工设计，34表/313列；未建MySQL表、未验证数据库或性能；图中只列关键字段，完整字典见ERD第3节",
   "artifacts": [
     {
       "name": "geekdash-core-erd",
       "entity_count": 8,
       "relationship_count": 9,
-      "svg_sha256": "bfdee459b4dabc4d00cba51a7c66a54dee643a3891e643165847a80133ae056b",
-      "png_sha256": "d20b2e3761d49339d766bd5a0dfe3939ce76c72fcc55f6c258faccacbccd7751",
+      "svg_sha256": "dca817b061e9ddd1d8e1c1e25f453a9447a18088f50b300c467690fc01bd11ea",
+      "png_sha256": "06223afef4d6ef6fe60fde4d84e0fa273e68cd8163460999f687122fe80d3fcd",
+      "dot_sha256": "1cd867b42372085c4222181fc5a184284f5dec2a75c168f8d3aacdaaffcf78fd",
       "render_messages": [],
-      "png_bytes": 331310
+      "png_bytes": 103463,
+      "png_width_limit": 2400
     },
     {
       "name": "geekdash-target-erd",
-      "entity_count": 37,
-      "relationship_count": 48,
-      "svg_sha256": "03fd1ab0297157851a4b7c48e4533c45dc8ce78bcaab0abcc5cb3189c9f85292",
-      "png_sha256": "aae6ec18223b63c1686fa4c710d1fc122686203faefa3efbe141a6d4da2fb103",
+      "entity_count": 34,
+      "relationship_count": 55,
+      "svg_sha256": "f4e29a01c37dfd16dde9cdbbe8dac6388bddb6117ba9c52cd0dd92d568293665",
+      "png_sha256": "4a0d2b2624a8b6720ce66a05089382d3af2976b6b30d0347a5a4082818cfc07e",
+      "dot_sha256": "d4a83e6c0827927d5b0413d5337d8f4312120bcea9f5b4ee1b9933a3b2363ae3",
       "render_messages": [],
-      "png_bytes": 1893418
+      "png_bytes": 637862,
+      "png_width_limit": 3600
     }
   ],
-  "renderer": "Graphviz 14.1.3",
+  "renderer": "Graphviz 14.1.3 (@viz-js/viz 3.25.0)",
   "verification_date": "2026-09-30",
-  "render_result": "成功，零渲染错误及警告",
-  "visual_review": "核心与完整 PNG 已查看；完整关系图需 SVG 放大阅读，不代表应用或数据库验收",
-  "source_hash_convention": "Mermaid 块去首尾空白、行尾统一 LF 后的 UTF-8 SHA256",
+  "render_result": "成功；渲染消息逐图记录",
+  "visual_review": "本轮核心及完整PNG已查看，表框/键/连线可见；完整关系通过SVG放大阅读；非数据库或应用验收",
+  "source_hash_convention": "Mermaid块去首尾空白、行尾统一LF的UTF-8 SHA256",
   "documentation_checks": {
     "markdown_files": 15,
-    "local_links": 60,
-    "erd_entities": 37,
-    "erd_relations": 48,
-    "scope": "链接目标、表格、围栏、编号及实体引用、源和派生文件哈希；非应用验收"
+    "local_links": 77,
+    "evidence_json_files": 5,
+    "tables": 34,
+    "columns": 313,
+    "fk_relationships": 55,
+    "field_review_coverage": 313,
+    "registered_ids": {
+      "REQ": 39,
+      "SPEC": 19,
+      "TEST": 33,
+      "DEC": 53
+    },
+    "errors": [],
+    "scope": "静态字段/主外键/类型/图源对照、文档引用及派生哈希；非SQL/浏览器/性能验收"
   }
 }
