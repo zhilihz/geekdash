@@ -1,0 +1,487 @@
+{
+  "verification_date": "2026-09-30",
+  "scope": "只读结构核查；不是业务正确性、全量性或迁移验收",
+  "redaction": "不包含项目、人员、客户名称、业务原文、来源ID或原始备份内容",
+  "backup": {
+    "filename": "项目数据备份_2026-09-01_18-49-12.bak",
+    "sha256": "e7d454cd13bc1fdb998a281308dac8bb427722a69f7514f42b9b47c90be0d1fc",
+    "bytes": 62925,
+    "schema_version": 2,
+    "app_version": "V1.044",
+    "top_level_keys": [
+      "appVersion",
+      "apps",
+      "chips",
+      "company",
+      "customers",
+      "engineers",
+      "exportedAt",
+      "groups",
+      "preferences",
+      "productLines",
+      "projects",
+      "tags",
+      "version"
+    ],
+    "collection_counts": {
+      "projects": 27,
+      "customers": 0,
+      "engineers": 0,
+      "productLines": 0,
+      "apps": 0,
+      "tags": 0,
+      "groups": 3,
+      "chips": 13
+    },
+    "project_fields": {
+      "app": {
+        "present_count": 27,
+        "types": [
+          "string"
+        ]
+      },
+      "changes": {
+        "present_count": 27,
+        "types": [
+          "array"
+        ]
+      },
+      "chips": {
+        "present_count": 27,
+        "types": [
+          "array"
+        ]
+      },
+      "customer": {
+        "present_count": 27,
+        "types": [
+          "string"
+        ]
+      },
+      "customerNodes": {
+        "present_count": 27,
+        "types": [
+          "array"
+        ]
+      },
+      "dueDate": {
+        "present_count": 27,
+        "types": [
+          "string"
+        ]
+      },
+      "filingDate": {
+        "present_count": 27,
+        "types": [
+          "string"
+        ]
+      },
+      "hwOwner": {
+        "present_count": 27,
+        "types": [
+          "string"
+        ]
+      },
+      "id": {
+        "present_count": 27,
+        "types": [
+          "integer"
+        ]
+      },
+      "lastCheckAt": {
+        "present_count": 27,
+        "types": [
+          "integer"
+        ]
+      },
+      "marketExpectation": {
+        "present_count": 27,
+        "types": [
+          "string"
+        ]
+      },
+      "name": {
+        "present_count": 27,
+        "types": [
+          "string"
+        ]
+      },
+      "nodes": {
+        "present_count": 27,
+        "types": [
+          "array"
+        ]
+      },
+      "odmFactory": {
+        "present_count": 27,
+        "types": [
+          "string"
+        ]
+      },
+      "participants": {
+        "present_count": 27,
+        "types": [
+          "array"
+        ]
+      },
+      "pm": {
+        "present_count": 27,
+        "types": [
+          "string"
+        ]
+      },
+      "priority": {
+        "present_count": 27,
+        "types": [
+          "string"
+        ]
+      },
+      "productLine": {
+        "present_count": 27,
+        "types": [
+          "string"
+        ]
+      },
+      "proposalDate": {
+        "present_count": 27,
+        "types": [
+          "string"
+        ]
+      },
+      "risks": {
+        "present_count": 27,
+        "types": [
+          "array"
+        ]
+      },
+      "signal": {
+        "present_count": 27,
+        "types": [
+          "string"
+        ]
+      },
+      "signalNote": {
+        "present_count": 27,
+        "types": [
+          "string"
+        ]
+      },
+      "stages": {
+        "present_count": 27,
+        "types": [
+          "array"
+        ]
+      },
+      "startDate": {
+        "present_count": 27,
+        "types": [
+          "string"
+        ]
+      },
+      "status": {
+        "present_count": 27,
+        "types": [
+          "string"
+        ]
+      },
+      "statusDesc": {
+        "present_count": 27,
+        "types": [
+          "string"
+        ]
+      },
+      "statusHistory": {
+        "present_count": 27,
+        "types": [
+          "array"
+        ]
+      },
+      "swOwner": {
+        "present_count": 27,
+        "types": [
+          "string"
+        ]
+      },
+      "tags": {
+        "present_count": 27,
+        "types": [
+          "array"
+        ]
+      }
+    },
+    "nested_project_arrays": {
+      "changes": {
+        "element_count": 0,
+        "element_types": [],
+        "object_fields": {}
+      },
+      "chips": {
+        "element_count": 0,
+        "element_types": [],
+        "object_fields": {}
+      },
+      "customerNodes": {
+        "element_count": 0,
+        "element_types": [],
+        "object_fields": {}
+      },
+      "nodes": {
+        "element_count": 0,
+        "element_types": [],
+        "object_fields": {}
+      },
+      "participants": {
+        "element_count": 76,
+        "element_types": [
+          "string"
+        ],
+        "object_fields": {}
+      },
+      "risks": {
+        "element_count": 0,
+        "element_types": [],
+        "object_fields": {}
+      },
+      "stages": {
+        "element_count": 189,
+        "element_types": [
+          "object"
+        ],
+        "object_fields": {
+          "days": {
+            "present_count": 189,
+            "types": [
+              "string"
+            ]
+          },
+          "done": {
+            "present_count": 189,
+            "types": [
+              "boolean"
+            ]
+          }
+        }
+      },
+      "statusHistory": {
+        "element_count": 162,
+        "element_types": [
+          "object"
+        ],
+        "object_fields": {
+          "date": {
+            "present_count": 162,
+            "types": [
+              "string"
+            ]
+          },
+          "text": {
+            "present_count": 162,
+            "types": [
+              "string"
+            ]
+          }
+        }
+      },
+      "tags": {
+        "element_count": 0,
+        "element_types": [],
+        "object_fields": {}
+      }
+    },
+    "reference_collections": {
+      "customers": {},
+      "engineers": {},
+      "productLines": {},
+      "apps": {},
+      "tags": {},
+      "groups": {
+        "id": {
+          "present_count": 3,
+          "types": [
+            "integer"
+          ]
+        },
+        "name": {
+          "present_count": 3,
+          "types": [
+            "string"
+          ]
+        }
+      },
+      "chips": {
+        "firmwareVersion": {
+          "present_count": 13,
+          "types": [
+            "string"
+          ]
+        },
+        "id": {
+          "present_count": 13,
+          "types": [
+            "integer"
+          ]
+        },
+        "manufacturer": {
+          "present_count": 13,
+          "types": [
+            "string"
+          ]
+        },
+        "name": {
+          "present_count": 13,
+          "types": [
+            "string"
+          ]
+        },
+        "originalModel": {
+          "present_count": 13,
+          "types": [
+            "string"
+          ]
+        }
+      }
+    },
+    "company_fields": {
+      "fullName": {
+        "present_count": 1,
+        "types": [
+          "string"
+        ]
+      },
+      "manager": {
+        "present_count": 1,
+        "types": [
+          "string"
+        ]
+      },
+      "namePrefix": {
+        "present_count": 1,
+        "types": [
+          "string"
+        ]
+      },
+      "shortName": {
+        "present_count": 1,
+        "types": [
+          "string"
+        ]
+      }
+    },
+    "preference_keys": [
+      "hw_project_board_chipstat_show_node",
+      "hw_project_board_chipstat_show_note",
+      "hw_project_board_display_mode",
+      "hw_project_board_filter_collapsed_default",
+      "hw_project_board_kb_auto_sync",
+      "hw_project_board_meeting_float",
+      "hw_project_board_summary_hidden",
+      "hw_project_board_summary_notes",
+      "hw_project_board_summary_show_node",
+      "hw_project_board_summary_show_note",
+      "hw_project_board_theme",
+      "hw_project_board_welcome_dismissed"
+    ],
+    "summary_note_count": 27,
+    "summary_note_keys_matching_project_ids": 27,
+    "distinct_unresolved_name_counts": {
+      "customer": 8,
+      "productLine": 14,
+      "hwOwner": 5,
+      "swOwner": 8,
+      "pm": 1,
+      "participants": 13,
+      "odmFactory": 4
+    }
+  },
+  "source": {
+    "version": "V1.050",
+    "files": {
+      "chip-statistics.html": "d841d02d18b899960e1a39dad52497e478dc21e907b0504563a1808d9a25e066",
+      "data-manage.html": "a3d15c1caa6a3294c650e0971eb4338ccac1e9a1365a143ea56cc5dec1b3333a",
+      "GeekDash.html": "595b0c9ff9123053b05791cd1301a8f5b51234630f6988f0bb6164f263b9bee5",
+      "project-detail.html": "9f777a6f0224a1f6288f3d162780f15536b1acada8f36e21262383b01490fb6e",
+      "project-status-summary.html": "9a82a85cccff8b13e4283c3f8c033248e25ab5d4f2338302354ccdb56b1a6dd7",
+      "projects-data.js": "a0465a0cd2aac1fad73030fd80d90c06e4196cf9916e0c2990a17fa90453c52f",
+      "settings.html": "52e352c6e709ccde49157de4fb60c7008d60bbad05f78871068269f2064b3e80"
+    },
+    "project_fields_additional_to_backup": [
+      "group",
+      "isProductionMaintenance",
+      "statusDescUpdatedAt",
+      "detailNote",
+      "delays",
+      "flowLinks",
+      "milestones",
+      "isDelayed",
+      "createdAt",
+      "closeReason"
+    ],
+    "backup_preference_whitelist": [
+      "hw_project_board_theme",
+      "hw_project_board_display_mode",
+      "hw_project_board_meeting_float",
+      "hw_project_board_zone_settings",
+      "hw_project_board_activity_settings",
+      "hw_project_board_check_mode",
+      "hw_project_board_check_rule",
+      "hw_project_board_filter_settings",
+      "hw_project_board_filter_collapsed_default",
+      "hw_project_board_welcome_dismissed",
+      "hw_project_board_feedback",
+      "hw_project_board_kb_auto_sync",
+      "hw_project_board_summary_order",
+      "hw_project_board_summary_hidden",
+      "hw_project_board_summary_notes",
+      "hw_project_board_summary_sort",
+      "hw_project_board_summary_show_note",
+      "hw_project_board_summary_show_node",
+      "hw_project_board_chipstat_order",
+      "hw_project_board_chipstat_hidden",
+      "hw_project_board_chipstat_notes",
+      "hw_project_board_chipstat_sort",
+      "hw_project_board_chipstat_show_note",
+      "hw_project_board_chipstat_show_node",
+      "hw_project_board_chipstat_colvis"
+    ],
+    "source_references": {
+      "backup": "projects-data.js:707-787",
+      "nested_normalizers": "projects-data.js:984-1105",
+      "project_save_create": "project-detail.html:3197-3364",
+      "closure_note": "project-detail.html:2083",
+      "libraries": "data-manage.html:889-1456",
+      "summary_notes": "project-status-summary.html:545,618-620",
+      "chipstat_notes": "chip-statistics.html:562,634-636",
+      "node_links": "project-detail.html:2773-2951",
+      "meeting_runtime": "GeekDash.html:3972-3985",
+      "feedback": "settings.html:631-664"
+    }
+  },
+  "limits": [
+    "样本为空的结构仅有源码证据，不证明用户已经录入数据",
+    "旧名称不等于现存外键或登录账号",
+    "缺失阶段实际日期和历史操作者不能补造",
+    "源程序导出排除会议运行态与IndexedDB文件句柄",
+    "未知字段须保留在受控原始导入项并报告，不能静默丢弃"
+  ],
+  "documentation_checks": {
+    "verification_date": "2026-09-30",
+    "result": "通过",
+    "counts": {
+      "markdown_files": 15,
+      "local_link_targets": 56,
+      "tables": 33,
+      "backup_project_field_coverage": 29,
+      "source_additional_project_field_coverage": 10,
+      "source_hashes_checked": 7,
+      "preference_key_coverage": 25
+    },
+    "method": "本地链接目标、表格列数、代码围栏、编号引用、ERD 项目字段/备份白名单覆盖与来源 SHA256 对照",
+    "not_executed": [
+      "应用构建",
+      "浏览器业务验收",
+      "MySQL建表/迁移",
+      "四人并发",
+      "完整备份恢复"
+    ]
+  }
+}
