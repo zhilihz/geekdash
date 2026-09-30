@@ -1,6 +1,6 @@
 # 技术栈基线
 
-版本：D0.3；日期：2026-09-29；状态：服务器版实施基线，尚未构建。
+版本：D0.27；日期：2026-09-30；状态：服务器版实施基线，尚未构建。
 
 ## 1. 已确定的方向
 
@@ -12,10 +12,10 @@
 | 前端构建 | Vite 8 多页面构建 | 编译共享模块、处理静态资源；不引入 Vue、React、Pinia 或前端路由框架 |
 | 后端 | Node.js 24 LTS + TypeScript + Fastify 5 | 一个常驻应用进程，内部按业务划分深模块；REST JSON API，JSON Schema 校验输入 |
 | 数据访问 | mysql2 连接池、参数化 SQL、版本化 SQL 迁移 | 事务在业务模块内统一控制，SQL 封装在模块内部；首版不叠加 ORM |
-| 数据库 | MySQL 8.4 LTS、InnoDB、utf8mb4 | 业务数据、独立用户、会话、操作历史、页面偏好；应用重启后仍可恢复 |
+| 数据库 | 独立 MySQL 8.4 LTS 容器、InnoDB、utf8mb4 | 业务数据、独立用户、会话、操作历史、页面偏好；应用重启后仍可恢复；不复用其他系统数据库实例 |
 | 身份认证 | 服务端会话 + HttpOnly / Secure / SameSite Cookie；密码采用 Argon2id 哈希 | MySQL 保存会话校验信息、期限和撤销状态；写请求增加 CSRF 防护；到期与找回规则另定 |
 | 多人通知 | SSE + 浏览器 EventSource | 提交后推送资源 ID、版本和变更类型，浏览器按需重新查询 |
-| 部署 | Docker Compose + Nginx HTTPS 入口 | 应用与数据库独立生命周期，自动重启、健康检查、独立持久卷；数据库端口只对内部开放 |
+| 部署 | Docker Compose + Nginx HTTPS 入口 | 现有新加坡测试机上的独立工程，入口 geekdash.zhiluan.cool；应用与数据库独立生命周期，自动重启、健康检查、独立持久卷；数据库端口只对内部开放 |
 | 测试 | Vitest + 真实 MySQL 集成测试 + Playwright 浏览器测试 | 核心业务通过真实写入、新请求回读与第二个用户查看验证 |
 | 依赖与代码管理 | npm、package-lock.json、GitHub | 首次工程初始化生成锁文件，CI 用 npm ci；本文不是已生成锁文件的证明 |
 

@@ -1,6 +1,6 @@
 # 数据模型与实体关系（ERD）
 
-版本：D0.25；日期：2026-09-30；状态：真实备份与 V1.050 源码字段反推已完成，服务器逻辑模型仍为候选；未创建表、未执行迁移。
+版本：D0.27；日期：2026-09-30；状态：真实备份与 V1.050 源码字段反推已完成，服务器逻辑模型仍为候选；未创建表、未执行迁移。
 
 本文分清三类来源：**B** 是真实 V1.044 备份中观察到的结构，**C** 是 V1.050 源码的读写或归一化结构，**T** 是服务器目标表达。旧系统是 JSON 与浏览器存储，下面的实体名称不代表旧系统已有 MySQL 表。字段反推完成的范围是本次备份与七个运行文件；不证明备份覆盖全部业务数据，也不替代剩余业务规则确认或可执行 DDL。
 
@@ -477,7 +477,7 @@ erDiagram
 
 | 实体 | 关键字段建议 | 约束和用途 |
 |---|---|---|
-| users | id、login_name、password_hash、display_name、enabled、version | 四个业务使用账号及一个额外维护账号；唯一维护账号由 system_configuration 指定，账号修改受版本保护；停用保留历史 |
+| users | id、login_name、password_hash、display_name、enabled、must_change_password、version | 四个业务使用账号及一个额外维护账号；must_change_password 持久表达首次改密要求（SPEC-001）；唯一维护账号由 system_configuration 指定，账号修改受版本保护；停用或正式改名保留身份及历史 |
 | system_configuration | id、maintenance_user_id、version | 目标新增单例配置；唯一启用维护账号引用，换任原子替换；首批身份待用户指定，非旧备份实体 |
 | check_rule_revisions | id、version、deadline_weekday、effective_week、saved_at、saved_by | 追加公共检查规则；deadline_weekday 为星期一至日（逻辑 1～7）；effective_week 为保存当周周一 DATE，saved_at 为实际 UTC 时间点；本周及以后采用适用修订，已结束周和报告保留旧依据；行为仅见 SPEC-005/019 |
 | sessions | id、token_hash、user_id、expires_at、revoked_at | 原始随机令牌仅在 Cookie；索引 user_id、expires_at |
