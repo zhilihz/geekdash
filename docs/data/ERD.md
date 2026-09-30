@@ -1,6 +1,6 @@
 # 数据模型与实体关系（ERD）
 
-版本：D0.20；日期：2026-09-30；状态：候选逻辑模型，待依据真实备份反推修订，未创建表、未执行迁移。
+版本：D0.21；日期：2026-09-30；状态：候选逻辑模型，待依据真实备份反推修订，未创建表、未执行迁移。
 
 本文描述服务器版目标。现有 V1.050 是 JSON 对象与浏览器存储，不具备本文关系约束。待决业务规则可能改变字段及表结构。
 
@@ -35,6 +35,7 @@ erDiagram
     PROJECTS ||--o{ MEETING_PROJECTS : discussed
     USERS ||--o{ REPORTS : creates
     USERS ||--o{ IMPORT_BATCHES : imports
+    USERS ||--o{ IMPORT_BATCHES : handles
     IMPORT_BATCHES ||--o{ IMPORT_ITEMS : stages
     USERS o|--o{ IMPORT_ITEMS : reviews
     PROJECTS o|--o{ IMPORT_ITEMS : targets
@@ -47,7 +48,7 @@ erDiagram
 
 | 实体 | 关键字段建议 | 约束和用途 |
 |---|---|---|
-| users | id、login_name、password_hash、display_name、enabled | 登录名唯一；本期统一管理员角色；历史操作者不能因停用而消失 |
+| users | id、login_name、password_hash、display_name、enabled、can_maintain_system、version | 统一项目管理员身份，can_maintain_system 表达指定维护资格；账号与维护资格修改受版本保护；停用保留历史 |
 | sessions | id、token_hash、user_id、expires_at、revoked_at | 原始随机令牌仅在 Cookie；索引 user_id、expires_at |
 | projects | id、name、customer_id、created_by、status、version、started_on、original_due_date、current_due_date、manual_delayed、closure_due_date、resume_status、pre_close_status、closure_type、closed_on、closure_note、remaining_work_note、maintenance_enabled、created_at、updated_at、deleted_at | version 原子递增；日期与恢复状态支撑 SPEC-003；结案类型与维护组合受规则约束 |
 | project_responsibilities | project_id、user_id、joined_at | 项目与登录账号多对多、联合唯一；当前负责关系，加入/退出历史归审计；行为见 SPEC-014 |
@@ -67,7 +68,7 @@ erDiagram
 | meetings | id、title、state、started_at、ended_at、minutes、created_by | 状态变化由服务器保存；计时不依赖某浏览器持续运行 |
 | meeting_projects | meeting_id、project_id | 会议项目范围；是否固定讨论时快照待确认 |
 | reports | id、created_by、scope_json、snapshot_json、data_version、status、artifact_ref、created_at | 固定所选范围和输出依据；结果下载需认证 |
-| import_batches | id、source_hash、schema_version、mapping_json、result_json、created_by、status、created_at | created_by 表示可信上传账号，作为首次入库待审项权限依据；保存进度和汇总结果，行为见 SPEC-009 |
+| import_batches | id、source_hash、schema_version、mapping_json、result_json、created_by、current_handler_id、version、status、created_at | created_by 保留原上传账号；current_handler_id 初始为上传者，明确接管后记录处理人，version 保护接管及处理资格；保存进度和汇总结果，见 SPEC-009 |
 | import_items | id、batch_id、source_key、target_project_id、expected_project_version、review_version、source_payload_json、corrected_payload_json、validation_json、selected_by、reviewed_by、reviewed_at、status、result_json | 待审原值与纠正值分开；审查版本防止覆盖待审修正；目标项目可空，新增提交成功后记录实际 ID；字段为目标候选，精确结构待反推 |
 | jobs | id、type、requested_by、business_key、status、attempts、result_ref、error_code、created_at | 仅当确定异步任务时实施；business_key 用于必要的去重 |
 
@@ -83,7 +84,9 @@ project_responsibilities 是服务器新增授权关系，不等于原业务 PM�
 
 旧 dueDate 与 delays 不能机械映射成完整历史原始计划：dueDate 曾可直接编辑，末条记录也可能只有说明。迁移应保留原字段和记录，预检展示可证明的日期及不确定项，由人核对原始/当前计划；禁止用首次导入日期补造计划、按旧数组长度制造延期次数或把人工 isDelayed 转成自动超期事实。
 
-检查数据表达按 DEC-031 补充；旧 lastCheckAt 只保留 legacy 来源，不伪造可信检查人。独立导入审查的 import_items 为服务器新增目标实体，不能冒充旧备份已有表；原始与修正内容、目标版本和提交结果支持 SPEC-009，待审数据持久化并纳入完整备份。来源 ID 仅用于映射，不能机械当作正式 ID。首次入库负责、待审权限及最后退出按 DEC-034/035/036 表达：保留上传账号与各动作身份，首次入库项目和提交者负责关系同事务建立，退出事务维护已确认前置；账号停用及全局维护权限仍按 Q-016 收敛；批量部分成功按 DEC-033/SPEC-009，各待审项与正式结果同事务记录，批次汇总可由逐项结果得出；物理字段和状态枚举尚未锁定。
+检查数据表达按 DEC-031 补充；旧 lastCheckAt 只保留 legacy 来源，不伪造可信检查人。独立导入审查的 import_items 为服务器新增目标实体，不能冒充旧备份已有表；原始与修正内容、目标版本和提交结果支持 SPEC-009，待审数据持久化并纳入完整备份。来源 ID 仅用于映射，不能机械当作正式 ID。首次入库负责、待审权限及最后退出按 DEC-034/035/036 表达：保留上传账号与各动作身份，首次入库项目和提交者负责关系同事务建立，退出事务维护已确认前置；账号/全局维护资格及批次接管按 DEC-037～040 表达；交接完成标准及公共设置生效策略仍待本轮后续问答；批量部分成功按 DEC-033/SPEC-009，各待审项与正式结果同事务记录，批次汇总可由逐项结果得出；物理字段和状态枚举尚未锁定。
+
+共享业务设置保存带 version、effective_from 的规则值及有效区间，精确表名/字段在逐字段反推后定稿；检查历史引用对应有效规则，不用浏览器本地配置覆盖公共设置。生效时机仍待本轮问答确认。原始上传人、当前处理人和实际提交者有不同数据职责；接管原因与处理人变更复用追加审计，不单独建立审批工作流。维护资格为本期固定用途的账号标记候选，不预建通用角色权限平台。
 
 ## 3. 基础资料与遗漏防护
 
