@@ -1,0 +1,4 @@
+docs/evidence/diagrams/*.svg text eol=lf
+docs/evidence/diagrams/*.dot text eol=lf
+docs/evidence/diagrams/*.mmd text eol=lf
+docs/evidence/diagrams/*.json text eol=lf

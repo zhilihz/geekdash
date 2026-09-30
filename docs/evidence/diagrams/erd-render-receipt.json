@@ -1,0 +1,38 @@
+{
+  "diagram_type": "ERD",
+  "source": "docs/data/ERD.md 第2节 Mermaid erDiagram",
+  "source_sha256": "d480074f17d43936b0ec3d22043dc1d7a3659c60618cc9b49e0752983811ec2a",
+  "model_status": "候选逻辑模型，未创建MySQL表；图中关键字段，完整字典见ERD第3节",
+  "artifacts": [
+    {
+      "name": "geekdash-core-erd",
+      "entity_count": 8,
+      "relationship_count": 9,
+      "svg_sha256": "bfdee459b4dabc4d00cba51a7c66a54dee643a3891e643165847a80133ae056b",
+      "png_sha256": "d20b2e3761d49339d766bd5a0dfe3939ce76c72fcc55f6c258faccacbccd7751",
+      "render_messages": [],
+      "png_bytes": 331310
+    },
+    {
+      "name": "geekdash-target-erd",
+      "entity_count": 37,
+      "relationship_count": 48,
+      "svg_sha256": "03fd1ab0297157851a4b7c48e4533c45dc8ce78bcaab0abcc5cb3189c9f85292",
+      "png_sha256": "aae6ec18223b63c1686fa4c710d1fc122686203faefa3efbe141a6d4da2fb103",
+      "render_messages": [],
+      "png_bytes": 1893418
+    }
+  ],
+  "renderer": "Graphviz 14.1.3",
+  "verification_date": "2026-09-30",
+  "render_result": "成功，零渲染错误及警告",
+  "visual_review": "核心与完整 PNG 已查看；完整关系图需 SVG 放大阅读，不代表应用或数据库验收",
+  "source_hash_convention": "Mermaid 块去首尾空白、行尾统一 LF 后的 UTF-8 SHA256",
+  "documentation_checks": {
+    "markdown_files": 15,
+    "local_links": 60,
+    "erd_entities": 37,
+    "erd_relations": 48,
+    "scope": "链接目标、表格、围栏、编号及实体引用、源和派生文件哈希；非应用验收"
+  }
+}

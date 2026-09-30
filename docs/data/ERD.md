@@ -1,6 +1,6 @@
 # 数据模型与实体关系（ERD）
 
-版本：D0.24；日期：2026-09-30；状态：真实备份与 V1.050 源码字段反推已完成，服务器逻辑模型仍为候选；未创建表、未执行迁移。
+版本：D0.25；日期：2026-09-30；状态：真实备份与 V1.050 源码字段反推已完成，服务器逻辑模型仍为候选；未创建表、未执行迁移。
 
 本文分清三类来源：**B** 是真实 V1.044 备份中观察到的结构，**C** 是 V1.050 源码的读写或归一化结构，**T** 是服务器目标表达。旧系统是 JSON 与浏览器存储，下面的实体名称不代表旧系统已有 MySQL 表。字段反推完成的范围是本次备份与七个运行文件；不证明备份覆盖全部业务数据，也不替代剩余业务规则确认或可执行 DDL。
 
@@ -148,6 +148,12 @@ B 中 summary_notes 的 27 个键全部能对应 27 个项目的来源 ID；C `p
 
 ## 2. 服务器目标关系（T）
 
+实体框显示关键字段，完整字段与约束见第 3 节。PK 为主键，FK 为外键，UK 为唯一键；同表多个 PK 行表示联合主键。ID、date、datetime 等是逻辑类型，最终 SQL 类型与约束仍待迁移实施。基础资料框保留已核查的字段名，最终命名按建表规格收敛。
+
+[核心关系 PNG](../evidence/diagrams/geekdash-core-erd.png) · [完整目标 SVG](../evidence/diagrams/geekdash-target-erd.svg) · [完整目标 PNG](../evidence/diagrams/geekdash-target-erd.png)。图示由本节 Mermaid 实体/关系派生，用 Graphviz 的表格节点和乌鸦脚绘制；图源唯一维护于本节，派生产物不要手工改写。JOB 等未确定实施的实体仍为候选。
+
+![核心实体关系图](../evidence/diagrams/geekdash-core-erd.png)
+
 ```mermaid
 erDiagram
     USERS ||--o{ SESSIONS : owns
@@ -190,6 +196,279 @@ erDiagram
     USERS o|--o{ IMPORT_ITEMS : reviews
     PROJECTS o|--o{ IMPORT_ITEMS : targets
     USERS o|--o{ JOBS : requests
+    USERS ||--o{ PROJECT_CHECKS : checks
+    USERS ||--o{ CHECK_RULE_REVISIONS : saves
+    CHECK_RULE_REVISIONS ||--o{ PROJECT_CHECKS : rule_version
+    USERS o|--o{ PROJECT_VIEW_NOTES : updates
+    USERS o|--o{ FEEDBACK_ENTRIES : submits
+    IMPORT_ITEMS o|--o{ PROJECTS : source_of
+    IMPORT_ITEMS o|--o{ LEGACY_PROJECT_HISTORY : source_of
+    IMPORT_ITEMS o|--o{ FEEDBACK_ENTRIES : source_of
+    USERS {
+        ID id PK
+        string login_name UK
+        string display_name
+        boolean enabled
+        number version
+    }
+    SYSTEM_CONFIGURATION {
+        ID id PK
+        ID maintenance_user_id FK
+        number version
+    }
+    SESSIONS {
+        ID id PK
+        ID user_id FK
+        string token_hash
+        datetime expires_at
+        datetime revoked_at
+    }
+    PROJECTS {
+        ID id PK
+        string name
+        ID customer_id FK
+        ID odm_customer_id FK
+        ID product_line_id FK
+        ID app_id FK
+        ID group_id FK
+        ID created_by FK
+        ID source_import_item_id FK
+        string status
+        number version
+        date started_on
+        date current_due_date
+    }
+    PROJECT_RESPONSIBILITIES {
+        ID project_id PK, FK
+        ID user_id PK, FK
+        datetime joined_at
+    }
+    PROJECT_STAGES {
+        ID id PK
+        ID project_id FK
+        string stage_code
+        string state
+        date started_on
+        date completed_on
+    }
+    PROJECT_NODES {
+        ID id PK
+        ID project_id FK
+        ID stage_id FK
+        ID previous_node_id FK
+        ID next_node_id FK
+        string kind
+        string title
+    }
+    PROJECT_PEOPLE {
+        ID project_id PK, FK
+        ID engineer_id PK, FK
+        string role PK
+    }
+    ENGINEERS {
+        ID id PK
+        string name
+        string role
+        boolean enabled
+    }
+    CUSTOMERS {
+        ID id PK
+        string name
+        string contact
+        string background
+        boolean enabled
+    }
+    PRODUCT_LINES {
+        ID id PK
+        string name
+        boolean enabled
+    }
+    APPS {
+        ID id PK
+        string name
+        string version
+        string desc
+        boolean enabled
+    }
+    PROJECT_GROUPS {
+        ID id PK
+        string name
+        boolean enabled
+    }
+    CHIPS {
+        ID id PK
+        string name
+        string originalModel
+        string manufacturer
+        string firmwareVersion
+        boolean enabled
+    }
+    TAGS {
+        ID id PK
+        string name
+        boolean enabled
+    }
+    PROJECT_CHIPS {
+        ID project_id PK, FK
+        ID chip_id PK, FK
+    }
+    PROJECT_TAGS {
+        ID project_id PK, FK
+        ID tag_id PK, FK
+    }
+    CUSTOMER_TAGS {
+        ID customer_id PK, FK
+        ID tag_id PK, FK
+    }
+    PROJECT_STATUS_UPDATES {
+        ID id PK
+        ID project_id FK
+        ID actor_id FK
+        string body
+        datetime created_at
+    }
+    LEGACY_PROJECT_HISTORY {
+        ID id PK
+        ID project_id FK
+        ID source_import_item_id FK
+        number source_sequence
+        string source_date_text
+        string body
+    }
+    PROJECT_VIEW_NOTES {
+        ID project_id PK, FK
+        string view_kind PK
+        string body
+        ID updated_by FK
+        number version
+    }
+    PROJECT_RISKS {
+        ID id PK
+        ID project_id FK
+        string content
+        string level
+        boolean resolved
+        string resolution
+    }
+    PROJECT_CHANGES {
+        ID id PK
+        ID project_id FK
+        string source
+        string content
+        string decision
+        string reason
+    }
+    SCHEDULE_CHANGES {
+        ID id PK
+        ID project_id FK
+        ID actor_id FK
+        string kind
+        date old_date
+        date new_date
+        string reason
+    }
+    PROJECT_CHECKS {
+        ID id PK
+        ID project_id FK
+        ID actor_id FK
+        number rule_version FK
+        datetime checked_at
+        string conclusion
+        number observed_version
+        number result_version
+    }
+    CHECK_RULE_REVISIONS {
+        ID id PK
+        number version UK
+        number deadline_weekday
+        date effective_week
+        datetime saved_at
+        ID saved_by FK
+    }
+    AUDIT_LOG {
+        ID id PK
+        ID actor_id FK
+        string entity_type
+        ID entity_id
+        string action
+        json before_json
+        json after_json
+    }
+    USER_PREFERENCES {
+        ID user_id PK, FK
+        string scope PK
+        json value_json
+        datetime updated_at
+    }
+    PROJECT_DRAFTS {
+        ID id PK
+        ID user_id FK
+        ID project_id FK
+        number base_version
+        json payload_json
+    }
+    MEETINGS {
+        ID id PK
+        string title
+        string state
+        datetime started_at
+        datetime ended_at
+        number elapsed_ms
+        ID created_by FK
+    }
+    MEETING_PROJECTS {
+        ID meeting_id PK, FK
+        ID project_id PK, FK
+    }
+    REPORTS {
+        ID id PK
+        ID created_by FK
+        json scope_json
+        json snapshot_json
+        string artifact_ref
+    }
+    IMPORT_BATCHES {
+        ID id PK
+        ID created_by FK
+        ID current_handler_id FK
+        number version
+        string status
+        string source_hash
+    }
+    IMPORT_ITEMS {
+        ID id PK
+        ID batch_id FK
+        ID target_project_id FK
+        ID reviewed_by FK
+        number expected_project_version
+        number review_version
+        json source_payload_json
+        json corrected_payload_json
+        string status
+    }
+    FEEDBACK_ENTRIES {
+        ID id PK
+        ID created_by FK
+        ID source_import_item_id FK
+        string author_text
+        date reported_on
+        string content
+    }
+    COMPANY_PROFILE {
+        ID id PK
+        string full_name
+        string short_name
+        string manager_text
+        string name_prefix
+        number version
+    }
+    JOBS {
+        ID id PK
+        ID requested_by FK
+        string type
+        string status
+        string business_key
+    }
 ```
 
 图中省略企业资料和部分运行实体以保持可读；第 1 节定义旧数据的完整迁移范围。报告快照不依赖项目日后的存活或名称，因此不强制画成实时项目外键。
@@ -200,6 +479,7 @@ erDiagram
 |---|---|---|
 | users | id、login_name、password_hash、display_name、enabled、version | 四个业务使用账号及一个额外维护账号；唯一维护账号由 system_configuration 指定，账号修改受版本保护；停用保留历史 |
 | system_configuration | id、maintenance_user_id、version | 目标新增单例配置；唯一启用维护账号引用，换任原子替换；首批身份待用户指定，非旧备份实体 |
+| check_rule_revisions | id、version、deadline_weekday、effective_week、saved_at、saved_by | 追加公共检查规则；deadline_weekday 为星期一至日（逻辑 1～7）；effective_week 为保存当周周一 DATE，saved_at 为实际 UTC 时间点；本周及以后采用适用修订，已结束周和报告保留旧依据；行为仅见 SPEC-005/019 |
 | sessions | id、token_hash、user_id、expires_at、revoked_at | 原始随机令牌仅在 Cookie；索引 user_id、expires_at |
 | projects | id、name、customer_id、odm_customer_id、product_line_id、app_id、group_id、created_by、source_import_item_id、status、version、proposed_on、filed_on、started_on、priority、signal、signal_note、market_expectation、status_description、status_description_updated_at、detail_note、original_due_date、current_due_date、manual_delayed、closure_due_date、resume_status、pre_close_status、closure_type、closed_on、closure_note、remaining_work_note、maintenance_enabled、created_at、updated_at、deleted_at | 日期/生命周期见 SPEC-003/004；来源时间和服务器入库时间分开；version 原子递增；资料外键可空，但必须报告未映射来源 |
 | project_responsibilities | project_id、user_id、joined_at | 项目与登录账号多对多、联合唯一；当前负责关系，加入/退出历史归审计；行为见 SPEC-014 |
@@ -242,7 +522,9 @@ project_responsibilities 是服务器新增授权关系，不等于原业务 PM�
 
 检查数据表达按 DEC-031 补充；旧 lastCheckAt 只保留 legacy 来源，不伪造可信检查人。独立导入审查的 import_items 为服务器新增目标实体，不能冒充旧备份已有表；原始与修正内容、目标版本和提交结果支持 SPEC-009，待审数据持久化并纳入完整备份。来源 ID 仅用于映射，不能机械当作正式 ID。首次入库负责、待审权限及最后退出按 DEC-034/035/036 表达：保留上传账号与各动作身份，首次入库项目和提交者负责关系同事务建立，退出事务维护已确认前置；账号/全局维护资格及批次接管按 DEC-037～040 表达；交接资格由当前负责关系和 users.enabled 按 DEC-041 校验，不另存容易过期的“已交接”布尔值；公共检查规则的适用周、本周修订版本与追加历史按 SPEC-019/DEC-044 表达；批量部分成功按 DEC-033/SPEC-009，各待审项与正式结果同事务记录，批次汇总可由逐项结果得出；物理字段和状态枚举尚未锁定。
 
-共享业务设置保存带 version、effective_from 的规则值及有效区间，规则修订的物理结构在未来默认范围确认后定稿；检查历史引用对应有效规则，不用浏览器本地配置覆盖公共设置。本周修改以当前自然周及服务器保存时间记录立即生效；保存原规则修订历史，已结束周保持规则快照。每周默认与仅本周覆盖如何存储仍待本轮问答，不能将 effective_from 固定为下一周一。原始上传人、当前处理人和实际提交者有不同数据职责；接管原因与处理人变更复用追加审计，不单独建立审批工作流。维护资格改为单例 maintenance_user_id 候选，不再由多个用户独立布尔标记授予；额外维护账号按 DEC-045 创建，不预建通用角色权限平台。
+公共检查设置以追加规则修订表达；目标 check_rule_revisions 字段及含义见上表。按 DEC-046，只持久化每周截止星期，服务器推导各周实际截止日与次日 00:00 判定上界，不持久化可由用户填写的截止小时/分钟。本周保存后立即生效，并作为以后每周默认；已结束周及历史报告继续引用当时有效修订，不能把 effective_week 固定为下一周一。精确物理类型与迁移约束仍待实施设计。
+
+原始上传人、当前处理人和实际提交者有不同数据职责；接管原因与处理人变更复用追加审计，不单独建立审批工作流。维护资格由单例 maintenance_user_id 指定；额外维护账号按 DEC-045 创建，不预建通用角色权限平台。
 
 ## 4. 来源保留与待决边界
 
