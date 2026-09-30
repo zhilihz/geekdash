@@ -1,6 +1,6 @@
 # 数据模型与实体关系（ERD）
 
-版本：D0.19；日期：2026-09-30；状态：候选逻辑模型，待依据真实备份反推修订，未创建表、未执行迁移。
+版本：D0.20；日期：2026-09-30；状态：候选逻辑模型，待依据真实备份反推修订，未创建表、未执行迁移。
 
 本文描述服务器版目标。现有 V1.050 是 JSON 对象与浏览器存储，不具备本文关系约束。待决业务规则可能改变字段及表结构。
 
@@ -67,7 +67,7 @@ erDiagram
 | meetings | id、title、state、started_at、ended_at、minutes、created_by | 状态变化由服务器保存；计时不依赖某浏览器持续运行 |
 | meeting_projects | meeting_id、project_id | 会议项目范围；是否固定讨论时快照待确认 |
 | reports | id、created_by、scope_json、snapshot_json、data_version、status、artifact_ref、created_at | 固定所选范围和输出依据；结果下载需认证 |
-| import_batches | id、source_hash、schema_version、mapping_json、result_json、created_by、status、created_at | 独立待审批次，来源明确，保存进度和汇总结果 |
+| import_batches | id、source_hash、schema_version、mapping_json、result_json、created_by、status、created_at | created_by 表示可信上传账号，作为首次入库待审项权限依据；保存进度和汇总结果，行为见 SPEC-009 |
 | import_items | id、batch_id、source_key、target_project_id、expected_project_version、review_version、source_payload_json、corrected_payload_json、validation_json、selected_by、reviewed_by、reviewed_at、status、result_json | 待审原值与纠正值分开；审查版本防止覆盖待审修正；目标项目可空，新增提交成功后记录实际 ID；字段为目标候选，精确结构待反推 |
 | jobs | id、type、requested_by、business_key、status、attempts、result_ref、error_code、created_at | 仅当确定异步任务时实施；business_key 用于必要的去重 |
 
@@ -83,7 +83,7 @@ project_responsibilities 是服务器新增授权关系，不等于原业务 PM�
 
 旧 dueDate 与 delays 不能机械映射成完整历史原始计划：dueDate 曾可直接编辑，末条记录也可能只有说明。迁移应保留原字段和记录，预检展示可证明的日期及不确定项，由人核对原始/当前计划；禁止用首次导入日期补造计划、按旧数组长度制造延期次数或把人工 isDelayed 转成自动超期事实。
 
-检查数据表达按 DEC-031 补充；旧 lastCheckAt 只保留 legacy 来源，不伪造可信检查人。独立导入审查的 import_items 为服务器新增目标实体，不能冒充旧备份已有表；原始与修正内容、目标版本和提交结果支持 SPEC-009，待审数据持久化并纳入完整备份。来源 ID 仅用于映射，不能机械当作正式 ID。负责人映射、共享待审项的修改权限仍按 Q-015/016 收敛；批量部分成功按 DEC-033/SPEC-009，各待审项与正式结果同事务记录，批次汇总可由逐项结果得出；物理字段和状态枚举尚未锁定。
+检查数据表达按 DEC-031 补充；旧 lastCheckAt 只保留 legacy 来源，不伪造可信检查人。独立导入审查的 import_items 为服务器新增目标实体，不能冒充旧备份已有表；原始与修正内容、目标版本和提交结果支持 SPEC-009，待审数据持久化并纳入完整备份。来源 ID 仅用于映射，不能机械当作正式 ID。首次入库负责、待审权限及最后退出按 DEC-034/035/036 表达：保留上传账号与各动作身份，首次入库项目和提交者负责关系同事务建立，退出事务维护已确认前置；账号停用及全局维护权限仍按 Q-016 收敛；批量部分成功按 DEC-033/SPEC-009，各待审项与正式结果同事务记录，批次汇总可由逐项结果得出；物理字段和状态枚举尚未锁定。
 
 ## 3. 基础资料与遗漏防护
 
@@ -109,4 +109,4 @@ project_responsibilities 是服务器新增授权关系，不等于原业务 PM�
 
 人员和芯片原本按名称引用，必须保存来源名称与映射结果。无法确定的引用进入待处理清单，不自动丢弃。旧历史的操作人或时间无法可靠证明时标记为 legacy/来源时间，不伪造为当前账号操作。
 
-本文不提供可直接执行的 DDL。待逐字段反推及 Q-007/015/022 等剩余关键语义明确后生成版本化迁移文件，并执行升级与恢复演练。
+本文不提供可直接执行的 DDL。待逐字段反推及 Q-007/016/017 等剩余关键语义明确后生成版本化迁移文件，并执行升级与恢复演练。
