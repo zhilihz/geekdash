@@ -1,0 +1,37 @@
+{
+  "version": "D0.29",
+  "date": "2026-09-30",
+  "baseline_commit": "80a97bb9a78daaf1333b70ac98041263ec243768",
+  "scope": "已确认建议的文档同步、引用及未变化模型对照；不是运行或性能测试",
+  "confirmed_decisions": [
+    "DEC-054",
+    "DEC-055",
+    "DEC-056",
+    "DEC-057",
+    "DEC-058",
+    "DEC-059"
+  ],
+  "status": "静态核查通过",
+  "application_tests_executed": false,
+  "mysql_migrations_executed": false,
+  "backup_jobs_created": false,
+  "backup_restore_tests_executed": false,
+  "performance_tests_executed": false,
+  "deployment_executed": false,
+  "markdown_files_checked": 15,
+  "local_links_checked": 76,
+  "evidence_json_files_checked": 6,
+  "registered_ids": {
+    "REQ": 39,
+    "SPEC": 19,
+    "TEST": 33,
+    "DEC": 59
+  },
+  "model_table_count": 34,
+  "model_column_count": 313,
+  "model_relationship_count": 55,
+  "mermaid_source_sha256": "e36ff9ffa657dd399903ecf0f8d4fdbb753a6d84ff470d5e0888c478a939ddbb",
+  "erd_diagram_source_unchanged": true,
+  "diagram_hashes_verified": true,
+  "errors": []
+}
