@@ -4,7 +4,7 @@
 
 ## 1. 工作位置与目标
 
-仓库 https://github.com/zhilihz/geekdash.git ，本地 D:\geekwon\geekdash；当前施工分支 codex/cloud-foundation，起点 main / ce28c5ee8a4e65bfd61fbf90bc94b2b9c0869a30；既有讨论已保存为提交，收尾 main 的真实 refs 见第 7 节。E01 历史交付位置按报告，下一实际施工先核对最新 main 并保留讨论成果；实际状态读[系统真相第 21 节](../status/current-system-truth.md#21-重启恢复与-e01-f04-实际实施2026-10-08)。写代码使用 ponytail full，纯讨论/文档不延续。
+仓库 https://github.com/zhilihz/geekdash.git ，本地 D:\geekwon\geekdash；实施分支 codex/cloud-foundation，收尾位于 main，起点 main / ce28c5ee8a4e65bfd61fbf90bc94b2b9c0869a30；既有讨论已保存为提交，收尾 main 的真实 refs 见第 7 节。E01 历史交付位置按报告，下一实际施工先核对最新 main 并保留讨论成果；实际状态读[系统真相第 21 节](../status/current-system-truth.md#21-重启恢复与-e01-f04-实际实施2026-10-08)。写代码使用 ponytail full，纯讨论/文档不延续。
 
 ## 2. 已完成与证据
 
@@ -78,8 +78,8 @@ DNS 接续：用户报告配置完成，本轮两个公共解析器的 A 查询�
 
 已完成本次基底部署与恢复/兼容镜像回退/证书续期演练；受控配置/数据常驻，临时 SSH公钥/私钥已撤销/删除。原始 TAT 回执在忽略的 test-results/cloud-*-private 文件，固定清单/归档在受控 D:/geekwon/geekdash-data/transport，私有 GitHub预发布资产留存；不要提交原始文件、签名链接或凭据。服务器命令归运维实际入口。当前 source-review/真实备份未导入或打包。
 
-收尾需完成文档静态检查、差异审查和 main 合并/推送/远端回读，本节后续记 refs。接手复核当前分支/dirty、公网版本与ready、current指针和迁移，不以旧记录当实时状态；新的代码施工从最新 main 建分支并使用 ponytail full。
+工程/验收 8f3b14be544b7449ec5d82e72817c419f79999ae 已合并/推送远端 main 并回读一致；文档 126 个文件链接、18 个标题锚点及迁移摘要/受控密码值检查通过。随后只补纯文档收尾引用，不重建运行镜像。接手复核当前分支/dirty、公网版本与ready、current指针和迁移，不以旧记录当实时状态；新的代码施工从最新 main 建分支并使用 ponytail full。
 
 下一业务单元先讨论免登录项目查询/事务保存的准确写入与历史归属链路，再逐功能施工，不能伪造账号绕过旧外键/负责权限。E02 后置、已有设计保留。六页接入、业务/四人体验、真实备份审查导入和 E11 全量恢复仍未完成；当前 MySQL 空库已约455MiB、宿主机swap用满，接真实数据前先复核容量/业务增长与网络体验，不能凭工程探测通过宣称性能达标。
 
-初始化深模块另有固定真实 Linux 回归 scripts/verify-server-config.py：一次性无网络容器、仓库只读挂载，双进程/重复/权限/部分文件/已有数据缺配置均通过；未使用模拟 SQL 或修改持久库。文档静态检查及远端 main 收尾结果随后记录。
+初始化深模块另有固定真实 Linux 回归 scripts/verify-server-config.py：一次性无网络容器、仓库只读挂载，双进程/重复/权限/部分文件/已有数据缺配置均通过；未使用模拟 SQL 或修改持久库。main 收尾回读已记录于本节；最终纯文档补充 refs 以实际 Git 为准。
