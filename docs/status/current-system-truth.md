@@ -1,10 +1,10 @@
 # 当前系统真相
 
-版本：D0.33；核查日期：2026-10-08（新增最小工程实际构建与本地运行验证；服务器观察仍保留原时间）。本文是项目事实入口，只记录已经观察到的事实及其限制。需求是否确认以决策文档为准，具体实现建议以架构和规格文档为准。
+版本：D0.34；核查日期：2026-10-08（新增工程基底合并远端 main 及 refs 回读；服务器观察仍保留原时间）。本文是项目事实入口，只记录已经观察到的事实及其限制。需求是否确认以决策文档为准，具体实现建议以架构和规格文档为准。
 
 ## 1. 一句话结论
 
-原业务来源为 **GeekDash V1.050 本地版**。新的 Node/TypeScript/Fastify/Vite 工程已构建，并在本机独立 Docker 应用中通过真实 HTTP 和最小页面验证（E01-F01）；尚无本项目登录系统、MySQL 表结构、项目业务保存、四人协作或新加坡公网部署验收结果。最新实际范围见第 16 节。
+原业务来源为 **GeekDash V1.050 本地版**。新的 Node/TypeScript/Fastify/Vite 工程已构建，并在本机独立 Docker 应用中通过真实 HTTP 和最小页面验证（E01-F01），已合并远端 main；尚无本项目登录系统、MySQL 表结构、项目业务保存、四人协作或新加坡公网部署验收结果。实际运行范围见第 16 节，Git 交付见第 17 节。
 
 ### 事实总表
 
@@ -324,4 +324,10 @@ live 返回 200；ready 返回 503/database_not_implemented。当前 Compose hea
 
 已知 static 依赖告警修复后审计为 0；这不代表全面安全审查或性能验收。证据见[实际核查](../evidence/2026-10-08-foundation-check.json)和[报告](../testing/reports/2026-10-08-e01-f01.md)。本轮未建立 MySQL、执行迁移/业务测试、导入真实数据、连接服务器或部署域名；Git 交付位置按 handoff 及实际 refs 回读记录。
 
-提交后运行回读：代码提交 67e21dd08e982da3092b5a04abc4961403586924 已从干净源码重建；当前本地容器 live 读回该版本、dirty=false，ready 仍为未接数据库。代码已推送 codex/e01-foundation，主分支与新加坡服务器未更新。首次 dirty 构建的截图保留为当时记录，最新构建信息以 evidence 为准。
+当轮提交后运行回读：代码提交 67e21dd08e982da3092b5a04abc4961403586924 已从干净源码重建；本地容器 live 读回该版本、dirty=false，ready 仍为未接数据库。当轮代码已推送 codex/e01-foundation；后续 main 合并见第 17 节，新加坡服务器仍未更新。首次 dirty 构建的截图保留为当时记录，最新构建信息以 evidence 为准。
+
+## 17. 工程基底合并远端 main（2026-10-08）
+
+按用户明确要求，先 fetch 核对远端，再将 origin/codex/e01-foundation 的 07e7ab85227dca0a3c849e94e746af65fc648c9f 快进合并到本地 main；main 原基线为 b00db932d8e4147cd5ca7cca2d96dae2f8692fa8。合并包含工程代码提交 67e21dd 及验收文档提交 07e7ab8，无冲突，随后 git push origin main 成功。git ls-remote origin refs/heads/main 回读为上述 07e7ab8 完整值，git status --short --branch 显示本地 main 与 origin/main 一致、无未提交改动。
+
+本次合并没有修改应用代码，沿用第 16 节及 F01 报告中的已执行验收；未重复应用测试。随后同步本节、导航、更新记录和交接，文档补充提交以实际 Git refs 为准。Git 合并没有更新运行镜像或新加坡服务器；数据库、认证和业务能力仍按此前缺口接续。
