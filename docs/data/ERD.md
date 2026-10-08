@@ -921,6 +921,55 @@ erDiagram
 
 用户行不物理删除，邀请码历史保留，统计注册来源不受停用影响。源图在本节，旧派生 SVG/PNG 仍只对应已执行初始模型；没有重新渲染或验证新图。审计复用 audit_log，原文不进入 before_json/after_json 或 command_receipts 的响应。
 
+### 5.6 测试项目共享保存的目标增量（2026-10-08，讨论稿、未迁移）
+
+DEC-073～075 已确认临时共享范围和四项文字保存主干。用户随后指出仍为开发阶段，本节收回刚提出的额外 actor_key/历史搬迁方案，改为复用现有作用域和操作编号；以下最小模型为修正建议，未实施。实际 0001 仍 34 表/313 列/55 外键；E02 邀请码目标 5.5 继续后置，不混入此次迁移。
+
+建议只新增一列、调整现有来源/回执约束，不新增表：
+
+| 目标对象 | 字段及约束建议 | 不可替代的用途及旧行处理 |
+|---|---|---|
+| projects.data_kind | V16，ASCII 精确比较，非空、默认 business；CHECK ∈ {business,trial} | 服务端判定当前项目是否在匿名试用范围，页面显示测试标记；既有行取 business，避免把未知/真实来源自动当测试。与 source_namespace 的导入溯源职责不同，公共保存不可修改本列 |
+| audit_log.actor_kind | 原列不变，CHECK 扩展 user/system/anonymous | 准确区分可信用户、系统任务和未认证人工操作。anonymous 的空 actor_id 与“未认证操作”显示名由保存模块统一生成，本轮不增加组合来源键/检查字段 |
+| command_receipts.actor_id | 改为可空，保留 users 外键；保留/显式建立 actor_id 前缀索引 | anonymous 回执留空，未来可信账号仍关联真实 users；旧 ID 原样保留。独立索引是新主键不再以 actor_id 开头后维持外键的必要支持，先建立再切主键 |
+| command_receipts 主键 | 改为 (command_scope,idempotency_key) | 当前由服务器生成 anonymous:project:<id>:text 作用域，随机操作编号只标识本次提交；同次重试沿用。未来可信账号可在作用域中加入实际账号 ID，再与 actor_id 核对归属，不增加一列复制账号范围。scope/key/hash/result/time 类型不变 |
+
+当前环境没有旧回执或业务行，施工时重新核对这一前提后直接调整主键；不做历史回填框架。若发现已有待保留回执，先核对其作用域再处理，不丢弃或清空。不能把可空 actor_id 继续放在主键；服务端构造 command_scope，不信任客户端自报来源/账号。操作编号用于防止重复提交，不识别人，也不是登录凭证。
+
+本单元独立目标计数为 **34 表/314 列/55 外键**，不是实际执行结果；索引与 CHECK 清单随固定目标资源核验。未来若再接 5.5 邀请码增量，两项均采用时才合并计算，不改写此前单独目标计数。没有新增匿名 users、每人测试账号、独立匿名审计表或回执表。
+
+局部目标 ERD（讨论稿）：
+
+```mermaid
+erDiagram
+    users o|--o{ audit_log : trusted_actor
+    users o|--o{ command_receipts : trusted_actor
+    projects o|--o{ audit_log : project_history
+    projects {
+        bigint id PK
+        varchar data_kind
+        bigint version
+    }
+    users {
+        bigint id PK
+    }
+    audit_log {
+        bigint id PK
+        bigint actor_id FK
+        varchar actor_kind
+        bigint project_id FK
+    }
+    command_receipts {
+        varchar command_scope PK
+        varchar idempotency_key PK
+        bigint actor_id FK
+        binary request_hash
+        json response_json
+    }
+```
+
+图中 command_receipts 与 projects 没有直接外键，项目 ID/提交版本仍在既有结果 JSON；不能为画图补一条不存在的关系。当前正式图及派生图仍对应原 0001，本节未实际创建或渲染验收。
+
 ## 6. 来源映射与迁移次序
 
 1. 收到原文件后校验哈希并保存受控原始字节，解析生成批次/卡片；不可变文件与对应 JSON 原值纳入完整备份，未知字段不经旧归一化器丢弃。

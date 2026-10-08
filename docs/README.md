@@ -1,6 +1,6 @@
 # 文档中心
 
-文档基线：D0.49；更新日期：2026-10-08。E01-F02/F03 的独立本地 MySQL、初始迁移及真实结构核验已完成，结果见[报告](testing/reports/2026-10-08-e01-f02-f03.md)。F04 应用受限连接、启动/恢复、真实就绪及关闭已实现，见[执行文档](implementation/execution-plan.md#f04-单功能操作链路2026-10-08)和[验收报告](testing/reports/2026-10-08-e01-f04.md)。分支交付流程归[代码管理](operations/release-maintenance.md#2-代码管理)，实际 refs 归系统真相。当前公网已接入项目只读看板及详情，见[项目查询验收](testing/reports/2026-10-08-project-reads.md)和[本次部署](operations/deployments/2026-10-08-project-reads.md)；保存、认证、真实导入及四人业务体验待接续。未变更的单篇文档保留原版本号。
+文档基线：D0.52；更新日期：2026-10-08。E01-F02/F03 的独立本地 MySQL、初始迁移及真实结构核验已完成，结果见[报告](testing/reports/2026-10-08-e01-f02-f03.md)。F04 应用受限连接、启动/恢复、真实就绪及关闭已实现，见[执行文档](implementation/execution-plan.md#f04-单功能操作链路2026-10-08)和[验收报告](testing/reports/2026-10-08-e01-f04.md)。分支交付流程归[代码管理](operations/release-maintenance.md#2-代码管理)，实际 refs 归系统真相。当前公网已接入项目只读看板及详情，见[项目查询验收](testing/reports/2026-10-08-project-reads.md)和[本次部署](operations/deployments/2026-10-08-project-reads.md)；保存、认证、真实导入及四人业务体验待接续。未变更的单篇文档保留原版本号。
 
 项目事实及施工准备状态以[当前系统真相](status/current-system-truth.md)为入口。原应用源码在本地核查副本；新工程已接入看板和详情的服务器读取，原六页的完整业务仍在逐单元迁移。运行命令见[本地工程运行](operations/release-maintenance.md#本地工程运行e01-f01)，结果见[验收报告](testing/reports/2026-10-08-e01-f01.md)；Git 推送与服务器部署分别记录。
 
@@ -8,9 +8,11 @@
 
 当前部署逐功能入口：[D01～D07](implementation/execution-plan.md#e12-d01d07首个公网基底的逐功能施工方案)，[Linux 参数与新域名流程](operations/release-maintenance.md#当前首个公网部署单元dec-071)；部署实测入口为系统真相第 26 节，运行命令归运维；未实施业务仍明确为讨论建议。
 
-当前优先级：按 DEC-071 保持免登录，E02 全部后置增强；只读首批已上线，下一单元处理项目保存，匿名共享编辑范围仍在 Q-024 待决。范围归规格、施工归执行文档、实际部署事实归系统真相与部署记录。
+当前优先级：按 DEC-071 保持免登录，E02 全部后置增强；只读首批已上线，下一单元的测试项目共享编辑范围按 DEC-073 确认，模型和字段继续讨论。范围归规格、施工归执行文档、实际部署事实归系统真相与部署记录。
 
 ## 目录结构
+
+跨部分单功能讨论入口：[执行文档第 14 节](implementation/execution-plan.md#14-跨部分单功能施工展开2026-10-08讨论建议)，按输入、调用、事务、成功输出、错误恢复和验收入口展开测试项目、普通保存、负责范围、资料/芯片、生命周期、纠错、检查、通知、草稿、子记录、导入和固定输出；均按各项标注区分建议与已确认规格。
 
 ```text
 docs/
