@@ -1,12 +1,14 @@
 # 系统架构
 
-版本：D0.36；日期：2026-10-08；状态：深接口目标架构保持；已落位能力与缺口见系统真相，本图不作为全部模块已实现的证明。
+版本：D0.47；日期：2026-10-08；状态：深接口目标架构保持；已落位能力与缺口见系统真相，本图不作为全部模块已实现的证明。
 
 ## 1. 现状与约束
 
 原业务来源是 V1.050 六个 HTML 页面及共享 JavaScript，通过浏览器缓存和用户选择的 JSON 文件保存。新工程已分步建立本地工程与初始数据库，原六页面和认证尚未接入。详细证据见[当前系统真相](../status/current-system-truth.md)。
 
 已确认约束：4 位业务使用者独立账号、全项目可见且按负责范围编辑、4 人业务并发；额外一个专用维护管理员账号管理共享资料、公共设置和账号（SPEC-019）；常驻 MySQL、状态记录、公网测试、深模块与长期维护。
+
+当前部署优先级按 DEC-071 调整：免登录工程基底先部署，身份模块及依赖身份的能力后置增强；下文深模块/时序图保留完整目标，不代表当前已经创建账号或有实名权限。应用、MySQL、HTTPS 及隔离部署结构继续沿用，当前准确范围引用规格，不为免登录新增通用账号替代层。
 
 ## 2. 架构选择
 
@@ -38,7 +40,7 @@ API 与前端同站点，通过 Nginx HTTPS 入口访问，便于会话与 CSRF 
 
 | 模块 | 公开能力示例 | 内部负责 | 数据归属 |
 |---|---|---|---|
-| 身份与会话 | login、changePassword、logout、resolveActor、resetPassword、disableAccount | 凭据验证、期限、撤销、首次改密、交接校验及登录限速 | users、sessions；维护资格读取配置 |
+| 身份与会话 | login、changePassword、logout、resolveActor、createInvitation、revokeInvitation、registerWithInvitation、resetPassword、disableAccount | 凭据验证、期限、撤销、首次改密、邀请码注册、交接校验及入口限速 | users、sessions；维护资格读取配置；registration_invites 为待迁移目标，来源关系归 ERD 5.5 |
 | 项目生命周期 | getProjectSnapshot、createProject、saveProject、applyProjectAction、joinResponsibility、leaveResponsibility | 项目授权、有限的明确状态动作、日期、风险/节点已确认范围、版本、事务和审计 | projects 及业务子表 |
 | 基础资料与设置 | previewReferenceImpact、saveReference、deactivateReference、saveCheckRule | 维护资格、稳定 ID、引用保护、受影响项目版本、规则修订 | 客户、工程师、芯片等；system_configuration、check_rule_revisions |
 | 会议与报告 | saveMeeting、createReport、getReport | 权限确认后的写入、项目范围、固定快照及产物一致性 | meetings、reports、feedback_entries；具体业务写权限仍待决 |
@@ -117,6 +119,22 @@ DEC-049 已确认沿用现有新加坡测试机，使用独立 Docker 应用及�
 工程建议：首版一个应用进程，限制数据库连接与缓冲规模，镜像在本地或构建环境生成；通过四人混合读写和既有服务健康观察确定实际资源预算。证书入口和监听端口按服务器现状配置，不抢占既有端口；不得停止或重配其他系统来为本项目腾资源。
 
 业务代码更新、数据库生命周期和备份分别管理。更新应用不应重建或清空数据库数据卷。
+
+### 首个公网基底拓扑（2026-10-08 讨论方案）
+
+当前 DEC-071 先免登录部署基底，DEC-072 新建阿里云 DNS 子域记录。服务器已观察到宿主机 Nginx 承接 80/443；下图只有入口网关已存在，GeekDash 容器、专用站点、解析和证书尚未创建。资源/路径参数归运维，施工顺序归执行文档 E12-D01～D07。
+
+```mermaid
+flowchart LR
+  U[浏览器] --> DNS[阿里云 DNS：geekdash 记录]
+  U -->|HTTPS geekdash.zhiluan.cool| N[现有宿主机 Nginx：新增专用站点]
+  N -->|127.0.0.1:41860| A[独立 Compose：app 3000]
+  A -->|私有数据库网络| M[独立 MySQL 8.4：3306]
+  T[一次性 dbtool：同一固定镜像] --> M
+  M --> V[GeekDash 专属持久数据目录]
+```
+
+单应用常驻，数据库常驻；迁移工具运行后退出。数据库技术身份与未来登录账号分开，首单元不初始化业务用户。镜像本机构建后传输到 x86_64 主机，版本清单绑定源码/镜像/迁移，避免在共享主机安装整套构建依赖。后续 SSE 仍走同站点，当前未实现。
 
 ## 10. 施工入口
 

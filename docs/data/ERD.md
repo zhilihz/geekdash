@@ -1,6 +1,6 @@
 # 数据模型与实体关系（ERD）
 
-版本：D0.36；日期：2026-10-08；状态：首版模型保持 34 表/313 列/55 条引用；已生成并在本地开发/测试库执行初始迁移，实际约束核对范围见[F02/F03 实际报告](../testing/reports/2026-10-08-e01-f02-f03.md)。业务消费、含数据升级及性能验收待实施。未确认产品行为单列，不以表设计批准新自动化。
+版本：D0.41；日期：2026-10-08；状态：已执行初始模型保持 34 表/313 列/55 条引用；已生成并在本地开发/测试库执行初始迁移，实际约束核对范围见[F02/F03 实际报告](../testing/reports/2026-10-08-e01-f02-f03.md)。业务消费、含数据升级及性能验收待实施。未确认产品行为单列，不以表设计批准新自动化。
 
 本文分清三类来源：**B** 是真实 V1.044 备份中观察到的结构，**C** 是 V1.050 源码的读写或归一化结构，**T** 是服务器目标表达。旧系统是 JSON 与浏览器存储，下面的实体名称不代表旧系统已有 MySQL 表。字段反推完成的范围是本次备份与七个运行文件；不证明备份覆盖全部业务数据，也不替代剩余业务规则确认或可执行 DDL。
 
@@ -490,7 +490,7 @@ erDiagram
 - **T 用户确认字段**：认证与会话、负责关系、统一版本、阶段独立状态/实际日期、计划历史、检查依据、审计、偏好、草稿、待审卡片等，对应 SPEC-001～009/014～019。不能增加未确认业务自动化。
 - **T 工程字段**：主键、排序、版本、来源键、哈希、提交回执和迁移校验，分别为稳定关联、保留原数组顺序、阻止覆盖、导入对账、防重复和可恢复升级服务。每个新增工程字段必须能指向这里的一条真实用途；没有消费者不建。
 - 普通保存不传原始来源、actor、created_at 或 version 新值；后端生成并限制可写列。app_version 是原 APP 资料的业务版本，apps.version 才是资料并发版本。
-- sessions.last_seen_at 用于空闲期限，避免每次静态请求写库；工程建议最多每 5 分钟更新一次，并在登录/活动接口按节流策略记录。会话期限已按 DEC-054 确认，规则归 SPEC-001；SQL 字段存在不代表期限校验已实现。
+- sessions.last_seen_at 用于空闲期限，仅由服务器接受的有效活动推进；期限归 SPEC-001/DEC-054。旧每 5 分钟更新建议已在 F03 讨论中重新收敛，活动分类、精度和实现方式引用 SPEC-001/执行文档，不在 ERD 独立规定。SQL 字段存在不代表期限校验已实现。
 - check_rule_revisions 不再同时保存 id 与相同含义的 version；以 version 为主键。project_checks.week_start、projects.first_check_week/first_check_rule_version 是可复核的业务周期及原始规则依据，不能每次按新截止反推首次义务；首次正式启动事务固定应检周与当时规则版本，之后修改本周截止不改写首次义务，历史不明可空并待审。
 - audit_log 保存变化所需的旧值/新值及涉及子记录快照，不在每次保存中复制未变的整项目；敏感凭据不进审计。来源旧历史独立分页，不混成可信审计。
 - import_batches 只保存来源/权属/映射；批次状态与成功数由逐项结果汇总。import_items.source_payload_json 不可变，corrected_payload_json 只保存待审修正；原文件保留原始字节与哈希，涵盖未知字段和浏览器配置。
@@ -885,6 +885,41 @@ erDiagram
 数据库验收必须具备：34 表的可执行迁移及 INFORMATION_SCHEMA 实际结构对照；所有 FK/唯一/NULL 边界的反例；原备份全部字段及未知原值保留对账；27 项实际规模及代表性增长规模下真实 SQL 执行计划；四用户混合读写/SSE/草稿同步的 p50/p95、错误率、连接/内存/磁盘观察；备份与隔离恢复后重复上述关键读取。测试设计归 TEST-032，不产生虚构通过报告。
 
 技术边界参照 [MySQL CHECK 限制](https://dev.mysql.com/doc/refman/8.4/en/create-table-check-constraints.html)、[外键与父索引要求](https://dev.mysql.com/doc/refman/8.4/en/create-table-foreign-keys.html)。跨表和 NOW 等非确定性判断不能放在 CHECK；自增 ID 不写进 CHECK 条件。
+
+### 5.5 邀请码注册的目标增量模型（2026-10-08，DEC-064 已确认，未迁移）
+
+已确认多人邀请码注册、7 天及业务人数不设固定配额的行为归 SPEC-001；下面仅给出所需实体表达。现有 MySQL 仍为 0001 的 34 表/313 列/55 外键，不能改其字节或写成新表已创建。目标新增一个 registration_invites，并在 users 添加一列 registration_invite_id；不再新建重复的使用明细表。
+
+| 目标变化 | 字段/约束 | 必要性及消费者 |
+|---|---|---|
+| registration_invites | id:I、code_hash:H、created_by:I、created_at:T、expires_at:T、revoked_by:I?、revoked_at:T?；PK(id)、UK(code_hash)，created_by/revoked_by → users.id；撤销两列同时空或同时有值 | 持久验证邀请码、生成/撤销历史、后台分页；明文不能重建，状态由时间/撤销派生；不存重复 status、used_count、max_uses、角色或项目范围 |
+| users.registration_invite_id | I?，FK → registration_invites.id；IDX(registration_invite_id,id)；初始化/历史账号可空，新注册由服务器写入 | 同一码多个新账号的稳定来源、后台注册结果/数量；密码重置、改名、停用不改变来源，不能靠日志猜注册关系 |
+
+目标共 35 表/321 列/58 外键，属于目标设计计数，没有实际创建证据。新版本迁移需建邀请表、增加可空来源列后补 FK，避免与 users 创建者引用的循环依赖；旧 users 保留 null，不能伪造邀请码来源。新字段/表必要性及含数据升级由 TEST-032/034 验证。
+
+局部目标 ERD，未合入旧 0001 的图示快照：
+
+```mermaid
+erDiagram
+    users ||--o{ registration_invites : creates
+    users o|--o{ registration_invites : revokes
+    registration_invites o|--o{ users : registration_source
+    registration_invites {
+        bigint id PK
+        binary code_hash UK
+        bigint created_by FK
+        datetime created_at
+        datetime expires_at
+        bigint revoked_by FK
+        datetime revoked_at
+    }
+    users {
+        bigint id PK
+        bigint registration_invite_id FK
+    }
+```
+
+用户行不物理删除，邀请码历史保留，统计注册来源不受停用影响。源图在本节，旧派生 SVG/PNG 仍只对应已执行初始模型；没有重新渲染或验证新图。审计复用 audit_log，原文不进入 before_json/after_json 或 command_receipts 的响应。
 
 ## 6. 来源映射与迁移次序
 

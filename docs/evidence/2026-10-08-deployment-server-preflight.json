@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-10-08T08:27:26.408066+00:00",
+  "source": "tccli lighthouse DescribeInstances / ap-singapore",
+  "scope": "仅只读实例元数据，不含运行容量/Docker/DNS/TLS核验",
+  "count": 1,
+  "instances": [
+    {
+      "name": "支栾",
+      "state": "RUNNING",
+      "os": "Ubuntu Server 24.04 LTS 64bit",
+      "cpu": 2,
+      "memoryGiB": 4
+    }
+  ],
+  "runtimeAndDeploymentVerified": false
+}

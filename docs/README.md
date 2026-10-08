@@ -1,10 +1,14 @@
 # 文档中心
 
-文档基线：D0.38；更新日期：2026-10-08。E01-F02/F03 的独立本地 MySQL、初始迁移及真实结构核验已完成，结果见[报告](testing/reports/2026-10-08-e01-f02-f03.md)。F04 应用受限连接、启动/恢复、真实就绪及关闭已实现，见[执行文档](implementation/execution-plan.md#f04-单功能操作链路2026-10-08)和[验收报告](testing/reports/2026-10-08-e01-f04.md)。分支交付流程归[代码管理](operations/release-maintenance.md#2-代码管理)，实际 refs 归系统真相；认证、业务及公网部署待接续。未变更的单篇文档保留原版本号。
+文档基线：D0.47；更新日期：2026-10-08。E01-F02/F03 的独立本地 MySQL、初始迁移及真实结构核验已完成，结果见[报告](testing/reports/2026-10-08-e01-f02-f03.md)。F04 应用受限连接、启动/恢复、真实就绪及关闭已实现，见[执行文档](implementation/execution-plan.md#f04-单功能操作链路2026-10-08)和[验收报告](testing/reports/2026-10-08-e01-f04.md)。分支交付流程归[代码管理](operations/release-maintenance.md#2-代码管理)，实际 refs 归系统真相；认证、业务及公网部署待接续。未变更的单篇文档保留原版本号。
 
 项目事实及施工准备状态以[当前系统真相](status/current-system-truth.md)为入口。原应用源码在本地核查副本；新工程已产生最小应用代码，现有六页面尚未接入服务器业务。运行命令见[本地工程运行](operations/release-maintenance.md#本地工程运行e01-f01)，结果见[验收报告](testing/reports/2026-10-08-e01-f01.md)；Git 推送与服务器部署分别记录。
 
 项目仓库：https://github.com/zhilihz/geekdash 。全部项目文档集中于本目录；协作与文档分类规则只在根目录 [AGENTS.md](../AGENTS.md) 维护。
+
+当前部署逐功能入口：[D01～D07](implementation/execution-plan.md#e12-d01d07首个公网基底的逐功能施工方案)，[Linux 参数与新域名流程](operations/release-maintenance.md#当前首个公网部署单元dec-071)；实测入口为系统真相第 25 节。未实施内容明确为讨论建议。
+
+当前优先级：按 DEC-071 先部署免登录工程基底，E02 全部后置增强；范围归规格、施工归执行文档、实际部署事实归系统真相与部署记录，历史身份目标不作为当前部署前置。
 
 ## 目录结构
 

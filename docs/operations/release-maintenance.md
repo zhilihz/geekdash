@@ -1,6 +1,6 @@
 # 更新、发布与长期维护
 
-版本：D0.38；日期：2026-10-08；状态：本地工程、独立数据库及应用就绪已实现；认证、业务和服务器发布待接续。
+版本：D0.47；日期：2026-10-08；状态：本地工程、独立数据库及应用就绪已实现；认证、业务和服务器发布待接续。
 
 ## 1. 区分三种动作
 
@@ -79,6 +79,8 @@ pwsh -NoProfile -File scripts/database.ps1 run --rm --no-deps dbtool npm run tes
 
 该脚本只在 geekdash_test 临时改登记/删除外键并复原，验证错误结构、超时、连接耗尽和真实进程关闭；无人使用测试范围才可执行。数据库仍健康时，停止 app 只关闭应用，MySQL 和数据保留；停止 mysql 会使运行中的 app 就绪及业务入口返回 503，恢复后重新完整核验，无需重启 app。当前只提供工程验收页，不含登录或项目业务。
 
+维护账号命令行恢复的目标契约已按 DEC-070 确认，归 SPEC-001 F07，施工方法归[执行文档](../implementation/execution-plan.md#e02-f07维护账号无法登录时的受控恢复dec-070-已确认尚未实施)。当前没有恢复命令；实际实现后才在此补充固定环境入口、仅 GeekDash app 暂停/恢复及受控文件交接步骤，不能直接手改 SQL 冒充已验收流程。
+
 ## 2. 代码管理
 
 - 2026-10-08 用户确认：工程实施在独立分支进行，已完成成果最终合并回远端 main。开始施工先 fetch 核对 main，处理并保留已有未提交内容，再从最新 main 创建 codex/ 短期分支；不在 main 直接编写功能代码。
@@ -89,6 +91,65 @@ pwsh -NoProfile -File scripts/database.ps1 run --rm --no-deps dbtool npm run tes
 - 原始压缩包、核查副本、凭据、真实业务备份不默认进入 Git。
 
 首次空仓库可以直接提交文档基线；若发现远程已有内容，必须先整合，禁止强制覆盖已有历史。
+
+### 当前首个公网部署单元（DEC-071）
+
+先部署免登录工程基底，流程以执行文档“当前执行优先级覆盖”和 SPEC 当前范围为准。部署不运行用户初始化/邀请码注册，不新增代理密码登录；数据库技术身份、受控配置、HTTPS 和隔离运行仍按已有工程边界实施。以下原身份/业务首版流程为后续完整目标，不能据其要求继续阻塞当前基底部署。实际 Linux 入口和环境目录在施工后记录，当前不虚构可执行命令/已部署版本。
+
+#### Linux 测试部署参数（讨论建议，尚未创建）
+
+采用现有宿主机 Nginx 承接 HTTPS，Compose 项目名建议为 geekdash。拓扑归架构；逐功能工程处理归执行文档 E12-D01～D07。以下是施工建议值，实际施工验证后再写 deployments，当前不是可执行入口已存在的声明。
+
+| 项目 | 建议落位/参数 | 用途及边界 |
+|---|---|---|
+| 版本目录 | /opt/geekdash/releases/<revision>/ | Compose、专用站点配置、manifest；每版独立，不存凭据 |
+| 当前版本 | /opt/geekdash/current → 已验收版本目录 | 验收后提升；真实容器镜像仍单独读回 |
+| 公共运行配置 | /opt/geekdash/config/runtime.env | 非秘密路径/镜像标识/环境参数 |
+| 凭据 | /opt/geekdash/config/secrets/ | 新数据库技术密码，受控权限、仅按服务挂载 |
+| MySQL 数据 | /var/lib/geekdash/mysql/ | 独立持久 bind mount，更新镜像不清目录 |
+| 备份暂存 | /var/backups/geekdash/ | E11 产生内容后使用；异地位置及执行权限仍按 Q-016 落实 |
+| ACME 验证目录 | /opt/geekdash/acme-webroot/ | Nginx 的 /.well-known/acme-challenge/ 文件验证入口 |
+| 专用站点 | /etc/nginx/sites-available/geekdash；sites-enabled 同名链接 | 只新增自身配置，server_name 为 geekdash.zhiluan.cool |
+| app 端口 | 127.0.0.1:41860 → 容器 3000 | 启动前重新核对占用；只经宿主机 Nginx 访问 |
+| mysql 端口 | Docker 私有网络内 3306 | 无 ports、不使用 host network |
+| 初始资源 | app mem_limit=256m；mysql mem_limit=512m | 按当前余量给出的起始值，必须测初始化峰值/OOM及运行余量，未经验证不是性能保证 |
+| MySQL 起始设置 | InnoDB buffer pool 128 MiB；max_connections=32 | app 池沿用 8，保留迁移/维护余量；不足时按实际观测调整 |
+| 容器日志 | json-file，max-size=10m，max-file=3 | 每个常驻服务独立轮转，避免无界占用共享磁盘 |
+
+app/mysql 常驻、restart=unless-stopped；dbtool 一次性退出。MySQL 使用现有 Compose 固定的 8.4 摘要，app 使用提交号和镜像 ID 清单，不使用浮动 latest。Compose 健康依赖要等待 service_healthy，进程 Running 本身不代表数据库可用；应用还执行实际 schema 核验。[Docker 启动顺序说明](https://docs.docker.com/compose/how-tos/startup-order/)
+
+文件权限以实际容器身份验证：app 的 node 用户当前 UID/GID 应核对为 1000，运行 secret 叶文件可按 root:1000 0640 只读授权，父目录 root 0700；只有挂载的叶文件对 app 可见。迁移工具同样只挂所需身份文件。root/MySQL 初始化文件按官方镜像实际执行身份确定权限；数据目录 owner 也按该镜像核对。文件型 Compose secrets 使用宿主机文件挂载，不能靠 uid/gid 标签覆盖不正确的源文件权限。[Docker secrets 说明](https://docs.docker.com/compose/how-tos/use-secrets/)
+
+#### 新域名参数与证书接续（DEC-072）
+
+用户确认父域名在阿里云 DNS 管理；在该父域已有解析区内新增普通子域记录，无需另购域名或新建独立委派区。[阿里云子域记录说明](https://www.alibabacloud.com/help/en/dns/pubz-set-domain-name-subdomain-name-related-faq)
+
+| 阿里云 DNS 字段 | 本次建议值 |
+|---|---|
+| 域名 | zhiluan.cool |
+| 主机记录 | geekdash |
+| 类型 | A |
+| 线路 | 默认 |
+| 记录值 | 当前已核对的新加坡测试机公网 IPv4；仅在受控执行回执中保存 |
+| TTL | 建议 600 秒；以该解析区允许值为准 |
+| AAAA | 本次不新增；有实际 IPv6 连通验收后再另行配置 |
+
+实施时先核对阿里云当前登录/权限和 geekdash 的现有 A/AAAA/CNAME 状态，按真实值处理，不因用户说新建就盲目重复。先验新站点 HTTP 的挑战文件公网可读，再用已安装 certbot 的 certonly/webroot 模式申请该域名证书；HTTP-01 需要 80 端口，不能为独占端口停掉共享 Nginx。[Let’s Encrypt 验证机制](https://letsencrypt.org/docs/challenge-types/)
+
+签发后新站点配置 443 证书与本机代理，80 除挑战路径外跳转 HTTPS；站点参数须适配当前 Nginx 1.24 和共享监听选项。配置/链接保存前版备份，只在 nginx -t 成功后 reload。新证书做一次限定该证书的 renew dry-run，并验证实际续期后的 nginx -t/reload 机制，不能仅凭已有 certbot.timer active 判通过。未来 SSE 实现时只对实际事件路由关闭代理缓冲，当前没有事件路由，不提前写虚构 endpoint。
+
+#### 本单元操作顺序与恢复边界
+
+1. 重新采样容量/端口/现有服务，完成小文件传输验证；确认固定版本与构建清单。
+2. 传输并校验/加载镜像，建立专属目录/配置；只启动新 mysql。
+3. 一次性迁移/新连接核验两库，再启动 app；本机 home/live/ready 与版本通过。
+4. 阿里云新增解析、新站点 HTTP 挑战回读、证书签发、HTTPS 验证；每次 nginx -t 后才 reload。
+5. 仅本项目断库恢复/应用恢复、持久结构回读、新证书续期演练，检查既有服务基线。
+6. 通过后提升 current，记录实际部署；没有实际执行时 deployments 目录保持原状。
+
+具体 Linux 脚本/命令在代码施工与验证后补入本节，不将建议文件名冒充已经可运行的工具。TAT 调用成功下发不能当执行成功；必须读终态、退出码和完整业务回执。返回内容截断则分小项重新查询，不由部分输出推断其余项正常。发布失败只处理自身站点/容器；首次无旧 GeekDash 运行版本时保留 MySQL 数据并修复或撤回候选入口，后续兼容回退使用已验证的上一镜像。不要删除持久目录、全局 prune 或重启整台共享主机。
+
+Docker unhealthy 状态本身不会触发 restart 策略，restart=unless-stopped 处理进程退出；ready 持续失败应可见并人工定位。后续自动告警在有实际通知渠道时再落实，不虚构监控已经存在。本次不做完整业务备份或真实数据导入，E11 和 Q-016 仍按原门槛接续。
 
 ## 3. 首版发布流程（人工择时已确认，DEC-057）
 
@@ -107,10 +168,10 @@ pwsh -NoProfile -File scripts/database.ps1 run --rm --no-deps dbtool npm run tes
 
 ## 4. 数据库迁移
 
-### 测试环境首次初始化（DEC-051）
+### 完整业务测试环境首次初始化（后续目标，DEC-051；当前范围按 DEC-071）
 
 1. 创建本项目独立 MySQL 实例和持久卷；建立人工试用库、自动测试库及独立授权，不连接其他系统业务库。运行账号只访问自身库，迁移/备份凭据受控保存。
-2. 运行版本化迁移，按 SPEC-001 开通四个业务测试账号与一个维护测试账号，临时凭据受控交付。
+2. 运行版本化迁移，按 SPEC-001 受控初始化首个维护测试账号，再生成邀请码并注册首批业务测试账号；临时初始化/重置凭据受控交付，注册者自设正式密码。身份开通链路尚未实现，不能沿用固定五账号统一发临时密码方案。
 3. 在专用自动测试库验证登录、项目保存、新请求回读、审计、同项目冲突、重启和备份恢复。人工试用记录须明确标识，不能由测试脚本清空试用库。
 4. 验证完成后，由业务账号将真实备份上传至持久审查区。未审数据不进入看板；字段映射及异常逐项可见，保留来源，按 SPEC-009 明确审查并提交。
 5. 导入后以新请求逐项对账，核对原字段、关系、历史及看板/输出消费。原备份保持只读，不纳入 Git，不以临时测试数据冒充真实迁移成功。

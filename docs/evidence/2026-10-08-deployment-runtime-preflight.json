@@ -1,0 +1,85 @@
+{
+  "kind": "read-only-preflight",
+  "checkedAtUtc": "2026-10-08T08:32:40.653112+00:00",
+  "gatewayCheckedAtUtc": "2026-10-08T08:35:42.601469+00:00",
+  "source": "tccli TAT RunCommand / DescribeInvocationTasks; SUCCESS, exitCode=0; compact complete JSON parsed",
+  "scope": "selected ap-singapore Lighthouse host; no configuration writes or deployment",
+  "architecture": "x86_64",
+  "memoryMiB": {
+    "total": 3659,
+    "used": 2504,
+    "available": 1155,
+    "swapTotal": 1987,
+    "swapUsed": 1876
+  },
+  "diskRoot": {
+    "size": "59G",
+    "used": "40G",
+    "available": "17G",
+    "usedPercent": 71
+  },
+  "vmstatLastTwoSamples": {
+    "swapIn": 0,
+    "swapOut": 0,
+    "sampleIntervalSeconds": 1,
+    "limitation": "short observation only"
+  },
+  "dockerVersion": "29.1.3",
+  "composeVersion": "Docker Compose version 2.40.3+ds1-0ubuntu1~24.04.1",
+  "runningContainers": 17,
+  "geekdashContainerCount": 0,
+  "gateway": {
+    "type": "host nginx",
+    "active": true,
+    "version": "nginx version: nginx/1.24.0 (Ubuntu)",
+    "ports": [
+      80,
+      443
+    ],
+    "loopback41860ObservedListening": false,
+    "configTestExitCode": 0,
+    "existingWarning": "shared IPv6 443 protocol options redefined in an existing site",
+    "enabledSiteCount": 3,
+    "geekdashSiteExists": false,
+    "certbotInstalled": true,
+    "certbotTimerActive": true,
+    "newDomainCertificateRenewalVerified": false
+  },
+  "dns": {
+    "domain": "geekdash.zhiluan.cool",
+    "localQueryResolved": false,
+    "resolverErrorCode": 11001,
+    "parentNsLocalQuery": "timeout; no authoritative inference",
+    "currentTccliDnsPodQuery": "DomainNotExists in current account; not domain-registration status",
+    "provider": "Alibaba Cloud DNS",
+    "providerSource": "user reply 2026-10-08",
+    "providerConsoleAndWritePermissionVerified": false,
+    "recordCreated": false
+  },
+  "excluded": "instance identifiers, public IP, other application names/configuration, credentials and business data",
+  "limitations": [
+    "capacity snapshot is not business performance acceptance",
+    "first verbose output clipped; not used as complete evidence",
+    "no cloud deployment or DNS/TLS writes performed"
+  ],
+  "dnsFollowUp": {
+    "checkedAtUtc": "2026-10-08T09:11:10.312643+00:00",
+    "source": "Resolve-DnsName -Type A -DnsOnly; two public recursive resolvers",
+    "domain": "geekdash.zhiluan.cool",
+    "resolvers": [
+      {
+        "server": "1.1.1.1",
+        "resolved": true,
+        "matchesSelectedServerIpv4": true
+      },
+      {
+        "server": "8.8.8.8",
+        "resolved": true,
+        "matchesSelectedServerIpv4": true
+      }
+    ],
+    "recordCreationSource": "user reported completion; provider console not inspected",
+    "dnsWritesByAgent": false,
+    "httpsOrApplicationAcceptance": false
+  }
+}
