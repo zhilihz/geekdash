@@ -340,7 +340,7 @@ main 的合并记录补充提交为 acefcee93b2f8efa6ce777b0e89f3855121ac50a，�
 
 ## 19. E01-F02/F03 本地数据库实际实施（2026-10-08）
 
-用户明确开始本单元实施，并在询问 C 盘占用后选择“GeekDash 的 MySQL 数据放 D 盘，镜像暂留现有 Docker 数据盘”。在 codex/e01-mysql-foundation 保留上一轮讨论文档后，新增独立 MySQL 补充 Compose、仓库外受控配置入口、mysql2 实际连接、版本资源与迁移/只读结构核验两个深方法。工程基线 acefcee93b2f8efa6ce777b0e89f3855121ac50a；Git 交付和本地镜像源码标识以实际回读后补充。
+用户明确开始本单元实施，并在询问 C 盘占用后选择“GeekDash 的 MySQL 数据放 D 盘，镜像暂留现有 Docker 数据盘”。在 codex/e01-mysql-foundation 保留上一轮讨论文档后，新增独立 MySQL 补充 Compose、仓库外受控配置入口、mysql2 实际连接、版本资源与迁移/只读结构核验两个深方法。工程基线 acefcee93b2f8efa6ce777b0e89f3855121ac50a；代码提交 08c57b555dab5dc05cf5acf964632f7b45eb199c 已推送施工分支，再快进合并 main 并推送；git ls-remote 回读 main 一致，无冲突。本地 app 从该干净提交重建并替换，实际 HTTP 读回 revision 一致、dirty=false、目标结构版本 0001-foundation，首页/live 200、ready 503。镜像内迁移资源存在，src/docs/数据库 secret 不存在；本轮证据文档补充提交按同一分支流程进入 main，其 refs 以 Git 回读为准。
 
 实际运行 MySQL 8.4.11；数据挂载 D:/geekwon/geekdash-data/mysql，配置也在仓库外 D 盘，数据库私有网络 internal=true、宿主机无发布端口。四个数据库技术身份分别授权 geekdash_dev/test；运行身份无 DDL/跨库权限，dbtool 未获得 root。它们不是五个 GeekDash 登录账号。另一已有 MySQL 容器保持运行；未移动 Docker 全局数据盘或其他服务。
 

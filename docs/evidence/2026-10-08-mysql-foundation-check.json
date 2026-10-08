@@ -329,9 +329,78 @@
   },
   "deliveryCheck": {
     "status": "passed",
-    "checkedAt": "2026-10-08T04:20:40.195Z",
-    "localLinksChecked": 105,
+    "checkedAt": "2026-10-08T04:22:10.403Z",
+    "localLinksChecked": 111,
     "controlledSecretValuesFound": 0,
     "migrationChecksumPreserved": true
+  },
+  "runtime": {
+    "http": {
+      "ready": {
+        "status": 503,
+        "body": {
+          "status": "unavailable",
+          "reason": "database_not_implemented"
+        }
+      },
+      "live": {
+        "status": 200,
+        "body": {
+          "status": "alive",
+          "stage": "foundation",
+          "build": {
+            "revision": "08c57b555dab5dc05cf5acf964632f7b45eb199c",
+            "dirty": false,
+            "builtAt": "2026-10-08T04:22:39.244Z",
+            "stage": "foundation",
+            "schemaVersion": "0001-foundation"
+          }
+        }
+      },
+      "homeStatus": 200
+    },
+    "sourceCommit": "08c57b555dab5dc05cf5acf964632f7b45eb199c",
+    "verifiedAt": "2026-10-08T04:23:47.2882591Z",
+    "singaporeDeployed": false,
+    "mysqlHealthy": true,
+    "app": {
+      "startedAt": "2026-10-08T04:22:58.022156486Z",
+      "runAs": "node",
+      "status": "running",
+      "hostPorts": {
+        "3000/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "41860"
+          }
+        ]
+      },
+      "imageId": "sha256:622c37835d08b456cb9d587336d58eada4bfc7ac083c4a13b2214969841f9a3d",
+      "health": "healthy"
+    },
+    "build": {
+      "revision": "08c57b555dab5dc05cf5acf964632f7b45eb199c",
+      "dirty": false,
+      "builtAt": "2026-10-08T04:22:39.244Z",
+      "stage": "foundation",
+      "schemaVersion": "0001-foundation"
+    },
+    "dirty": false,
+    "otherServiceRunning": true,
+    "imageIsolation": {
+      "migrationResourcePresent": true,
+      "sourceAndDocsAbsent": true,
+      "runtimeAndMigrationSecretsAbsent": true,
+      "source": "实际运行容器 test 检查退出 0"
+    }
+  },
+  "git": {
+    "verifiedAt": "2026-10-08T04:25:12.511Z",
+    "codeCommit": "08c57b555dab5dc05cf5acf964632f7b45eb199c",
+    "implementationBranchPushed": true,
+    "merge": "main 从 acefcee 快进到代码提交，无冲突",
+    "mainPushed": true,
+    "remoteMainReadback": "08c57b555dab5dc05cf5acf964632f7b45eb199c",
+    "evidenceFollowup": "本文件后续文档补充提交仍按施工分支→main；运行镜像固定代码提交，不因纯文档更新重建"
   }
 }
