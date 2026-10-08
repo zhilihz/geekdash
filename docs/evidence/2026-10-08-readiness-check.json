@@ -1,0 +1,193 @@
+{
+  "status": "passed",
+  "scope": "E01-F04 本地工程，非业务或公网验收",
+  "baseline": "141e440060f6a60c3ac1179f66a21959143680be",
+  "readiness": {
+    "status": "passed",
+    "verifiedAt": "2026-10-08T06:10:28.073Z",
+    "target": "geekdash_test",
+    "checks": [
+      {
+        "check": "actual-start-invalid-runtime-config-exits-nonzero-with-field",
+        "passed": true
+      },
+      {
+        "check": "runtime-role-and-future-version-rejected-before-listening",
+        "passed": true
+      },
+      {
+        "check": "full-startup-schema-runtime-grants-and-twenty-http-requests",
+        "passed": true
+      },
+      {
+        "check": "checksum-failure-and-missing-constraint-block-startup-or-recovery",
+        "passed": true
+      },
+      {
+        "check": "eight-connections-exhausted-fails-fast-and-recovers",
+        "passed": true
+      },
+      {
+        "check": "real-slow-sql-timeout-live-responsive-and-new-connection-recovery",
+        "passed": true
+      },
+      {
+        "check": "actual-start-process-sigterm-clean-exit-within-budget",
+        "passed": true
+      }
+    ],
+    "businessReady": false
+  },
+  "containerRecovery": {
+    "verifiedAt": "2026-10-08T06:07:58.8936505Z",
+    "appStartedAfter": "2026-10-08T06:07:30.986206103Z",
+    "initialReady": 200,
+    "appShutdownExit": 0,
+    "databaseDownStartupExit": 1,
+    "outage": {
+      "live": 200,
+      "readyBody": {
+        "status": "unavailable",
+        "reason": "database_unavailable"
+      },
+      "ready": 503,
+      "api": 503
+    },
+    "appNotRestartedDuringRecovery": true,
+    "appStartedBefore": "2026-10-08T06:07:30.986206103Z",
+    "recoveredReady": 200,
+    "readyAfterAppRestart": 200
+  },
+  "databaseSnapshot": {
+    "verifiedAt": "2026-10-08T06:08:02.072Z",
+    "databases": [
+      {
+        "fact": {
+          "profile": "dev_migrator",
+          "database": "geekdash_dev",
+          "identity": "gd_dev_migrator@%",
+          "serverVersion": "8.4.11",
+          "timezone": "+00:00",
+          "grantsVerified": true
+        },
+        "structure": {
+          "database": "geekdash_dev",
+          "version": "0001-foundation",
+          "checksum": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+          "tables": 34,
+          "columns": 313,
+          "foreignKeys": 55,
+          "differences": 0
+        },
+        "settings": {
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci",
+          "lowerCaseTableNames": "2"
+        },
+        "rowCounts": {
+          "apps": "0",
+          "audit_log": "0",
+          "check_rule_revisions": "0",
+          "chips": "0",
+          "command_receipts": "0",
+          "customer_tags": "0",
+          "customers": "0",
+          "engineers": "0",
+          "feedback_entries": "0",
+          "import_batches": "0",
+          "import_items": "0",
+          "legacy_project_history": "0",
+          "meetings": "0",
+          "product_lines": "0",
+          "project_changes": "0",
+          "project_checks": "0",
+          "project_chips": "0",
+          "project_drafts": "0",
+          "project_groups": "0",
+          "project_nodes": "0",
+          "project_people": "0",
+          "project_responsibilities": "0",
+          "project_risks": "0",
+          "project_stages": "0",
+          "project_tags": "0",
+          "projects": "0",
+          "reports": "0",
+          "schedule_changes": "0",
+          "schema_migrations": "1",
+          "sessions": "0",
+          "system_configuration": "0",
+          "tags": "0",
+          "user_preferences": "0",
+          "users": "0"
+        }
+      },
+      {
+        "fact": {
+          "profile": "test_migrator",
+          "database": "geekdash_test",
+          "identity": "gd_test_migrator@%",
+          "serverVersion": "8.4.11",
+          "timezone": "+00:00",
+          "grantsVerified": true
+        },
+        "structure": {
+          "database": "geekdash_test",
+          "version": "0001-foundation",
+          "checksum": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+          "tables": 34,
+          "columns": 313,
+          "foreignKeys": 55,
+          "differences": 0
+        },
+        "settings": {
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci",
+          "lowerCaseTableNames": "2"
+        },
+        "rowCounts": {
+          "apps": "0",
+          "audit_log": "0",
+          "check_rule_revisions": "0",
+          "chips": "0",
+          "command_receipts": "0",
+          "customer_tags": "0",
+          "customers": "0",
+          "engineers": "0",
+          "feedback_entries": "0",
+          "import_batches": "0",
+          "import_items": "0",
+          "legacy_project_history": "0",
+          "meetings": "0",
+          "product_lines": "0",
+          "project_changes": "0",
+          "project_checks": "0",
+          "project_chips": "0",
+          "project_drafts": "0",
+          "project_groups": "0",
+          "project_nodes": "0",
+          "project_people": "0",
+          "project_responsibilities": "0",
+          "project_risks": "0",
+          "project_stages": "0",
+          "project_tags": "0",
+          "projects": "0",
+          "reports": "0",
+          "schedule_changes": "0",
+          "schema_migrations": "1",
+          "sessions": "0",
+          "system_configuration": "0",
+          "tags": "0",
+          "user_preferences": "0",
+          "users": "0"
+        }
+      }
+    ]
+  },
+  "regression": {
+    "build": "passed",
+    "foundationHttp": "passed"
+  },
+  "migrationBytesUnchanged": true,
+  "gitDelivery": "pending",
+  "cleanRuntimeReadback": "pending"
+}

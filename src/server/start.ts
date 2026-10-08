@@ -1,10 +1,18 @@
 import { createApp } from './app.js';
 import { readConfig } from './infrastructure/config.js';
+import { openRuntimeDatabase, type RuntimeDatabase } from './infrastructure/runtime-database.js';
 
+let database: RuntimeDatabase | undefined;
 try {
-  const config = readConfig();
-  const app = await createApp();
+  const { databaseProfile, ...listen } = readConfig();
+  database = await openRuntimeDatabase(databaseProfile);
+  const app = await createApp(database);
+  app.log.info({ database: database.fact.database, schemaVersion: database.fact.version }, '数据库已核验');
+  let shuttingDown = false;
   const close = async () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    database!.beginClosing();
     const timeout = setTimeout(() => process.exit(1), 5000);
     timeout.unref();
     try {
@@ -17,8 +25,10 @@ try {
   };
   process.once('SIGTERM', close);
   process.once('SIGINT', close);
-  await app.listen(config);
+  await app.listen(listen);
 } catch (error) {
-  console.error(error instanceof Error ? error.message : '启动失败');
+  if (database) await database.close();
+  const failure = error as { code?: string; field?: string };
+  console.error(JSON.stringify({ status: 'startup_failed', code: failure.code ?? 'APP_START_FAILED', field: ['HOST', 'PORT', 'GEEKDASH_DB_PROFILE'].includes(failure.field ?? '') ? failure.field : undefined }));
   process.exitCode = 1;
 }

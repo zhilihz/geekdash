@@ -36,7 +36,7 @@ try {
   assert.deepEqual((await live.json()).build, JSON.parse(before));
   const ready = await fetch(`${origin}/api/health/ready`);
   assert.equal(ready.status, 503);
-  assert.equal((await ready.json()).reason, 'database_not_implemented');
+  assert.equal((await ready.json()).reason, 'database_not_configured');
   const page = await fetch(origin);
   assert.equal(page.status, 200);
   const html = await page.text();

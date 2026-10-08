@@ -113,6 +113,12 @@ export async function verifyDatabase(profile: DatabaseProfile) {
   } finally { await connection.end(); }
 }
 
+export async function verifySchemaConnection(connection: Connection, resource: Awaited<ReturnType<typeof loadSchema>>, full: boolean) {
+  const structure = full ? await verifyStructure(connection, resource.manifest) : undefined;
+  await checkHistory(connection, resource.manifest.version, resource.checksum, true);
+  return { version: resource.manifest.version, ...structure };
+}
+
 export async function migrateDatabase(profile: DatabaseProfile) {
   if (!profile.endsWith('_migrator')) fail('DB_MIGRATION_IDENTITY_INVALID');
   const { manifest, checksum } = await loadSchema();

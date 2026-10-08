@@ -16,7 +16,8 @@
     "db:verify": "node dist/server/commands/database.js verify",
     "test:db": "node scripts/verify-database.mjs prepare",
     "test:db:resume": "node scripts/verify-database.mjs resume",
-    "test:migrations": "node scripts/verify-migrations.mjs"
+    "test:migrations": "node scripts/verify-migrations.mjs",
+    "test:readiness": "node scripts/verify-readiness.mjs"
   },
   "dependencies": {
     "@fastify/static": "10.1.5",

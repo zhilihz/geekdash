@@ -1,6 +1,6 @@
 # 更新、发布与长期维护
 
-版本：D0.36；日期：2026-10-08；状态：本地工程与独立数据库运行入口已实现；应用就绪接入及服务器发布待接续。
+版本：D0.38；日期：2026-10-08；状态：本地工程、独立数据库及应用就绪已实现；认证、业务和服务器发布待接续。
 
 ## 1. 区分三种动作
 
@@ -21,21 +21,21 @@ pwsh -NoProfile -File scripts/docker.ps1 run --rm --no-deps tool npm run check
 pwsh -NoProfile -File scripts/docker.ps1 run --rm --no-deps tool npm run build
 pwsh -NoProfile -File scripts/docker.ps1 run --rm --no-deps tool npm test
 pwsh -NoProfile -File scripts/docker.ps1 build app
-pwsh -NoProfile -File scripts/docker.ps1 up --wait --wait-timeout 60 app
 ```
 
-逐条检查退出码，前一步失败不执行后续。构建在候选目录完成类型检查、编译、资源核对和真实 HTTP 检查后才提升为 dist；dist.previous 保留上一产物。候选目录和上一产物不能自动当作已验收发布版本。
+以上只构建，不启动应用，也不读取数据库凭据。首次运行先完成下一节的配置初始化、数据库启动和迁移，再用组合入口启动应用。逐条检查退出码，前一步失败不执行后续。构建在候选目录完成类型检查、编译、资源核对和真实 HTTP 检查后才提升为 dist；dist.previous 保留上一产物。候选目录和上一产物不能自动当作已验收发布版本。
 
-入口为 http://127.0.0.1:41860 ，仅绑定本机。端口占用时先核查；可用进程环境 GEEKDASH_PORT 指定另一端口，变更后重新创建本项目 app。当前页面是工程验收页，尚无项目/账号业务。容器健康检查使用 live，**healthy 只表示基础进程存活；ready 当前始终 503，应用数据库接入尚未实现**。协议见 [API 说明](../specifications/api/foundation.md)。
+入口为 http://127.0.0.1:41860 ，仅绑定本机。端口占用时先核查；可用进程环境 GEEKDASH_PORT 指定另一端口，变更后重新创建本项目 app。当前页面是工程验收页，尚无项目/账号业务。组合 Compose 的容器健康检查使用 ready；healthy 表示基础数据库依赖就绪，尚不能代表登录或项目业务已完成。协议见 [API 说明](../specifications/api/foundation.md)。
 
 ```powershell
-pwsh -NoProfile -File scripts/docker.ps1 ps app
-pwsh -NoProfile -File scripts/docker.ps1 logs --tail 50 app
-pwsh -NoProfile -File scripts/docker.ps1 stop app
-pwsh -NoProfile -File scripts/docker.ps1 up --wait --wait-timeout 60 app
+pwsh -NoProfile -File scripts/database.ps1 up --wait --wait-timeout 60 app
+pwsh -NoProfile -File scripts/database.ps1 ps app
+pwsh -NoProfile -File scripts/database.ps1 logs --tail 50 app
+pwsh -NoProfile -File scripts/database.ps1 stop app
+pwsh -NoProfile -File scripts/database.ps1 up --wait --wait-timeout 60 app
 ```
 
-实际配置通过 Compose/进程环境注入，当前应用只需 HOST/PORT，未挂载数据库凭据；F04 再接入受控应用身份。F02/F03 的独立数据库工具入口见下节。不要执行带 -v 的清理命令删除卷。这里的命令不连接新加坡服务器，也不部署 geekdash.zhiluan.cool。
+实际配置通过 Compose/进程环境注入：HOST、PORT、GEEKDASH_DB_PROFILE；仅接受 dev_app/test_app，组合 Compose 默认 dev_app，并仅挂载该运行身份文件。app 加入私有数据库网络、配置 unless-stopped；root、迁移和测试身份不挂入常驻 app。启动完整核验失败则退出，运行中故障保留 live，通过有界检查恢复。F02/F03 的独立数据库工具入口见下节。不要执行带 -v 的清理命令删除卷。这里的命令不连接新加坡服务器，也不部署 geekdash.zhiluan.cool。
 
 ### 本地数据库运行（E01-F02/F03）
 
@@ -69,7 +69,15 @@ db:check 只证明四个技术目标/授权，不证明业务结构。migrate/ve
 
 健康或连接检查不能当备份恢复。停止仅本项目 mysql：database.ps1 stop mysql；数据目录保留。禁止 down -v、删目录、全局 prune 或操作其他项目容器。
 
-故障演练脚本 test:migrations 会在 geekdash_test 中临时删除版本登记/外键并注入子进程死亡，仅可在没有人工使用的专用测试库运行；失败后先 db:verify 定位，按输出核对恢复，不在 geekdash_dev 或试用库演练。F02-A 的读写/重启验证采用 npm run test:db、重启 mysql 后 npm run test:db:resume，夹具范围与恢复以脚本回执为准。已执行范围见[报告](../testing/reports/2026-10-08-e01-f02-f03.md)。应用仍未加载数据库凭据，F04 前 ready 503。
+故障演练脚本 test:migrations 会在 geekdash_test 中临时删除版本登记/外键并注入子进程死亡，仅可在没有人工使用的专用测试库运行；失败后先 db:verify 定位，按输出核对恢复，不在 geekdash_dev 或试用库演练。F02-A 的读写/重启验证采用 npm run test:db、重启 mysql 后 npm run test:db:resume，夹具范围与恢复以脚本回执为准。已执行范围见[报告](../testing/reports/2026-10-08-e01-f02-f03.md)。应用已接通运行凭据；F04 验证与恢复证据见[报告](../testing/reports/2026-10-08-e01-f04.md)。
+
+F04 的专用测试命令：
+
+```powershell
+pwsh -NoProfile -File scripts/database.ps1 run --rm --no-deps dbtool npm run test:readiness
+```
+
+该脚本只在 geekdash_test 临时改登记/删除外键并复原，验证错误结构、超时、连接耗尽和真实进程关闭；无人使用测试范围才可执行。数据库仍健康时，停止 app 只关闭应用，MySQL 和数据保留；停止 mysql 会使运行中的 app 就绪及业务入口返回 503，恢复后重新完整核验，无需重启 app。当前只提供工程验收页，不含登录或项目业务。
 
 ## 2. 代码管理
 
