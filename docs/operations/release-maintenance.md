@@ -1,6 +1,6 @@
 # 更新、发布与长期维护
 
-版本：D0.47；日期：2026-10-08；状态：本地工程、独立数据库及应用就绪已实现；认证、业务和服务器发布待接续。
+版本：D0.48；日期：2026-10-08；状态：本地工程、独立数据库及应用就绪已实现；免登录公网基底已部署；认证、业务及完整备份恢复待接续。
 
 ## 1. 区分三种动作
 
@@ -94,11 +94,11 @@ pwsh -NoProfile -File scripts/database.ps1 run --rm --no-deps dbtool npm run tes
 
 ### 当前首个公网部署单元（DEC-071）
 
-先部署免登录工程基底，流程以执行文档“当前执行优先级覆盖”和 SPEC 当前范围为准。部署不运行用户初始化/邀请码注册，不新增代理密码登录；数据库技术身份、受控配置、HTTPS 和隔离运行仍按已有工程边界实施。以下原身份/业务首版流程为后续完整目标，不能据其要求继续阻塞当前基底部署。实际 Linux 入口和环境目录在施工后记录，当前不虚构可执行命令/已部署版本。
+先部署免登录工程基底，流程以执行文档“当前执行优先级覆盖”和 SPEC 当前范围为准。部署不运行用户初始化/邀请码注册，不新增代理密码登录；数据库技术身份、受控配置、HTTPS 和隔离运行仍按已有工程边界实施。以下原身份/业务首版流程为后续完整目标，不能据其要求继续阻塞当前基底部署。Linux 入口已形成，实际命令见本节后文，结果以部署记录为准。
 
 #### Linux 测试部署参数（讨论建议，尚未创建）
 
-采用现有宿主机 Nginx 承接 HTTPS，Compose 项目名建议为 geekdash。拓扑归架构；逐功能工程处理归执行文档 E12-D01～D07。以下是施工建议值，实际施工验证后再写 deployments，当前不是可执行入口已存在的声明。
+采用现有宿主机 Nginx 承接 HTTPS，Compose 项目名建议为 geekdash。拓扑归架构；逐功能工程处理归执行文档 E12-D01～D07。下表保留讨论起始值；已采用的配置和差异归后文实际运行入口，真实版本归 deployments。
 
 | 项目 | 建议落位/参数 | 用途及边界 |
 |---|---|---|
@@ -150,6 +150,52 @@ app/mysql 常驻、restart=unless-stopped；dbtool 一次性退出。MySQL 使�
 具体 Linux 脚本/命令在代码施工与验证后补入本节，不将建议文件名冒充已经可运行的工具。TAT 调用成功下发不能当执行成功；必须读终态、退出码和完整业务回执。返回内容截断则分小项重新查询，不由部分输出推断其余项正常。发布失败只处理自身站点/容器；首次无旧 GeekDash 运行版本时保留 MySQL 数据并修复或撤回候选入口，后续兼容回退使用已验证的上一镜像。不要删除持久目录、全局 prune 或重启整台共享主机。
 
 Docker unhealthy 状态本身不会触发 restart 策略，restart=unless-stopped 处理进程退出；ready 持续失败应可见并人工定位。后续自动告警在有实际通知渠道时再落实，不虚构监控已经存在。本次不做完整业务备份或真实数据导入，E11 和 Q-016 仍按原门槛接续。
+
+#### Linux 服务器实际运行入口
+
+本单元已执行，实际版本/时间归[部署记录](deployments/2026-10-08-foundation.md)，实际结果归[验收报告](../testing/reports/2026-10-08-cloud-foundation.md)。后续建议目录与实际落位有差异时以本节为准，不能凭建议表重建当前数据。
+
+服务器上使用受控维护身份，通过 tccli 下发短命令并回读终态。以下命令已对应真实入口；每步成功才继续：
+
+```sh
+release=/opt/geekdash/current
+"$release/deploy/server.sh" ps
+"$release/deploy/server.sh" logs --tail 50 app mysql
+"$release/deploy/server.sh" run --rm --no-deps dbtool verify dev_migrator
+"$release/deploy/server.sh" run --rm --no-deps dbtool verify test_migrator
+```
+
+只停止/恢复本项目：
+
+```sh
+"$release/deploy/server.sh" stop app
+"$release/deploy/server.sh" up --wait --wait-timeout 180 app
+"$release/deploy/server.sh" stop mysql
+"$release/deploy/server.sh" up --wait --wait-timeout 180 mysql
+```
+
+断库时 live 保持 200、ready 为 503；恢复库后等待 app 自行重新核验并回到 ready=200。停止 mysql 会中断本项目正在运行的请求，人工择时；不使用 down -v。全部业务空库，不将上述恢复当真实数据恢复。
+
+配置参数实际归 deploy/compose.server.yml：app 256m/mysql 512m、池 8/数据库连接上限 32、buffer pool 128 MiB、日志 10m×3、unless-stopped。配置文件以 /opt/geekdash/releases/<revision>/manifest.env 指定固定 app 镜像；建议表中的 config/runtime.env 尚未生成，当前不用它启动。server.sh 从自身版本目录解析 Compose 和 manifest.env；不依赖调用者工作目录。
+
+配置生成器的固定回归入口为 scripts/verify-server-config.py，仅在一次性 Linux 容器中运行，不在服务器直接执行；仓库只读挂载，数据库/凭据目录不挂入：
+
+```powershell
+$taskTestImage = docker image inspect python:3.12-slim --format '{{.Id}}'
+docker run --rm --network none -e GEEKDASH_DISPOSABLE_CONFIG_TEST=1 --mount 'type=bind,source=D:/geekwon/geekdash/deploy,target=/work/deploy,readonly' --mount 'type=bind,source=D:/geekwon/geekdash/scripts,target=/work/scripts,readonly' $taskTestImage python3 /work/scripts/verify-server-config.py
+```
+
+本次使用已安装镜像的不可变 ID，证据记录该 ID；它只是隔离验收工具，不是新应用运行依赖。脚本覆盖并发创建、重复复用、权限、部分配置和已有数据缺配置的保留边界；不会修改本地或云端 MySQL 数据。
+
+首次技术配置命令为 python3 /opt/geekdash/current/deploy/init-server.py --mysql-gid 999；只在已确认 Linux 镜像实际身份下调用，完整配置幂等复用，部分配置/已有数据缺配置拒绝覆盖。实际 app node UID/GID=1000；运行/迁移 JSON root:1000 0640，MySQL 配置 root:999 0640，密钥父目录 root 0700。维护者不得 cat/打印其值。现有配置不要重新生成或轮换。
+
+产物交付采用本机构建/导出 gzip 镜像、版本清单和非秘密发布包→项目私有 GitHub 预发布资产→本机获得该单文件限时下载链接→tccli 在服务器下载→整包 SHA-256 与镜像 ID 核对→load。GitHub 登录凭据只供本机授权，不传到服务器；限时链接只存受控执行资料、不进 Git/文档。SFTP 小包传输须验证 TAT 读回的主机公钥；本轮大文件中断/慢传后已改走发布资产，不能以小探针成功认定大文件可靠。临时传输身份没有 sudo，完成后撤销唯一自身公钥、锁定登录并删除本机私钥/自身上传暂存；今后需要时新建临时密钥，不复活旧凭据。
+
+升级先确认 main 已含已验收代码，再本机按既有构建链生成固定产物；预加载镜像和配置，核对迁移兼容/备份门槛，只更新 app。兼容旧镜像回退时以本次子进程的 GEEKDASH_APP_IMAGE 指定旧固定镜像，使用 server.sh up --no-deps --wait --wait-timeout 180 app；从公网核对旧版本/ready 后再决定保持或恢复目标版本。核验后更新 current 到相应配置目录；当前指针与真实容器镜像分别回读。不自动恢复旧数据库，也不自动部署每次 Git 推送。
+
+Nginx 站点为 /etc/nginx/sites-available/geekdash 及同名 enabled 链接。修改只涉及自身站点，nginx -t 成功后 systemctl reload nginx。本轮 IPv4 TLS listener 使用 ssl，适配已有网关；不添加与其他监听不一致的 http2 选项。证书续期 hook 为 /opt/geekdash/config/renew-nginx.sh，执行 nginx -t 再 reload；本机 Certbot 保存选项名 renew_hook。限定演练命令已通过：certbot renew --cert-name geekdash.zhiluan.cool --dry-run --run-deploy-hooks --no-random-sleep-on-renew。既有 timer active；失败查看本域续期结果，不修改其他证书。
+
+/var/backups/geekdash 当前仅为空暂存目录；没有完整备份任务或异地恢复结果。真实导入前仍完成 E11 和 Q-016 资源落实。当前 MySQL 空库内存观测已接近起始上限，业务/真实数据接入前按实际增长和公司网络复核配置；不沿用本轮探测当四人性能通过。
 
 ## 3. 首版发布流程（人工择时已确认，DEC-057）
 

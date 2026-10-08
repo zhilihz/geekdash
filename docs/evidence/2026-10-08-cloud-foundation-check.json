@@ -1,0 +1,250 @@
+{
+  "checkedAtUtc": "2026-10-08T09:51:41.712821+00:00",
+  "environment": "ap-singapore Lighthouse, existing shared Ubuntu host",
+  "scope": "no-login engineering foundation; no business data imported",
+  "source": "real local Docker build, tccli TAT terminal receipts, fresh MySQL connections, external HTTPS readback",
+  "revision": "c5606688d9cdf73716b0fdecba53a789f319a9fa",
+  "imageId": "sha256:6f793ee97dff1ea2790f0b960bc20ac4f8c72efc3f5af0bbfb0768aa49a5e9c6",
+  "archiveSha256": "cbeff2ce5ecb235a3b2503b37848b6bf791b557db7929ba279aee028eb400b91",
+  "schemaVersion": "0001-foundation",
+  "migrationSha256": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+  "localChecks": {
+    "npmCi": true,
+    "npmAuditVulnerabilities": 0,
+    "typecheck": true,
+    "build": true,
+    "foundationRegression": true,
+    "composeValidation": true
+  },
+  "installation": {
+    "status": "release_installed",
+    "revision": "c5606688d9cdf73716b0fdecba53a789f319a9fa",
+    "serverImageId": "sha256:6f793ee97dff1ea2790f0b960bc20ac4f8c72efc3f5af0bbfb0768aa49a5e9c6",
+    "sourceImageId": "sha256:6f793ee97dff1ea2790f0b960bc20ac4f8c72efc3f5af0bbfb0768aa49a5e9c6",
+    "archiveVerified": true,
+    "configIdempotent": true,
+    "secretModesVerified": true,
+    "businessAccountsCreated": 0
+  },
+  "recovery": {
+    "status": "recovery_passed",
+    "databaseOutage": {
+      "live": 200,
+      "ready": 503
+    },
+    "databaseRecoveryWithoutAppRestart": true,
+    "appRestartReady": 200,
+    "schema": [
+      {
+        "status": "verified",
+        "database": "geekdash_dev",
+        "version": "0001-foundation",
+        "checksum": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+        "tables": 34,
+        "columns": 313,
+        "foreignKeys": 55,
+        "differences": 0
+      },
+      {
+        "status": "verified",
+        "database": "geekdash_test",
+        "version": "0001-foundation",
+        "checksum": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+        "tables": 34,
+        "columns": 313,
+        "foreignKeys": 55,
+        "differences": 0
+      }
+    ],
+    "oomKilled": false,
+    "mysqlHostPortPublished": false,
+    "runtimeSecretOnly": true
+  },
+  "rollback": {
+    "status": "upgrade_rollback_passed",
+    "from": "56a054f71f18b780088559a71c14cdecd58301f8",
+    "to": "c5606688d9cdf73716b0fdecba53a789f319a9fa",
+    "finalRevision": "c5606688d9cdf73716b0fdecba53a789f319a9fa",
+    "mysqlNotRestarted": true,
+    "databaseRestoredFromBackup": false
+  },
+  "public": {
+    "checkedAtUtc": "2026-10-08T09:51:41.712821+00:00",
+    "origin": "https://geekdash.zhiluan.cool",
+    "http": {
+      "/": {
+        "status": 200,
+        "body": null
+      },
+      "/api/health/live": {
+        "status": 200,
+        "body": {
+          "status": "alive",
+          "stage": "foundation",
+          "build": {
+            "revision": "c5606688d9cdf73716b0fdecba53a789f319a9fa",
+            "dirty": false,
+            "builtAt": "2026-10-08T09:40:34.667Z",
+            "stage": "foundation",
+            "schemaVersion": "0001-foundation"
+          }
+        }
+      },
+      "/api/health/ready": {
+        "status": 200,
+        "body": {
+          "status": "ready"
+        }
+      },
+      "/AGENTS.md": {
+        "status": 404
+      },
+      "/src/server/start.ts": {
+        "status": 404
+      },
+      "/run/secrets/dev_app": {
+        "status": 404
+      },
+      "/.env": {
+        "status": 403
+      },
+      "/migrations/0001-foundation.json": {
+        "status": 404
+      }
+    },
+    "tls": "TLSv1.3",
+    "certificateNotAfter": "Jan  6 08:37:05 2027 GMT",
+    "certificateHostnameVerified": true,
+    "httpRedirectToHttps": true,
+    "engineeringProbe": {
+      "requests": 20,
+      "concurrency": 4,
+      "all200": true,
+      "p95ms": 2608.3,
+      "scope": "new HTTPS connections to readiness; not business performance"
+    }
+  },
+  "containers": {
+    "geekdash-app-1": {
+      "healthy": true,
+      "oomKilled": false,
+      "restartCount": 0,
+      "memoryLimitBytes": 268435456,
+      "currentContainerMemoryPeakBytes": 53149696,
+      "logConfig": {
+        "Type": "json-file",
+        "Config": {
+          "max-file": "3",
+          "max-size": "10m"
+        }
+      },
+      "imageId": "sha256:6f793ee97dff1ea2790f0b960bc20ac4f8c72efc3f5af0bbfb0768aa49a5e9c6",
+      "mounts": [
+        {
+          "destination": "/run/secrets/dev_app",
+          "readWrite": false
+        }
+      ]
+    },
+    "geekdash-mysql-1": {
+      "healthy": true,
+      "oomKilled": false,
+      "restartCount": 0,
+      "memoryLimitBytes": 536870912,
+      "currentContainerMemoryPeakBytes": 483778560,
+      "logConfig": {
+        "Type": "json-file",
+        "Config": {
+          "max-file": "3",
+          "max-size": "10m"
+        }
+      },
+      "imageId": "sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb",
+      "mounts": [
+        {
+          "destination": "/var/lib/mysql",
+          "readWrite": true
+        },
+        {
+          "destination": "/run/secrets/mysql_health",
+          "readWrite": false
+        },
+        {
+          "destination": "/docker-entrypoint-initdb.d/01-geekdash.sql",
+          "readWrite": false
+        },
+        {
+          "destination": "/run/secrets/mysql_root",
+          "readWrite": false
+        }
+      ]
+    }
+  },
+  "database": {
+    "identity": "gd_dev_app@%",
+    "serverVersion": "8.4.11",
+    "grantsVerified": true,
+    "tableCase": "0",
+    "registryRows": "1",
+    "businessRows": 0,
+    "denied": [
+      1142,
+      1142
+    ]
+  },
+  "existingContainers": {
+    "baseline": 17,
+    "sameIdsStillRunning": 17
+  },
+  "renewal": {
+    "dryRunPassed": true,
+    "hookExecuted": true,
+    "timerActive": true,
+    "hookStoredAs": "renew_hook",
+    "nginxTestPassed": true,
+    "warningCountAfterOwnListenerCorrection": 1,
+    "warningScope": "pre-existing other site; unchanged"
+  },
+  "resourceObservation": {
+    "memoryAvailableMiB": 793,
+    "swapUsedMiB": 1987,
+    "diskAvailable": "17G",
+    "appMemoryObservedMiB": 30.29,
+    "mysqlMemoryObservedMiB": 455.2,
+    "appCurrentContainerPeakMiB": 50.7,
+    "mysqlCurrentContainerPeakMiB": 461.4,
+    "limitation": "peak belongs to current container incarnation, not complete initial provisioning or business growth"
+  },
+  "cleanup": {
+    "transferKeyRevoked": true,
+    "uploadArchivesRemoved": true,
+    "otherKeysPreserved": true
+  },
+  "notAccepted": [
+    "six business pages/API",
+    "business save/drafts/identity",
+    "real backup import",
+    "full backup and isolated restore",
+    "four-user business performance"
+  ],
+  "excluded": "server IP/instance IDs, other app names and container IDs, credentials, signed download URLs, raw logs and real business data",
+  "publicStaticAssets": {
+    "paths": [
+      "/assets/index-CVwzWacf.js",
+      "/assets/index-mr63Af00.css"
+    ],
+    "all200": true
+  },
+  "configurationRegression": {
+    "script": "scripts/verify-server-config.py",
+    "runnerImageId": "sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea",
+    "disposableLinuxContainer": true,
+    "network": "none",
+    "repositoryMounts": "read-only",
+    "concurrentInitialization": true,
+    "repeatDoesNotOverwrite": true,
+    "partialConfigRejected": true,
+    "dataWithoutConfigPreserved": true,
+    "secretPermissions": true
+  }
+}

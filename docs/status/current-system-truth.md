@@ -396,3 +396,19 @@ F06 用户确认归 DEC-069，F07 后续确认归 DEC-070，规则归规格；�
 ### 新域名解析后续核验
 
 用户报告已完成 DNS 配置后，本轮以 Resolve-DnsName 向 1.1.1.1 和 8.8.8.8 分别查询 geekdash.zhiluan.cool 的 A 记录，两者都成功返回且与已核对的目标服务器公网 IPv4 一致。时间/来源归同份运行预检的 dnsFollowUp。本结果更新此前查询失败的停点，证明两处递归解析已生效；未检查阿里云记录列表、HTTPS 或应用运行，不代表部署完成。代理未写 DNS，未修改服务器。
+
+## 26. 新加坡公网工程基底实际部署（2026-10-08）
+
+用户完成 DNS 后要求继续，本轮在 codex/cloud-foundation 从 main / ce28c5e 开始，保留既有讨论为 43c7946；Linux 配置 56a054f、共享 TLS 自身监听修正 c560668。应用业务源码及不可变 0001 未回改。Git 最终合并/推送状态以本节后续 refs 回读为准。
+
+实际 https://geekdash.zhiluan.cool 免登录可访问工程首页，独立 Compose 项目 app/mysql 常驻，数据 /var/lib/geekdash/mysql，当前版本目录 c5606688d9cdf73716b0fdecba53a789f319a9fa。公网 UTC 09:51:41（北京时间 17:51:41）新请求 home/live/ready=200，revision 为该完整值、dirty=false；TLS 1.3，域名/证书链有效。实例标识/IP和私有链接不进入公开证据。
+
+两库新连接完整核验为 34/313/55、差异 0，MySQL 8.4.11，Linux lower_case_table_names=0。运行身份新连接验证授权及真实 DDL/跨库拒绝；dev 全业务表行数为 0、登记一条，没有登录用户或真实导入。app node/根只读/唯一运行 secret，MySQL 不发布宿主端口。配置创建/重复复用哈希、容器实读及固定归档/镜像校验均通过。
+
+仅本项目断库及恢复、app 停止/恢复、新连接结构保留已执行；断库 live200/ready503，恢复不重启 app 即 ready200。最终版与兼容 56a054f 之间升级/回退/恢复最终版，均 HTTPS 回读，MySQL ID/StartedAt 不变。新证书续期 dry-run 与检查/reload hook 成功、timer active；Nginx 只新增自身站点，调整自己的 TLS 监听后仅保留发布前已有一个警告。原 17 个容器 ID 均仍运行，没有重启共享主机。
+
+容量与限制：最终 app/MySQL 约 30.29/455.2 MiB，当前容器峰值 50.7/461.4 MiB，限额 256/512 MiB；RestartCount=0、OOMKilled=false。主机 available 793 MiB，swap 已用 1987 MiB，磁盘余量 17G。当前峰值不覆盖已结束的首次完整初始化；没有持续容量/四人业务通过证据。4 并发 20 次新的 HTTPS ready 请求全200、P95=2608.3ms，仅测工程探测与网络，不当浏览器/业务性能结果。
+
+完整范围、历史夹具误报/传输失败与最终证据见[验收报告](../testing/reports/2026-10-08-cloud-foundation.md)；部署落位/实际构建归[部署记录](../operations/deployments/2026-10-08-foundation.md)。SFTP 大镜像中断/慢传后改私有发布资产，限时单文件链接下载摘要一致；长期 GitHub凭据未传服务器。临时 SSH 公钥已撤销、传输账号锁定/改 nologin、本机私钥删除，自身上传归档清理。服务器配置/数据常驻，后续 Git 推送不自动部署。
+
+六页业务/API、项目保存/草稿/身份、真实导入、完整备份及隔离恢复、四人业务验收仍未实现或通过；备份目录仅空暂存。该工程基底上线不代替项目面板交付。此前第 24/25 节未部署是对应时点事实，本节更新后续实际状态。
