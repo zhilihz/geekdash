@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-08",
+  "scope": "E01 操作说明静态核查与本机只读工具观察，不是应用验收",
+  "baseline": "b00db932d8e4147cd5ca7cca2d96dae2f8692fa8",
+  "status": "pass",
+  "markdownFilesChecked": 15,
+  "localLinksChecked": 102,
+  "jsonFilesParsed": 17,
+  "operationSteps": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8"
+  ],
+  "expandedFunctions": [
+    "E01-F01",
+    "E01-F02",
+    "E01-F03",
+    "E01-F04"
+  ],
+  "plannedApplicationFilesAbsent": {
+    "package.json": true,
+    "package-lock.json": true,
+    "deploy/compose.dev.yml": true,
+    "src/server/start.ts": true,
+    "src/server/commands/migrate.ts": true,
+    "src/server/commands/verify-schema.ts": true
+  },
+  "businessRulesModelStackAndDiagramsUnchanged": true,
+  "localToolObservation": {
+    "node": "v24.19.0",
+    "dockerLinuxEngine": "29.6.1",
+    "dockerCompose": "5.2.0",
+    "dockerEngineReachable": true,
+    "npmFoundInCurrentPath": false,
+    "scope": "命令版本响应；没有项目资源或构建验证"
+  },
+  "errors": [],
+  "applicationCodeChanged": false,
+  "projectContainersCreatedOrStarted": false,
+  "applicationBuildExecuted": false,
+  "businessTestsExecuted": false,
+  "mysqlMigrationsExecuted": false,
+  "serverAccessed": false,
+  "deploymentExecuted": false,
+  "committed": false,
+  "pushed": false
+}

@@ -1,6 +1,6 @@
 # 更新、发布与长期维护
 
-版本：D0.29；日期：2026-09-30；状态：测试目标、初始化及备份/人工择时发布已确认；具体正式窗口、备份位置和恢复目标仍待落实。
+版本：D0.33；日期：2026-10-08；状态：新增已实现的本地工程运行入口；服务器发布、具体正式窗口、备份位置和恢复目标仍待落实。
 
 ## 1. 区分三种动作
 
@@ -10,13 +10,40 @@
 
 本轮用户要求先上线，已确认测试部署目标见架构；首版按已确认功能和旧版复用范围推进。DEC-057 已确认首版人工择时发布，不将每次推送直接部署到运行环境。
 
+### 本地工程运行（E01-F01）
+
+前置：Docker Linux 引擎和 Compose 可连接，仓库有已生成的依赖锁；在仓库根目录执行。Windows 入口脚本每次从 Git 获取版本/未提交状态，透传命令后恢复进程环境变量；不修改全局 Node/npm。Node 工具和运行镜像使用已固定摘要，Linux 依赖在独立卷中。
+
+```powershell
+Set-Location D:\geekwon\geekdash
+pwsh -NoProfile -File scripts/docker.ps1 run --rm --no-deps tool npm ci
+pwsh -NoProfile -File scripts/docker.ps1 run --rm --no-deps tool npm run check
+pwsh -NoProfile -File scripts/docker.ps1 run --rm --no-deps tool npm run build
+pwsh -NoProfile -File scripts/docker.ps1 run --rm --no-deps tool npm test
+pwsh -NoProfile -File scripts/docker.ps1 build app
+pwsh -NoProfile -File scripts/docker.ps1 up --wait --wait-timeout 60 app
+```
+
+逐条检查退出码，前一步失败不执行后续。构建在候选目录完成类型检查、编译、资源核对和真实 HTTP 检查后才提升为 dist；dist.previous 保留上一产物。候选目录和上一产物不能自动当作已验收发布版本。
+
+入口为 http://127.0.0.1:41860 ，仅绑定本机。端口占用时先核查；可用进程环境 GEEKDASH_PORT 指定另一端口，变更后重新创建本项目 app。当前页面是工程验收页，尚无项目/账号业务。容器健康检查使用 live，**healthy 只表示基础进程存活；ready 当前始终 503，数据库尚未实现**。协议见 [API 说明](../specifications/api/foundation.md)。
+
+```powershell
+pwsh -NoProfile -File scripts/docker.ps1 ps app
+pwsh -NoProfile -File scripts/docker.ps1 logs --tail 50 app
+pwsh -NoProfile -File scripts/docker.ps1 stop app
+pwsh -NoProfile -File scripts/docker.ps1 up --wait --wait-timeout 60 app
+```
+
+实际配置通过 Compose/进程环境注入，当前只需 HOST/PORT，未建立数据库凭据；F02/F04 后再接受控数据库配置。不要执行带 -v 的清理命令删除卷。这里的命令不连接新加坡服务器，也不部署 geekdash.zhiluan.cool。
+
 ## 2. 代码管理建议
 
 - 主分支保持可审查、可构建；普通功能使用短期分支和 PR。
 - 一次变更围绕明确需求及验收，避免夹带无关整理。
 - 一个可理解的工作单元完成后推送开发分支；针对性检查和审查通过后合并。
 - 代码、规格、测试和必要的使用说明同一变更更新。
-- 软件采用语义版本标识，例如未来服务器版 v0.x；当前 D0.1 是文档版本，不冒充 V1.050 之后的软件发布。
+- 软件采用语义版本标识；0.1.0 当前仅标记工程基底，尚无业务发布。D0.x 是文档版本，与原本地版 V1.050 分开记录。
 - 原始压缩包、核查副本、凭据、真实业务备份不默认进入 Git。
 
 首次空仓库可以直接提交文档基线；若发现远程已有内容，必须先整合，禁止强制覆盖已有历史。

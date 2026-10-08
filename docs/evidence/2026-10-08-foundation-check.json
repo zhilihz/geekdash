@@ -1,0 +1,139 @@
+{
+  "date": "2026-10-08",
+  "observedAt": "2026-10-08T10:55:47.736185+08:00",
+  "scope": "E01-F01 工程构建、本机运行和最小页面验收；不是数据库/业务/公网交付",
+  "status": "pass",
+  "branch": "codex/e01-foundation",
+  "baseline": "b00db932d8e4147cd5ca7cca2d96dae2f8692fa8",
+  "build": {
+    "revision": "b00db932d8e4147cd5ca7cca2d96dae2f8692fa8",
+    "dirty": true,
+    "builtAt": "2026-10-08T02:41:15.594Z",
+    "stage": "foundation",
+    "schemaVersion": null
+  },
+  "versions": {
+    "runtimeNode": "v24.21.0",
+    "npm": "11.19.0",
+    "dockerLinuxEngine": "29.6.1",
+    "dockerCompose": "5.2.0"
+  },
+  "dependencies": {
+    "@fastify/static": "10.1.5",
+    "fastify": "5.12.5"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.1",
+    "typescript": "5.9.3",
+    "vite": "8.3.3"
+  },
+  "nodeImageDigest": "sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20",
+  "runtimeImageId": "sha256:264c13a61f7e062f3ff2d62733c5d310efb29198b917b889d94672aa31d6d31d",
+  "runtime": {
+    "uid": 1000,
+    "sourceExists": false,
+    "docsExist": false,
+    "node": "v24.21.0"
+  },
+  "hostBind": "127.0.0.1:41860",
+  "checks": {
+    "cleanInstall": true,
+    "typeCheck": true,
+    "candidateRealHttpBeforePromotion": true,
+    "invalidBuildMetadataKeepsPrevious": true,
+    "typeErrorBuildKeepsPrevious": true,
+    "invalidHostAndPortRejected": true,
+    "isolatedRuntimeImage": true,
+    "normalStopExitCode": 0,
+    "restartFreshRequestReadback": true,
+    "knownDependencyVulnerabilitiesAtInstall": 0
+  },
+  "http": [
+    {
+      "path": "/",
+      "status": 200
+    },
+    {
+      "path": "/api/health/live",
+      "status": 200
+    },
+    {
+      "path": "/api/health/ready",
+      "status": 503
+    },
+    {
+      "path": "/assets/index-CVwzWacf.js",
+      "status": 200
+    },
+    {
+      "path": "/assets/index-mr63Af00.css",
+      "status": 200
+    },
+    {
+      "path": "/.env",
+      "status": 403
+    },
+    {
+      "path": "/AGENTS.md",
+      "status": 404
+    },
+    {
+      "path": "/src/server/start.ts",
+      "status": 404
+    },
+    {
+      "path": "/api/projects",
+      "status": 404
+    }
+  ],
+  "browser": {
+    "family": "Edge",
+    "method": "web-access local CDP",
+    "successClick": true,
+    "serviceStoppedFailureClick": true,
+    "serviceRecoveredSuccessClick": true,
+    "buttonReenabledAfterFailure": true,
+    "screenshot": "docs/evidence/2026-10-08-foundation.png",
+    "cuaPluginRecovered": false,
+    "ownTabClosed": true
+  },
+  "sourceSha256": {
+    "package.json": "6668f274fc4f46417f11a2fe872662a66c4433d6fa6b02d303ade25d280c225b",
+    "package-lock.json": "a372a7a3ec01d4c66d3b1bda248cd6931b9474d148ec7dba8b4e8fbd0161d426",
+    "tsconfig.server.json": "e1d1d846117e65ba4cfde03afa2badbc0f14e400dc27595396fba5deb8d4508c",
+    "tsconfig.web.json": "cc416f060d18577d048d7f06259abff1daf7dd42df8317148bb9fbbde1670bb1",
+    "vite.config.ts": "2b986b30bdefadb0af55c4281875df5b64579307feaa51bf340b6315b11594b3",
+    ".dockerignore": "8c8b71c758b3edcfe12eeff7b5b8b96ffe1affa56fc32b8b6aca445f0164823a",
+    ".gitignore": "7be432798983c57d78879f21eff03f40d13e78051082148dc465b955fb1559f2",
+    "src/server/app.ts": "338925aef959824a372c724dc4d680b32e871cf8244871600c609f86c2a427da",
+    "src/server/start.ts": "29107389fff25ba1e67bf5dd5f325f037760e2a508c658dbd382e050aa90302c",
+    "src/web/index.html": "83ab01f0d85c1b8a801d1fb775db678b602af64989b805a6107a66ce00a8abfb",
+    "src/web/main.ts": "09dad1c8bb6b89f9eaf26318ea1a990c558a4d20a9e8bf77dbe236499942752d",
+    "src/web/style.css": "a76019fde4ee682694751ff7fc945df2e96a09bb484dcb4860761d893a9b91c7",
+    "src/server/infrastructure/config.ts": "620d2ac0baf478514dd51d98af092e5657f83d8c0d1059009f5928a2f6f88c74",
+    "scripts/build.mjs": "d9f071147a1a83cdb262cafa2da21014362307e064acd6215b7f591eb1e09ac0",
+    "scripts/docker.ps1": "e0f02a468a506e23b3828a8a938af0fcb82c4b470c3f6f21e5360db02a02401e",
+    "scripts/verify-foundation.mjs": "93a24bf6f87ab86d668a9f40817ac50a74106eed58a81e44ace72f43c1ca8af2",
+    "deploy/compose.dev.yml": "79b8266722a3d10013f363f9911561eaf6b8acd0afd8656a63988f2e729bf2db",
+    "deploy/Dockerfile": "c29684d9d350a139f0f9ee9e8cae90652322768ce8ffc2e866bbbf7e4ed336bf"
+  },
+  "artifactSha256": {
+    "dist/build-info.json": "67fd466ca77600e34b8a3a8ec6d72e6668f3c805745508496e358e32af7b229e",
+    "dist/server/app.js": "6858bec28dd27757d9b691a3f14b2726c3ab466bc25faedee3baab4322b970b2",
+    "dist/server/start.js": "a9eee3a8db4c9e997f5405834415b404c4dcd44027af28e97c892cb805101329",
+    "dist/web/index.html": "f634bfdc93535a274000d36a78859eea9e048aa8ff6a23c2afb9ee2b048f30f7",
+    "dist/web/assets/index-CVwzWacf.js": "aea813379d30d98424aa3ace2bf8274df01a18db97371c0bf15edda1c43a2bb5",
+    "dist/web/assets/index-mr63Af00.css": "d75f8b462ad6d7b9ed8b497f9ec7d20ac57338adf69f97878ff3ce3c5afe63e4",
+    "dist/server/infrastructure/config.js": "294d97ba29d9339879f2272be5891b9637eb64ecf064c23e248f683254f5560e"
+  },
+  "businessTestsExecuted": false,
+  "mysqlMigrationsExecuted": false,
+  "serverAccessed": false,
+  "deploymentExecuted": false,
+  "realBackupImported": false,
+  "documentationCheck": {
+    "localLinksChecked": 119,
+    "errors": [],
+    "businessRulesErdAndDiagramsUnchanged": true
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-08",
+  "scope": "单功能施工讨论文档静态检查",
+  "baseline": "b00db932d8e4147cd5ca7cca2d96dae2f8692fa8",
+  "status": "pass",
+  "localLinksChecked": 98,
+  "expandedFunctions": [
+    {
+      "id": "E01-F01",
+      "name": "生成可启动构建产物",
+      "state": "实现方法提案，尚未实施"
+    },
+    {
+      "id": "E01-F02",
+      "name": "把数据库升级到指定结构版本",
+      "state": "实现方法提案，尚未实施"
+    },
+    {
+      "id": "E01-F03",
+      "name": "核对实际结构而不只核对版本号",
+      "state": "实现方法提案，尚未实施"
+    },
+    {
+      "id": "E01-F04",
+      "name": "启动应用并区分存活与可用",
+      "state": "实现方法提案，尚未实施"
+    }
+  ],
+  "diagramSourcesAndArtifactsUnchanged": true,
+  "errors": [],
+  "applicationCodeChanged": false,
+  "businessTestsExecuted": false,
+  "mysqlMigrationsExecuted": false,
+  "serverAccessed": false,
+  "deploymentExecuted": false,
+  "pushed": false
+}

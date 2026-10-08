@@ -1,0 +1,36 @@
+services:
+  tool:
+    image: node:24-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20
+    working_dir: /workspace
+    environment:
+      GEEKDASH_SOURCE_REVISION: ${GEEKDASH_SOURCE_REVISION:-}
+      GEEKDASH_SOURCE_DIRTY: ${GEEKDASH_SOURCE_DIRTY:-}
+    volumes:
+      - ../:/workspace
+      - node_modules:/workspace/node_modules
+      - npm_cache:/root/.npm
+    profiles: [tools]
+  app:
+    image: geekdash-foundation:local
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3000"
+    ports:
+      - "127.0.0.1:${GEEKDASH_PORT:-41860}:3000"
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    stop_grace_period: 10s
+volumes:
+  node_modules:
+  npm_cache:
