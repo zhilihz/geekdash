@@ -1,6 +1,8 @@
 # 文档中心
 
-文档基线：D0.52；更新日期：2026-10-08。E01-F02/F03 的独立本地 MySQL、初始迁移及真实结构核验已完成，结果见[报告](testing/reports/2026-10-08-e01-f02-f03.md)。F04 应用受限连接、启动/恢复、真实就绪及关闭已实现，见[执行文档](implementation/execution-plan.md#f04-单功能操作链路2026-10-08)和[验收报告](testing/reports/2026-10-08-e01-f04.md)。分支交付流程归[代码管理](operations/release-maintenance.md#2-代码管理)，实际 refs 归系统真相。当前公网已接入项目只读看板及详情，见[项目查询验收](testing/reports/2026-10-08-project-reads.md)和[本次部署](operations/deployments/2026-10-08-project-reads.md)；保存、认证、真实导入及四人业务体验待接续。未变更的单篇文档保留原版本号。
+文档基线：D0.56；更新日期：2026-10-08。E01-F02/F03 的独立本地 MySQL、初始迁移及真实结构核验已完成，结果见[报告](testing/reports/2026-10-08-e01-f02-f03.md)。F04 应用受限连接、启动/恢复、真实就绪及关闭已实现，见[执行文档](implementation/execution-plan.md#f04-单功能操作链路2026-10-08)和[验收报告](testing/reports/2026-10-08-e01-f04.md)。分支交付流程归[代码管理](operations/release-maintenance.md#2-代码管理)，实际 refs 归系统真相。当前公网已接入项目只读看板及详情，见[项目查询验收](testing/reports/2026-10-08-project-reads.md)和[本次部署](operations/deployments/2026-10-08-project-reads.md)；保存、认证、真实导入及四人业务体验待接续。未变更的单篇文档保留原版本号。
+
+当前目标任务与六阶段计划：[GD-GOAL-001](implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)；当前四项保存按 E03-W00～W05 执行，验收设计见 [TEST-037](testing/testing.md#test-037-当前测试项目四项保存整链未执行)。用户暂时不在期间的推荐方案选择、选项和理由统一见[明日复核汇总](decisions/decisions.md#代决汇总2026-10-08供明日复核)。计划和测试设计不代表功能已实现。
 
 项目事实及施工准备状态以[当前系统真相](status/current-system-truth.md)为入口。原应用源码在本地核查副本；新工程已接入看板和详情的服务器读取，原六页的完整业务仍在逐单元迁移。运行命令见[本地工程运行](operations/release-maintenance.md#本地工程运行e01-f01)，结果见[验收报告](testing/reports/2026-10-08-e01-f01.md)；Git 推送与服务器部署分别记录。
 
