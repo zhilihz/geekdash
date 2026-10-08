@@ -59,7 +59,7 @@
     "readyAfterAppRestart": 200
   },
   "databaseSnapshot": {
-    "verifiedAt": "2026-10-08T06:08:02.072Z",
+    "verifiedAt": "2026-10-08T06:21:04.563Z",
     "databases": [
       {
         "fact": {
@@ -188,6 +188,104 @@
     "foundationHttp": "passed"
   },
   "migrationBytesUnchanged": true,
-  "gitDelivery": "pending",
-  "cleanRuntimeReadback": "pending"
+  "gitDelivery": {
+    "verifiedAt": "2026-10-08T06:22:34.957Z",
+    "codeCommit": "ffafa24b0ae1e1aea78ef750896ae26f7a955ba4",
+    "method": "施工分支推送，快进合并 main，推送并实际 ls-remote 回读",
+    "refs": [
+      {
+        "ref": "refs/heads/codex/e01-app-readiness",
+        "commit": "ffafa24b0ae1e1aea78ef750896ae26f7a955ba4"
+      },
+      {
+        "ref": "refs/heads/main",
+        "commit": "ffafa24b0ae1e1aea78ef750896ae26f7a955ba4"
+      }
+    ],
+    "evidenceFollowup": "本记录为后续纯文档提交，按相同施工分支流程合并；运行镜像保持已验证代码提交"
+  },
+  "cleanRuntimeReadback": {
+    "verifiedAt": "2026-10-08T06:21:03.1281427Z",
+    "sourceCommit": "ffafa24b0ae1e1aea78ef750896ae26f7a955ba4",
+    "dirty": false,
+    "build": {
+      "revision": "ffafa24b0ae1e1aea78ef750896ae26f7a955ba4",
+      "dirty": false,
+      "builtAt": "2026-10-08T06:20:09.496Z",
+      "stage": "foundation",
+      "schemaVersion": "0001-foundation"
+    },
+    "http": {
+      "home": 200,
+      "live": 200,
+      "cacheControl": "no-store",
+      "ready": 200,
+      "readyBody": {
+        "status": "ready"
+      }
+    },
+    "app": {
+      "startedAt": "2026-10-08T06:20:14.072305899Z",
+      "readonlyRoot": true,
+      "hostPorts": {
+        "3000/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "41860"
+          }
+        ]
+      },
+      "runAs": "node",
+      "imageId": "sha256:3dd95ae9781b53f3218b00729f097d13538c575b56f5f6975f0a00885d6717fe",
+      "status": "running",
+      "restartPolicy": "unless-stopped",
+      "health": "healthy"
+    },
+    "internal": {
+      "fact": {
+        "profile": "dev_app",
+        "database": "geekdash_dev",
+        "identity": "gd_dev_app@%",
+        "serverVersion": "8.4.11",
+        "timezone": "+00:00",
+        "grantsVerified": true,
+        "version": "0001-foundation",
+        "tables": 34,
+        "columns": 313,
+        "foreignKeys": 55,
+        "differences": 0
+      },
+      "uid": 1000,
+      "secrets": [
+        "dev_app"
+      ],
+      "sourcePresent": false,
+      "docsPresent": false
+    },
+    "mysql": {
+      "dataSource": "D:/geekwon/geekdash-data/mysql",
+      "hostPorts": {
+        "3306/tcp": null,
+        "33060/tcp": null
+      },
+      "dataDestination": "/var/lib/mysql",
+      "health": "healthy"
+    },
+    "singaporeDeployed": false,
+    "otherProjectObservation": {
+      "status": "running",
+      "startedAt": "2026-10-08T05:55:30.731683623Z",
+      "healthcheck": "not_configured",
+      "originOfStart": "unverified",
+      "operatedByThisTask": false
+    }
+  },
+  "deliveryChecks": {
+    "status": "passed",
+    "checkedAt": "2026-10-08T06:19:25.168Z",
+    "localLinksChecked": 105,
+    "controlledSecretValuesFound": 0,
+    "migrationChecksumPreserved": true,
+    "anchorLinksChecked": 10
+  }
 }

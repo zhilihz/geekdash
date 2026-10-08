@@ -358,9 +358,9 @@ main 的合并记录补充提交为 acefcee93b2f8efa6ce777b0e89f3855121ac50a，�
 
 ## 21. 重启恢复与 E01-F04 实际实施（2026-10-08）
 
-- 本轮从 main / 141e440060f6a60c3ac1179f66a21959143680be 的 codex/e01-app-readiness 接续；重启后的五份未提交讨论文档存在并保留。Docker Engine 可连接，原 app/mysql 停止且 OOMKilled 均为 false，退出码不能单独证明内存故障。只恢复 GeekDash；原本停止的其他项目容器未启动。
+- 本轮从 main / 141e440060f6a60c3ac1179f66a21959143680be 的 codex/e01-app-readiness 接续；重启后的五份未提交讨论文档存在并保留。Docker Engine 可连接，原 app/mysql 停止且 OOMKilled 均为 false，退出码不能单独证明内存故障。只恢复 GeekDash；本任务未操作其他项目容器；收尾观察其已运行（StartedAt=2026-10-08T05:55:30.731683623Z），启动来源未核实，不能沿用初查停止状态作实时结论。
 - MySQL 真实挂载 D:\geekwon\geekdash-data\mysql，受控配置完整。两库仍 34 表、313 列、55 外键、差异 0，登记各一条、业务表均空。原资源字节校验和未变。
 - 常驻 app 使用 dev_app、池上限 8；启动完整核验后监听，日常轻量探测及恢复使用同一池。HTTP ready 已可 200；实际断库后 live=200、ready/API=503，恢复后不重启 app 即新请求 ready=200。真实断库启动非零退出；SIGTERM 停应用退出 0，数据库及结构保留，应用重启后 ready=200。
 - 构建、F01 回归及 test:readiness 已执行通过；测试覆盖版本/校验和、实际缺外键、DDL/跨库拒绝、过期缓存后 20 请求、8 连接耗尽、真实 SELECT SLEEP 超时及新连接恢复、关闭。首次慢 SQL 夹具替换了临时包装对象，未执行预期 SQL；改为实际底层连接后重跑通过，不将首次失败当通过证据。
 - 证据见[F04 报告](../testing/reports/2026-10-08-e01-f04.md)及[脱敏产物](../evidence/2026-10-08-readiness-check.json)。轻量就绪不覆盖任意人工 DDL；无真实业务写入、五账号、四人业务性能、完整备份恢复或公网验收。本节更新第 20 节讨论时的未实施状态。
-- Git 交付及干净构建的运行回读尚待本单元收尾登记，不能把当前工作树或候选镜像当远端成果。
+- 代码 ffafa24b0ae1e1aea78ef750896ae26f7a955ba4 已推送施工分支并快进合并远端 main，实际远端 refs 相同。2026-10-08T06:21:03Z 读回干净源码构建，live SHA=代码提交、dirty=false、ready/home=200，app/mysql 均 healthy；app 非 root、根只读、仅 dev_app secret，库身份和完整结构验证通过；无源码/文档静态暴露，MySQL 无宿主端口。镜像 sha256:3dd95ae9781b53f3218b00729f097d13538c575b56f5f6975f0a00885d6717fe；纯文档证据补充继续按施工分支交付，不改实际运行代码。
