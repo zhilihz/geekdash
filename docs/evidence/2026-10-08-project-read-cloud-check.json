@@ -1,0 +1,213 @@
+{
+  "source": "tccli TAT SUCCESS/exit 0; fixed release, actual own MySQL/HTTP; independent client HTTPS requests; CUA real public AX/screenshot",
+  "scope": "read-only project list/detail; no business writes, identity or real import",
+  "artifact": {
+    "revision": "dfd9f0cc837ff98c10c61541dee2a8b3a057b057",
+    "imageId": "sha256:fe24cf856805d3302e383cc77dd605d9e73163116de23e71a47a5113575dfd28",
+    "archiveSha256": "a50d1dd17b9c340faba67ac76a06635e8b5ea6d3d8a317d0f0fea594fcf0948a",
+    "releaseSha256": "3d59a4aa9d4ca10949b4246e93fc7b3663c1212d120d9c06c08b194fd40703b5",
+    "tag": "project-read-dfd9f0cc837f"
+  },
+  "preRelease": {
+    "revision": "dfd9f0cc837ff98c10c61541dee2a8b3a057b057",
+    "imageId": "sha256:fe24cf856805d3302e383cc77dd605d9e73163116de23e71a47a5113575dfd28",
+    "cloudRegression": {
+      "status": "passed",
+      "origin": "http://127.0.0.1:34377",
+      "checks": [
+        {
+          "check": "actual-http-list-views-filters-pagination-literal-search-id-validation-no-write",
+          "passed": true
+        },
+        {
+          "check": "complete-project-snapshot-with-all-read-collections-and-bigint-precision",
+          "passed": true
+        },
+        {
+          "check": "real-concurrent-commit-does-not-mix-detail-versions-fresh-request-sees-new-version",
+          "passed": true
+        },
+        {
+          "check": "four-concurrent-real-list-reads-and-pool-exhaustion-recovery",
+          "passed": true,
+          "requests": 20,
+          "p95Ms": 59
+        }
+      ]
+    },
+    "backup": {
+      "path": "/var/backups/geekdash/pre-project-read-dfd9f0cc837f.sql.gz",
+      "bytes": 10349,
+      "sha256": "2da6cb144bce46dcaa38f1d7bc5b1e5af051274d1a66a25b0b292b00ec190785",
+      "scope": "geekdash_dev + geekdash_test logical dump; not full restore verification"
+    }
+  },
+  "deployment": {
+    "checkedAt": "2026-10-08T11:28:03.965386+00:00",
+    "revision": "dfd9f0cc837ff98c10c61541dee2a8b3a057b057",
+    "imageId": "sha256:fe24cf856805d3302e383cc77dd605d9e73163116de23e71a47a5113575dfd28",
+    "steps": [
+      {
+        "step": "upgrade",
+        "build": {
+          "revision": "dfd9f0cc837ff98c10c61541dee2a8b3a057b057",
+          "dirty": false,
+          "builtAt": "2026-10-08T11:20:06.268Z",
+          "stage": "project-read",
+          "schemaVersion": "0001-foundation"
+        }
+      },
+      {
+        "step": "compatible-rollback",
+        "build": {
+          "revision": "c5606688d9cdf73716b0fdecba53a789f319a9fa",
+          "dirty": false,
+          "builtAt": "2026-10-08T09:40:34.667Z",
+          "stage": "foundation",
+          "schemaVersion": "0001-foundation"
+        }
+      },
+      {
+        "step": "restore-new-release",
+        "build": {
+          "revision": "dfd9f0cc837ff98c10c61541dee2a8b3a057b057",
+          "dirty": false,
+          "builtAt": "2026-10-08T11:20:06.268Z",
+          "stage": "project-read",
+          "schemaVersion": "0001-foundation"
+        }
+      }
+    ],
+    "publicList": {
+      "items": [],
+      "stats": {
+        "total": 0,
+        "high": 0,
+        "green": 0,
+        "yellow": 0,
+        "red": 0
+      },
+      "stageCounts": [],
+      "options": {
+        "customer": [],
+        "productLine": [],
+        "odmFactory": [],
+        "app": [],
+        "group": [],
+        "status": [],
+        "priority": [],
+        "signal": [],
+        "chip": [],
+        "tags": [],
+        "owner": []
+      },
+      "pagination": {
+        "page": 1,
+        "pageSize": 24,
+        "total": 0,
+        "pageCount": 1
+      },
+      "readOnly": true
+    },
+    "mysqlContainerAndStartedAtUnchanged": true,
+    "otherRunningContainersPreserved": 17,
+    "appHealthy": true,
+    "appRestartCount": 0,
+    "appOomKilled": false,
+    "current": "/opt/geekdash/releases/dfd9f0cc837ff98c10c61541dee2a8b3a057b057",
+    "availableMiB": 754,
+    "swapUsedMiB": 1987,
+    "freeDiskBytes": 17223340032
+  },
+  "finalVerification": {
+    "checkedAt": "2026-10-08T11:37:17.608368+00:00",
+    "build": {
+      "revision": "dfd9f0cc837ff98c10c61541dee2a8b3a057b057",
+      "dirty": false,
+      "builtAt": "2026-10-08T11:20:06.268Z",
+      "stage": "project-read",
+      "schemaVersion": "0001-foundation"
+    },
+    "schemas": [
+      {
+        "status": "verified",
+        "database": "geekdash_dev",
+        "version": "0001-foundation",
+        "checksum": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+        "tables": 34,
+        "columns": 313,
+        "foreignKeys": 55,
+        "differences": 0
+      },
+      {
+        "status": "verified",
+        "database": "geekdash_test",
+        "version": "0001-foundation",
+        "checksum": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+        "tables": 34,
+        "columns": 313,
+        "foreignKeys": 55,
+        "differences": 0
+      }
+    ],
+    "rowCounts": {
+      "geekdash_dev": {
+        "tables": 34,
+        "businessRows": 0,
+        "migrationRows": 1
+      },
+      "geekdash_test": {
+        "tables": 34,
+        "businessRows": 0,
+        "migrationRows": 1
+      }
+    },
+    "stats": [
+      {
+        "role": "app",
+        "memory": "33.4MiB / 256MiB",
+        "memoryPercent": "13.05%"
+      },
+      {
+        "role": "mysql",
+        "memory": "491.7MiB / 512MiB",
+        "memoryPercent": "96.04%"
+      }
+    ],
+    "ownDownloadedArchivesRemoved": true
+  },
+  "publicRequests": {
+    "checkedAt": "2026-10-08T11:31:34.641846+00:00",
+    "origin": "https://geekdash.zhiluan.cool",
+    "build": {
+      "revision": "dfd9f0cc837ff98c10c61541dee2a8b3a057b057",
+      "dirty": false,
+      "builtAt": "2026-10-08T11:20:06.268Z",
+      "stage": "project-read",
+      "schemaVersion": "0001-foundation"
+    },
+    "homeAliasDetailAndAssets": true,
+    "assets": [
+      "/assets/api-UiuCuZDu.js",
+      "/assets/api-VGPY2NW0.css",
+      "/assets/index-CIzmLulX.js",
+      "/assets/index-D8NXthWN.css"
+    ],
+    "missingInvalidAndNoWrite": true,
+    "serverInternalsNotServed": true,
+    "noStore": true,
+    "emptyDatabase": true,
+    "fourConcurrentHttpsList": {
+      "requests": 20,
+      "all200": true,
+      "p95Ms": 3531.6,
+      "scope": "empty list queries including this client network/TLS; not browser or full business performance"
+    }
+  },
+  "browser": {
+    "engine": "Codex In-app Browser",
+    "publicEmptyStateRead": true,
+    "screenshot": "2026-10-08-project-read-public.jpg",
+    "limitations": "30s default calls and subsequent multi-action call timed out; read/screenshot recovered with single calls at 60s; public click sequence not counted as passed; no real projects imported"
+  }
+}

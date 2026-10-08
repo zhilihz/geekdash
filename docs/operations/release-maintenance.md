@@ -195,7 +195,9 @@ docker run --rm --network none -e GEEKDASH_DISPOSABLE_CONFIG_TEST=1 --mount 'typ
 
 Nginx 站点为 /etc/nginx/sites-available/geekdash 及同名 enabled 链接。修改只涉及自身站点，nginx -t 成功后 systemctl reload nginx。本轮 IPv4 TLS listener 使用 ssl，适配已有网关；不添加与其他监听不一致的 http2 选项。证书续期 hook 为 /opt/geekdash/config/renew-nginx.sh，执行 nginx -t 再 reload；本机 Certbot 保存选项名 renew_hook。限定演练命令已通过：certbot renew --cert-name geekdash.zhiluan.cool --dry-run --run-deploy-hooks --no-random-sleep-on-renew。既有 timer active；失败查看本域续期结果，不修改其他证书。
 
-/var/backups/geekdash 当前仅为空暂存目录；没有完整备份任务或异地恢复结果。真实导入前仍完成 E11 和 Q-016 资源落实。当前 MySQL 空库内存观测已接近起始上限，业务/真实数据接入前按实际增长和公司网络复核配置；不沿用本轮探测当四人性能通过。
+/var/backups/geekdash 已有本次只读发布前的两库逻辑备份，实际路径/摘要归[部署记录](deployments/2026-10-08-project-reads.md)；仍没有完整备份任务、隔离恢复或服务器外副本结果。真实导入前完成 E11 和 Q-016 资源落实。MySQL 空库内存观测已接近起始上限，业务/真实数据接入前按实际增长和宿主余量复核配置；不沿用短测当四人性能通过。
+
+项目只读回归入口为 npm run test:projects，使用独立 test_app 及真实 HTTP/MySQL，须在专用库无项目夹具时运行。不要与就绪/结构故障测试或保留夹具的浏览器服务同时运行。云端使用固定发布包 verification/verify-project-reads.mjs 挂入一次性 app 容器 /app/scripts、连接自己的 database 网络，并以 GEEKDASH_TEST_RESULT_DIR=/tmp/test-results 写临时结果；只挂 test_app，不挂正式配置，结束核对逐表清理。公开免登录只读入口不提供数据库初始化或夹具灌入按钮。接口协议见[项目读取](../specifications/api/projects-read.md)。
 
 ## 3. 首版发布流程（人工择时已确认，DEC-057）
 

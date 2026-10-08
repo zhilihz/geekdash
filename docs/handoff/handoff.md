@@ -1,10 +1,10 @@
 # 未完成任务交接
 
-更新时间：2026-10-08；当前停点：E03 只读首批已实施并本地验证，待合并/部署与公网回读；免登录写入边界 Q-024 保持待决。
+更新时间：2026-10-08；当前停点：E03 只读首批代码已进入远端 main，本机/公网已运行并回读；免登录写入边界 Q-024 保持待决，下一单元接保存。
 
 ## 1. 工作位置与目标
 
-仓库 https://github.com/zhilihz/geekdash.git ，本地 D:\geekwon\geekdash；实施分支 codex/cloud-foundation，收尾位于 main，起点 main / ce28c5ee8a4e65bfd61fbf90bc94b2b9c0869a30；既有讨论已保存为提交，收尾 main 的真实 refs 见第 7 节。E01 历史交付位置按报告，下一实际施工先核对最新 main 并保留讨论成果；实际状态读[系统真相第 21 节](../status/current-system-truth.md#21-重启恢复与-e01-f04-实际实施2026-10-08)。写代码使用 ponytail full，纯讨论/文档不延续。
+仓库 https://github.com/zhilihz/geekdash.git ，本地 D:\geekwon\geekdash；本次实施分支 codex/project-read，基线 main / 7993483，代码 dfd9f0c 已合并/推送 main。收尾为纯文档/证据，不重建已验证镜像；实时分支/未提交文件以 git status 为准。第 7 节保留基底历史，第 8 节为当前接续。下一施工重新核对最新 main、实际运行与子目录指令；事实入口为[系统真相第 27 节](../status/current-system-truth.md#27-e03-只读主干实际实施2026-10-08)。写代码使用 ponytail full，纯讨论/文档不延续。
 
 ## 2. 已完成与证据
 
@@ -92,6 +92,10 @@ DNS 接续：用户报告配置完成，本轮两个公共解析器的 A 查询�
 
 ## 8. E03 只读实施接手
 
-用户“开始实施”后从已 fetch 核对的 main / 7993483 建 codex/project-read，保留已有三份讨论文档；写代码使用 ponytail full。当前代码与文档未提交，文件以 git status 为准；新能力与本地证据只归系统真相第 27 节。临时浏览器夹具服务 geekdash-project-read-browser 已停止并清理自建行；原始测试输出在忽略的 test-results/project-*-private.log。后续测试用 pwsh -ExecutionPolicy Bypass 运行包装器，不能误用 Windows PowerShell 5 读取无 BOM 中文脚本；不改全局策略。
+用户“开始实施”后从已 fetch 核对的 main / 7993483 建 codex/project-read，保留已有三份讨论文档；写代码使用 ponytail full。代码 dfd9f0c 已合并/推送 main并核对远端；新能力与证据只归系统真相第 27 节及 E03 报告。临时浏览器夹具服务 geekdash-project-read-browser 已停止并清理自建行；原始测试输出在忽略的 test-results/project-*-private.log。后续测试用 pwsh -ExecutionPolicy Bypass 运行包装器，不能误用 Windows PowerShell 5 读取无 BOM 中文脚本；不改全局策略。
 
-接手先完成最终构建/工程回归、链接与不可变资源/凭据检查，提交并合并远端 main；干净源码构建固定镜像，更新本机 app 及独立云 app，云 MySQL 与网关沿用。传输旧临时 SSH 凭据已撤销，改私有发布资产的限时链接传两份归档，不重新使用旧 SFTP helper。部署前记录旧容器与受控库备份，随后真实 HTTPS 查询/空态/版本/回退验证并更新运维/使用/部署记录。无新迁移或真实导入，保存相关边界保持待决；不要把只读发布称完整面板。
+本机/云 app 已更新同一干净固定镜像，MySQL 与网关沿用；真实 HTTPS 查询、资源、版本及兼容回退/恢复新版完成，专用库测试自建行已清理。发布前两库逻辑备份已生成，完整恢复与服务器外副本未执行；详情见[部署记录](../operations/deployments/2026-10-08-project-reads.md)。本轮原始 TAT 回执、签名传输资料只在忽略/仓库外受控位置；服务器自身下载归档已清理，旧 SSH 凭据继续撤销。无新迁移或真实导入。
+
+下一步按执行文档 E03 W00～W03 逐功能接保存，先确认 Q-024 匿名共享编辑的具体范围与历史归属，再收敛规格/必要增量迁移；E02 继续后置，不能伪造负责人。草稿/生命周期/SSE/导入/四人体验和 E11 仍未完成。云 MySQL 已接近 512MiB 限额，真实数据接入前复核宿主余量、调整并验证容量。公网浏览器读取与截图已得，后续点击核查的工具调用超时，没有公网真实项目可点；继续浏览器验收须以新状态/实际结果为准，不把局部截图当完整视觉验收。
+
+本单元完成后纯文档收尾合并/推送 main，运行镜像继续 dfd9f0c；接手先 git status、git fetch、ls-remote、HTTPS live/ready 和 current 核查，保持原始备份受控。源码、文档、部署及完整业务的完成状态分别记录；不要把只读发布称完整面板。
