@@ -1,0 +1,4863 @@
+{
+  "version": "0001-foundation",
+  "tables": [
+    {
+      "name": "schema_migrations",
+      "columns": [
+        {
+          "name": "version",
+          "type": "varchar(64)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "checksum",
+          "type": "binary(32)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "applied_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "version"
+          ]
+        }
+      ],
+      "checks": [],
+      "foreignKeys": [],
+      "sql": "CREATE TABLE `schema_migrations` (\n  `version` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `checksum` binary(32) NOT NULL,\n  `applied_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`version`)\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "apps",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "name",
+          "type": "varchar(255)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "app_version",
+          "type": "varchar(64)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "enabled",
+          "type": "tinyint",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "version",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "idx_enabled_name_id",
+          "unique": false,
+          "columns": [
+            "enabled",
+            "name",
+            "id"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_apps_enabled",
+          "expression": "`enabled` IN (0,1)"
+        }
+      ],
+      "foreignKeys": [],
+      "sql": "CREATE TABLE `apps` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `app_version` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `enabled` tinyint NOT NULL DEFAULT 1,\n  `version` bigint unsigned NOT NULL DEFAULT 1,\n  `created_at` datetime(3) NOT NULL,\n  `updated_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  KEY `idx_enabled_name_id` (`enabled`, `name`, `id`),\n  CONSTRAINT `ck_apps_enabled` CHECK (`enabled` IN (0,1))\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "audit_log",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "actor_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "actor_display_name",
+          "type": "varchar(128)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "actor_kind",
+          "type": "varchar(16)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "action",
+          "type": "varchar(64)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "entity_type",
+          "type": "varchar(32)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "entity_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "project_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "version_before",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "version_after",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "before_json",
+          "type": "json",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "after_json",
+          "type": "json",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "request_id",
+          "type": "varchar(64)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "idx_project_id_id",
+          "unique": false,
+          "columns": [
+            "project_id",
+            "id"
+          ]
+        },
+        {
+          "name": "idx_entity_type_entity_id_id",
+          "unique": false,
+          "columns": [
+            "entity_type",
+            "entity_id",
+            "id"
+          ]
+        },
+        {
+          "name": "idx_fk_actor_id",
+          "unique": false,
+          "columns": [
+            "actor_id"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_audit_log_actor_kind",
+          "expression": "`actor_kind` IN ('user','system')"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_audit_log_actor_id",
+          "columns": [
+            "actor_id"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `audit_log` ADD CONSTRAINT `fk_audit_log_actor_id` FOREIGN KEY (`actor_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_audit_log_project_id",
+          "columns": [
+            "project_id"
+          ],
+          "parent": "projects",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `audit_log` ADD CONSTRAINT `fk_audit_log_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `audit_log` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `actor_id` bigint unsigned NULL,\n  `actor_display_name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `actor_kind` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `action` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `entity_type` varchar(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `entity_id` bigint unsigned NULL,\n  `project_id` bigint unsigned NULL,\n  `version_before` bigint unsigned NULL,\n  `version_after` bigint unsigned NULL,\n  `before_json` json NOT NULL,\n  `after_json` json NOT NULL,\n  `request_id` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `created_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  KEY `idx_project_id_id` (`project_id`, `id`),\n  KEY `idx_entity_type_entity_id_id` (`entity_type`, `entity_id`, `id`),\n  KEY `idx_fk_actor_id` (`actor_id`),\n  CONSTRAINT `ck_audit_log_actor_kind` CHECK (`actor_kind` IN ('user','system'))\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "check_rule_revisions",
+      "columns": [
+        {
+          "name": "version",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "deadline_weekday",
+          "type": "smallint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "effective_week",
+          "type": "date",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "saved_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "saved_by",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "version"
+          ]
+        },
+        {
+          "name": "idx_effective_week_version",
+          "unique": false,
+          "columns": [
+            "effective_week",
+            "version"
+          ]
+        },
+        {
+          "name": "idx_fk_saved_by",
+          "unique": false,
+          "columns": [
+            "saved_by"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_check_rule_revisions_weekday",
+          "expression": "`deadline_weekday` BETWEEN 1 AND 7"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_check_rule_revisions_saved_by",
+          "columns": [
+            "saved_by"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `check_rule_revisions` ADD CONSTRAINT `fk_check_rule_revisions_saved_by` FOREIGN KEY (`saved_by`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `check_rule_revisions` (\n  `version` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `deadline_weekday` smallint unsigned NOT NULL,\n  `effective_week` date NOT NULL,\n  `saved_at` datetime(3) NOT NULL,\n  `saved_by` bigint unsigned NOT NULL,\n  PRIMARY KEY (`version`),\n  KEY `idx_effective_week_version` (`effective_week`, `version`),\n  KEY `idx_fk_saved_by` (`saved_by`),\n  CONSTRAINT `ck_check_rule_revisions_weekday` CHECK (`deadline_weekday` BETWEEN 1 AND 7)\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "chips",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "name",
+          "type": "varchar(255)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "original_model",
+          "type": "varchar(255)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "manufacturer",
+          "type": "varchar(255)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "firmware_version",
+          "type": "varchar(128)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "enabled",
+          "type": "tinyint",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "version",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "idx_enabled_name_id",
+          "unique": false,
+          "columns": [
+            "enabled",
+            "name",
+            "id"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_chips_enabled",
+          "expression": "`enabled` IN (0,1)"
+        }
+      ],
+      "foreignKeys": [],
+      "sql": "CREATE TABLE `chips` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `original_model` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `manufacturer` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `firmware_version` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `enabled` tinyint NOT NULL DEFAULT 1,\n  `version` bigint unsigned NOT NULL DEFAULT 1,\n  `created_at` datetime(3) NOT NULL,\n  `updated_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  KEY `idx_enabled_name_id` (`enabled`, `name`, `id`),\n  CONSTRAINT `ck_chips_enabled` CHECK (`enabled` IN (0,1))\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "command_receipts",
+      "columns": [
+        {
+          "name": "actor_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "command_scope",
+          "type": "varchar(96)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "idempotency_key",
+          "type": "varchar(128)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "request_hash",
+          "type": "binary(32)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "response_code",
+          "type": "smallint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "response_json",
+          "type": "json",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "committed_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "actor_id",
+            "command_scope",
+            "idempotency_key"
+          ]
+        }
+      ],
+      "checks": [],
+      "foreignKeys": [
+        {
+          "name": "fk_command_receipts_actor_id",
+          "columns": [
+            "actor_id"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `command_receipts` ADD CONSTRAINT `fk_command_receipts_actor_id` FOREIGN KEY (`actor_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `command_receipts` (\n  `actor_id` bigint unsigned NOT NULL,\n  `command_scope` varchar(96) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `idempotency_key` varchar(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `request_hash` binary(32) NOT NULL,\n  `response_code` smallint unsigned NOT NULL,\n  `response_json` json NOT NULL,\n  `committed_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`actor_id`, `command_scope`, `idempotency_key`)\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "customer_tags",
+      "columns": [
+        {
+          "name": "customer_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "tag_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "sort_order",
+          "type": "int unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "customer_id",
+            "tag_id"
+          ]
+        },
+        {
+          "name": "idx_tag_id_customer_id",
+          "unique": false,
+          "columns": [
+            "tag_id",
+            "customer_id"
+          ]
+        }
+      ],
+      "checks": [],
+      "foreignKeys": [
+        {
+          "name": "fk_customer_tags_customer_id",
+          "columns": [
+            "customer_id"
+          ],
+          "parent": "customers",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `customer_tags` ADD CONSTRAINT `fk_customer_tags_customer_id` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_customer_tags_tag_id",
+          "columns": [
+            "tag_id"
+          ],
+          "parent": "tags",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `customer_tags` ADD CONSTRAINT `fk_customer_tags_tag_id` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `customer_tags` (\n  `customer_id` bigint unsigned NOT NULL,\n  `tag_id` bigint unsigned NOT NULL,\n  `sort_order` int unsigned NOT NULL,\n  PRIMARY KEY (`customer_id`, `tag_id`),\n  KEY `idx_tag_id_customer_id` (`tag_id`, `customer_id`)\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "customers",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "name",
+          "type": "varchar(255)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "contact",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "background",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "enabled",
+          "type": "tinyint",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "version",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "idx_enabled_name_id",
+          "unique": false,
+          "columns": [
+            "enabled",
+            "name",
+            "id"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_customers_enabled",
+          "expression": "`enabled` IN (0,1)"
+        }
+      ],
+      "foreignKeys": [],
+      "sql": "CREATE TABLE `customers` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `contact` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `background` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `enabled` tinyint NOT NULL DEFAULT 1,\n  `version` bigint unsigned NOT NULL DEFAULT 1,\n  `created_at` datetime(3) NOT NULL,\n  `updated_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  KEY `idx_enabled_name_id` (`enabled`, `name`, `id`),\n  CONSTRAINT `ck_customers_enabled` CHECK (`enabled` IN (0,1))\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "engineers",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "name",
+          "type": "varchar(255)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "role",
+          "type": "varchar(64)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "enabled",
+          "type": "tinyint",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "version",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "idx_enabled_name_id",
+          "unique": false,
+          "columns": [
+            "enabled",
+            "name",
+            "id"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_engineers_enabled",
+          "expression": "`enabled` IN (0,1)"
+        }
+      ],
+      "foreignKeys": [],
+      "sql": "CREATE TABLE `engineers` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `role` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `enabled` tinyint NOT NULL DEFAULT 1,\n  `version` bigint unsigned NOT NULL DEFAULT 1,\n  `created_at` datetime(3) NOT NULL,\n  `updated_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  KEY `idx_enabled_name_id` (`enabled`, `name`, `id`),\n  CONSTRAINT `ck_engineers_enabled` CHECK (`enabled` IN (0,1))\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "feedback_entries",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "type",
+          "type": "varchar(16)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "author_text",
+          "type": "varchar(128)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "reported_on",
+          "type": "date",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "created_by",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "source_import_item_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "version",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "idx_fk_created_by",
+          "unique": false,
+          "columns": [
+            "created_by"
+          ]
+        },
+        {
+          "name": "idx_fk_source_import_item_id",
+          "unique": false,
+          "columns": [
+            "source_import_item_id"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_feedback_entries_type",
+          "expression": "`type` IN ('bug','suggestion')"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_feedback_entries_created_by",
+          "columns": [
+            "created_by"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `feedback_entries` ADD CONSTRAINT `fk_feedback_entries_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_feedback_entries_source_import_item_id",
+          "columns": [
+            "source_import_item_id"
+          ],
+          "parent": "import_items",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `feedback_entries` ADD CONSTRAINT `fk_feedback_entries_source_import_item_id` FOREIGN KEY (`source_import_item_id`) REFERENCES `import_items` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `feedback_entries` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `type` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `author_text` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `reported_on` date NULL,\n  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `created_by` bigint unsigned NULL,\n  `source_import_item_id` bigint unsigned NULL,\n  `created_at` datetime(3) NOT NULL,\n  `version` bigint unsigned NOT NULL DEFAULT 1,\n  PRIMARY KEY (`id`),\n  KEY `idx_fk_created_by` (`created_by`),\n  KEY `idx_fk_source_import_item_id` (`source_import_item_id`),\n  CONSTRAINT `ck_feedback_entries_type` CHECK (`type` IN ('bug','suggestion'))\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "import_batches",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "source_hash",
+          "type": "binary(32)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "source_file_ref",
+          "type": "varchar(512)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "source_bytes",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "source_schema_version",
+          "type": "varchar(32)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "source_app_version",
+          "type": "varchar(32)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "exported_at_text",
+          "type": "varchar(128)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "source_namespace",
+          "type": "varchar(64)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_bin"
+        },
+        {
+          "name": "mapping_json",
+          "type": "json",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_by",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "current_handler_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "version",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "idx_source_hash_id",
+          "unique": false,
+          "columns": [
+            "source_hash",
+            "id"
+          ]
+        },
+        {
+          "name": "idx_current_handler_id_id",
+          "unique": false,
+          "columns": [
+            "current_handler_id",
+            "id"
+          ]
+        },
+        {
+          "name": "idx_fk_created_by",
+          "unique": false,
+          "columns": [
+            "created_by"
+          ]
+        }
+      ],
+      "checks": [],
+      "foreignKeys": [
+        {
+          "name": "fk_import_batches_created_by",
+          "columns": [
+            "created_by"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `import_batches` ADD CONSTRAINT `fk_import_batches_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_import_batches_current_handler_id",
+          "columns": [
+            "current_handler_id"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `import_batches` ADD CONSTRAINT `fk_import_batches_current_handler_id` FOREIGN KEY (`current_handler_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `import_batches` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `source_hash` binary(32) NOT NULL,\n  `source_file_ref` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `source_bytes` bigint unsigned NOT NULL,\n  `source_schema_version` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `source_app_version` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL,\n  `exported_at_text` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL,\n  `source_namespace` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,\n  `mapping_json` json NOT NULL,\n  `created_by` bigint unsigned NOT NULL,\n  `current_handler_id` bigint unsigned NOT NULL,\n  `version` bigint unsigned NOT NULL DEFAULT 1,\n  `created_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  KEY `idx_source_hash_id` (`source_hash`, `id`),\n  KEY `idx_current_handler_id_id` (`current_handler_id`, `id`),\n  KEY `idx_fk_created_by` (`created_by`)\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "import_items",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "batch_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "item_kind",
+          "type": "varchar(32)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "source_sequence",
+          "type": "int unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "source_key",
+          "type": "varchar(128)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_bin"
+        },
+        {
+          "name": "target_project_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "expected_project_version",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "review_version",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "source_payload_json",
+          "type": "json",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "corrected_payload_json",
+          "type": "json",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "validation_json",
+          "type": "json",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "corrected_by",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "corrected_at",
+          "type": "datetime(3)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "reviewed_by",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "reviewed_at",
+          "type": "datetime(3)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "status",
+          "type": "varchar(16)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "result_json",
+          "type": "json",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "uk_batch_id_item_kind_source_sequence",
+          "unique": true,
+          "columns": [
+            "batch_id",
+            "item_kind",
+            "source_sequence"
+          ]
+        },
+        {
+          "name": "idx_batch_id_status_id",
+          "unique": false,
+          "columns": [
+            "batch_id",
+            "status",
+            "id"
+          ]
+        },
+        {
+          "name": "idx_target_project_id_status_id",
+          "unique": false,
+          "columns": [
+            "target_project_id",
+            "status",
+            "id"
+          ]
+        },
+        {
+          "name": "idx_fk_corrected_by",
+          "unique": false,
+          "columns": [
+            "corrected_by"
+          ]
+        },
+        {
+          "name": "idx_fk_reviewed_by",
+          "unique": false,
+          "columns": [
+            "reviewed_by"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_import_items_status",
+          "expression": "`status` IN ('pending','committed')"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_import_items_batch_id",
+          "columns": [
+            "batch_id"
+          ],
+          "parent": "import_batches",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `import_items` ADD CONSTRAINT `fk_import_items_batch_id` FOREIGN KEY (`batch_id`) REFERENCES `import_batches` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_import_items_target_project_id",
+          "columns": [
+            "target_project_id"
+          ],
+          "parent": "projects",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `import_items` ADD CONSTRAINT `fk_import_items_target_project_id` FOREIGN KEY (`target_project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_import_items_corrected_by",
+          "columns": [
+            "corrected_by"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `import_items` ADD CONSTRAINT `fk_import_items_corrected_by` FOREIGN KEY (`corrected_by`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_import_items_reviewed_by",
+          "columns": [
+            "reviewed_by"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `import_items` ADD CONSTRAINT `fk_import_items_reviewed_by` FOREIGN KEY (`reviewed_by`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `import_items` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `batch_id` bigint unsigned NOT NULL,\n  `item_kind` varchar(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `source_sequence` int unsigned NOT NULL,\n  `source_key` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,\n  `target_project_id` bigint unsigned NULL,\n  `expected_project_version` bigint unsigned NULL,\n  `review_version` bigint unsigned NOT NULL DEFAULT 1,\n  `source_payload_json` json NOT NULL,\n  `corrected_payload_json` json NULL,\n  `validation_json` json NOT NULL,\n  `corrected_by` bigint unsigned NULL,\n  `corrected_at` datetime(3) NULL,\n  `reviewed_by` bigint unsigned NULL,\n  `reviewed_at` datetime(3) NULL,\n  `status` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `result_json` json NULL,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `uk_batch_id_item_kind_source_sequence` (`batch_id`, `item_kind`, `source_sequence`),\n  KEY `idx_batch_id_status_id` (`batch_id`, `status`, `id`),\n  KEY `idx_target_project_id_status_id` (`target_project_id`, `status`, `id`),\n  KEY `idx_fk_corrected_by` (`corrected_by`),\n  KEY `idx_fk_reviewed_by` (`reviewed_by`),\n  CONSTRAINT `ck_import_items_status` CHECK (`status` IN ('pending','committed'))\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "legacy_project_history",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "project_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "source_import_item_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "source_sequence",
+          "type": "int unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "source_date_text",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "body",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "uk_source_import_item_id_source_sequence",
+          "unique": true,
+          "columns": [
+            "source_import_item_id",
+            "source_sequence"
+          ]
+        },
+        {
+          "name": "idx_project_id_source_import_item_id_source_sequence",
+          "unique": false,
+          "columns": [
+            "project_id",
+            "source_import_item_id",
+            "source_sequence"
+          ]
+        }
+      ],
+      "checks": [],
+      "foreignKeys": [
+        {
+          "name": "fk_legacy_project_history_project_id",
+          "columns": [
+            "project_id"
+          ],
+          "parent": "projects",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `legacy_project_history` ADD CONSTRAINT `fk_legacy_project_history_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_legacy_project_history_source_import_item_id",
+          "columns": [
+            "source_import_item_id"
+          ],
+          "parent": "import_items",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `legacy_project_history` ADD CONSTRAINT `fk_legacy_project_history_source_import_item_id` FOREIGN KEY (`source_import_item_id`) REFERENCES `import_items` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `legacy_project_history` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `project_id` bigint unsigned NOT NULL,\n  `source_import_item_id` bigint unsigned NOT NULL,\n  `source_sequence` int unsigned NOT NULL,\n  `source_date_text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `body` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `uk_source_import_item_id_source_sequence` (`source_import_item_id`, `source_sequence`),\n  KEY `idx_project_id_source_import_item_id_source_sequence` (`project_id`, `source_import_item_id`, `source_sequence`)\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "meetings",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "title",
+          "type": "varchar(255)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "state",
+          "type": "varchar(16)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "started_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "ended_at",
+          "type": "datetime(3)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "elapsed_ms",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "resumed_at",
+          "type": "datetime(3)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "minutes",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "project_ids_json",
+          "type": "json",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_by",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "version",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "idx_created_by_state_id",
+          "unique": false,
+          "columns": [
+            "created_by",
+            "state",
+            "id"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_meetings_state",
+          "expression": "`state` IN ('running','paused','finished')"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_meetings_created_by",
+          "columns": [
+            "created_by"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `meetings` ADD CONSTRAINT `fk_meetings_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `meetings` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `state` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `started_at` datetime(3) NOT NULL,\n  `ended_at` datetime(3) NULL,\n  `elapsed_ms` bigint unsigned NOT NULL,\n  `resumed_at` datetime(3) NULL,\n  `minutes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `project_ids_json` json NOT NULL,\n  `created_by` bigint unsigned NOT NULL,\n  `version` bigint unsigned NOT NULL DEFAULT 1,\n  `updated_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  KEY `idx_created_by_state_id` (`created_by`, `state`, `id`),\n  CONSTRAINT `ck_meetings_state` CHECK (`state` IN ('running','paused','finished'))\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "product_lines",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "name",
+          "type": "varchar(255)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "enabled",
+          "type": "tinyint",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "version",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "idx_enabled_name_id",
+          "unique": false,
+          "columns": [
+            "enabled",
+            "name",
+            "id"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_product_lines_enabled",
+          "expression": "`enabled` IN (0,1)"
+        }
+      ],
+      "foreignKeys": [],
+      "sql": "CREATE TABLE `product_lines` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `enabled` tinyint NOT NULL DEFAULT 1,\n  `version` bigint unsigned NOT NULL DEFAULT 1,\n  `created_at` datetime(3) NOT NULL,\n  `updated_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  KEY `idx_enabled_name_id` (`enabled`, `name`, `id`),\n  CONSTRAINT `ck_product_lines_enabled` CHECK (`enabled` IN (0,1))\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "project_changes",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "project_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "source",
+          "type": "varchar(255)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "decision",
+          "type": "varchar(16)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "actor_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "source_key",
+          "type": "varchar(128)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_bin"
+        },
+        {
+          "name": "sort_order",
+          "type": "int unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "idx_project_id_sort_order_id",
+          "unique": false,
+          "columns": [
+            "project_id",
+            "sort_order",
+            "id"
+          ]
+        },
+        {
+          "name": "idx_fk_actor_id",
+          "unique": false,
+          "columns": [
+            "actor_id"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_project_changes_decision",
+          "expression": "`decision` IN ('accept','reject')"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_project_changes_project_id",
+          "columns": [
+            "project_id"
+          ],
+          "parent": "projects",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_changes` ADD CONSTRAINT `fk_project_changes_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_project_changes_actor_id",
+          "columns": [
+            "actor_id"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_changes` ADD CONSTRAINT `fk_project_changes_actor_id` FOREIGN KEY (`actor_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `project_changes` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `project_id` bigint unsigned NOT NULL,\n  `source` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `decision` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `reason` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `actor_id` bigint unsigned NULL,\n  `created_at` datetime(3) NOT NULL,\n  `source_key` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,\n  `sort_order` int unsigned NOT NULL,\n  PRIMARY KEY (`id`),\n  KEY `idx_project_id_sort_order_id` (`project_id`, `sort_order`, `id`),\n  KEY `idx_fk_actor_id` (`actor_id`),\n  CONSTRAINT `ck_project_changes_decision` CHECK (`decision` IN ('accept','reject'))\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "project_checks",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "project_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "actor_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "checked_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "week_start",
+          "type": "date",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "conclusion",
+          "type": "varchar(16)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "rule_version",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "observed_version",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "result_version",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "idx_project_id_week_start_id",
+          "unique": false,
+          "columns": [
+            "project_id",
+            "week_start",
+            "id"
+          ]
+        },
+        {
+          "name": "idx_week_start_project_id_id",
+          "unique": false,
+          "columns": [
+            "week_start",
+            "project_id",
+            "id"
+          ]
+        },
+        {
+          "name": "idx_fk_actor_id",
+          "unique": false,
+          "columns": [
+            "actor_id"
+          ]
+        },
+        {
+          "name": "idx_fk_rule_version",
+          "unique": false,
+          "columns": [
+            "rule_version"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_project_checks_conclusion",
+          "expression": "`conclusion` IN ('checked','follow_up')"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_project_checks_project_id",
+          "columns": [
+            "project_id"
+          ],
+          "parent": "projects",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_checks` ADD CONSTRAINT `fk_project_checks_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_project_checks_actor_id",
+          "columns": [
+            "actor_id"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_checks` ADD CONSTRAINT `fk_project_checks_actor_id` FOREIGN KEY (`actor_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_project_checks_rule_version",
+          "columns": [
+            "rule_version"
+          ],
+          "parent": "check_rule_revisions",
+          "references": [
+            "version"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_checks` ADD CONSTRAINT `fk_project_checks_rule_version` FOREIGN KEY (`rule_version`) REFERENCES `check_rule_revisions` (`version`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `project_checks` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `project_id` bigint unsigned NOT NULL,\n  `actor_id` bigint unsigned NOT NULL,\n  `checked_at` datetime(3) NOT NULL,\n  `week_start` date NOT NULL,\n  `conclusion` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `note` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `rule_version` bigint unsigned NOT NULL,\n  `observed_version` bigint unsigned NOT NULL,\n  `result_version` bigint unsigned NOT NULL,\n  PRIMARY KEY (`id`),\n  KEY `idx_project_id_week_start_id` (`project_id`, `week_start`, `id`),\n  KEY `idx_week_start_project_id_id` (`week_start`, `project_id`, `id`),\n  KEY `idx_fk_actor_id` (`actor_id`),\n  KEY `idx_fk_rule_version` (`rule_version`),\n  CONSTRAINT `ck_project_checks_conclusion` CHECK (`conclusion` IN ('checked','follow_up'))\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "project_chips",
+      "columns": [
+        {
+          "name": "project_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "chip_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "sort_order",
+          "type": "int unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "project_id",
+            "chip_id"
+          ]
+        },
+        {
+          "name": "idx_chip_id_project_id",
+          "unique": false,
+          "columns": [
+            "chip_id",
+            "project_id"
+          ]
+        }
+      ],
+      "checks": [],
+      "foreignKeys": [
+        {
+          "name": "fk_project_chips_project_id",
+          "columns": [
+            "project_id"
+          ],
+          "parent": "projects",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_chips` ADD CONSTRAINT `fk_project_chips_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_project_chips_chip_id",
+          "columns": [
+            "chip_id"
+          ],
+          "parent": "chips",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_chips` ADD CONSTRAINT `fk_project_chips_chip_id` FOREIGN KEY (`chip_id`) REFERENCES `chips` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `project_chips` (\n  `project_id` bigint unsigned NOT NULL,\n  `chip_id` bigint unsigned NOT NULL,\n  `sort_order` int unsigned NOT NULL,\n  PRIMARY KEY (`project_id`, `chip_id`),\n  KEY `idx_chip_id_project_id` (`chip_id`, `project_id`)\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "project_drafts",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "user_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "project_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "client_draft_id",
+          "type": "char(36)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "form_kind",
+          "type": "varchar(32)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "base_version",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "draft_version",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "client_sequence",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "payload_json",
+          "type": "json",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "state",
+          "type": "varchar(16)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "submitted_project_version",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "uk_user_id_client_draft_id",
+          "unique": true,
+          "columns": [
+            "user_id",
+            "client_draft_id"
+          ]
+        },
+        {
+          "name": "idx_user_id_state_updated_at_id",
+          "unique": false,
+          "columns": [
+            "user_id",
+            "state",
+            "updated_at",
+            "id"
+          ]
+        },
+        {
+          "name": "idx_user_id_project_id_state_id",
+          "unique": false,
+          "columns": [
+            "user_id",
+            "project_id",
+            "state",
+            "id"
+          ]
+        },
+        {
+          "name": "idx_fk_project_id",
+          "unique": false,
+          "columns": [
+            "project_id"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_project_drafts_state",
+          "expression": "`state` IN ('active','committed','discarded')"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_project_drafts_user_id",
+          "columns": [
+            "user_id"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_drafts` ADD CONSTRAINT `fk_project_drafts_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_project_drafts_project_id",
+          "columns": [
+            "project_id"
+          ],
+          "parent": "projects",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_drafts` ADD CONSTRAINT `fk_project_drafts_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `project_drafts` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `user_id` bigint unsigned NOT NULL,\n  `project_id` bigint unsigned NULL,\n  `client_draft_id` char(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `form_kind` varchar(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `base_version` bigint unsigned NULL,\n  `draft_version` bigint unsigned NOT NULL DEFAULT 1,\n  `client_sequence` bigint unsigned NOT NULL,\n  `payload_json` json NOT NULL,\n  `state` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `submitted_project_version` bigint unsigned NULL,\n  `created_at` datetime(3) NOT NULL,\n  `updated_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `uk_user_id_client_draft_id` (`user_id`, `client_draft_id`),\n  KEY `idx_user_id_state_updated_at_id` (`user_id`, `state`, `updated_at`, `id`),\n  KEY `idx_user_id_project_id_state_id` (`user_id`, `project_id`, `state`, `id`),\n  KEY `idx_fk_project_id` (`project_id`),\n  CONSTRAINT `ck_project_drafts_state` CHECK (`state` IN ('active','committed','discarded'))\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "project_groups",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "name",
+          "type": "varchar(255)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "enabled",
+          "type": "tinyint",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "version",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "idx_enabled_name_id",
+          "unique": false,
+          "columns": [
+            "enabled",
+            "name",
+            "id"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_project_groups_enabled",
+          "expression": "`enabled` IN (0,1)"
+        }
+      ],
+      "foreignKeys": [],
+      "sql": "CREATE TABLE `project_groups` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `enabled` tinyint NOT NULL DEFAULT 1,\n  `version` bigint unsigned NOT NULL DEFAULT 1,\n  `created_at` datetime(3) NOT NULL,\n  `updated_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  KEY `idx_enabled_name_id` (`enabled`, `name`, `id`),\n  CONSTRAINT `ck_project_groups_enabled` CHECK (`enabled` IN (0,1))\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "project_nodes",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "project_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "kind",
+          "type": "varchar(16)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "stage_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "title",
+          "type": "varchar(255)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "target_date",
+          "type": "date",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "completed_on",
+          "type": "date",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "output",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "previous_node_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "next_node_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "x",
+          "type": "decimal(12,3)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "y",
+          "type": "decimal(12,3)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "sort_order",
+          "type": "int unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "source_key",
+          "type": "varchar(128)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_bin"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "uk_project_id_id",
+          "unique": true,
+          "columns": [
+            "project_id",
+            "id"
+          ]
+        },
+        {
+          "name": "idx_project_id_kind_sort_order_id",
+          "unique": false,
+          "columns": [
+            "project_id",
+            "kind",
+            "sort_order",
+            "id"
+          ]
+        },
+        {
+          "name": "idx_fk_stage_id",
+          "unique": false,
+          "columns": [
+            "project_id",
+            "stage_id"
+          ]
+        },
+        {
+          "name": "idx_fk_previous_node_id",
+          "unique": false,
+          "columns": [
+            "project_id",
+            "previous_node_id"
+          ]
+        },
+        {
+          "name": "idx_fk_next_node_id",
+          "unique": false,
+          "columns": [
+            "project_id",
+            "next_node_id"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_project_nodes_kind",
+          "expression": "`kind` IN ('project','customer')"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_project_nodes_project_id",
+          "columns": [
+            "project_id"
+          ],
+          "parent": "projects",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_nodes` ADD CONSTRAINT `fk_project_nodes_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_project_nodes_stage_id",
+          "columns": [
+            "project_id",
+            "stage_id"
+          ],
+          "parent": "project_stages",
+          "references": [
+            "project_id",
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_nodes` ADD CONSTRAINT `fk_project_nodes_stage_id` FOREIGN KEY (`project_id`, `stage_id`) REFERENCES `project_stages` (`project_id`, `id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_project_nodes_previous_node_id",
+          "columns": [
+            "project_id",
+            "previous_node_id"
+          ],
+          "parent": "project_nodes",
+          "references": [
+            "project_id",
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_nodes` ADD CONSTRAINT `fk_project_nodes_previous_node_id` FOREIGN KEY (`project_id`, `previous_node_id`) REFERENCES `project_nodes` (`project_id`, `id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_project_nodes_next_node_id",
+          "columns": [
+            "project_id",
+            "next_node_id"
+          ],
+          "parent": "project_nodes",
+          "references": [
+            "project_id",
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_nodes` ADD CONSTRAINT `fk_project_nodes_next_node_id` FOREIGN KEY (`project_id`, `next_node_id`) REFERENCES `project_nodes` (`project_id`, `id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `project_nodes` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `project_id` bigint unsigned NOT NULL,\n  `kind` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `stage_id` bigint unsigned NULL,\n  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `target_date` date NULL,\n  `completed_on` date NULL,\n  `output` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `note` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `previous_node_id` bigint unsigned NULL,\n  `next_node_id` bigint unsigned NULL,\n  `x` decimal(12,3) NULL,\n  `y` decimal(12,3) NULL,\n  `sort_order` int unsigned NOT NULL,\n  `source_key` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `uk_project_id_id` (`project_id`, `id`),\n  KEY `idx_project_id_kind_sort_order_id` (`project_id`, `kind`, `sort_order`, `id`),\n  KEY `idx_fk_stage_id` (`project_id`, `stage_id`),\n  KEY `idx_fk_previous_node_id` (`project_id`, `previous_node_id`),\n  KEY `idx_fk_next_node_id` (`project_id`, `next_node_id`),\n  CONSTRAINT `ck_project_nodes_kind` CHECK (`kind` IN ('project','customer'))\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "project_people",
+      "columns": [
+        {
+          "name": "project_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "engineer_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "role",
+          "type": "varchar(32)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "sort_order",
+          "type": "int unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "project_id",
+            "engineer_id",
+            "role"
+          ]
+        },
+        {
+          "name": "idx_engineer_id_project_id",
+          "unique": false,
+          "columns": [
+            "engineer_id",
+            "project_id"
+          ]
+        }
+      ],
+      "checks": [],
+      "foreignKeys": [
+        {
+          "name": "fk_project_people_project_id",
+          "columns": [
+            "project_id"
+          ],
+          "parent": "projects",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_people` ADD CONSTRAINT `fk_project_people_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_project_people_engineer_id",
+          "columns": [
+            "engineer_id"
+          ],
+          "parent": "engineers",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_people` ADD CONSTRAINT `fk_project_people_engineer_id` FOREIGN KEY (`engineer_id`) REFERENCES `engineers` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `project_people` (\n  `project_id` bigint unsigned NOT NULL,\n  `engineer_id` bigint unsigned NOT NULL,\n  `role` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `sort_order` int unsigned NOT NULL,\n  PRIMARY KEY (`project_id`, `engineer_id`, `role`),\n  KEY `idx_engineer_id_project_id` (`engineer_id`, `project_id`)\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "project_responsibilities",
+      "columns": [
+        {
+          "name": "project_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "user_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "joined_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "project_id",
+            "user_id"
+          ]
+        },
+        {
+          "name": "idx_user_id_project_id",
+          "unique": false,
+          "columns": [
+            "user_id",
+            "project_id"
+          ]
+        }
+      ],
+      "checks": [],
+      "foreignKeys": [
+        {
+          "name": "fk_project_responsibilities_project_id",
+          "columns": [
+            "project_id"
+          ],
+          "parent": "projects",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_responsibilities` ADD CONSTRAINT `fk_project_responsibilities_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_project_responsibilities_user_id",
+          "columns": [
+            "user_id"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_responsibilities` ADD CONSTRAINT `fk_project_responsibilities_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `project_responsibilities` (\n  `project_id` bigint unsigned NOT NULL,\n  `user_id` bigint unsigned NOT NULL,\n  `joined_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`project_id`, `user_id`),\n  KEY `idx_user_id_project_id` (`user_id`, `project_id`)\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "project_risks",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "project_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "level",
+          "type": "varchar(16)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "resolved",
+          "type": "tinyint",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "resolution",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "resolved_at",
+          "type": "datetime(3)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "actor_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "source_key",
+          "type": "varchar(128)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_bin"
+        },
+        {
+          "name": "sort_order",
+          "type": "int unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "idx_project_id_resolved_sort_order_id",
+          "unique": false,
+          "columns": [
+            "project_id",
+            "resolved",
+            "sort_order",
+            "id"
+          ]
+        },
+        {
+          "name": "idx_fk_actor_id",
+          "unique": false,
+          "columns": [
+            "actor_id"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_project_risks_level",
+          "expression": "`level` IN ('high','mid','low')"
+        },
+        {
+          "name": "ck_project_risks_resolved",
+          "expression": "`resolved` IN (0,1)"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_project_risks_project_id",
+          "columns": [
+            "project_id"
+          ],
+          "parent": "projects",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_risks` ADD CONSTRAINT `fk_project_risks_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_project_risks_actor_id",
+          "columns": [
+            "actor_id"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_risks` ADD CONSTRAINT `fk_project_risks_actor_id` FOREIGN KEY (`actor_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `project_risks` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `project_id` bigint unsigned NOT NULL,\n  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `level` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `resolved` tinyint NOT NULL,\n  `resolution` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `resolved_at` datetime(3) NULL,\n  `actor_id` bigint unsigned NULL,\n  `created_at` datetime(3) NOT NULL,\n  `source_key` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,\n  `sort_order` int unsigned NOT NULL,\n  PRIMARY KEY (`id`),\n  KEY `idx_project_id_resolved_sort_order_id` (`project_id`, `resolved`, `sort_order`, `id`),\n  KEY `idx_fk_actor_id` (`actor_id`),\n  CONSTRAINT `ck_project_risks_level` CHECK (`level` IN ('high','mid','low')),\n  CONSTRAINT `ck_project_risks_resolved` CHECK (`resolved` IN (0,1))\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "project_stages",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "project_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "stage_code",
+          "type": "varchar(2)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "state",
+          "type": "varchar(16)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "planned_days",
+          "type": "smallint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "started_on",
+          "type": "date",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "completed_on",
+          "type": "date",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "expected_end_on",
+          "type": "date",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "uk_project_id_stage_code",
+          "unique": true,
+          "columns": [
+            "project_id",
+            "stage_code"
+          ]
+        },
+        {
+          "name": "uk_project_id_id",
+          "unique": true,
+          "columns": [
+            "project_id",
+            "id"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_project_stages_stage_code",
+          "expression": "`stage_code` IN ('S1','S2','S3','S4','S5','S6','S7')"
+        },
+        {
+          "name": "ck_project_stages_state",
+          "expression": "`state` IN ('locked','ready','active','completed')"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_project_stages_project_id",
+          "columns": [
+            "project_id"
+          ],
+          "parent": "projects",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_stages` ADD CONSTRAINT `fk_project_stages_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `project_stages` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `project_id` bigint unsigned NOT NULL,\n  `stage_code` varchar(2) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `state` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `planned_days` smallint unsigned NULL,\n  `note` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `started_on` date NULL,\n  `completed_on` date NULL,\n  `expected_end_on` date NULL,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `uk_project_id_stage_code` (`project_id`, `stage_code`),\n  UNIQUE KEY `uk_project_id_id` (`project_id`, `id`),\n  CONSTRAINT `ck_project_stages_stage_code` CHECK (`stage_code` IN ('S1','S2','S3','S4','S5','S6','S7')),\n  CONSTRAINT `ck_project_stages_state` CHECK (`state` IN ('locked','ready','active','completed'))\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "project_tags",
+      "columns": [
+        {
+          "name": "project_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "tag_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "sort_order",
+          "type": "int unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "project_id",
+            "tag_id"
+          ]
+        },
+        {
+          "name": "idx_tag_id_project_id",
+          "unique": false,
+          "columns": [
+            "tag_id",
+            "project_id"
+          ]
+        }
+      ],
+      "checks": [],
+      "foreignKeys": [
+        {
+          "name": "fk_project_tags_project_id",
+          "columns": [
+            "project_id"
+          ],
+          "parent": "projects",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_tags` ADD CONSTRAINT `fk_project_tags_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_project_tags_tag_id",
+          "columns": [
+            "tag_id"
+          ],
+          "parent": "tags",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `project_tags` ADD CONSTRAINT `fk_project_tags_tag_id` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `project_tags` (\n  `project_id` bigint unsigned NOT NULL,\n  `tag_id` bigint unsigned NOT NULL,\n  `sort_order` int unsigned NOT NULL,\n  PRIMARY KEY (`project_id`, `tag_id`),\n  KEY `idx_tag_id_project_id` (`tag_id`, `project_id`)\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "projects",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "name",
+          "type": "varchar(255)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "customer_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "odm_customer_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "product_line_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "app_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "group_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_by",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "source_import_item_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "source_namespace",
+          "type": "varchar(64)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_bin"
+        },
+        {
+          "name": "source_key",
+          "type": "varchar(128)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_bin"
+        },
+        {
+          "name": "status",
+          "type": "varchar(16)",
+          "nullable": false,
+          "default": "proposal",
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "version",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "proposed_on",
+          "type": "date",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "filed_on",
+          "type": "date",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "started_on",
+          "type": "date",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "original_due_date",
+          "type": "date",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "current_due_date",
+          "type": "date",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "manual_delayed",
+          "type": "tinyint",
+          "nullable": false,
+          "default": "0",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "priority",
+          "type": "varchar(16)",
+          "nullable": false,
+          "default": "mid",
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "signal",
+          "type": "varchar(16)",
+          "nullable": false,
+          "default": "green",
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "signal_note",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "market_expectation",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "status_description",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "status_description_updated_at",
+          "type": "datetime(3)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "detail_note",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "summary_note",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "chipstat_note",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "closure_due_date",
+          "type": "date",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "resume_status",
+          "type": "varchar(16)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "pre_close_status",
+          "type": "varchar(16)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "closure_type",
+          "type": "varchar(16)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "closed_on",
+          "type": "date",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "closure_note",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "remaining_work_note",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "maintenance_enabled",
+          "type": "tinyint",
+          "nullable": false,
+          "default": "0",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "first_check_week",
+          "type": "date",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "first_check_rule_version",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "uk_source_namespace_source_key",
+          "unique": true,
+          "columns": [
+            "source_namespace",
+            "source_key"
+          ]
+        },
+        {
+          "name": "idx_status_id",
+          "unique": false,
+          "columns": [
+            "status",
+            "id"
+          ]
+        },
+        {
+          "name": "idx_customer_id_status_id",
+          "unique": false,
+          "columns": [
+            "customer_id",
+            "status",
+            "id"
+          ]
+        },
+        {
+          "name": "idx_current_due_date_id",
+          "unique": false,
+          "columns": [
+            "current_due_date",
+            "id"
+          ]
+        },
+        {
+          "name": "idx_fk_odm_customer_id",
+          "unique": false,
+          "columns": [
+            "odm_customer_id"
+          ]
+        },
+        {
+          "name": "idx_fk_product_line_id",
+          "unique": false,
+          "columns": [
+            "product_line_id"
+          ]
+        },
+        {
+          "name": "idx_fk_app_id",
+          "unique": false,
+          "columns": [
+            "app_id"
+          ]
+        },
+        {
+          "name": "idx_fk_group_id",
+          "unique": false,
+          "columns": [
+            "group_id"
+          ]
+        },
+        {
+          "name": "idx_fk_first_check_rule_version",
+          "unique": false,
+          "columns": [
+            "first_check_rule_version"
+          ]
+        },
+        {
+          "name": "idx_fk_created_by",
+          "unique": false,
+          "columns": [
+            "created_by"
+          ]
+        },
+        {
+          "name": "idx_fk_source_import_item_id",
+          "unique": false,
+          "columns": [
+            "source_import_item_id"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_projects_status",
+          "expression": "`status` IN ('proposal','ongoing','paused','closed')"
+        },
+        {
+          "name": "ck_projects_manual_delayed",
+          "expression": "`manual_delayed` IN (0,1)"
+        },
+        {
+          "name": "ck_projects_priority",
+          "expression": "`priority` IN ('high','mid','low')"
+        },
+        {
+          "name": "ck_projects_signal",
+          "expression": "`signal` IN ('green','yellow','red')"
+        },
+        {
+          "name": "ck_projects_resume_status",
+          "expression": "`resume_status` IN ('proposal','ongoing','paused','closed')"
+        },
+        {
+          "name": "ck_projects_pre_close_status",
+          "expression": "`pre_close_status` IN ('proposal','ongoing','paused','closed')"
+        },
+        {
+          "name": "ck_projects_closure_type",
+          "expression": "`closure_type` IN ('normal','terminated')"
+        },
+        {
+          "name": "ck_projects_maintenance_enabled",
+          "expression": "`maintenance_enabled` IN (0,1)"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_projects_customer_id",
+          "columns": [
+            "customer_id"
+          ],
+          "parent": "customers",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `projects` ADD CONSTRAINT `fk_projects_customer_id` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_projects_odm_customer_id",
+          "columns": [
+            "odm_customer_id"
+          ],
+          "parent": "customers",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `projects` ADD CONSTRAINT `fk_projects_odm_customer_id` FOREIGN KEY (`odm_customer_id`) REFERENCES `customers` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_projects_product_line_id",
+          "columns": [
+            "product_line_id"
+          ],
+          "parent": "product_lines",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `projects` ADD CONSTRAINT `fk_projects_product_line_id` FOREIGN KEY (`product_line_id`) REFERENCES `product_lines` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_projects_app_id",
+          "columns": [
+            "app_id"
+          ],
+          "parent": "apps",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `projects` ADD CONSTRAINT `fk_projects_app_id` FOREIGN KEY (`app_id`) REFERENCES `apps` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_projects_group_id",
+          "columns": [
+            "group_id"
+          ],
+          "parent": "project_groups",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `projects` ADD CONSTRAINT `fk_projects_group_id` FOREIGN KEY (`group_id`) REFERENCES `project_groups` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_projects_first_check_rule_version",
+          "columns": [
+            "first_check_rule_version"
+          ],
+          "parent": "check_rule_revisions",
+          "references": [
+            "version"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `projects` ADD CONSTRAINT `fk_projects_first_check_rule_version` FOREIGN KEY (`first_check_rule_version`) REFERENCES `check_rule_revisions` (`version`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_projects_created_by",
+          "columns": [
+            "created_by"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `projects` ADD CONSTRAINT `fk_projects_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_projects_source_import_item_id",
+          "columns": [
+            "source_import_item_id"
+          ],
+          "parent": "import_items",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `projects` ADD CONSTRAINT `fk_projects_source_import_item_id` FOREIGN KEY (`source_import_item_id`) REFERENCES `import_items` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `projects` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `customer_id` bigint unsigned NULL,\n  `odm_customer_id` bigint unsigned NULL,\n  `product_line_id` bigint unsigned NULL,\n  `app_id` bigint unsigned NULL,\n  `group_id` bigint unsigned NULL,\n  `created_by` bigint unsigned NULL,\n  `source_import_item_id` bigint unsigned NULL,\n  `source_namespace` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,\n  `source_key` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,\n  `status` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'proposal',\n  `version` bigint unsigned NOT NULL DEFAULT 1,\n  `proposed_on` date NULL,\n  `filed_on` date NULL,\n  `started_on` date NULL,\n  `original_due_date` date NULL,\n  `current_due_date` date NULL,\n  `manual_delayed` tinyint NOT NULL DEFAULT 0,\n  `priority` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'mid',\n  `signal` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'green',\n  `signal_note` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `market_expectation` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `status_description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `status_description_updated_at` datetime(3) NULL,\n  `detail_note` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `summary_note` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `chipstat_note` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `closure_due_date` date NULL,\n  `resume_status` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NULL,\n  `pre_close_status` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NULL,\n  `closure_type` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NULL,\n  `closed_on` date NULL,\n  `closure_note` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `remaining_work_note` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `maintenance_enabled` tinyint NOT NULL DEFAULT 0,\n  `first_check_week` date NULL,\n  `first_check_rule_version` bigint unsigned NULL,\n  `created_at` datetime(3) NOT NULL,\n  `updated_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `uk_source_namespace_source_key` (`source_namespace`, `source_key`),\n  KEY `idx_status_id` (`status`, `id`),\n  KEY `idx_customer_id_status_id` (`customer_id`, `status`, `id`),\n  KEY `idx_current_due_date_id` (`current_due_date`, `id`),\n  KEY `idx_fk_odm_customer_id` (`odm_customer_id`),\n  KEY `idx_fk_product_line_id` (`product_line_id`),\n  KEY `idx_fk_app_id` (`app_id`),\n  KEY `idx_fk_group_id` (`group_id`),\n  KEY `idx_fk_first_check_rule_version` (`first_check_rule_version`),\n  KEY `idx_fk_created_by` (`created_by`),\n  KEY `idx_fk_source_import_item_id` (`source_import_item_id`),\n  CONSTRAINT `ck_projects_status` CHECK (`status` IN ('proposal','ongoing','paused','closed')),\n  CONSTRAINT `ck_projects_manual_delayed` CHECK (`manual_delayed` IN (0,1)),\n  CONSTRAINT `ck_projects_priority` CHECK (`priority` IN ('high','mid','low')),\n  CONSTRAINT `ck_projects_signal` CHECK (`signal` IN ('green','yellow','red')),\n  CONSTRAINT `ck_projects_resume_status` CHECK (`resume_status` IN ('proposal','ongoing','paused','closed')),\n  CONSTRAINT `ck_projects_pre_close_status` CHECK (`pre_close_status` IN ('proposal','ongoing','paused','closed')),\n  CONSTRAINT `ck_projects_closure_type` CHECK (`closure_type` IN ('normal','terminated')),\n  CONSTRAINT `ck_projects_maintenance_enabled` CHECK (`maintenance_enabled` IN (0,1))\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "reports",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_by",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "meeting_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "format",
+          "type": "varchar(16)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "scope_json",
+          "type": "json",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "source_versions_json",
+          "type": "json",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "snapshot_schema_version",
+          "type": "smallint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "snapshot_json",
+          "type": "json",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "status",
+          "type": "varchar(16)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "artifact_ref",
+          "type": "varchar(512)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "artifact_bytes",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "idx_created_by_id",
+          "unique": false,
+          "columns": [
+            "created_by",
+            "id"
+          ]
+        },
+        {
+          "name": "idx_meeting_id_id",
+          "unique": false,
+          "columns": [
+            "meeting_id",
+            "id"
+          ]
+        }
+      ],
+      "checks": [],
+      "foreignKeys": [
+        {
+          "name": "fk_reports_created_by",
+          "columns": [
+            "created_by"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `reports` ADD CONSTRAINT `fk_reports_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_reports_meeting_id",
+          "columns": [
+            "meeting_id"
+          ],
+          "parent": "meetings",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `reports` ADD CONSTRAINT `fk_reports_meeting_id` FOREIGN KEY (`meeting_id`) REFERENCES `meetings` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `reports` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `created_by` bigint unsigned NOT NULL,\n  `meeting_id` bigint unsigned NULL,\n  `format` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `scope_json` json NOT NULL,\n  `source_versions_json` json NOT NULL,\n  `snapshot_schema_version` smallint unsigned NOT NULL,\n  `snapshot_json` json NOT NULL,\n  `status` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `artifact_ref` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL,\n  `artifact_bytes` bigint unsigned NULL,\n  `created_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  KEY `idx_created_by_id` (`created_by`, `id`),\n  KEY `idx_meeting_id_id` (`meeting_id`, `id`)\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "schedule_changes",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "project_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "kind",
+          "type": "varchar(16)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "old_date",
+          "type": "date",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "new_date",
+          "type": "date",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "measures",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "actor_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "source_key",
+          "type": "varchar(128)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_bin"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "idx_project_id_id",
+          "unique": false,
+          "columns": [
+            "project_id",
+            "id"
+          ]
+        },
+        {
+          "name": "idx_fk_actor_id",
+          "unique": false,
+          "columns": [
+            "actor_id"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_schedule_changes_kind",
+          "expression": "`kind` IN ('reschedule','note')"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_schedule_changes_project_id",
+          "columns": [
+            "project_id"
+          ],
+          "parent": "projects",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `schedule_changes` ADD CONSTRAINT `fk_schedule_changes_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_schedule_changes_actor_id",
+          "columns": [
+            "actor_id"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `schedule_changes` ADD CONSTRAINT `fk_schedule_changes_actor_id` FOREIGN KEY (`actor_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `schedule_changes` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `project_id` bigint unsigned NOT NULL,\n  `kind` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `old_date` date NULL,\n  `new_date` date NULL,\n  `reason` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `measures` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `actor_id` bigint unsigned NULL,\n  `created_at` datetime(3) NOT NULL,\n  `source_key` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL,\n  PRIMARY KEY (`id`),\n  KEY `idx_project_id_id` (`project_id`, `id`),\n  KEY `idx_fk_actor_id` (`actor_id`),\n  CONSTRAINT `ck_schedule_changes_kind` CHECK (`kind` IN ('reschedule','note'))\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "sessions",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "token_hash",
+          "type": "binary(32)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "csrf_hash",
+          "type": "binary(32)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "last_seen_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "absolute_expires_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "revoked_at",
+          "type": "datetime(3)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "token_hash"
+          ]
+        },
+        {
+          "name": "idx_user_id_revoked_at",
+          "unique": false,
+          "columns": [
+            "user_id",
+            "revoked_at"
+          ]
+        },
+        {
+          "name": "idx_absolute_expires_at",
+          "unique": false,
+          "columns": [
+            "absolute_expires_at"
+          ]
+        }
+      ],
+      "checks": [],
+      "foreignKeys": [
+        {
+          "name": "fk_sessions_user_id",
+          "columns": [
+            "user_id"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `sessions` ADD CONSTRAINT `fk_sessions_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `sessions` (\n  `user_id` bigint unsigned NOT NULL,\n  `token_hash` binary(32) NOT NULL,\n  `csrf_hash` binary(32) NOT NULL,\n  `created_at` datetime(3) NOT NULL,\n  `last_seen_at` datetime(3) NOT NULL,\n  `absolute_expires_at` datetime(3) NOT NULL,\n  `revoked_at` datetime(3) NULL,\n  PRIMARY KEY (`token_hash`),\n  KEY `idx_user_id_revoked_at` (`user_id`, `revoked_at`),\n  KEY `idx_absolute_expires_at` (`absolute_expires_at`)\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "system_configuration",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "maintenance_user_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "full_name",
+          "type": "varchar(255)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "short_name",
+          "type": "varchar(128)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "manager_text",
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "name_prefix",
+          "type": "varchar(128)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "version",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "updated_by",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "idx_fk_maintenance_user_id",
+          "unique": false,
+          "columns": [
+            "maintenance_user_id"
+          ]
+        },
+        {
+          "name": "idx_fk_updated_by",
+          "unique": false,
+          "columns": [
+            "updated_by"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_system_configuration_singleton",
+          "expression": "`id` = 1"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_system_configuration_maintenance_user_id",
+          "columns": [
+            "maintenance_user_id"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `system_configuration` ADD CONSTRAINT `fk_system_configuration_maintenance_user_id` FOREIGN KEY (`maintenance_user_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_system_configuration_updated_by",
+          "columns": [
+            "updated_by"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `system_configuration` ADD CONSTRAINT `fk_system_configuration_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `system_configuration` (\n  `id` bigint unsigned NOT NULL,\n  `maintenance_user_id` bigint unsigned NOT NULL,\n  `full_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `short_name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `manager_text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `name_prefix` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `version` bigint unsigned NOT NULL DEFAULT 1,\n  `updated_by` bigint unsigned NOT NULL,\n  `updated_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  KEY `idx_fk_maintenance_user_id` (`maintenance_user_id`),\n  KEY `idx_fk_updated_by` (`updated_by`),\n  CONSTRAINT `ck_system_configuration_singleton` CHECK (`id` = 1)\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "tags",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "name",
+          "type": "varchar(255)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "enabled",
+          "type": "tinyint",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "version",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "idx_enabled_name_id",
+          "unique": false,
+          "columns": [
+            "enabled",
+            "name",
+            "id"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_tags_enabled",
+          "expression": "`enabled` IN (0,1)"
+        }
+      ],
+      "foreignKeys": [],
+      "sql": "CREATE TABLE `tags` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `enabled` tinyint NOT NULL DEFAULT 1,\n  `version` bigint unsigned NOT NULL DEFAULT 1,\n  `created_at` datetime(3) NOT NULL,\n  `updated_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  KEY `idx_enabled_name_id` (`enabled`, `name`, `id`),\n  CONSTRAINT `ck_tags_enabled` CHECK (`enabled` IN (0,1))\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "user_preferences",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "device_key",
+          "type": "varchar(36)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "scope",
+          "type": "varchar(96)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "value_json",
+          "type": "json",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "version",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "user_id",
+            "device_key",
+            "scope"
+          ]
+        }
+      ],
+      "checks": [],
+      "foreignKeys": [
+        {
+          "name": "fk_user_preferences_user_id",
+          "columns": [
+            "user_id"
+          ],
+          "parent": "users",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `user_preferences` ADD CONSTRAINT `fk_user_preferences_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "CREATE TABLE `user_preferences` (\n  `user_id` bigint unsigned NOT NULL,\n  `device_key` varchar(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `scope` varchar(96) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `value_json` json NOT NULL,\n  `version` bigint unsigned NOT NULL DEFAULT 1,\n  `updated_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`user_id`, `device_key`, `scope`)\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "name": "users",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": true,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "login_name",
+          "type": "varchar(64)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "password_hash",
+          "type": "varchar(255)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "display_name",
+          "type": "varchar(128)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        },
+        {
+          "name": "enabled",
+          "type": "tinyint",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "must_change_password",
+          "type": "tinyint",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "version",
+          "type": "bigint unsigned",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime(3)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PRIMARY",
+          "unique": true,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "uk_login_name",
+          "unique": true,
+          "columns": [
+            "login_name"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_users_enabled",
+          "expression": "`enabled` IN (0,1)"
+        },
+        {
+          "name": "ck_users_must_change_password",
+          "expression": "`must_change_password` IN (0,1)"
+        },
+        {
+          "name": "ck_users_login_lowercase",
+          "expression": "`login_name` = LOWER(`login_name`)"
+        }
+      ],
+      "foreignKeys": [],
+      "sql": "CREATE TABLE `users` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `login_name` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `password_hash` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `display_name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `enabled` tinyint NOT NULL DEFAULT 1,\n  `must_change_password` tinyint NOT NULL DEFAULT 1,\n  `version` bigint unsigned NOT NULL DEFAULT 1,\n  `created_at` datetime(3) NOT NULL,\n  `updated_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `uk_login_name` (`login_name`),\n  CONSTRAINT `ck_users_enabled` CHECK (`enabled` IN (0,1)),\n  CONSTRAINT `ck_users_must_change_password` CHECK (`must_change_password` IN (0,1)),\n  CONSTRAINT `ck_users_login_lowercase` CHECK (`login_name` = LOWER(`login_name`))\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    }
+  ]
+}

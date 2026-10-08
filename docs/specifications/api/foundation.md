@@ -1,6 +1,6 @@
 # 工程基础接口
 
-日期：2026-10-08；对应 package 0.1.0 / E01-F01。手工对照实际代码与 HTTP 核查，源码版本及哈希见[验收证据](../../evidence/2026-10-08-foundation-check.json)。业务/运行边界引用 SPEC-011；此文只记录当前协议。
+日期：2026-10-08；对应 package 0.1.0 / E01-F01～F03。手工对照实际代码与 HTTP 核查，源码版本及哈希见[验收证据](../../evidence/2026-10-08-foundation-check.json)。业务/运行边界引用 SPEC-011；此文只记录当前协议。
 
 ## GET /api/health/live
 
@@ -15,12 +15,12 @@
     "dirty": true,
     "builtAt": "UTC ISO 时间",
     "stage": "foundation",
-    "schemaVersion": null
+    "schemaVersion": "0001-foundation"
   }
 }
 ```
 
-dirty 是构建时源码状态，不是请求时 Git 状态。schemaVersion 为 null 表示未建立迁移版本。此接口不证明业务或数据库可用，不含库地址、账号、口令或真实项目数据。
+dirty 是构建时源码状态，不是请求时 Git 状态。schemaVersion 表示该构建所需的目标结构版本，并非请求时读出的实际数据库版本；实际库版本由受控 db:verify 核对。此接口不证明业务或数据库可用，不含库地址、账号、口令或真实项目数据。
 
 ## GET /api/health/ready
 
@@ -30,7 +30,7 @@ dirty 是构建时源码状态，不是请求时 Git 状态。schemaVersion 为 
 { "status": "unavailable", "reason": "database_not_implemented" }
 ```
 
-该反馈是 F01 的真实范围说明。F04 实现数据库连接/兼容性后再修订协议与测试，不提前返回成功。
+该反馈表示应用数据库接入仍未实现；本地 MySQL 表已由 F02/F03 建立。F04 实现数据库连接/兼容性后再修订协议与测试，不提前返回成功。
 
 ## 静态资源与其他路径
 

@@ -1,0 +1,337 @@
+{
+  "recordedAt": "2026-10-08T04:19:10.046Z",
+  "scope": "E01-F02/F03，本地独立 MySQL 与首版结构；不包含业务 API、账号登录、真实导入、四人性能或服务器部署",
+  "branch": "codex/e01-mysql-foundation",
+  "baseline": "acefcee93b2f8efa6ce777b0e89f3855121ac50a",
+  "databaseSetup": {
+    "status": "passed",
+    "verifiedAt": "2026-10-08T03:46:18.758Z",
+    "database": "geekdash_test",
+    "checks": [
+      {
+        "check": "identity-and-cross-database-denial",
+        "profile": "dev_app",
+        "database": "geekdash_dev",
+        "identity": "gd_dev_app@%",
+        "serverVersion": "8.4.11",
+        "timezone": "+00:00",
+        "grantsVerified": true
+      },
+      {
+        "check": "identity-and-cross-database-denial",
+        "profile": "dev_migrator",
+        "database": "geekdash_dev",
+        "identity": "gd_dev_migrator@%",
+        "serverVersion": "8.4.11",
+        "timezone": "+00:00",
+        "grantsVerified": true
+      },
+      {
+        "check": "identity-and-cross-database-denial",
+        "profile": "test_app",
+        "database": "geekdash_test",
+        "identity": "gd_test_app@%",
+        "serverVersion": "8.4.11",
+        "timezone": "+00:00",
+        "grantsVerified": true
+      },
+      {
+        "check": "identity-and-cross-database-denial",
+        "profile": "test_migrator",
+        "database": "geekdash_test",
+        "identity": "gd_test_migrator@%",
+        "serverVersion": "8.4.11",
+        "timezone": "+00:00",
+        "grantsVerified": true
+      },
+      {
+        "check": "wrong-password-denied",
+        "passed": true
+      },
+      {
+        "check": "runtime-ddl-denied",
+        "passed": true
+      },
+      {
+        "check": "runtime-crud-and-fresh-connection-readback",
+        "passed": true
+      },
+      {
+        "check": "mysql-restart-persistence-and-fresh-readback",
+        "passed": true
+      },
+      {
+        "check": "test-fixture-cleanup",
+        "passed": true
+      }
+    ],
+    "businessSchemaMigrated": false,
+    "businessReady": false
+  },
+  "migrationChecks": {
+    "status": "passed",
+    "verifiedAt": "2026-10-08T04:13:40.216Z",
+    "structure": {
+      "database": "geekdash_test",
+      "version": "0001-foundation",
+      "checksum": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+      "tables": 34,
+      "columns": 313,
+      "foreignKeys": 55,
+      "differences": 0
+    },
+    "checks": [
+      {
+        "check": "initial-ddl-interruption",
+        "status": "skipped-already-complete",
+        "reason": "已有完整版本；保留现有表，不清库重测首次建表"
+      },
+      {
+        "check": "resume-and-two-migration-processes",
+        "outcomes": [
+          {
+            "exitCode": 0,
+            "result": {
+              "status": "verified",
+              "applied": false,
+              "database": "geekdash_test",
+              "version": "0001-foundation",
+              "checksum": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+              "tables": 34,
+              "columns": 313,
+              "foreignKeys": 55,
+              "differences": 0
+            }
+          },
+          {
+            "exitCode": 0,
+            "result": {
+              "status": "verified",
+              "applied": false,
+              "database": "geekdash_test",
+              "version": "0001-foundation",
+              "checksum": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+              "tables": 34,
+              "columns": 313,
+              "foreignKeys": 55,
+              "differences": 0
+            }
+          }
+        ],
+        "structure": {
+          "database": "geekdash_test",
+          "version": "0001-foundation",
+          "checksum": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+          "tables": 34,
+          "columns": 313,
+          "foreignKeys": 55,
+          "differences": 0
+        }
+      },
+      {
+        "check": "repeat-keeps-history-unchanged",
+        "passed": true
+      },
+      {
+        "check": "changed-applied-resource-rejected",
+        "passed": true
+      },
+      {
+        "check": "lock-timeout-without-ddl",
+        "passed": true
+      },
+      {
+        "check": "complete-ddl-unregistered-process-death-and-recovery",
+        "passed": true
+      },
+      {
+        "check": "full-version-with-missing-foreign-key-rejected",
+        "passed": true
+      },
+      {
+        "check": "check-unique-null-orphan-cross-project-and-fresh-readback",
+        "passed": true
+      }
+    ],
+    "source": "隔离测试库及编译产物副本故障注入",
+    "businessReady": false
+  },
+  "freshReadAfterRestart": {
+    "verifiedAt": "2026-10-08T04:14:29.452Z",
+    "databases": [
+      {
+        "fact": {
+          "profile": "dev_migrator",
+          "database": "geekdash_dev",
+          "identity": "gd_dev_migrator@%",
+          "serverVersion": "8.4.11",
+          "timezone": "+00:00",
+          "grantsVerified": true
+        },
+        "structure": {
+          "database": "geekdash_dev",
+          "version": "0001-foundation",
+          "checksum": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+          "tables": 34,
+          "columns": 313,
+          "foreignKeys": 55,
+          "differences": 0
+        },
+        "settings": {
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci",
+          "lowerCaseTableNames": "2"
+        },
+        "rowCounts": {
+          "apps": "0",
+          "audit_log": "0",
+          "check_rule_revisions": "0",
+          "chips": "0",
+          "command_receipts": "0",
+          "customer_tags": "0",
+          "customers": "0",
+          "engineers": "0",
+          "feedback_entries": "0",
+          "import_batches": "0",
+          "import_items": "0",
+          "legacy_project_history": "0",
+          "meetings": "0",
+          "product_lines": "0",
+          "project_changes": "0",
+          "project_checks": "0",
+          "project_chips": "0",
+          "project_drafts": "0",
+          "project_groups": "0",
+          "project_nodes": "0",
+          "project_people": "0",
+          "project_responsibilities": "0",
+          "project_risks": "0",
+          "project_stages": "0",
+          "project_tags": "0",
+          "projects": "0",
+          "reports": "0",
+          "schedule_changes": "0",
+          "schema_migrations": "1",
+          "sessions": "0",
+          "system_configuration": "0",
+          "tags": "0",
+          "user_preferences": "0",
+          "users": "0"
+        }
+      },
+      {
+        "fact": {
+          "profile": "test_migrator",
+          "database": "geekdash_test",
+          "identity": "gd_test_migrator@%",
+          "serverVersion": "8.4.11",
+          "timezone": "+00:00",
+          "grantsVerified": true
+        },
+        "structure": {
+          "database": "geekdash_test",
+          "version": "0001-foundation",
+          "checksum": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+          "tables": 34,
+          "columns": 313,
+          "foreignKeys": 55,
+          "differences": 0
+        },
+        "settings": {
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci",
+          "lowerCaseTableNames": "2"
+        },
+        "rowCounts": {
+          "apps": "0",
+          "audit_log": "0",
+          "check_rule_revisions": "0",
+          "chips": "0",
+          "command_receipts": "0",
+          "customer_tags": "0",
+          "customers": "0",
+          "engineers": "0",
+          "feedback_entries": "0",
+          "import_batches": "0",
+          "import_items": "0",
+          "legacy_project_history": "0",
+          "meetings": "0",
+          "product_lines": "0",
+          "project_changes": "0",
+          "project_checks": "0",
+          "project_chips": "0",
+          "project_drafts": "0",
+          "project_groups": "0",
+          "project_nodes": "0",
+          "project_people": "0",
+          "project_responsibilities": "0",
+          "project_risks": "0",
+          "project_stages": "0",
+          "project_tags": "0",
+          "projects": "0",
+          "reports": "0",
+          "schedule_changes": "0",
+          "schema_migrations": "1",
+          "sessions": "0",
+          "system_configuration": "0",
+          "tags": "0",
+          "user_preferences": "0",
+          "users": "0"
+        }
+      }
+    ]
+  },
+  "restart": {
+    "before": "2026-10-08T03:46:10.873567285Z",
+    "after": "2026-10-08T04:14:16.69765636Z"
+  },
+  "initialInterruption": {
+    "source": "首次演练的命令回执，随后发生测试查询语法错误；修正后重跑余下检查",
+    "observed": "子进程在 CREATE TABLE 后被 SIGKILL；存在部分表、登记为零；恢复及两个迁移进程、重复执行、校验和、锁超时、登记前退出、缺外键检查均已通过断言",
+    "finalRerun": "保留已经完整的测试库，不清表；最新 JSON 中 initial-ddl-interruption 为 skipped-already-complete，不能解释为该项本次重测通过"
+  },
+  "foundationRegression": {
+    "source": "本轮真实 Node 工具容器命令退出码及 HTTP 核验",
+    "npmCi": 0,
+    "typeCheckAndBuild": 0,
+    "npmTest": 0,
+    "auditVulnerabilities": 0
+  },
+  "docker": {
+    "verifiedAt": "2026-10-08T04:16:31.5426320Z",
+    "mysql": {
+      "hostPorts": {},
+      "internalNetwork": true,
+      "image": "mysql:8.4@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb",
+      "status": "running",
+      "startedAt": "2026-10-08T04:14:16.69765636Z",
+      "dataMount": [
+        {
+          "Type": "bind",
+          "Source": "D:/geekwon/geekdash-data/mysql",
+          "Destination": "/var/lib/mysql",
+          "RW": true
+        }
+      ],
+      "health": "healthy"
+    },
+    "secrets": {
+      "outsideRepository": true,
+      "inheritedPermissionsDisabled": true,
+      "formerConfigHasRegularSecretFiles": false
+    },
+    "otherService": {
+      "name": "/pm-main-chain-0050-20260907",
+      "startedAt": "2026-10-08T02:40:36.484013739Z",
+      "status": "running"
+    },
+    "dockerDiskStrategy": "MySQL 数据和配置在 D 盘，镜像保留现有 Docker 数据盘"
+  },
+  "deliveryCheck": {
+    "status": "passed",
+    "checkedAt": "2026-10-08T04:20:40.195Z",
+    "localLinksChecked": 105,
+    "controlledSecretValuesFound": 0,
+    "migrationChecksumPreserved": true
+  }
+}

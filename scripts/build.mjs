@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { access, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { access, cp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -23,6 +23,9 @@ try {
   execFileSync(process.execPath, ['node_modules/typescript/bin/tsc', '-p', 'tsconfig.web.json', '--noEmit'], { stdio: 'inherit' });
   execFileSync(process.execPath, ['node_modules/typescript/bin/tsc', '-p', 'tsconfig.server.json'], { stdio: 'inherit' });
   execFileSync(process.execPath, ['node_modules/vite/bin/vite.js', 'build'], { stdio: 'inherit' });
+  await cp(new URL('../migrations/', import.meta.url), new URL('migrations/', candidate), { recursive: true });
+  const schemaVersion = JSON.parse(await readFile(new URL('migrations/0001-foundation.json', candidate), 'utf8')).version;
+  if (schemaVersion !== '0001-foundation') throw new Error('迁移资源目标版本无效');
   await access(new URL('server/start.js', candidate));
   const html = await readFile(new URL('web/index.html', candidate), 'utf8');
   const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^"?#]+)"/g)].map(match => match[1]);
@@ -30,7 +33,7 @@ try {
     throw new Error('前端脚本或样式产物缺失');
   }
   for (const asset of assets) await access(new URL(`web${asset}`, candidate));
-  const build = { revision, dirty: dirty === 'true', builtAt: new Date().toISOString(), stage: 'foundation', schemaVersion: null };
+  const build = { revision, dirty: dirty === 'true', builtAt: new Date().toISOString(), stage: 'foundation', schemaVersion };
   await writeFile(new URL('build-info.json', candidate), JSON.stringify(build, null, 2) + '\n');
   const { createApp } = await import(new URL('server/app.js', candidate));
   const app = await createApp();

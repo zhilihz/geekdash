@@ -1,0 +1,54 @@
+services:
+  mysql:
+    image: mysql:8.4@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root
+      MYSQL_INITDB_SKIP_TZINFO: "1"
+    command: [--character-set-server=utf8mb4, --collation-server=utf8mb4_0900_ai_ci, --default-time-zone=+00:00]
+    volumes:
+      - type: bind
+        source: ${GEEKDASH_DB_DATA_DIR:?先运行 scripts/database.ps1 init-config}
+        target: /var/lib/mysql
+        bind:
+          create_host_path: false
+    secrets:
+      - mysql_root
+      - mysql_health
+      - source: mysql_bootstrap
+        target: /docker-entrypoint-initdb.d/01-geekdash.sql
+    networks: [database]
+    healthcheck:
+      test: [CMD-SHELL, "cp /run/secrets/mysql_health /tmp/geekdash-health.cnf && chmod 600 /tmp/geekdash-health.cnf && mysql --defaults-extra-file=/tmp/geekdash-health.cnf -Nse 'SELECT 1'"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 30s
+    stop_grace_period: 30s
+  dbtool:
+    image: node:24-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20
+    working_dir: /workspace
+    volumes:
+      - ../:/workspace
+      - node_modules:/workspace/node_modules
+    secrets: [dev_app, dev_migrator, test_app, test_migrator]
+    networks: [database]
+    profiles: [database-tools]
+networks:
+  database:
+    internal: true
+secrets:
+  mysql_root:
+    file: ${GEEKDASH_DB_CONFIG_DIR:?先运行 scripts/database.ps1 init-config}/root.password
+  mysql_health:
+    file: ${GEEKDASH_DB_CONFIG_DIR:?}/root-client.cnf
+  mysql_bootstrap:
+    file: ${GEEKDASH_DB_CONFIG_DIR:?}/bootstrap.sql
+  dev_app:
+    file: ${GEEKDASH_DB_CONFIG_DIR:?}/dev_app.json
+  dev_migrator:
+    file: ${GEEKDASH_DB_CONFIG_DIR:?}/dev_migrator.json
+  test_app:
+    file: ${GEEKDASH_DB_CONFIG_DIR:?}/test_app.json
+  test_migrator:
+    file: ${GEEKDASH_DB_CONFIG_DIR:?}/test_migrator.json

@@ -23,6 +23,8 @@
 
 开始任务先读 [交接](docs/handoff/handoff.md) 与 [系统真相](docs/status/current-system-truth.md)，再按任务读取 [文档目录](docs/README.md) 中的需求、决策、技术栈及相关规格。实施前检查 Git 状态和适用的子目录 AGENTS.md，保留已有未提交工作。
 
+工程实施的分支、验收与最终合并遵守[代码管理](docs/operations/release-maintenance.md#2-代码管理)：施工从最新 main 开始，已完成成果最终回到远端 main。不要把开发分支推送当作该单元交付完成。
+
 尚未确认的业务自动化，先完整说明该规则块的输入、当前行为、影响、纠错路径和人工/自动选择，由用户决定。技术选型不构成业务规则批准。
 
 ## 3. 文档结构与唯一维护位置

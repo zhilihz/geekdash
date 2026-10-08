@@ -10,11 +10,18 @@
     "check": "tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.web.json --noEmit",
     "build": "node scripts/build.mjs",
     "start": "node dist/server/start.js",
-    "test": "node scripts/verify-foundation.mjs"
+    "test": "node scripts/verify-foundation.mjs",
+    "db:check": "node scripts/check-database.mjs",
+    "db:migrate": "node dist/server/commands/database.js migrate",
+    "db:verify": "node dist/server/commands/database.js verify",
+    "test:db": "node scripts/verify-database.mjs prepare",
+    "test:db:resume": "node scripts/verify-database.mjs resume",
+    "test:migrations": "node scripts/verify-migrations.mjs"
   },
   "dependencies": {
     "@fastify/static": "10.1.5",
-    "fastify": "5.12.5"
+    "fastify": "5.12.5",
+    "mysql2": "3.24.5"
   },
   "devDependencies": {
     "@types/node": "24.19.1",
