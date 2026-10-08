@@ -1,14 +1,14 @@
 {
   "date": "2026-10-08",
-  "observedAt": "2026-10-08T10:55:47.736185+08:00",
+  "observedAt": "2026-10-08T11:00:36.377260+08:00",
   "scope": "E01-F01 工程构建、本机运行和最小页面验收；不是数据库/业务/公网交付",
   "status": "pass",
   "branch": "codex/e01-foundation",
   "baseline": "b00db932d8e4147cd5ca7cca2d96dae2f8692fa8",
   "build": {
-    "revision": "b00db932d8e4147cd5ca7cca2d96dae2f8692fa8",
-    "dirty": true,
-    "builtAt": "2026-10-08T02:41:15.594Z",
+    "revision": "67e21dd08e982da3092b5a04abc4961403586924",
+    "dirty": false,
+    "builtAt": "2026-10-08T02:58:15.102Z",
     "stage": "foundation",
     "schemaVersion": null
   },
@@ -28,7 +28,7 @@
     "vite": "8.3.3"
   },
   "nodeImageDigest": "sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20",
-  "runtimeImageId": "sha256:264c13a61f7e062f3ff2d62733c5d310efb29198b917b889d94672aa31d6d31d",
+  "runtimeImageId": "sha256:76f2885ac3abcdc029d0bcf628d869b6a58136d06f25ec085cc05190db2524c7",
   "runtime": {
     "uid": 1000,
     "sourceExists": false,
@@ -46,7 +46,8 @@
     "isolatedRuntimeImage": true,
     "normalStopExitCode": 0,
     "restartFreshRequestReadback": true,
-    "knownDependencyVulnerabilitiesAtInstall": 0
+    "knownDependencyVulnerabilitiesAtInstall": 0,
+    "committedCleanBuildFreshReadback": true
   },
   "http": [
     {
@@ -95,7 +96,9 @@
     "buttonReenabledAfterFailure": true,
     "screenshot": "docs/evidence/2026-10-08-foundation.png",
     "cuaPluginRecovered": false,
-    "ownTabClosed": true
+    "ownTabClosed": true,
+    "verifiedBuildRevision": "b00db932d8e4147cd5ca7cca2d96dae2f8692fa8",
+    "scope": "首次 dirty 构建页面的实点/故障恢复；最新干净构建另有实际 HTTP 回读"
   },
   "sourceSha256": {
     "package.json": "6668f274fc4f46417f11a2fe872662a66c4433d6fa6b02d303ade25d280c225b",
@@ -118,7 +121,7 @@
     "deploy/Dockerfile": "c29684d9d350a139f0f9ee9e8cae90652322768ce8ffc2e866bbbf7e4ed336bf"
   },
   "artifactSha256": {
-    "dist/build-info.json": "67fd466ca77600e34b8a3a8ec6d72e6668f3c805745508496e358e32af7b229e",
+    "dist/build-info.json": "08e54ebffe8d8909170fc5ed7c2350e7f0468fdbf982755f67038deaf39a3b8a",
     "dist/server/app.js": "6858bec28dd27757d9b691a3f14b2726c3ab466bc25faedee3baab4322b970b2",
     "dist/server/start.js": "a9eee3a8db4c9e997f5405834415b404c4dcd44027af28e97c892cb805101329",
     "dist/web/index.html": "f634bfdc93535a274000d36a78859eea9e048aa8ff6a23c2afb9ee2b048f30f7",
@@ -135,5 +138,18 @@
     "localLinksChecked": 119,
     "errors": [],
     "businessRulesErdAndDiagramsUnchanged": true
+  },
+  "initialBuild": {
+    "revision": "b00db932d8e4147cd5ca7cca2d96dae2f8692fa8",
+    "dirty": true,
+    "builtAt": "2026-10-08T02:41:15.594Z",
+    "stage": "foundation",
+    "schemaVersion": null
+  },
+  "gitDelivery": {
+    "codeCommit": "67e21dd08e982da3092b5a04abc4961403586924",
+    "branchPushed": true,
+    "remoteCodeRefVerified": true,
+    "remoteMainUnchanged": "b00db932d8e4147cd5ca7cca2d96dae2f8692fa8"
   }
 }

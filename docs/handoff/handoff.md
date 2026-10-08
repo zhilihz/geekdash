@@ -11,7 +11,7 @@
 ## 2. Git 与交付位置
 
 - 当前施工分支 codex/e01-foundation，起点 b00db932d8e4147cd5ca7cca2d96dae2f8692fa8；保留并接续此前五份 Markdown 和两份静态证据。代码/锁/部署配置及实际验收产物为本轮新增，ERD、业务规则和图示未改。
-- 当前提交/远程位置以 Git 回读为准，接手先运行 git status --short 与 git log -1。dist/依赖卷/实际镜像不随 Git 提交；原始核查和真实数据仍被排除。本地首次验收构建标记 dirty，不能直接当共享部署产物。
+- 代码提交 67e21dd08e982da3092b5a04abc4961403586924 已推送施工分支；接手先运行 git status --short 与 git log -1，文档补充提交另按实际 refs 回读。首次验收构建标记 dirty；提交后已从干净源码重建并替换本地镜像，新请求读回该提交且 dirty=false。dist/依赖卷/实际镜像不随 Git 提交；原始核查和真实数据仍被排除。
 - 原始源码位于忽略目录 source-review/AIGeekDashCX；真实备份保留在用户给定位置，不纳入 Git。
 - api 已有基础健康协议，reports 已有 F01 实际验收报告；deployments 仍无服务器部署成果。
 

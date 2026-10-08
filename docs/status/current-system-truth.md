@@ -323,3 +323,5 @@ D0.32 接续 D0.31 未提交文档，Git 仍为 main / b00db932d8e4147cd5ca7cca2
 live 返回 200；ready 返回 503/database_not_implemented。当前 Compose healthy 使用 live，仅证明基础进程可响应，不证明数据库或业务就绪。Edge 实际页面点击、停止失败、恢复成功和截图已验证；CUA 工具连接失败，使用已授权命令行的 web-access 本机 CDP 路径核验，不称 CUA 已修复。
 
 已知 static 依赖告警修复后审计为 0；这不代表全面安全审查或性能验收。证据见[实际核查](../evidence/2026-10-08-foundation-check.json)和[报告](../testing/reports/2026-10-08-e01-f01.md)。本轮未建立 MySQL、执行迁移/业务测试、导入真实数据、连接服务器或部署域名；Git 交付位置按 handoff 及实际 refs 回读记录。
+
+提交后运行回读：代码提交 67e21dd08e982da3092b5a04abc4961403586924 已从干净源码重建；当前本地容器 live 读回该版本、dirty=false，ready 仍为未接数据库。代码已推送 codex/e01-foundation，主分支与新加坡服务器未更新。首次 dirty 构建的截图保留为当时记录，最新构建信息以 evidence 为准。
