@@ -1,0 +1,78 @@
+name: geekdash
+services:
+  app:
+    image: ${GEEKDASH_APP_IMAGE:?必须指定已验证镜像}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3000"
+      GEEKDASH_DB_PROFILE: dev_app
+    ports: ["127.0.0.1:41860:3000"]
+    secrets: [dev_app]
+    networks: [default, database]
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    stop_grace_period: 10s
+    logging: &logs
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}
+  mysql:
+    image: mysql:8.4@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb
+    restart: unless-stopped
+    mem_limit: 512m
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root
+      MYSQL_INITDB_SKIP_TZINFO: "1"
+    command: [--character-set-server=utf8mb4, --collation-server=utf8mb4_0900_ai_ci, --default-time-zone=+00:00, --innodb-buffer-pool-size=134217728, --max-connections=32]
+    volumes:
+      - type: bind
+        source: /var/lib/geekdash/mysql
+        target: /var/lib/mysql
+        bind: {create_host_path: false}
+    secrets:
+      - mysql_root
+      - mysql_health
+      - source: mysql_bootstrap
+        target: /docker-entrypoint-initdb.d/01-geekdash.sql
+    networks: [database]
+    healthcheck:
+      test: [CMD-SHELL, "cp /run/secrets/mysql_health /tmp/geekdash-health.cnf && chmod 600 /tmp/geekdash-health.cnf && mysql --defaults-extra-file=/tmp/geekdash-health.cnf -Nse 'SELECT 1'"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 60s
+    stop_grace_period: 30s
+    logging: *logs
+  dbtool:
+    image: ${GEEKDASH_APP_IMAGE:?必须指定已验证镜像}
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    secrets: [dev_migrator, test_migrator]
+    networks: [database]
+    profiles: [database-tools]
+    entrypoint: [node, dist/server/commands/database.js]
+    logging: *logs
+networks:
+  database: {internal: true}
+secrets:
+  mysql_root: {file: /opt/geekdash/config/secrets/root.password}
+  mysql_health: {file: /opt/geekdash/config/secrets/root-client.cnf}
+  mysql_bootstrap: {file: /opt/geekdash/config/secrets/bootstrap.sql}
+  dev_app: {file: /opt/geekdash/config/secrets/dev_app.json}
+  dev_migrator: {file: /opt/geekdash/config/secrets/dev_migrator.json}
+  test_migrator: {file: /opt/geekdash/config/secrets/test_migrator.json}
