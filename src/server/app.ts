@@ -3,10 +3,12 @@ import staticFiles from '@fastify/static';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import type { RuntimeDatabase } from './infrastructure/runtime-database.js';
+import { registerProjectReads } from './routes/projects.js';
 
 export async function createApp(database?: RuntimeDatabase) {
   const build = JSON.parse(await readFile(new URL('../build-info.json', import.meta.url), 'utf8'));
   const app = Fastify({
+    ajv: { customOptions: { removeAdditional: false } },
     logger: { redact: ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]'] },
   });
   if (database && database.fact.version !== build.schemaVersion) throw Object.assign(new Error('BUILD_SCHEMA_VERSION_MISMATCH'), { code: 'BUILD_SCHEMA_VERSION_MISMATCH' });
@@ -24,7 +26,7 @@ export async function createApp(database?: RuntimeDatabase) {
 
   app.get('/api/health/live', async (_request, reply) => {
     reply.header('Cache-Control', 'no-store');
-    return { status: 'alive', stage: 'foundation', build };
+    return { status: 'alive', stage: build.stage, build };
   });
   let previousReason: string | undefined;
   app.get('/api/health/ready', async (_request, reply) => {
@@ -41,5 +43,7 @@ export async function createApp(database?: RuntimeDatabase) {
     index: 'index.html',
     dotfiles: 'deny',
   });
+  registerProjectReads(app, database);
+  app.get('/GeekDash.html', (_request, reply) => reply.sendFile('index.html'));
   return app;
 }

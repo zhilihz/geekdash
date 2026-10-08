@@ -40,7 +40,7 @@ try {
   const page = await fetch(origin);
   assert.equal(page.status, 200);
   const html = await page.text();
-  assert.match(html, /GeekDash 工程验证/);
+  assert.match(html, /GeekDash 项目看板/);
   const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^"?#]+)"/g)].map(match => match[1]);
   assert.ok(assets.length >= 2);
   for (const asset of assets) {
@@ -49,7 +49,8 @@ try {
     assert.ok((await response.text()).length > 0);
   }
   assert.equal((await fetch(`${origin}/.env`)).status, 403);
-  for (const path of ['/api/projects', '/AGENTS.md', '/src/server/start.ts', '/build-info.json']) {
+  assert.equal((await fetch(`${origin}/api/projects`)).status, 503);
+  for (const path of ['/AGENTS.md', '/src/server/start.ts', '/build-info.json']) {
     assert.equal((await fetch(origin + path)).status, 404);
   }
   console.log('通过：真实 HTTP、构建资源、未就绪反馈、源码隔离、无效配置与失败构建保留旧产物。');

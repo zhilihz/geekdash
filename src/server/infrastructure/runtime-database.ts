@@ -55,6 +55,20 @@ export async function openRuntimeDatabase(profile: RuntimeProfile) {
 
   return {
     pool, fact,
+    async readSnapshot<T>(work: (connection: PoolConnection) => Promise<T>): Promise<T> {
+      return useConnection(5000, async connection => {
+        await connection.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+        await connection.query('START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY');
+        try {
+          const result = await work(connection);
+          await connection.commit();
+          return result;
+        } catch (error) {
+          await connection.rollback();
+          throw error;
+        }
+      });
+    },
     async checkReadiness(): Promise<Readiness> {
       if (closing) return { ready: false, reason: 'closing' };
       if (pending) return pending;

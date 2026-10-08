@@ -26,7 +26,7 @@ docs/
 ├── testing/                     测试策略
 │   └── reports/                 实际执行的验收报告
 ├── operations/                  发布维护流程
-│   └── deployments/             实际部署记录，暂无内容
+│   └── deployments/             实际部署记录
 ├── usage/                       使用说明
 ├── status/                      当前系统真相
 ├── changelog/                   更新记录

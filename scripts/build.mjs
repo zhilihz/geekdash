@@ -33,13 +33,13 @@ try {
     throw new Error('前端脚本或样式产物缺失');
   }
   for (const asset of assets) await access(new URL(`web${asset}`, candidate));
-  const build = { revision, dirty: dirty === 'true', builtAt: new Date().toISOString(), stage: 'foundation', schemaVersion };
+  const build = { revision, dirty: dirty === 'true', builtAt: new Date().toISOString(), stage: 'project-read', schemaVersion };
   await writeFile(new URL('build-info.json', candidate), JSON.stringify(build, null, 2) + '\n');
   const { createApp } = await import(new URL('server/app.js', candidate));
   const app = await createApp();
   try {
     const origin = await app.listen({ host: '127.0.0.1', port: 0 });
-    for (const path of ['/', '/api/health/live', ...assets]) {
+    for (const path of ['/', '/GeekDash.html', '/project-detail.html', '/api/health/live', ...assets]) {
       const response = await fetch(origin + path, { signal: AbortSignal.timeout(5000) });
       if (!response.ok) throw new Error(`候选产物 HTTP 核验失败：${path}`);
       await response.arrayBuffer();

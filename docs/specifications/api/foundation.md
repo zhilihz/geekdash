@@ -4,10 +4,10 @@
 
 ## GET /api/health/live
 
-当前仅本机入口。进程可响应返回 200，响应 Cache-Control: no-store：
+本机和已部署公网入口均可用。进程可响应返回 200，响应 Cache-Control: no-store；stage 随实际构建能力标识，本次项目只读构建为 project-read，历史基底为 foundation：
 
 ```json
-{ "status": "alive", "stage": "foundation", "build": { "revision": "源码完整 SHA", "dirty": false, "builtAt": "UTC ISO 时间", "stage": "foundation", "schemaVersion": "0001-foundation" } }
+{ "status": "alive", "stage": "project-read", "build": { "revision": "源码完整 SHA", "dirty": false, "builtAt": "UTC ISO 时间", "stage": "project-read", "schemaVersion": "0001-foundation" } }
 ```
 
 dirty 是构建时源码状态。schemaVersion 是构建所需结构版本；不代表此接口已检查实际库。该入口不证明数据库、认证或业务可用，不含库地址、账号、口令及项目数据。
