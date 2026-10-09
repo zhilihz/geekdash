@@ -58,7 +58,7 @@ async function load() {
     element('stats-bar').innerHTML = stats.map(([key, title]) => `<div class="stat"><span class="stat-label">${title}</span><b>${data.stats[key]}</b></div>`).join('');
     element('stage-chart').innerHTML = data.stageCounts.map(item => `<span>${esc(label(item.value))} · ${item.count}</span>`).join('');
     element('card-grid').innerHTML = data.items.map(card).join('');
-    element('result-count').textContent = `筛选结果 ${pagination.total} 条 · 统计条为当前视图的全部项目`;
+    element('result-count').textContent = `筛选结果 ${pagination.total} 条 · 统计条与筛选结果一致`;
     element('page-info').textContent = `${pagination.page} / ${pagination.pageCount} 页`;
     previous.disabled = pagination.page <= 1;
     next.disabled = pagination.page >= pagination.pageCount;

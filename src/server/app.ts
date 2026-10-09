@@ -2,12 +2,14 @@ import Fastify from 'fastify';
 import staticFiles from '@fastify/static';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { randomUUID } from 'node:crypto';
 import type { RuntimeDatabase } from './infrastructure/runtime-database.js';
 import { registerProjectReads } from './routes/projects.js';
 
 export async function createApp(database?: RuntimeDatabase) {
   const build = JSON.parse(await readFile(new URL('../build-info.json', import.meta.url), 'utf8'));
   const app = Fastify({
+    genReqId: () => randomUUID(),
     ajv: { customOptions: { removeAdditional: false } },
     logger: { redact: ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]'] },
   });
@@ -18,8 +20,9 @@ export async function createApp(database?: RuntimeDatabase) {
     app.addHook('onRequest', async (request, reply) => {
       const path = request.url.split('?')[0];
       if (path.startsWith('/api/') && !['/api/health/live', '/api/health/ready'].includes(path)) {
+        reply.header('Cache-Control', 'no-store');
         const result = await database.checkReadiness();
-        if (!result.ready) return reply.code(503).send({ status: 'unavailable', reason: result.reason });
+        if (!result.ready) return reply.code(503).send({ status: 'unavailable', code: 'DATABASE_UNAVAILABLE', reason: result.reason, outcome: request.method === 'PATCH' ? 'not_committed' : 'unknown', requestId: request.id });
       }
     });
   }

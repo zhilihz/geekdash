@@ -1,0 +1,24 @@
+{
+  "checkedAt": "2026-10-09T02:08:35.971Z",
+  "scope": "专用测试库、真实 HTTP/MySQL；不包含业务保存或公网性能",
+  "checks": [
+    {
+      "check": "actual-http-list-views-filters-pagination-literal-search-id-validation-no-write",
+      "passed": true
+    },
+    {
+      "check": "complete-project-snapshot-with-all-read-collections-and-bigint-precision",
+      "passed": true
+    },
+    {
+      "check": "real-concurrent-commit-does-not-mix-detail-versions-fresh-request-sees-new-version",
+      "passed": true
+    },
+    {
+      "check": "four-concurrent-real-list-reads-and-pool-exhaustion-recovery",
+      "passed": true,
+      "requests": 20,
+      "p95Ms": 23
+    }
+  ]
+}

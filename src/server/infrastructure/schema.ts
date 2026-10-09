@@ -18,9 +18,23 @@ function fail(code: string, differences: Difference[] = []): never {
 
 export async function loadSchema() {
   const bytes = await readFile(new URL('../../migrations/0001-foundation.json', import.meta.url));
-  const manifest = JSON.parse(bytes.toString('utf8')) as Manifest;
-  if (manifest.version !== '0001-foundation' || manifest.tables.length !== 34) fail('DB_MIGRATION_RESOURCE_INVALID');
-  return { manifest, checksum: createHash('sha256').update(bytes).digest() };
+  const foundation = JSON.parse(bytes.toString('utf8')) as Manifest;
+  const increment = await readFile(new URL('../../migrations/0002-trial-save.json', import.meta.url));
+  const delta = JSON.parse(increment.toString('utf8')) as { version: string; steps: { table: string; sql: string; columns?: Column[]; indexes?: Index[]; checks?: Check[] }[] };
+  if (foundation.version !== '0001-foundation' || foundation.tables.length !== 34 || delta.version !== '0002-trial-save' || delta.steps.length !== 3) fail('DB_MIGRATION_RESOURCE_INVALID');
+  const manifest = structuredClone(foundation);
+  manifest.version = delta.version;
+  for (const step of delta.steps) {
+    const table = manifest.tables.find(table => table.name === step.table);
+    if (!table) fail('DB_MIGRATION_RESOURCE_INVALID');
+    for (const kind of ['columns', 'indexes', 'checks'] as const) for (const item of step[kind] ?? []) {
+      const items = table[kind] as { name: string }[];
+      const index = items.findIndex(existing => existing.name === item.name);
+      if (index === -1) items.push(item); else items[index] = item;
+    }
+  }
+  const history = [{ version: foundation.version, checksum: createHash('sha256').update(bytes).digest() }, { version: delta.version, checksum: createHash('sha256').update(increment).digest() }];
+  return { manifest, foundation, steps: delta.steps, history, checksum: history[1].checksum };
 }
 
 async function query(connection: Connection, sql: string, values: unknown[] = []) {
@@ -95,39 +109,39 @@ async function verifyStructure(connection: Connection, manifest: Manifest) {
   return { tables: actual.size, columns: [...actual.values()].reduce((n, table) => n + table.columns.length, 0), foreignKeys: [...actual.values()].reduce((n, table) => n + table.foreignKeys.length, 0), differences: 0 };
 }
 
-async function checkHistory(connection: Connection, version: string, checksum: Buffer, required: boolean) {
+async function checkHistory(connection: Connection, history: Awaited<ReturnType<typeof loadSchema>>['history'], required: boolean) {
   const rows = await query(connection, 'SELECT version, checksum FROM schema_migrations ORDER BY version');
-  if (rows.some(row => row.version !== version)) fail('DB_SCHEMA_VERSION_UNSUPPORTED');
-  if (rows.some(row => !Buffer.isBuffer(row.checksum) || !row.checksum.equals(checksum))) fail('DB_MIGRATION_CHECKSUM_MISMATCH');
-  if (required && rows.length !== 1) fail('DB_SCHEMA_VERSION_MISSING');
-  return rows.length === 1;
+  if (rows.some((row, index) => row.version !== history[index]?.version)) fail('DB_SCHEMA_VERSION_UNSUPPORTED');
+  if (rows.some((row, index) => !Buffer.isBuffer(row.checksum) || !row.checksum.equals(history[index].checksum))) fail('DB_MIGRATION_CHECKSUM_MISMATCH');
+  if (required && rows.length !== history.length) fail('DB_SCHEMA_VERSION_MISSING');
+  return rows.length;
 }
 
 export async function verifyDatabase(profile: DatabaseProfile) {
-  const { manifest, checksum } = await loadSchema();
+  const { manifest, checksum, history } = await loadSchema();
   const { connection, fact } = await connectDatabase(profile);
   try {
     const structure = await verifyStructure(connection, manifest);
-    await checkHistory(connection, manifest.version, checksum, true);
+    await checkHistory(connection, history, true);
     return { database: fact.database, version: manifest.version, checksum: checksum.toString('hex'), ...structure };
   } finally { await connection.end(); }
 }
 
 export async function verifySchemaConnection(connection: Connection, resource: Awaited<ReturnType<typeof loadSchema>>, full: boolean) {
   const structure = full ? await verifyStructure(connection, resource.manifest) : undefined;
-  await checkHistory(connection, resource.manifest.version, resource.checksum, true);
+  await checkHistory(connection, resource.history, true);
   return { version: resource.manifest.version, ...structure };
 }
 
 export async function migrateDatabase(profile: DatabaseProfile) {
   if (!profile.endsWith('_migrator')) fail('DB_MIGRATION_IDENTITY_INVALID');
-  const { manifest, checksum } = await loadSchema();
+  const { manifest: target, foundation: manifest, history, steps } = await loadSchema();
   const { connection, fact } = await connectDatabase(profile);
   const lockName = `geekdash:${fact.database}:schema`;
   let locked = false;
   let step = 'lock';
   let applied = false;
-  console.log(JSON.stringify({ event: 'migration_target', database: fact.database, targetVersion: manifest.version }));
+  console.log(JSON.stringify({ event: 'migration_target', database: fact.database, targetVersion: target.version }));
   try {
     const [lock] = await query(connection, 'SELECT GET_LOCK(?, 5) AS acquired', [lockName]);
     if (Number(lock.acquired) !== 1) fail(lock.acquired === null ? 'DB_MIGRATION_LOCK_FAILED' : 'DB_MIGRATION_BUSY');
@@ -141,8 +155,8 @@ export async function migrateDatabase(profile: DatabaseProfile) {
     }
     const registryDifferences = compareTable(registry, actual.get(registry.name), true);
     if (registryDifferences.length) fail('DB_SCHEMA_MISMATCH', registryDifferences);
-    const completed = await checkHistory(connection, manifest.version, checksum, false);
-    if (!completed) {
+    const completed = await checkHistory(connection, history, false);
+    if (completed === 0) {
       for (const [name, table] of actual) {
         const expected = manifest.tables.find(want => want.name === name);
         if (!expected) fail('DB_SCHEMA_MISMATCH', [{ table: name, object: 'table', expected: '未定义', actual: '额外对象' }]);
@@ -173,7 +187,36 @@ export async function migrateDatabase(profile: DatabaseProfile) {
       await verifyStructure(connection, manifest);
       console.log(JSON.stringify({ event: 'migration_structure_verified', registered: false }));
       step = 'register_version';
-      await query(connection, 'INSERT INTO schema_migrations (version, checksum, applied_at) VALUES (?, ?, UTC_TIMESTAMP(3))', [manifest.version, checksum]);
+      await query(connection, 'INSERT INTO schema_migrations (version, checksum, applied_at) VALUES (?, ?, UTC_TIMESTAMP(3))', [history[0].version, history[0].checksum]);
+      applied = true;
+    }
+    if (completed < 2) {
+      // 每张受影响表只有一次原子 ALTER；中断后仅接受该表的旧结构或精确目标结构。
+      actual = await readStructure(connection);
+      for (const table of target.tables) {
+        const differences = compareTable(table, actual.get(table.name), true);
+        if (!differences.length) continue;
+        const old = manifest.tables.find(old => old.name === table.name)!;
+        const pending = steps.find(step => step.table === table.name);
+        const oldDifferences = compareTable(old, actual.get(table.name), true);
+        if (!pending || oldDifferences.length) fail('DB_SCHEMA_MISMATCH', differences);
+      }
+      for (const increment of steps) {
+        step = increment.table;
+        const table = target.tables.find(table => table.name === increment.table)!;
+        if (compareTable(table, actual.get(table.name), true).length) {
+          await query(connection, increment.sql);
+          actual = await readStructure(connection);
+        }
+        const differences = compareTable(table, actual.get(table.name), true);
+        if (differences.length) fail('DB_SCHEMA_MISMATCH', differences);
+        console.log(JSON.stringify({ event: 'migration_step_verified', object: step }));
+      }
+      step = 'final_structure';
+      await verifyStructure(connection, target);
+      console.log(JSON.stringify({ event: 'migration_structure_verified', registered: false }));
+      step = 'register_increment';
+      await query(connection, 'INSERT INTO schema_migrations (version, checksum, applied_at) VALUES (?, ?, UTC_TIMESTAMP(3))', [history[1].version, history[1].checksum]);
       applied = true;
     }
     return { status: 'verified', applied, ...await verifyDatabase(profile) };

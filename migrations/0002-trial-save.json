@@ -1,0 +1,22 @@
+{
+  "version": "0002-trial-save",
+  "steps": [
+    {
+      "table": "projects",
+      "sql": "ALTER TABLE projects ADD COLUMN data_kind varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'business', ADD CONSTRAINT ck_projects_data_kind CHECK (data_kind IN ('business','trial'))",
+      "columns": [{"name":"data_kind","type":"varchar(16)","nullable":false,"default":"business","autoIncrement":false,"charset":"ascii","collation":"ascii_bin"}],
+      "checks": [{"name":"ck_projects_data_kind","expression":"`data_kind` IN ('business','trial')"}]
+    },
+    {
+      "table": "audit_log",
+      "sql": "ALTER TABLE audit_log DROP CHECK ck_audit_log_actor_kind, ADD CONSTRAINT ck_audit_log_actor_kind CHECK (actor_kind IN ('user','system','anonymous'))",
+      "checks": [{"name":"ck_audit_log_actor_kind","expression":"`actor_kind` IN ('user','system','anonymous')"}]
+    },
+    {
+      "table": "command_receipts",
+      "sql": "ALTER TABLE command_receipts ADD INDEX idx_fk_actor_id (actor_id), DROP PRIMARY KEY, MODIFY actor_id bigint unsigned NULL, ADD PRIMARY KEY (command_scope,idempotency_key)",
+      "columns": [{"name":"actor_id","type":"bigint unsigned","nullable":true,"default":null,"autoIncrement":false,"charset":null,"collation":null}],
+      "indexes": [{"name":"PRIMARY","unique":true,"columns":["command_scope","idempotency_key"]},{"name":"idx_fk_actor_id","unique":false,"columns":["actor_id"]}]
+    }
+  ]
+}

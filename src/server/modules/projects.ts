@@ -20,7 +20,7 @@ const joins = `FROM projects p
  LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id
  LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id
  LEFT JOIN project_groups g ON g.id=p.group_id`;
-const columns = `CAST(p.id AS CHAR) id, CAST(p.version AS CHAR) version, p.name, p.status, p.priority, p.signal,
+const columns = `CAST(p.id AS CHAR) id, CAST(p.version AS CHAR) version, p.data_kind dataKind, p.name, p.status, p.priority, p.signal,
  c.name customer, odm.name odmFactory, pl.name productLine, a.name app, g.name projectGroup,
  DATE_FORMAT(p.proposed_on,'%Y-%m-%d') proposalDate, DATE_FORMAT(p.current_due_date,'%Y-%m-%d') dueDate,
  p.market_expectation marketExpectation, p.status_description statusDesc, p.manual_delayed manualDelayed,
@@ -87,8 +87,8 @@ export function projectReads(database: RuntimeDatabase) {
       return database.readSnapshot(async connection => {
         const base = conditions(query, false);
         const filtered = conditions(query, true);
-        const stats = (await rows(connection, `SELECT COUNT(*) total,COALESCE(SUM(p.priority='high'),0) high,COALESCE(SUM(p.signal='green'),0) green,COALESCE(SUM(p.signal='yellow'),0) yellow,COALESCE(SUM(p.signal='red'),0) red ${joins} ${base.sql}`, base.values))[0];
-        const total = Number((await rows(connection, `SELECT COUNT(*) total ${joins} ${filtered.sql}`, filtered.values))[0].total);
+        const stats = (await rows(connection, `SELECT COUNT(*) total,COALESCE(SUM(p.priority='high'),0) high,COALESCE(SUM(p.signal='green'),0) green,COALESCE(SUM(p.signal='yellow'),0) yellow,COALESCE(SUM(p.signal='red'),0) red ${joins} ${filtered.sql}`, filtered.values))[0];
+        const total = Number(stats.total);
         const pageSize = query.pageSize ?? 24;
         const pageCount = Math.max(1, Math.ceil(total / pageSize));
         const page = Math.min(query.page ?? 1, pageCount);
@@ -100,7 +100,7 @@ export function projectReads(database: RuntimeDatabase) {
         for (const [key, table, link, reference] of [['chip', 'chips', 'project_chips', 'chip_id'], ['tags', 'tags', 'project_tags', 'tag_id'], ['owner', 'engineers', 'project_people', 'engineer_id']]) {
           options[key] = (await rows(connection, `SELECT DISTINCT r.name value ${joins} JOIN ${link} l ON l.project_id=p.id JOIN ${table} r ON r.id=l.${reference} ${base.sql} ORDER BY value`, base.values)).map(row => row.value);
         }
-        const stageCounts = await rows(connection, `SELECT ${stageExpression} value,COUNT(*) count ${joins} ${base.sql} GROUP BY value`, base.values);
+        const stageCounts = await rows(connection, `SELECT ${stageExpression} value,COUNT(*) count ${joins} ${filtered.sql} GROUP BY value`, filtered.values);
         return { items, stats: Object.fromEntries(Object.entries(stats).map(([key, value]) => [key, Number(value)])), stageCounts, options, pagination: { page, pageSize, total, pageCount }, readOnly: true };
       });
     },
@@ -119,7 +119,7 @@ export function projectReads(database: RuntimeDatabase) {
         const changes = await rows(connection, 'SELECT CAST(id AS CHAR) id,source,content,decision,reason FROM project_changes WHERE project_id=? ORDER BY sort_order,id', [id]);
         const delays = await rows(connection, "SELECT CAST(id AS CHAR) id,kind,DATE_FORMAT(old_date,'%Y-%m-%d') oldDate,DATE_FORMAT(new_date,'%Y-%m-%d') newDate,reason,measures FROM schedule_changes WHERE project_id=? ORDER BY created_at,id", [id]);
         const history = await rows(connection, 'SELECT CAST(id AS CHAR) id,source_date_text date,body text FROM legacy_project_history WHERE project_id=? ORDER BY source_sequence,id', [id]);
-        return { project, stages: projectStages, nodes, risks, changes, delays, history, readOnly: true };
+        return { project, stages: projectStages, nodes, risks, changes, delays, history, readOnly: project.dataKind !== 'trial', capabilities: { editText: project.dataKind === 'trial' } };
       });
     },
   };

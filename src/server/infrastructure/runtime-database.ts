@@ -55,6 +55,28 @@ export async function openRuntimeDatabase(profile: RuntimeProfile) {
 
   return {
     pool, fact,
+    async writeTransaction<T>(work: (connection: PoolConnection) => Promise<T>): Promise<T> {
+      let commitSent = false;
+      try {
+        return await useConnection(5000, async connection => {
+          // 按项目行锁串行化；回执不存在时不锁住其他项目新回执的索引间隙。
+          await connection.query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+          await connection.beginTransaction();
+          let result: T;
+          try { result = await work(connection); }
+          catch (error) {
+            try { await connection.rollback(); } catch { /* 未发送 COMMIT，连接销毁后事务回滚。 */ }
+            throw error;
+          }
+          commitSent = true;
+          await connection.commit();
+          return result;
+        });
+      } catch (error) {
+        if (commitSent) throw Object.assign(new Error('COMMIT_UNKNOWN'), { code: 'COMMIT_UNKNOWN' });
+        throw error;
+      }
+    },
     async readSnapshot<T>(work: (connection: PoolConnection) => Promise<T>): Promise<T> {
       return useConnection(5000, async connection => {
         await connection.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');

@@ -65,13 +65,13 @@ try {
   assert.equal((await request('/api/projects?view=all&page=999')).pagination.page, 2);
   for (const [key, value] of Object.entries({ search: '%_!', chip: '测试-chips', owner: '测试-engineers', tags: '测试-tags', signal: 'red', priority: 'high' })) {
     const result = await request('/api/projects?' + new URLSearchParams({ [key]: value }));
-    assert.equal(result.pagination.total, 1, key); assert.equal(result.items[0].id, bigId); assert.equal(result.stats.total, 26);
+    assert.equal(result.pagination.total, 1, key); assert.equal(result.items[0].id, bigId); assert.equal(result.stats.total, 1);
   }
   assert.equal((await request('/api/projects?stage=S2&progress=5')).pagination.total, 26);
   assert.equal((await request('/api/projects?search=not-found')).pagination.total, 0);
   for (const path of ['/api/projects?page=0', '/api/projects?pageSize=101', '/api/projects?view=invalid', '/api/projects?unknown=1', '/api/projects/0', '/api/projects/18446744073709551616']) await request(path, 400);
   await request('/api/projects/18446744073709551615', 404);
-  assert.equal((await fetch(origin + '/api/projects/' + bigId, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: '{}' })).status, 404);
+  assert.equal((await fetch(origin + '/api/projects/' + bigId, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: '{}' })).status, 400);
   checks.push({ check: 'actual-http-list-views-filters-pagination-literal-search-id-validation-no-write', passed: true });
   const detail = await request('/api/projects/' + bigId);
   assert.equal(detail.project.id, bigId); assert.equal(detail.project.version, '1'); assert.equal(detail.stages.length, 7);

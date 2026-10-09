@@ -13,3 +13,16 @@
 .stage-chart span { padding: 6px 10px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; font-size: 12px; }
 .read-label { display: block; color: var(--text-dim); font-size: 12px; margin: 8px 0; }
 .detail-tabs, .filter-row { flex-wrap: wrap; }
+.trial-editor { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 20px; }
+.trial-editor input, .trial-editor textarea, .copy-text { width: 100%; box-sizing: border-box; background: var(--bg-soft); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font: inherit; }
+.trial-editor textarea, .copy-text { resize: vertical; }
+.field-error { color: var(--p-high); font-size: 13px; }
+.edit-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+#editor-dialog { color: var(--text); background: var(--card); border: 1px solid var(--border); border-radius: 12px; max-width: 680px; width: calc(100% - 60px); }
+#editor-dialog::backdrop { background: #0009; }
+.copy-text { min-height: 250px; }
+.audit-entry { border-bottom: 1px solid var(--border); padding-bottom: 14px; }
+.audit-entry h3 { font-size: 13px; margin: 16px 0; }
+.audit-diff { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 600px) { .audit-diff { grid-template-columns: 1fr; } }

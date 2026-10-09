@@ -12,7 +12,7 @@ const checks = [];
 const { connection: migration } = await connectDatabase('test_migrator');
 const { manifest } = await loadSchema();
 const [history] = await migration.query('SELECT version, checksum, applied_at FROM schema_migrations');
-assert.equal(history.length, 1);
+assert.equal(history.length, 2);
 const foreign = manifest.tables.find(table => table.name === 'project_nodes').foreignKeys.find(key => key.columns.includes('stage_id'));
 let removedForeign = false;
 let runtime;
@@ -20,7 +20,8 @@ let app;
 let child;
 const leases = [];
 async function restoreHistory() {
-  await migration.execute('UPDATE schema_migrations SET version = ?, checksum = ? WHERE 1', [history[0].version, history[0].checksum]);
+  await migration.execute('DELETE FROM schema_migrations');
+  for (const row of history) await migration.execute('INSERT INTO schema_migrations (version,checksum,applied_at) VALUES (?,?,?)', [row.version,row.checksum,row.applied_at]);
 }
 async function ready(origin, expected, reason) {
   const response = await fetch(origin + '/api/health/ready');
@@ -36,13 +37,13 @@ try {
   assert.deepEqual(JSON.parse(invalid.stderr.trim()), { status: 'startup_failed', code: 'APP_CONFIG_INVALID', field: 'GEEKDASH_DB_PROFILE' });
   checks.push({ check: 'actual-start-invalid-runtime-config-exits-nonzero-with-field', passed: true });
   await assert.rejects(openRuntimeDatabase('test_migrator'), error => error.code === 'DB_RUNTIME_PROFILE_INVALID');
-  await migration.execute("UPDATE schema_migrations SET version = '9999-future'");
+  await migration.execute("UPDATE schema_migrations SET version = '9999-future' WHERE version='0002-trial-save'");
   await assert.rejects(openRuntimeDatabase('test_app'), error => error.code === 'DB_SCHEMA_VERSION_UNSUPPORTED');
   await restoreHistory();
   checks.push({ check: 'runtime-role-and-future-version-rejected-before-listening', passed: true });
   runtime = await openRuntimeDatabase('test_app');
   assert.equal(runtime.fact.tables, 34);
-  assert.equal(runtime.fact.columns, 313);
+  assert.equal(runtime.fact.columns, 314);
   assert.equal(runtime.fact.foreignKeys, 55);
   await assert.rejects(runtime.pool.query('CREATE TABLE __readiness_forbidden (id INT)'), error => error.code === 'ER_TABLEACCESS_DENIED_ERROR');
   await assert.rejects(runtime.pool.query('USE geekdash_dev'), error => error.code === 'ER_DBACCESS_DENIED_ERROR');

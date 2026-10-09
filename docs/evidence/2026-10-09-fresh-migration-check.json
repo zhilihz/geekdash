@@ -1,0 +1,48 @@
+{
+  "status": "passed",
+  "source": "独立D盘新数据目录/新MySQL容器/真实空库依序0001+0002",
+  "results": [
+    {
+      "status": "verified",
+      "applied": true,
+      "database": "geekdash_dev",
+      "version": "0002-trial-save",
+      "checksum": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695",
+      "tables": 34,
+      "columns": 314,
+      "foreignKeys": 55,
+      "differences": 0
+    },
+    {
+      "status": "verified",
+      "database": "geekdash_dev",
+      "version": "0002-trial-save",
+      "checksum": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695",
+      "tables": 34,
+      "columns": 314,
+      "foreignKeys": 55,
+      "differences": 0
+    },
+    {
+      "status": "verified",
+      "applied": true,
+      "database": "geekdash_test",
+      "version": "0002-trial-save",
+      "checksum": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695",
+      "tables": 34,
+      "columns": 314,
+      "foreignKeys": 55,
+      "differences": 0
+    },
+    {
+      "status": "verified",
+      "database": "geekdash_test",
+      "version": "0002-trial-save",
+      "checksum": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695",
+      "tables": 34,
+      "columns": 314,
+      "foreignKeys": 55,
+      "differences": 0
+    }
+  ]
+}

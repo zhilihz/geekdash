@@ -1,0 +1,80 @@
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { createApp } from '../dist/server/app.js';
+import { connectDatabase } from '../dist/server/infrastructure/db.js';
+import { openRuntimeDatabase } from '../dist/server/infrastructure/runtime-database.js';
+
+const namespace = '__capacity_500_test__';
+const ids = Array.from({length: 501}, (_, i) => String(9007199254780000n + BigInt(i)));
+const {connection} = await connectDatabase('test_migrator');
+let app, runtime, origin, owned = false;
+const references = {customers: [], chips: [], engineers: [], tags: []};
+const measurements = {list: [], detail: [], save: [], audit: []};
+const began = new Date().toISOString();
+async function api(path, method = 'GET', body) {
+  const response = await fetch(origin + path, {method, ...(body ? {headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)} : {})});
+  const result = await response.json(); assert.equal(response.status, 200, JSON.stringify(result)); return result;
+}
+async function measured(kind, path, method, body) { const start = performance.now(); const result = await api(path,method,body); measurements[kind].push(performance.now()-start); return result; }
+try {
+  const [existing] = await connection.execute('SELECT id FROM projects WHERE source_namespace=? OR id BETWEEN ? AND ?', [namespace,ids[0],ids.at(-1)]);
+  assert.equal(existing.length, 0, '自己的夹具存在；先核对，不能覆盖');
+  runtime = await openRuntimeDatabase('test_app');
+  app = await createApp(runtime); origin = await app.listen({host: '127.0.0.1',port: 0});
+  await connection.beginTransaction();
+  for (const [table, columns] of Object.entries({customers:['contact','background'], chips:['original_model','manufacturer','firmware_version'],engineers:['role'],tags:[]})) {
+    for (let index = 0; index < 4; index++) {
+      const [created] = await connection.execute(`INSERT INTO ${table} (name,${columns.length ? columns.join(',')+',' : ''}enabled,version,created_at,updated_at) VALUES (?${columns.map(()=>',?').join('')},1,1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))`, ['规模夹具-'+table+'-'+index,...columns.map(()=> '')]);
+      references[table].push(String(created.insertId));
+    }
+  }
+  for (let index = 0; index < 500; index++) {
+    const projectId = ids[index];
+    await connection.execute(`INSERT INTO projects (id,name,data_kind,source_namespace,source_key,status,customer_id,signal_note,market_expectation,status_description,detail_note,summary_note,chipstat_note,closure_note,remaining_work_note,created_at,updated_at)
+      VALUES (?,?,'trial',?,?,'ongoing',?,'合成容量夹具','首版规模试用','待验证',?,'初始摘要','','','',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))`, [projectId,'规模项目'+index,namespace,String(index),references.customers[index%4],('合成项目说明\n内容🙂\n').repeat(10)]);
+    for (let stage=1;stage<=7;stage++) await connection.execute('INSERT INTO project_stages (project_id,stage_code,state,note) VALUES (?,?,?,?)',[projectId,'S'+stage,stage===1 ? index%2 ? 'active' : 'completed' : stage===2 && index%2===0 ? 'ready':'locked','阶段说明']);
+    await connection.execute('INSERT INTO project_chips (project_id,chip_id,sort_order) VALUES (?,?,0)',[projectId,references.chips[index%4]]);
+    await connection.execute("INSERT INTO project_people (project_id,engineer_id,role,sort_order) VALUES (?,?,'hardware_owner',0)",[projectId,references.engineers[index%4]]);
+    await connection.execute('INSERT INTO project_tags (project_id,tag_id,sort_order) VALUES (?,?,0)',[projectId,references.tags[index%4]]);
+    await connection.execute("INSERT INTO project_nodes (project_id,kind,title,output,note,sort_order) VALUES (?,'project','验证节点','输入和输出','合成记录',0)",[projectId]);
+    await connection.execute("INSERT INTO project_risks (project_id,content,level,resolved,resolution,created_at,sort_order) VALUES (?,'试用风险','mid',0,'',UTC_TIMESTAMP(3),0)",[projectId]);
+  }
+  await connection.commit(); owned = true;
+  // 每个项目都有通过真实普通保存产生的审计与回执。
+  for (let index=0;index<500;index++) await api('/api/projects/'+ids[index],'PATCH',{expectedVersion:'1',idempotencyKey:randomUUID(),changes:{name:'规模测试项目'+index}});
+  const initial = await api('/api/projects?view=all&search='+encodeURIComponent('规模测试项目'));
+  assert.equal(initial.pagination.total,500); assert.equal(initial.stats.total,500); assert.equal(initial.items.length,24);
+  const filtered = await api('/api/projects?view=all&customer='+encodeURIComponent('规模夹具-customers-0'));
+  assert.equal(filtered.pagination.total,125); assert.equal(filtered.stats.total,125);
+  assert.equal(filtered.stageCounts.reduce((n,item)=>n+Number(item.count),0),125);
+  const last = await api('/api/projects?view=all&search='+encodeURIComponent('规模测试项目')+'&page=21'); assert.equal(last.items.length,20);
+  // 预热一轮；记录包含本地 HTTP 与真实事务的实际延时。
+  await api('/api/projects?view=all'); await api('/api/projects/'+ids[0]);
+  for (let round=0;round<20;round++) await Promise.all(Array.from({length:4},async(_,worker)=>{
+    const target=ids[worker];
+    const list=await measured('list','/api/projects?view=all&customer='+encodeURIComponent('规模夹具-customers-'+worker)); assert.equal(list.pagination.total,125);
+    const detail=await measured('detail','/api/projects/'+target); assert.equal(detail.stages.length,7); assert.equal(detail.nodes.length,1); assert.equal(detail.risks.length,1);
+    const result=await measured('save','/api/projects/'+target,'PATCH',{expectedVersion:detail.project.version,idempotencyKey:randomUUID(),changes:{summaryNote:`四人容量验证${worker}轮次${round}`}});
+    const fresh=await api('/api/projects/'+target); assert.equal(fresh.project.summaryNote,result.result.values.summaryNote); assert.equal(fresh.project.version,result.result.savedVersion);
+    const audit=await measured('audit','/api/projects/'+target+'/audit'); assert.equal(audit.items[0].versionAfter,result.result.savedVersion);
+  }));
+  // 第 501 个项目可入库和查询，500 是验收规模，不是结构或读取总量上限。
+  await connection.execute(`INSERT INTO projects (id,name,data_kind,source_namespace,source_key,status,signal_note,market_expectation,status_description,detail_note,summary_note,chipstat_note,closure_note,remaining_work_note,created_at,updated_at)
+    VALUES (?,'规模测试项目500','trial',?,'500','ongoing','','','','','','','','',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))`,[ids[500],namespace]);
+  assert.equal((await api('/api/projects?view=all&search='+encodeURIComponent('规模测试项目'))).pagination.total,501);
+  const summary=Object.fromEntries(Object.entries(measurements).map(([kind,values])=>{values.sort((a,b)=>a-b);return [kind,{requests:values.length,p50Ms:Math.round(values[Math.ceil(values.length*.5)-1]),p95Ms:Math.round(values[Math.ceil(values.length*.95)-1]),maxMs:Math.round(values.at(-1))}];}));
+  await mkdir('test-results',{recursive:true});
+  const result={status:'passed',startedAt:began,checkedAt:new Date().toISOString(),projectCount:500,stageCount:3500,initialAuditCount:500,workers:4,rounds:20,errorCount:0,measurements:summary,noHardProjectLimit:true,source:'专用测试库/合成数据/真实 HTTP；本地或云内环回延时，不代表公司公网浏览器延时'};
+  await writeFile('test-results/project-capacity-check.json',JSON.stringify(result,null,2)+'\n'); console.log(JSON.stringify(result));
+} finally {
+  await connection.rollback(); await app?.close();
+  if (!app) await runtime?.close();
+  if (owned) {
+    for (const table of ['audit_log','project_risks','project_nodes','project_chips','project_people','project_tags','project_stages']) await connection.execute(`DELETE FROM ${table} WHERE project_id IN (SELECT id FROM projects WHERE source_namespace=?)`,[namespace]);
+    await connection.execute('DELETE FROM command_receipts WHERE command_scope IN ('+ids.map(()=>'?').join(',')+')',ids.map(id=>'anonymous:project:'+id+':text'));
+    await connection.execute('DELETE FROM projects WHERE source_namespace=?',[namespace]);
+    for (const [table,refs] of Object.entries(references)) for (const reference of refs) await connection.execute(`DELETE FROM ${table} WHERE id=?`,[reference]);
+  }
+  await connection.end();
+}

@@ -39,8 +39,8 @@ try {
   const [existing] = await connection.query("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'schema_migrations'");
   if (existing.length) {
     const [history] = await connection.query('SELECT version FROM schema_migrations');
-    assert.ok(history.length <= 1, '测试库含未知版本，停止演练');
-    alreadyComplete = history.length === 1;
+    assert.ok(history.length <= 2, '测试库含未知版本，停止演练');
+    alreadyComplete = history.some(row => row.version === '0001-foundation');
   }
   if (!alreadyComplete) {
   assert.ok(originalCode.includes('await query(connection, table.sql);'));
@@ -62,7 +62,7 @@ try {
   for (const result of competing) assert.ok(result.exitCode === 0 || result.last?.code === 'DB_MIGRATION_BUSY', JSON.stringify(result.last));
   const structure = await verifyDatabase('test_migrator');
   assert.equal(structure.tables, 34);
-  assert.equal(structure.columns, 313);
+  assert.equal(structure.columns, 314);
   assert.equal(structure.foreignKeys, 55);
   checks.push({ check: 'resume-and-two-migration-processes', outcomes: competing.map(result => ({ exitCode: result.exitCode, result: result.last })), structure });
   const [before] = await connection.query('SELECT version, checksum, applied_at FROM schema_migrations');
@@ -86,13 +86,13 @@ try {
   } finally { await connection.query('SELECT RELEASE_LOCK(?)', ['geekdash:geekdash_test:schema']); }
   checks.push({ check: 'lock-timeout-without-ddl', passed: true });
   // 专用空测试库故障演练；不改正式资源、不连接开发库。
-  await connection.query('DELETE FROM schema_migrations');
-  assert.ok(originalCode.includes("step = 'register_version';"));
-  await writeFile(schemaCode, originalCode.replace("step = 'register_version';", "process.kill(process.pid, 'SIGKILL');"));
+  await connection.query("DELETE FROM schema_migrations WHERE version='0002-trial-save'");
+  assert.ok(originalCode.includes("step = 'register_increment';"));
+  await writeFile(schemaCode, originalCode.replace("step = 'register_increment';", "process.kill(process.pid, 'SIGKILL');"));
   const beforeRegistration = await run();
   assert.equal(beforeRegistration.signal, 'SIGKILL');
   const [unregistered] = await connection.query('SELECT version FROM schema_migrations');
-  assert.equal(unregistered.length, 0);
+  assert.equal(unregistered.length, 1);
   assert.ok(beforeRegistration.events.some(event => event.event === 'migration_structure_verified'));
   await writeFile(schemaCode, originalCode);
   const recovered = await run();

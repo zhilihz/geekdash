@@ -1,0 +1,44 @@
+{
+  "checkedAt": "2026-10-09T02:09:55.704Z",
+  "status": "passed",
+  "source": "专用 MySQL 测试库及真实 HTTP，新连接回读；仅合成输入",
+  "checks": [
+    {
+      "check": "four-fields-atomic-save-bigint-fresh-connection-http-board-and-audit",
+      "passed": true
+    },
+    {
+      "check": "concurrent-idempotent-replay-canonical-field-order-and-key-reuse",
+      "passed": true
+    },
+    {
+      "check": "same-version-winner-only-stale-rejected-no-change-receipt-and-old-result",
+      "passed": true
+    },
+    {
+      "check": "whitelist-scope-null-type-unicode-byte-capacity-and-no-partial-write",
+      "passed": true
+    },
+    {
+      "check": "real-audit-receipt-sql-failure-rolls-back-and-real-commit-lost-ack-confirmed-once",
+      "passed": true
+    },
+    {
+      "check": "inflight-not-found-read-only-process-restart-replay-pool-failure-and-recovery",
+      "passed": true
+    },
+    {
+      "check": "four-concurrent-actual-writes-five-rounds-and-fresh-readback",
+      "passed": true,
+      "requests": 20,
+      "p95Ms": 21
+    },
+    {
+      "check": "audit-default20-max100-unbounded-total-stable-cursor-legacy-separated-index",
+      "passed": true,
+      "totalRead": 515,
+      "selectedIndex": "PRIMARY",
+      "accessType": "range"
+    }
+  ]
+}

@@ -14,11 +14,14 @@
     "db:check": "node scripts/check-database.mjs",
     "db:migrate": "node dist/server/commands/database.js migrate",
     "db:verify": "node dist/server/commands/database.js verify",
+    "db:trials": "node dist/server/commands/trial-projects.js",
     "test:db": "node scripts/verify-database.mjs prepare",
     "test:db:resume": "node scripts/verify-database.mjs resume",
     "test:migrations": "node scripts/verify-migrations.mjs",
     "test:readiness": "node scripts/verify-readiness.mjs",
-    "test:projects": "node scripts/verify-project-reads.mjs"
+    "test:projects": "node scripts/verify-project-reads.mjs",
+    "test:saves": "node scripts/verify-project-saves.mjs",
+    "test:capacity": "node scripts/verify-project-capacity.mjs"
   },
   "dependencies": {
     "@fastify/static": "10.1.5",

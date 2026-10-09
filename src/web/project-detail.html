@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>GeekDash 项目详情</title></head><body><div class="page">
 <div class="top-sticky"><div class="topbar"><a class="back-btn" id="back" href="GeekDash.html">← 返回列表</a><span class="crumb">智能硬件方案项目 · 项目详情</span><div class="theme-switch"><button data-theme="dark">深色</button><button data-theme="light">浅色</button><button data-theme="warm">暖色</button></div></div></div>
-<div class="read-notice">当前为只读项目详情。页面保持进入时的项目版本；点击重新进入，读取最新数据。</div><button class="back-btn" id="reload">重新进入项目</button><p class="read-message" id="message" role="status" aria-live="polite">正在读取项目…</p>
+<div class="read-notice" id="notice">页面保持进入时的项目版本；点击重新进入，读取最新数据。</div><button class="back-btn" id="reload">重新进入项目</button><button class="back-btn" id="copy" hidden>查看并复制未保存文字</button><p class="read-message" id="message" role="status" aria-live="polite">正在读取项目…</p>
 <div class="detail-panel" id="detail-panel" hidden><div class="detail-head"><h1 class="d-title" id="d-title"></h1><div class="tags" id="d-tags"></div></div><div class="detail-meta" id="d-meta"></div>
 <nav class="detail-tabs" aria-label="项目详情"><button class="dtab active" data-tab="info">基本信息</button><button class="dtab" data-tab="stages">项目阶段</button><button class="dtab" data-tab="nodes">项目节点</button><button class="dtab" data-tab="custnodes">客户节点</button><button class="dtab" data-tab="risk">项目风险与变更</button><button class="dtab" data-tab="history">更新历史</button></nav><div class="detail-body" id="detail-body"></div></div>
-</div><script type="module" src="/detail.ts"></script></body></html>
+</div><dialog id="editor-dialog" aria-label="编辑恢复与离开确认"></dialog><script type="module" src="/detail.ts"></script></body></html>

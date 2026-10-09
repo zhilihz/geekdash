@@ -1,0 +1,88 @@
+{
+  "status": "passed",
+  "verifiedAt": "2026-10-09T01:41:05.885Z",
+  "structure": {
+    "database": "geekdash_test",
+    "version": "0002-trial-save",
+    "checksum": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695",
+    "tables": 34,
+    "columns": 314,
+    "foreignKeys": 55,
+    "differences": 0
+  },
+  "checks": [
+    {
+      "check": "initial-ddl-interruption",
+      "status": "skipped-already-complete",
+      "reason": "已有完整版本；保留现有表，不清库重测首次建表"
+    },
+    {
+      "check": "resume-and-two-migration-processes",
+      "outcomes": [
+        {
+          "exitCode": 0,
+          "result": {
+            "status": "verified",
+            "applied": false,
+            "database": "geekdash_test",
+            "version": "0002-trial-save",
+            "checksum": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695",
+            "tables": 34,
+            "columns": 314,
+            "foreignKeys": 55,
+            "differences": 0
+          }
+        },
+        {
+          "exitCode": 0,
+          "result": {
+            "status": "verified",
+            "applied": false,
+            "database": "geekdash_test",
+            "version": "0002-trial-save",
+            "checksum": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695",
+            "tables": 34,
+            "columns": 314,
+            "foreignKeys": 55,
+            "differences": 0
+          }
+        }
+      ],
+      "structure": {
+        "database": "geekdash_test",
+        "version": "0002-trial-save",
+        "checksum": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695",
+        "tables": 34,
+        "columns": 314,
+        "foreignKeys": 55,
+        "differences": 0
+      }
+    },
+    {
+      "check": "repeat-keeps-history-unchanged",
+      "passed": true
+    },
+    {
+      "check": "changed-applied-resource-rejected",
+      "passed": true
+    },
+    {
+      "check": "lock-timeout-without-ddl",
+      "passed": true
+    },
+    {
+      "check": "complete-ddl-unregistered-process-death-and-recovery",
+      "passed": true
+    },
+    {
+      "check": "full-version-with-missing-foreign-key-rejected",
+      "passed": true
+    },
+    {
+      "check": "check-unique-null-orphan-cross-project-and-fresh-readback",
+      "passed": true
+    }
+  ],
+  "source": "隔离测试库及编译产物副本故障注入",
+  "businessReady": false
+}

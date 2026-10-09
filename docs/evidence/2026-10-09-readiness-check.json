@@ -1,0 +1,36 @@
+{
+  "status": "passed",
+  "verifiedAt": "2026-10-09T02:08:49.173Z",
+  "target": "geekdash_test",
+  "checks": [
+    {
+      "check": "actual-start-invalid-runtime-config-exits-nonzero-with-field",
+      "passed": true
+    },
+    {
+      "check": "runtime-role-and-future-version-rejected-before-listening",
+      "passed": true
+    },
+    {
+      "check": "full-startup-schema-runtime-grants-and-twenty-http-requests",
+      "passed": true
+    },
+    {
+      "check": "checksum-failure-and-missing-constraint-block-startup-or-recovery",
+      "passed": true
+    },
+    {
+      "check": "eight-connections-exhausted-fails-fast-and-recovers",
+      "passed": true
+    },
+    {
+      "check": "real-slow-sql-timeout-live-responsive-and-new-connection-recovery",
+      "passed": true
+    },
+    {
+      "check": "actual-start-process-sigterm-clean-exit-within-budget",
+      "passed": true
+    }
+  ],
+  "businessReady": false
+}
