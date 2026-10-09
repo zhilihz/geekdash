@@ -1,0 +1,19 @@
+{
+  "status": "partial",
+  "observedDate": "2026-10-09",
+  "source": "本轮本地浏览器工具实际观察；不是固定6aee827完整页面签收",
+  "projectId": "9007199254780509",
+  "passed": [
+    "正式合成凭据登录及看板账号展示",
+    "页面新建四项文字、七阶段与自动本人负责回读",
+    "摘要修改明确保存并回读版本2",
+    "最后负责人退出显示拒绝且关系保留"
+  ],
+  "notCompleted": [
+    "页面加入/正常退出/账号切换的完整联验",
+    "公网浏览器交互"
+  ],
+  "limitation": "原生退出确认框之后浏览器工具CDP输入/焦点超时；读文档及一次对话框恢复未成功，新公网标签也超时。API验证另见local/cloud/public证据，不由此推断业务故障。",
+  "fixtureStoppedAndOwnedBrowserProjectRemoved": true,
+  "credentialsIncluded": false
+}

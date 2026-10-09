@@ -1,0 +1,74 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-09T05:48:13.332046+00:00",
+  "revision": "6aee827238912f2f202bc14ab8d0f5739af83048",
+  "assets": [
+    {
+      "path": "assets/api-BJDjI584.js",
+      "sha256": "92e3ab4836ffac6c128052e95786fbc93ef94274a8dc94b3b1c5307d01089e8c",
+      "matches": true
+    },
+    {
+      "path": "assets/api-CEMtlmAC.css",
+      "sha256": "f81b99ccd3ef21d4ce6a436d1c1b2a13dae22b52308ed681a5f614d0227e2fa0",
+      "matches": true
+    },
+    {
+      "path": "assets/detail-vW_N4vCs.css",
+      "sha256": "b7f15e2a913fc54618335747942d0bc2be8558fcb7edd4bec00f962ae439204f",
+      "matches": true
+    },
+    {
+      "path": "assets/forms-D9KYl3tU.css",
+      "sha256": "e179bf8998912737851b88af0bc94aeff622a19313ac40fe5dd626fb3206ece0",
+      "matches": true
+    },
+    {
+      "path": "assets/index-BxbuOvLQ.js",
+      "sha256": "332bd0f96daffdf72f350627ae7cabd5bb991ac35b7cdd88d49db88547095f28",
+      "matches": true
+    },
+    {
+      "path": "assets/index-D8NXthWN.css",
+      "sha256": "5cdef17e18b287780e8197cec16e9d4628b2b7da8036bf90b4c8fbe2a375e3c1",
+      "matches": true
+    },
+    {
+      "path": "assets/login-CS40aopP.js",
+      "sha256": "bcbe5664cc068adc410233d6c10a007cb5b4db20320d7ec8e3b8feff04f53a83",
+      "matches": true
+    },
+    {
+      "path": "assets/project-detail-D2nGu0k5.js",
+      "sha256": "8a84c1ae8f8cc305331b8eed9a1a0fe8e09aeaff520e2f9090da01ed91971945",
+      "matches": true
+    },
+    {
+      "path": "assets/project-new-B4zvBdj6.js",
+      "sha256": "3037e2cdfe36e5fb9f37348cf4853b4b1f156e47f053b298380a39b7c482c98a",
+      "matches": true
+    },
+    {
+      "path": "index.html",
+      "sha256": "c0a944e7092e7e9d2b8de359ccaa8a4fede96966aeb58af6269d71d41b6feead",
+      "matches": true
+    },
+    {
+      "path": "login.html",
+      "sha256": "0ada3d1c6206d2da8a5119c477c5e3b8138d240fcd9c15e76d64544b2bc97e1c",
+      "matches": true
+    },
+    {
+      "path": "project-detail.html",
+      "sha256": "333ec550bba6ee2777de91d191faf91bdf48b8e2c52786d37301aecdc76c3d04",
+      "matches": true
+    },
+    {
+      "path": "project-new.html",
+      "sha256": "a9084f6fc346e9ebfe04d20039a4ee9662e979d85b2c3d9878f8cd45686c9c82",
+      "matches": true
+    }
+  ],
+  "count": 13,
+  "source": "公网HTTPS资源与干净本机构建逐字节摘要比较"
+}

@@ -25,7 +25,7 @@ pwsh -NoProfile -File scripts/docker.ps1 build app
 
 以上只构建，不启动应用，也不读取数据库凭据。首次运行先完成下一节的配置初始化、数据库启动和迁移，再用组合入口启动应用。逐条检查退出码，前一步失败不执行后续。构建在候选目录完成类型检查、编译、资源核对和真实 HTTP 检查后才提升为 dist；dist.previous 保留上一产物。候选目录和上一产物不能自动当作已验收发布版本。
 
-入口为 http://127.0.0.1:41860 ，仅绑定本机。端口占用时先核查；可用进程环境 GEEKDASH_PORT 指定另一端口，变更后重新创建本项目 app。当前为项目看板/详情，trial 保存的上线状态以实际构建版本为准；账号业务仍未接入。组合 Compose 的容器健康检查使用 ready；healthy 表示基础数据库依赖就绪，尚不能代表登录或项目业务已完成。协议见 [API 说明](../specifications/api/foundation.md)。
+入口为 http://127.0.0.1:41860 ，仅绑定本机。端口占用时先核查；可用进程环境 GEEKDASH_PORT 指定另一端口，变更后重新创建本项目 app。当前为登录/新建/看板/详情；最小账号会话及负责授权已接入，准确上线范围以实际构建和系统真相为准。组合 Compose 的容器健康检查使用 ready；healthy 表示基础数据库依赖就绪，尚不能代表登录或项目业务已完成。协议见 [API 说明](../specifications/api/foundation.md)。
 
 ```powershell
 pwsh -NoProfile -File scripts/database.ps1 up --wait --wait-timeout 60 app
@@ -77,7 +77,7 @@ F04 的专用测试命令：
 pwsh -NoProfile -File scripts/database.ps1 run --rm --no-deps dbtool npm run test:readiness
 ```
 
-该脚本只在 geekdash_test 临时改登记/删除外键并复原，验证错误结构、超时、连接耗尽和真实进程关闭；无人使用测试范围才可执行。数据库仍健康时，停止 app 只关闭应用，MySQL 和数据保留；停止 mysql 会使运行中的 app 就绪及业务入口返回 503，恢复后重新完整核验，无需重启 app。当前项目读取/测试文字保存依赖就绪；登录尚未接入。
+该脚本只在 geekdash_test 临时改登记/删除外键并复原，验证错误结构、超时、连接耗尽和真实进程关闭；无人使用测试范围才可执行。数据库仍健康时，停止 app 只关闭应用，MySQL 和数据保留；停止 mysql 会使运行中的 app 就绪及业务入口返回 503，恢复后重新完整核验，无需重启 app。当前业务读取/写入同时依赖真实就绪和可信会话；就绪故障不能被误报为密码错误。
 
 维护账号命令行恢复的目标契约已按 DEC-070 确认，归 SPEC-001 F07，施工方法归[执行文档](../implementation/execution-plan.md#e02-f07维护账号无法登录时的受控恢复dec-070-已确认尚未实施)。当前没有恢复命令；实际实现后才在此补充固定环境入口、仅 GeekDash app 暂停/恢复及受控文件交接步骤，不能直接手改 SQL 冒充已验收流程。
 
@@ -304,3 +304,13 @@ db:trials 仅在 dev 建三个稳定来源合成样本，重复保留实际编�
 复用P03-A构建/数据库/发布入口，无新迁移，不改已登记资源。使用scripts/database.ps1 run --rm --no-deps dbtool分别运行npm run test:ordinary、test:saves、test:projects、test:capacity；各脚本仅操作自己的合成来源。失败先核对夹具与受控结果，不在dev清空重跑。
 
 发布核对两库结构与固定镜像，专用库回归完成后才短暂停自己app，完整备份、保留已有数据并补合成候选，再启动固定构建和回读公网。含二进制回执的数据指纹按bytes比较；未知执行结果先对账，不无条件重解包/覆盖/切换。实际版本与停点见[部署](deployments/2026-10-09-project-ordinary.md)，不复制运行事实到流程。
+
+## 最小身份测试开通与运行核对（E03-W09～W12）
+
+当前命令npm run db:test-accounts对应dist/server/commands/test-accounts.js，仅受控测试初始化，参数为dev_migrator或test_migrator、容器内受控文件绝对路径、明确环境名。文件与实际库/环境/初始化操作绑定；既有凭据/账号不匹配停止，重跑不重置已改密码账号。首次固定business01～04和maint01只是测试种子，不是业务人数限制，也不是公开注册。
+
+本机只读挂载仓库外受控文件；Compose run使用--volume，普通docker run使用--mount。Linux mode600文件仅受控bootstrap root临时读取；常驻app仍node且只挂运行数据库身份。具体已执行初始化/路径/凭据分发归部署记录，不在文档粘贴密码、密码哈希或Cookie。
+
+GEEKDASH_ORIGIN固定应用真实Origin，公网https://geekdash.zhiluan.cool，本机HTTP只允许环回；修改端口须同时更新Origin，不能任意信任代理来源。服务器Cookie必须Secure，业务401由正常登录恢复、首次改密403由改密后重新登录恢复；数据库503保留上下文不能清成退出。live读取build版本，ready读取status与真实依赖，两响应结构不同。
+
+没有邀请码/完整账号维护或F07维护恢复命令，不能手改SQL当成已验收恢复。发布前备份仍按原流程，实际进程会话恢复不替代隔离数据库恢复。

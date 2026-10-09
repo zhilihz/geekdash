@@ -1,0 +1,24 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-09T05:44:26.081716+00:00",
+  "revision": "6aee827238912f2f202bc14ab8d0f5739af83048",
+  "appStartedAtBefore": "2026-10-09T05:40:57.567494991Z",
+  "appStartedAtAfter": "2026-10-09T05:44:19.511795431Z",
+  "persistentRowCountsPreserved": true,
+  "mysqlIdAndStartedAtPreserved": true,
+  "otherContainerStartedAtPreserved": 17,
+  "appOomKilled": false,
+  "appRestartCount": 0,
+  "publicReadback": {
+    "status": "passed",
+    "checkedAt": "2026-10-09T05:44:38.691044+00:00",
+    "projectId": "7",
+    "currentVersion": "4",
+    "originalSavedVersion": "3",
+    "sessionSurvivedRealProcessRestart": true,
+    "originalResultConfirmed": true,
+    "freshDetailAndAuditPreserved": true,
+    "auditCount": 4,
+    "credentialOrCookieValuesIncluded": false
+  }
+}

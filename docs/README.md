@@ -1,8 +1,8 @@
 # 文档中心
 
-文档基线：D0.59；更新日期：2026-10-09。E01-F02/F03 的独立本地 MySQL、初始迁移及真实结构核验已完成，结果见[报告](testing/reports/2026-10-08-e01-f02-f03.md)。F04 应用受限连接、启动/恢复、真实就绪及关闭已实现，见[执行文档](implementation/execution-plan.md#f04-单功能操作链路2026-10-08)和[验收报告](testing/reports/2026-10-08-e01-f04.md)。分支交付流程归[代码管理](operations/release-maintenance.md#2-代码管理)，实际 refs 归系统真相；普通编辑/关联扩展见[报告](testing/reports/2026-10-09-project-ordinary.md)。当前公网已接入项目看板/详情及trial普通编辑与关联，见[项目查询验收](testing/reports/2026-10-08-project-reads.md)和[原查询部署](operations/deployments/2026-10-08-project-reads.md)；trial四项保存本地/云端验收见[保存报告](testing/reports/2026-10-09-project-save.md)及[接口](specifications/api/project-save.md)；认证、真实导入及四人业务体验待接续。未变更的单篇文档保留原版本号。
+文档基线：D0.60；更新日期：2026-10-09。E01-F02/F03 的独立本地 MySQL、初始迁移及真实结构核验已完成，结果见[报告](testing/reports/2026-10-08-e01-f02-f03.md)。F04 应用受限连接、启动/恢复、真实就绪及关闭已实现，见[执行文档](implementation/execution-plan.md#f04-单功能操作链路2026-10-08)和[验收报告](testing/reports/2026-10-08-e01-f04.md)。分支交付流程归[代码管理](operations/release-maintenance.md#2-代码管理)，实际 refs 归系统真相；普通编辑/关联扩展见[报告](testing/reports/2026-10-09-project-ordinary.md)。当前公网已接入项目看板/详情及trial普通编辑与关联，见[项目查询验收](testing/reports/2026-10-08-project-reads.md)和[原查询部署](operations/deployments/2026-10-08-project-reads.md)；trial四项保存本地/云端验收见[保存报告](testing/reports/2026-10-09-project-save.md)及[接口](specifications/api/project-save.md)；E03最小认证及完整项目主干见[新验收报告](testing/reports/2026-10-09-project-core.md)，真实导入及四人实际业务体验待接续。未变更的单篇文档保留原版本号。
 
-当前目标任务与六阶段计划：[GD-GOAL-001](implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)；E03-W06～W08匿名普通保存已交付，完整E03按单元接续，验收设计见 [TEST-037](testing/testing.md#test-037-当前测试项目四项保存整链验收设计)。用户暂时不在期间的推荐方案选择、选项和理由统一见[明日复核汇总](decisions/decisions.md#代决汇总2026-10-08供明日复核)。计划和测试设计不代表功能已实现。
+当前目标任务与六阶段计划：[GD-GOAL-001](implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)；E03-W00～W12项目主干已实现并部署，准确浏览器缺口见最新报告，后续E04按单功能接续，验收设计见 [TEST-037](testing/testing.md#test-037-当前测试项目四项保存整链验收设计)。用户暂时不在期间的推荐方案选择、选项和理由统一见[明日复核汇总](decisions/decisions.md#代决汇总2026-10-08供明日复核)。计划和测试设计不代表功能已实现。
 
 项目事实及施工准备状态以[当前系统真相](status/current-system-truth.md)为入口。原应用源码在本地核查副本；新工程已接入看板和详情的服务器读取，原六页的完整业务仍在逐单元迁移。运行命令见[本地工程运行](operations/release-maintenance.md#本地工程运行e01-f01)，结果见[验收报告](testing/reports/2026-10-08-e01-f01.md)；Git 推送与服务器部署分别记录。
 
@@ -10,7 +10,7 @@
 
 当前部署逐功能入口：[D01～D07](implementation/execution-plan.md#e12-d01d07首个公网基底的逐功能施工方案)，[Linux 参数与新域名流程](operations/release-maintenance.md#当前首个公网部署单元dec-071)；部署实测入口为系统真相第 26 节，运行命令归运维；未实施业务仍明确为讨论建议。
 
-当前优先级：按 DEC-071 保持免登录，E02 全部后置增强；只读首批已上线，下一单元的测试项目共享编辑范围按 DEC-073 确认，0002增量和四项明确保存已在本机/公网运行；[普通编辑部署](operations/deployments/2026-10-09-project-ordinary.md)记录本次实际构建，当前云版本见系统真相。范围归规格、施工归执行文档、实际部署事实归系统真相与部署记录。
+当前优先级：按 DEC-090 恢复最小身份，E03创建/本人负责/实名普通保存已接通；邀请码和完整账号后台后置，下一按E04单功能展开。[项目主干部署](operations/deployments/2026-10-09-project-core.md)记录当前固定构建，准确能力及未验收范围见系统真相31。范围归规格、施工归执行文档、实际部署事实归系统真相与部署记录。
 
 ## 目录结构
 

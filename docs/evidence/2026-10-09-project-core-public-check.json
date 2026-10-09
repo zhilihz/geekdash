@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-09T05:42:44.267652+00:00",
+  "build": {
+    "revision": "6aee827238912f2f202bc14ab8d0f5739af83048",
+    "dirty": false,
+    "builtAt": "2026-10-09T04:47:48.575Z",
+    "stage": "project-core",
+    "schemaVersion": "0002-trial-save"
+  },
+  "projectId": "7",
+  "savedVersion": "3",
+  "currentVersion": "4",
+  "checks": [
+    "公网 TLS、Secure Cookie、临时登录限制、首次改密及新登录",
+    "创建及新请求七阶段/创建者/提案看板回读，原创建回执可重入",
+    "第二账号只读拒绝，明确加入后获得编辑资格",
+    "资料与文字原子保存、新请求回读、实名历史、回执隔离及过期拒绝",
+    "退出本人责任后只读；最后有效负责人退出拒绝"
+  ],
+  "originalThreeTrialsPreserved": true,
+  "credentialFile": "仓库外受控交付，未包含秘密原文"
+}
