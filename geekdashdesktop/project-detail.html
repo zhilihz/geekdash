@@ -1,0 +1,4106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>项目详情看板</title>
+<style>
+/* ==========================================================================
+   主题变量（与列表页保持一致）：深色（默认）/ 浅色 / 暖色护眼
+   ========================================================================== */
+:root, [data-theme="dark"] {
+  --bg: #0d1117;
+  --bg-soft: #0f141a;
+  --card: #161b22;
+  --card-hover: #1b222c;
+  --border: #30363d;
+  --border-soft: #21262d;
+  --text: #e6edf3;
+  --text-dim: #8b949e;
+  --text-faint: #6e7681;
+  --accent: #58a6ff;
+  --accent-dim: #1f6feb;
+
+  --p-high: #f85149;
+  --p-mid:  #f0883e;
+  --p-low:  #3fb950;
+  --s-proposal: #a371f7;
+  --s-active:   #58a6ff;
+  --s-closed:   #39c5cf;
+  --s-hold:     #8b949e;
+}
+
+[data-theme="light"] {
+  --bg: #f6f8fa;
+  --bg-soft: #ffffff;
+  --card: #ffffff;
+  --card-hover: #f0f3f6;
+  --border: #d0d7de;
+  --border-soft: #eaeef2;
+  --text: #1f2328;
+  --text-dim: #57606a;
+  --text-faint: #8c959f;
+  --accent: #0969da;
+  --accent-dim: #1f6feb;
+
+  --p-high: #d1242f;
+  --p-mid:  #bf5b0a;
+  --p-low:  #1a7f37;
+  --s-proposal: #8250df;
+  --s-active:   #0969da;
+  --s-closed:   #1b9aaa;
+  --s-hold:     #8c959f;
+}
+
+[data-theme="warm"] {
+  --bg: #faf5ec;
+  --bg-soft: #f5eee0;
+  --card: #fffaf0;
+  --card-hover: #f3e9d7;
+  --border: #e3d5bd;
+  --border-soft: #efe5d0;
+  --text: #3d3428;
+  --text-dim: #7a6a52;
+  --text-faint: #a08d70;
+  --accent: #b45309;
+  --accent-dim: #c2701d;
+
+  --p-high: #c0392b;
+  --p-mid:  #d98324;
+  --p-low:  #6f9e3b;
+  --s-proposal: #8e5fd1;
+  --s-active:   #b45309;
+  --s-closed:   #3d8f8f;
+  --s-hold:     #a08d70;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+               "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page { max-width: 880px; margin: 0 auto; padding: 32px 20px 60px; }
+
+/* ==========================================================================
+   顶部栏
+   ========================================================================== */
+.topbar { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+.back-btn {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.back-btn:hover { color: var(--text); background: var(--card-hover); }
+.topbar .crumb { color: var(--text-faint); font-size: 13px; }
+
+/* 主题切换 */
+.theme-switch {
+  margin-left: auto;
+  display: inline-flex;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 3px;
+  gap: 2px;
+}
+.theme-switch button {
+  background: transparent;
+  color: var(--text-dim);
+  border: none;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.theme-switch button:hover { color: var(--text); }
+.theme-switch button.active { background: #8250df; color: #fff; font-weight: 600; }
+
+/* ==========================================================================
+   顶部固定区（滚动时保持不动）+ 日期专区
+   ========================================================================== */
+.top-sticky { background: var(--bg); margin-bottom: 20px; }
+.top-sticky .topbar { margin-bottom: 12px; }
+.date-zone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 14px 22px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 12px;
+  background: var(--card);
+}
+.date-zone .dz-left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.dz-date { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: .5px; }
+.dz-week { font-size: 14px; font-weight: 600; color: var(--text-dim); padding: 2px 10px; background: var(--bg-soft); border-radius: 6px; }
+.dz-time { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent); letter-spacing: 1.5px; }
+.dz-countdown { display: flex; align-items: baseline; gap: 8px; background: var(--accent-dim); border-radius: 10px; padding: 10px 18px; }
+.dz-cd-label { font-size: 13px; color: rgba(255,255,255,0.9); }
+.dz-cd-num { font-size: 30px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; line-height: 1; }
+.dz-cd-unit { font-size: 14px; color: rgba(255,255,255,0.9); }
+
+/* ==========================================================================
+   详情面板
+   ========================================================================== */
+.detail-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+  overflow: clip;
+}
+
+.detail-head {
+  position: sticky; top: 0; z-index: 90; background: var(--card); border-radius: 14px 14px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.detail-head .d-title { font-size: 22px; font-weight: 700; flex: 1; min-width: 200px; }
+.detail-head .tags { display: flex; gap: 8px; }
+
+/* tab 切换 */
+.detail-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 16px 24px 0;
+  border-bottom: 1px solid var(--border);
+}
+.dtab {
+  background: transparent;
+  color: var(--text-dim);
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 18px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+.dtab:hover { color: var(--text); }
+.dtab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* ---- 项目阶段 ---- */
+.stages-wrap { display: flex; flex-direction: column; gap: 12px; }
+.stages-hint { color: var(--text-faint); font-size: 12.5px; margin-bottom: 4px; }
+.stages-total {
+  background: var(--bg-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 13.5px;
+  color: var(--text-dim);
+}
+.stages-total b { color: var(--accent); font-size: 15px; }
+.stages-error {
+  background: rgba(248, 81, 73, 0.14);
+  border: 1px solid #f85149;
+  border-left: 4px solid #f85149;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #f85149;
+  margin-bottom: 4px;
+}
+.stages-error b { font-size: 15px; }
+.stage-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+/* 阶段四态底纹：已完成=浅绿 / 进行中=绿 / 中途结案=深灰 / 尚未开始=浅灰 */
+.stage-card.stage-done { border-left-color: #2ea043; background: rgba(46, 160, 67, 0.10); }
+.stage-card.stage-current { border-left-color: #3fb950; background: rgba(63, 185, 80, 0.20); }
+.stage-card.stage-closed { border-left-color: #6e7681; background: rgba(110, 118, 129, 0.30); }
+.stage-card.stage-todo { border-left-color: #8b949e; background: rgba(139, 148, 158, 0.08); }
+.stage-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.stage-idx {
+  background: var(--accent-dim);
+  color: #fff;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+}
+.stage-card.stage-done .stage-idx { background: #2ea043; }
+.stage-card.stage-current .stage-idx { background: #3fb950; }
+.stage-card.stage-closed .stage-idx { background: #6e7681; }
+.stage-name { font-size: 15px; font-weight: 600; }
+.stage-progress { color: var(--text-dim); font-size: 12px; }
+.stage-card.stage-current .stage-name { color: #2ea043; }
+.stage-done-label {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+}
+.stage-done-label input { accent-color: var(--accent-dim); cursor: pointer; }
+.stage-done-label.disabled { color: var(--text-faint); cursor: not-allowed; }
+.stage-done-label.disabled input { cursor: not-allowed; opacity: 0.5; }
+.stage-card.stage-current .stage-done-label { color: var(--accent); font-weight: 500; }
+.stage-milestone { margin-top: 8px; font-size: 13px; color: var(--text); }
+.stage-milestone .m-label { color: var(--text-faint); margin-right: 4px; }
+.stage-lines { margin-top: 8px; font-size: 12.5px; color: var(--text-dim); }
+.stage-lines summary { cursor: pointer; color: var(--text-faint); }
+.stage-lines summary:hover { color: var(--text); }
+.stage-lines .line { margin-top: 5px; padding-left: 8px; border-left: 2px solid var(--border); }
+.stage-lines .line b { color: var(--text); font-weight: 500; }
+.stage-days { margin-top: 8px; font-size: 12.5px; color: var(--text-faint); display: flex; align-items: center; gap: 8px; }
+.stage-days input {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12.5px;
+  width: 130px;
+  outline: none;
+}
+.stage-days input:focus { border-color: var(--accent); }
+
+/* 里程碑评述 + 完成日期 */
+.stage-note-wrap { margin-top: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.stage-note {
+  flex: 1;
+  min-width: 220px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12.5px;
+  outline: none;
+}
+.stage-note:focus { border-color: var(--accent); }
+.stage-done-date { font-size: 12px; color: var(--text-faint); white-space: nowrap; }
+.stage-card.stage-done .stage-done-date { color: #3fb950; }
+
+/* 阶段保存按钮 */
+.stages-actions { display: flex; align-items: center; gap: 12px; margin-top: 4px; padding-top: 4px; }
+.stages-save-hint { font-size: 12px; color: var(--text-faint); }
+
+/* 阶段二选一：里程碑完成 / 中途结案 */
+.stage-choice { display: flex; gap: 10px; margin-top: 10px; }
+.choice-btn {
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+}
+.choice-btn.choice-done { background: #3fb950; border-color: #3fb950; color: #fff; }
+.choice-btn.choice-done:hover { opacity: .9; }
+.choice-btn.choice-close { background: #f85149; border-color: #f85149; color: #fff; }
+.choice-btn.choice-close:hover { opacity: .9; }
+.stage-choice-form { margin-top: 10px; }
+.choice-note {
+  width: 100%;
+  min-height: 60px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  outline: none;
+  resize: vertical;
+}
+.choice-note:focus { border-color: var(--accent); }
+.choice-actions { display: flex; gap: 8px; margin-top: 8px; }
+.choice-actions .choice-confirm {
+  background: var(--accent-dim);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.choice-actions .choice-confirm:hover { background: var(--accent); }
+.choice-actions .choice-cancel {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.choice-actions .choice-cancel:hover { color: var(--text); background: var(--card-hover); }
+.stage-done-tag { margin-top: 8px; font-size: 12.5px; color: #3fb950; font-weight: 600; }
+.stage-note-view { margin-top: 4px; font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
+.stage-locked { margin-top: 8px; font-size: 12.5px; color: var(--text-faint); }
+
+.detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.readonly-banner {
+  margin: 12px 24px 0;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  background: var(--bg-soft);
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.detail-meta span b { color: var(--text); font-weight: 600; }
+
+.detail-body { padding: 22px 24px 28px; }
+
+/* ==========================================================================
+   基本信息表单
+   ========================================================================== */
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; }
+.field-full { grid-column: 1 / -1; }
+.field label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; font-weight: 600; }
+.field input, .field select, .field textarea {
+  width: 100%;
+  background: var(--bg-soft);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+.field textarea { resize: vertical; min-height: 76px; line-height: 1.5; }
+.statusdesc-label { display:flex !important; align-items:center; gap:8px; }
+.statusdesc-saved { color:var(--text-faint); font-size:11px; font-weight:400; }
+.statusdesc-history { margin-bottom:12px; border:1px solid var(--border); border-radius:7px; padding:10px 12px; }
+.statusdesc-history summary { cursor:pointer; color:var(--text-dim); }
+.statusdesc-history .history { margin-top:12px; }
+.statusdesc-history .h-text { white-space:pre-wrap; overflow-wrap:anywhere; }
+.mention-wrap { position:relative; }
+.mention-menu { position:absolute; z-index:20; left:0; right:0; top:calc(100% + 4px); max-height:190px; overflow:auto; background:var(--card); border:1px solid var(--border); border-radius:7px; box-shadow:0 8px 18px rgba(0,0,0,.25); padding:4px; display:none; }
+.mention-menu.open { display:block; }
+.mention-option { display:flex; width:100%; gap:8px; align-items:baseline; border:0; border-radius:5px; background:transparent; color:var(--text); padding:6px 8px; text-align:left; cursor:pointer; font:inherit; }
+.mention-option:hover, .mention-option.active { background:var(--card-hover); }
+.mention-role { color:var(--text-faint); font-size:12px; }
+/* 日期选择器配色跟随主题 */
+:root, [data-theme="dark"] { color-scheme: dark; }
+[data-theme="light"], [data-theme="warm"] { color-scheme: light; }
+.field input[type="date"] { cursor: pointer; }
+.field .req { color: #f85149; font-weight: 700; margin-left: 2px; }
+.ctrl-hint { font-size: 12px; color: #f85149; margin-top: 4px; }
+.due-hint { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
+.field select option:disabled { color: var(--text-faint); }
+
+/* 核心芯片：只能从基础芯片库选择，历史库外值保留为待入库标签 */
+.chip-picker { border: 1px solid var(--border-soft); border-radius: 8px; padding: 10px; background: var(--bg-soft); }
+.chip-picker-selected { display: flex; flex-wrap: wrap; gap: 7px; min-height: 30px; align-items: center; }
+.project-chip-tag { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--accent-dim); border-radius: 999px; padding: 5px 9px; background: var(--accent-soft); color: var(--text); font-size: 12.5px; }
+.project-chip-tag.unregistered { border-color: #f0883e; background: rgba(240,136,62,.12); color: #f0a15b; }
+.project-chip-remove { border: 0; background: transparent; color: inherit; padding: 0; cursor: pointer; font-size: 16px; line-height: 1; }
+.chip-picker-empty { color: var(--text-faint); font-size: 12.5px; }
+.chip-picker-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 9px; }
+.chip-picker-actions select { flex: 1 1 260px; min-width: 180px; }
+.chip-picker-btn, .chip-manage-link { border: 1px solid var(--border); border-radius: 6px; padding: 8px 11px; background: transparent; color: var(--accent); font-size: 12.5px; cursor: pointer; text-decoration: none; }
+.chip-picker-btn:hover, .chip-manage-link:hover { border-color: var(--accent); background: var(--accent-soft); }
+.chip-picker-btn:disabled { opacity: .45; cursor: not-allowed; }
+.chip-picker-hint, .chip-picker-warning { margin-top: 7px; font-size: 12px; line-height: 1.5; color: var(--text-faint); }
+.chip-picker-warning { color: #f0a15b; }
+.chip-add-btn {
+  background: transparent;
+  color: var(--accent);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+.chip-add-btn:hover { border-color: var(--accent); background: var(--bg-soft); }
+
+/* 参与人（多选） */
+.participant-list { display: flex; flex-direction: column; gap: 8px; }
+.part-item { display: flex; gap: 8px; align-items: center; }
+.part-item .part-input {
+  flex: 1; min-width: 0; background: var(--bg-soft); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px;
+  font-size: 14px; font-family: inherit; outline: none;
+}
+.part-item .part-input:focus { border-color: var(--accent); }
+.part-del-btn {
+  flex: 0 0 auto; background: transparent; color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: 6px; width: 34px; height: 36px;
+  font-size: 18px; line-height: 1; cursor: pointer;
+}
+.part-del-btn:hover { color: #f85149; border-color: #f85149; }
+
+/* 人员选择器：只能从基础工程师库选择，支持搜索和滚动候选列表。 */
+.person-picker { position: relative; }
+.person-picker-selected { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 34px; padding: 4px 7px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg-soft); }
+.person-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px; border-radius: 12px; background: rgba(88,166,255,.14); color: var(--text); font-size: 12px; }
+.person-chip.legacy { background: rgba(240,136,62,.14); color: var(--p-mid); }
+.person-chip-remove { border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 15px; line-height: 1; padding: 0; }
+.person-search { width: 100%; margin-top: 7px; background: var(--bg-soft); color: var(--text); border: 1px solid var(--border); border-radius: 7px; padding: 8px 11px; font-size: 14px; font-family: inherit; outline: none; }
+.person-search:focus { border-color: var(--accent); }
+.person-options { display: none; position: absolute; z-index: 25; left: 0; right: 0; top: calc(100% + 4px); max-height: 210px; overflow-y: auto; padding: 5px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); box-shadow: 0 8px 20px rgba(0,0,0,.18); }
+.person-picker.open .person-options { display: block; }
+.person-option { display: flex; justify-content: space-between; align-items: center; width: 100%; border: 0; border-radius: 6px; background: transparent; color: var(--text); padding: 7px 9px; text-align: left; cursor: pointer; font: inherit; }
+.person-option:hover, .person-option.active { background: var(--card-hover); color: var(--accent); }
+.person-option-role { color: var(--text-faint); font-size: 12px; margin-left: 10px; }
+.person-picker-hint { margin-top: 5px; color: var(--text-faint); font-size: 11.5px; }
+.person-picker-hint a { color: var(--accent); text-decoration: none; }
+.person-picker-hint a:hover { text-decoration: underline; }
+
+/* ==========================================================================
+   项目风险与变更 tab 分区
+   ========================================================================== */
+.rc-section { margin-top: 18px; }
+.rc-section:first-child { margin-top: 0; }
+.rc-section-title {
+  font-size: 15px; font-weight: 700; color: var(--text);
+  padding-bottom: 8px; margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ==========================================================================
+   风险预警
+   ========================================================================== */
+.risk-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
+.risk-empty { color: var(--text-faint); font-size: 13px; }
+.risk-item {
+  border: 1px solid var(--border);
+  border-left: 3px solid #f85149;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--bg-soft);
+}
+.risk-item.resolved { border-left-color: #3fb950; opacity: 0.8; }
+.risk-item-head { display: flex; align-items: center; gap: 10px; }
+.risk-content { flex: 1; font-size: 13.5px; color: var(--text); }
+.risk-badge {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 1px 10px;
+  border-radius: 10px;
+}
+.risk-badge.active { background: rgba(248, 81, 73, 0.16); color: #f85149; }
+.risk-badge.resolved { background: rgba(63, 185, 80, 0.16); color: #3fb950; }
+.risk-meta { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
+.risk-resolve-info { font-size: 12.5px; color: var(--text-dim); margin-top: 6px; }
+.risk-resolve-btn {
+  margin-top: 8px;
+  background: transparent;
+  color: #f85149;
+  border: 1px solid #f85149;
+  border-radius: 6px;
+  padding: 4px 14px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.risk-resolve-btn:hover { background: rgba(248, 81, 73, 0.12); }
+.risk-add-btn {
+  background: transparent;
+  color: var(--accent);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.risk-add-btn:hover { border-color: var(--accent); background: var(--bg-soft); }
+.risk-form, .risk-resolve-form { margin-top: 10px; }
+.risk-note, .risk-resolve-note {
+  width: 100%;
+  min-height: 64px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  outline: none;
+  resize: vertical;
+  line-height: 1.5;
+}
+.risk-note:focus, .risk-resolve-note:focus { border-color: var(--accent); }
+.risk-actions { display: flex; gap: 8px; margin-top: 8px; }
+.risk-actions .risk-confirm, .risk-actions .risk-resolve-confirm {
+  background: var(--accent-dim);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.risk-actions .risk-confirm:hover, .risk-actions .risk-resolve-confirm:hover { background: var(--accent); }
+.risk-actions .risk-cancel, .risk-actions .risk-resolve-cancel {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.risk-actions .risk-cancel:hover, .risk-actions .risk-resolve-cancel:hover { color: var(--text); background: var(--card-hover); }
+
+/* 风险等级 */
+.risk-form-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.risk-row-label { font-size: 12.5px; color: var(--text-dim); flex: 0 0 auto; }
+.risk-level-select { display: inline-flex; gap: 6px; }
+.rlv-btn {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 16px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.rlv-btn:hover { color: var(--text); background: var(--card-hover); }
+.rlv-btn.active.rlv-高 { background: rgba(248,81,73,.18); color: #f85149; border-color: #f85149; font-weight: 600; }
+.rlv-btn.active.rlv-中 { background: rgba(240,136,62,.18); color: #f0883e; border-color: #f0883e; font-weight: 600; }
+.rlv-btn.active.rlv-低 { background: rgba(63,185,80,.18); color: #3fb950; border-color: #3fb950; font-weight: 600; }
+.risk-level {
+  display: inline-block;
+  flex: 0 0 auto;
+  padding: 0 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+}
+.risk-level.lv-高 { background: rgba(248,81,73,.16); color: #f85149; border: 1px solid rgba(248,81,73,.35); }
+.risk-level.lv-中 { background: rgba(240,136,62,.16); color: #f0883e; border: 1px solid rgba(240,136,62,.35); }
+.risk-level.lv-低 { background: rgba(63,185,80,.16); color: #3fb950; border: 1px solid rgba(63,185,80,.35); }
+
+/* ==========================================================================
+   延期项目控制
+   ========================================================================== */
+.delay-control-head { font-size: 13.5px; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.delay-status {
+  display: inline-block;
+  padding: 1px 12px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.delay-status.delay-yes { background: rgba(248,81,73,.16); color: #f85149; border: 1px solid rgba(248,81,73,.4); }
+.delay-status.delay-no { background: rgba(63,185,80,.16); color: #3fb950; border: 1px solid rgba(63,185,80,.4); }
+.delay-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
+.delay-item {
+  border: 1px solid var(--border);
+  border-left: 3px solid #f85149;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--bg-soft);
+}
+.delay-item-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.delay-no {
+  display: inline-block;
+  padding: 1px 12px;
+  border-radius: 12px;
+  background: rgba(248,81,73,.16);
+  color: #f85149;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.delay-time { font-size: 12px; color: var(--text-faint); }
+.delay-ops { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.delay-op-btn {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 2px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.delay-op-btn:hover { color: var(--accent); border-color: var(--accent); }
+.delay-op-btn.danger:hover { color: #f85149; border-color: #f85149; }
+.delay-status-select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+}
+.delay-status-select:focus { border-color: var(--accent); }
+.delay-form-title { font-size: 13px; color: var(--text-dim); font-weight: 600; margin-bottom: 2px; }
+.delay-line { display: flex; gap: 8px; font-size: 12.5px; line-height: 1.6; margin-top: 3px; }
+.dl-label { flex: 0 0 auto; color: var(--text-faint); min-width: 92px; }
+.dl-val { color: var(--text-dim); flex: 1; word-break: break-all; }
+.delay-hint { font-size: 12.5px; color: var(--text-faint); }
+.delay-form { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+.delay-form-row { display: flex; align-items: flex-start; gap: 10px; }
+.delay-form-row .chg-row-label { min-width: 92px; flex: 0 0 auto; padding-top: 6px; }
+.delay-form-row .chg-content-input { flex: 1; width: auto; min-height: 52px; margin-bottom: 0; }
+.delay-form-row input[type="date"] {
+  flex: 0 0 auto;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 13px;
+  outline: none;
+}
+.delay-form-row input[type="date"]:focus { border-color: var(--accent); }
+
+/* ==========================================================================
+   项目需求变更
+   ========================================================================== */
+.chg-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
+.chg-item {
+  border: 1px solid var(--border);
+  border-left: 3px solid #39c5cf;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--bg-soft);
+}
+.chg-item.rejected { border-left-color: #f85149; }
+.chg-head { display: flex; align-items: center; gap: 8px; }
+.chg-src, .chg-status {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 1px 10px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.chg-src.src-customer { background: rgba(88, 166, 255, 0.16); color: #58a6ff; }
+.chg-src.src-biz { background: rgba(163, 113, 247, 0.16); color: #a371f7; }
+.chg-status.st-accept { background: rgba(63, 185, 80, 0.16); color: #3fb950; }
+.chg-status.st-reject { background: rgba(248, 81, 73, 0.16); color: #f85149; }
+.chg-time { margin-left: auto; font-size: 12px; color: var(--text-faint); white-space: nowrap; }
+.chg-content { margin-top: 6px; font-size: 13.5px; color: var(--text); }
+.chg-reason { margin-top: 4px; font-size: 12.5px; color: var(--text-dim); }
+.chg-form { margin-top: 10px; }
+.chg-form-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.chg-row-label { font-size: 12.5px; color: var(--text-dim); flex: 0 0 auto; }
+.chg-form select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 13px;
+  outline: none;
+}
+.chg-radio { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text); cursor: pointer; }
+.chg-radio input { accent-color: var(--accent-dim); cursor: pointer; }
+.chg-content-input, .chg-reason-input {
+  width: 100%;
+  min-height: 60px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  outline: none;
+  resize: vertical;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+.chg-content-input:focus, .chg-reason-input:focus { border-color: var(--accent); }
+
+/* ==========================================================================
+   甘特图
+   ========================================================================== */
+.gantt { padding: 4px 0; }
+.gantt-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-faint);
+  margin-bottom: 10px;
+}
+.gantt-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.gantt-name {
+  flex: 0 0 88px;
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: right;
+  white-space: nowrap;
+}
+.gantt-track {
+  position: relative;
+  flex: 1;
+  height: 28px;
+  background: var(--bg-soft);
+  border-radius: 6px;
+}
+.gantt-bar {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 12px;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.gantt-empty {
+  color: var(--text-dim);
+  padding: 30px 0;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* ==========================================================================
+   里程碑时间轴
+   ========================================================================== */
+.milestones { position: relative; padding-left: 28px; }
+.milestones::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--border);
+}
+.ms-item { position: relative; padding-bottom: 22px; }
+.ms-item:last-child { padding-bottom: 0; }
+.ms-dot {
+  position: absolute;
+  left: -26px;
+  top: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--text-faint);
+  background: var(--bg);
+}
+.ms-dot.done { background: #3fb950; border-color: #3fb950; }
+.ms-dot.active { background: #58a6ff; border-color: #58a6ff; box-shadow: 0 0 0 4px rgba(88,166,255,.15); }
+.ms-dot.pending { background: transparent; border-color: #8b949e; }
+.ms-date { font-size: 12px; color: var(--text-faint); }
+.ms-title { font-size: 14px; font-weight: 600; color: var(--text); margin: 2px 0; }
+.ms-desc { font-size: 12.5px; color: var(--text-dim); }
+.ms-status {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  vertical-align: 2px;
+}
+.ms-status.done { background: rgba(63,185,80,.15); color: #3fb950; }
+.ms-status.active { background: rgba(88,166,255,.15); color: #58a6ff; }
+.ms-status.pending { background: rgba(139,148,158,.15); color: #8b949e; }
+
+/* ==========================================================================
+   底部按钮 & 标签
+   ========================================================================== */
+.detail-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+}
+.save-btn {
+  background: var(--accent-dim);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.save-btn:hover { background: var(--accent); }
+.del-btn {
+  background: transparent;
+  color: #f85149;
+  border: 1px solid rgba(248,81,73,0.45);
+  border-radius: 6px;
+  padding: 9px 18px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.del-btn:hover { background: rgba(248,81,73,0.12); border-color: #f85149; }
+.save-hint { color: var(--text-faint); font-size: 12px; margin-left: auto; }
+
+.pri-tag, .st-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.status-with-maintenance { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+.maintenance-badge { display: inline-block; padding: 0 6px; border-radius: 7px; background: #9333ea; color: #fff; font-size: 9px; font-weight: 700; line-height: 1.35; white-space: nowrap; }
+.pri-high { background: rgba(248,81,73,0.15);  color: var(--p-high); }
+.pri-mid  { background: rgba(240,136,62,0.15); color: var(--p-mid); }
+.pri-low  { background: rgba(63,185,80,0.15);  color: var(--p-low); }
+.st-proposal { background: rgba(163,113,247,0.15); color: var(--s-proposal); }
+.st-active   { background: rgba(88,166,255,0.15);  color: var(--s-active); }
+.st-closed   { background: rgba(57,197,207,0.15);  color: var(--s-closed); }
+.st-hold     { background: rgba(139,148,158,0.15); color: var(--s-hold); }
+
+/* 红黄绿灯（信号灯）标签 */
+.signal-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.signal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+.signal-green  { background: rgba(63,185,80,0.15);  color: #3fb950; }
+.signal-green  .signal-dot { background: #3fb950; box-shadow: 0 0 6px rgba(63,185,80,0.85); }
+.signal-yellow { background: rgba(245,179,1,0.15);  color: #e3b341; }
+.signal-yellow .signal-dot { background: #f5b301; box-shadow: 0 0 6px rgba(245,179,1,0.85); }
+.signal-red    { background: rgba(248,81,73,0.15);  color: #f85149; }
+.signal-red    .signal-dot { background: #f85149; box-shadow: 0 0 6px rgba(248,81,73,0.85); }
+
+/* 红黄绿灯判定规则提示 */
+.signal-rule details {
+  background: var(--bg-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+.signal-rule summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  user-select: none;
+}
+.signal-rule summary:hover { color: var(--text); }
+.signal-rule ul { margin: 10px 0 0 18px; list-style: disc; }
+.signal-rule li { font-size: 12.5px; color: var(--text-dim); line-height: 1.7; }
+.signal-rule .rule-g { color: #3fb950; }
+.signal-rule .rule-y { color: #e3b341; }
+.signal-rule .rule-r { color: #f85149; }
+
+/* 状态更新历史时间线 */
+.history { position: relative; padding-left: 22px; }
+.history::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--border);
+}
+.h-item { position: relative; padding-bottom: 16px; }
+.h-item:last-child { padding-bottom: 0; }
+.h-dot {
+  position: absolute;
+  left: -20px;
+  top: 5px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.h-date { font-size: 12px; color: var(--text-faint); }
+.h-text { font-size: 13px; color: var(--text); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.history-empty { font-size: 12.5px; color: var(--text-faint); }
+
+/* 项目节点 */
+.nodes-wrap { display: flex; flex-direction: column; gap: 12px; }
+.nodes-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.nodes-hint { font-size: 12.5px; color: var(--text-dim); }
+.node-add-btn {
+  background: var(--accent-dim); color: #fff; border: none; border-radius: 8px;
+  padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.node-add-btn:hover { background: var(--accent); }
+.node-form {
+  border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  border-radius: 10px; padding: 14px 16px; background: var(--bg-soft);
+}
+.node-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.node-form-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
+.node-form-grid .field label { font-size: 12px; color: var(--text-dim); display: block; margin-bottom: 4px; }
+.node-form-grid input, .node-form-grid select, .node-form textarea {
+  width: 100%; background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; font-size: 13px; outline: none;
+}
+.node-form-grid input:focus, .node-form-grid select:focus, .node-form textarea:focus { border-color: var(--accent); }
+.node-form textarea { min-height: 60px; resize: vertical; line-height: 1.5; }
+.node-form-hint { font-size: 12px; color: var(--text-faint); margin-top: 8px; }
+.node-list { display: flex; flex-direction: column; gap: 10px; }
+.node-empty { font-size: 12.5px; color: var(--text-faint); padding: 12px 0; }
+.node-item {
+  border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--card);
+}
+.node-item.done { border-left: 3px solid #3fb950; background: rgba(63, 185, 80, 0.12); }
+.node-item:not(.done) { border-left: 3px solid var(--accent); }
+.node-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.node-name { font-size: 14px; font-weight: 700; color: var(--text); }
+.node-stage {
+  font-size: 12.5px; font-weight: 600; color: var(--text-dim);
+  padding: 1px 10px; border-radius: 10px; background: var(--bg-soft); border: 1px solid var(--border);
+}
+.node-badge { font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 10px; }
+.node-badge.done { background: rgba(63,185,80,.20); color: #3fb950; }
+.node-badge.todo { background: rgba(88,166,255,.16); color: var(--accent); }
+.node-edit, .node-del {
+  margin-left: auto; background: transparent; color: var(--text-faint);
+  border: 1px solid var(--border); border-radius: 6px; padding: 2px 10px; font-size: 12px; cursor: pointer;
+}
+.node-edit { margin-left: 0; }
+.node-edit:hover { color: var(--accent); border-color: var(--accent); }
+.node-del:hover { color: var(--p-high); border-color: var(--p-high); }
+.node-dates { font-size: 12.5px; color: var(--text-dim); margin-top: 6px; display: flex; gap: 14px; flex-wrap: wrap; }
+.node-done-date { color: #3fb950; }
+.node-output { font-size: 13px; color: var(--text); margin-top: 4px; line-height: 1.5; }
+
+/* toast 提示 */
+.toast {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent-dim);
+  color: #fff;
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-size: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s, transform .25s;
+  z-index: 200;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(6px); }
+
+/* 项目不存在提示 */
+.not-found { text-align: center; padding: 80px 20px; color: var(--text-dim); }
+.not-found h2 { color: var(--text); margin-bottom: 10px; }
+
+/* ==========================================================================
+   响应式（自动适配电脑 / 平板 / 手机）
+   ========================================================================== */
+/* 平板竖屏 */
+@media (max-width: 768px) {
+  .page { padding: 20px 16px 40px; }
+  .detail-body { padding: 18px 18px 24px; }
+}
+
+/* 手机 */
+@media (max-width: 640px) {
+  .page { padding: 12px 10px 32px; }
+
+  .topbar { flex-wrap: wrap; gap: 8px; }
+  .topbar .crumb { font-size: 12px; }
+
+  .detail-head { padding: 16px; }
+  .detail-head .d-title { font-size: 18px; }
+
+  .detail-tabs { padding: 12px 12px 0; }
+  .dtab { padding: 8px 12px; font-size: 13px; }
+
+  .detail-meta { padding: 12px 16px; gap: 10px; font-size: 12px; }
+  .detail-meta span { flex: 0 0 100%; }
+
+  .detail-body { padding: 16px; }
+  .field-grid { grid-template-columns: 1fr; gap: 14px; }
+
+  .detail-foot { flex-wrap: wrap; padding: 14px 16px; }
+  .detail-foot .save-hint { margin-left: 0; width: 100%; }
+
+  /* 甘特图紧凑 */
+  .gantt-name { flex: 0 0 68px; font-size: 11px; }
+  .gantt-bar { font-size: 11px; padding: 0 6px; }
+  .gantt-track { height: 24px; }
+}
+
+::-webkit-scrollbar { height: 10px; width: 10px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ============ Flow 流程图（阶段泳道 + 节点 + 连线编排） ============ */
+.flow-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.flow-hint { font-size: 12.5px; color: var(--text-faint); }
+.flow-canvas {
+  position: relative; overflow: auto; border: 1px solid var(--border);
+  border-radius: 10px; background: var(--bg-soft);
+}
+.flow-inner { position: relative; width: 1240px; }
+.flow-links { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 1; }
+.flow-links .flow-link-path { stroke: var(--accent); stroke-width: 2; fill: none; stroke-linecap: round; }
+.flow-links .flow-link-dot { fill: var(--accent); }
+.flow-links .flow-link-hit { stroke: transparent; stroke-width: 12; fill: none; cursor: pointer; pointer-events: stroke; }
+.flow-lane {
+  position: absolute; left: 190px; right: 0; height: 96px;
+  background: rgba(128,128,128,0.04); border-bottom: 1px dashed var(--border-soft);
+}
+.flow-lane-label {
+  position: absolute; left: 0; width: 190px; height: 96px; box-sizing: border-box;
+  display: flex; flex-direction: column; justify-content: center; padding: 0 14px;
+  border-bottom: 1px dashed var(--border-soft); background: var(--bg);
+  font-size: 13px; color: var(--text); font-weight: 500; line-height: 1.4;
+}
+.flow-lane-label .sl-name { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.3; }
+.flow-lane-label .sl-milestone { font-size: 10.5px; color: var(--text-faint); line-height: 1.3; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.flow-lane-label .sl-state { font-size: 11px; margin-top: 3px; font-weight: 500; }
+.flow-lane-label.lane-current { border-left: 3px solid var(--accent); background: rgba(88,166,255,0.08); }
+.flow-lane-label.lane-done { border-left: 3px solid #3fb950; }
+.flow-lane-label.lane-closed { border-left: 3px solid var(--text-faint); }
+.flow-lane-label .sl-no { font-size: 11px; color: var(--text-faint); font-weight: 400; margin-top: 2px; }
+.flow-node {
+  position: absolute; z-index: 2; width: 140px; box-sizing: border-box;
+  padding: 8px 14px 8px 12px; border-radius: 8px; cursor: grab;
+  background: var(--card); border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0,0,0,.18);
+}
+.flow-node.done { border-left: 3px solid #3fb950; }
+.flow-node.todo { border-left: 3px solid #f0883e; }
+.flow-node:hover { border-color: var(--accent); }
+.flow-node.dragging { cursor: grabbing; border-color: var(--accent); }
+.flow-node .fn-name { font-size: 13px; color: var(--text); font-weight: 500; line-height: 1.3; word-break: break-all; }
+.flow-node .fn-date { font-size: 11px; color: var(--text-faint); margin-top: 3px; }
+.flow-port {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--accent); border: 2px solid var(--bg); cursor: crosshair; z-index: 3;
+}
+.flow-port.out { right: -7px; }
+.flow-port.in { left: -7px; }
+.flow-ghost { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 4; fill: none; }
+.flow-lane-label { cursor: pointer; }
+.flow-lane-label:hover { background: var(--card-hover); }
+.flow-lane:hover { background: rgba(128,128,128,0.07); }
+.sl-done { font-size: 11px; color: #3fb950; margin-top: 2px; }
+
+/* Flow 编辑对话框 */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.flow-modal { background: var(--card); border: 1px solid var(--border); border-radius: 14px; width: 460px; max-width: 92vw; max-height: 86vh; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,.35); }
+.flow-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.flow-modal-head .title { font-size: 15px; font-weight: 600; color: var(--text); }
+.flow-modal-close { background: transparent; border: none; color: var(--text-faint); font-size: 20px; cursor: pointer; line-height: 1; }
+.flow-modal-close:hover { color: var(--text); }
+.flow-modal-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+.flow-modal-body .field { display: flex; flex-direction: column; gap: 5px; }
+.flow-modal-body .field label { font-size: 12px; color: var(--text-faint); }
+.flow-modal-body input[type="text"], .flow-modal-body input[type="date"], .flow-modal-body textarea {
+  background: var(--bg-soft); color: var(--text); border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px 10px; font-size: 13px; font-family: inherit; outline: none; box-sizing: border-box;
+}
+.flow-modal-body textarea { min-height: 60px; resize: vertical; }
+.flow-modal-body input:focus, .flow-modal-body textarea:focus { border-color: var(--accent); }
+.flow-modal-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 12px 18px; border-top: 1px solid var(--border); }
+
+/* Flow 导出打印 */
+.flow-print-area { display: none; }
+@media print {
+  body > *:not(.flow-print-area) { display: none !important; }
+  .flow-print-area { display: block !important; background: #fff; color: #111; padding: 24px; }
+  .flow-print-area h1 { font-size: 18px; margin: 0 0 4px; color: #111; }
+  .flow-print-area .fbp-meta { font-size: 12px; color: #555; margin-bottom: 16px; }
+  .flow-print-area .fbp-item { border: 1px solid #ccc; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; page-break-inside: avoid; }
+  .flow-print-area .fbp-head { font-size: 13px; color: #333; margin-bottom: 4px; font-weight: 600; }
+  .flow-print-area .fbp-content { font-size: 13px; color: #111; line-height: 1.6; }
+}
+
+/* Flow 阶段右侧新增按钮（挂在 canvas 顶层，right:8px 始终贴视口右侧）+ 子节点折叠 */
+.flow-lane-add {
+  position: absolute; right: 8px; width: 88px; height: 30px;
+  background: transparent; color: var(--text-dim); border: 1px dashed var(--border);
+  border-radius: 6px; font-size: 12px; cursor: pointer; z-index: 5;
+}
+.flow-lane-add:hover { color: var(--accent); border-color: var(--accent); }
+.flow-child-toggle { margin-top: 6px; font-size: 11px; color: var(--accent); cursor: pointer; user-select: none; }
+.flow-child-toggle:hover { text-decoration: underline; }
+.flow-children { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border-soft); display: flex; flex-direction: column; gap: 4px; }
+.flow-child { display: flex; justify-content: space-between; gap: 6px; font-size: 11px; color: var(--text-dim); padding: 3px 6px; border-radius: 4px; cursor: pointer; }
+.flow-child:hover { background: var(--bg-soft); color: var(--text); }
+.flow-child .fc-date { color: var(--text-faint); white-space: nowrap; }
+.flow-child-add { font-size: 11px; color: var(--accent); cursor: pointer; text-align: center; padding: 2px 0; }
+.flow-child-add:hover { text-decoration: underline; }
+.flow-modal-body select {
+  background: var(--bg-soft); color: var(--text); border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px 10px; font-size: 13px; outline: none; box-sizing: border-box; width: 100%;
+}
+.flow-modal-body select:focus { border-color: var(--accent); }
+#stage-rollback-dialog { margin: auto; padding: 0; border: 1px solid var(--border); border-radius: 12px; background: var(--card); color: var(--text); max-width: calc(100vw - 32px); }
+#stage-rollback-dialog::backdrop { background: rgba(0,0,0,.55); }
+#rollback-description { line-height: 1.8; }
+#rollback-status-field[hidden] { display: none; }
+.flow-stage-tag { font-size: 13px; color: var(--text); font-weight: 500; padding: 6px 10px; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 6px; }
+
+/* ============ 项目 Flow：纵向阶段泳道 + 内嵌节点 ============ */
+.pf-wrap { display: flex; flex-direction: column; gap: 12px; }
+.pf-hint { font-size: 12.5px; color: var(--text-faint); margin-bottom: 2px; }
+.pf-lane { position: relative; }
+.pf-edit-stage {
+  margin-left: auto;
+  background: transparent; color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 3px 12px; font-size: 12px; cursor: pointer; white-space: nowrap;
+}
+.pf-edit-stage:hover { color: var(--accent); border-color: var(--accent); }
+.pf-nodes { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border-soft); }
+.pf-nodes-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pf-nodes-count { font-size: 12.5px; color: var(--text-dim); }
+.pf-node-add {
+  background: transparent; color: var(--accent); border: 1px dashed var(--border);
+  border-radius: 6px; padding: 4px 12px; font-size: 12.5px; cursor: pointer;
+}
+.pf-node-add:hover { border-color: var(--accent); background: var(--bg-soft); }
+.pf-toggle {
+  background: transparent; color: var(--text-faint); border: 1px solid var(--border);
+  border-radius: 6px; padding: 3px 10px; font-size: 12px; cursor: pointer;
+}
+.pf-toggle:hover { color: var(--text); background: var(--card-hover); }
+.pf-node-body { display: none; margin-top: 10px; }
+.pf-node-body.open { display: flex; flex-direction: column; gap: 8px; }
+
+/* 画布式节点：加高以容纳名称+日期+端口 */
+.flow-node { min-height: 60px; }
+.flow-node .fn-del {
+  position: absolute; top: 2px; right: 4px; display: none;
+  width: 16px; height: 16px; line-height: 14px; text-align: center;
+  background: rgba(248,81,73,.9); color: #fff; border: none; border-radius: 50%;
+  font-size: 12px; cursor: pointer; padding: 0;
+}
+.flow-node:hover .fn-del { display: block; }
+.flow-link-hit { stroke: transparent; stroke-width: 14; fill: none; cursor: pointer; pointer-events: stroke; }
+
+/* 预览图弹窗 */
+.pf-preview-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.65); display: flex; align-items: center; justify-content: center; z-index: 1200; }
+.pf-preview-box { background: var(--card); border: 1px solid var(--border); border-radius: 14px; width: 92vw; max-width: 1100px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.pf-preview-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.pf-preview-head .title { font-size: 15px; font-weight: 600; color: var(--text); }
+.pf-preview-body { padding: 16px 18px; overflow: auto; text-align: center; background: var(--bg-soft); }
+.pf-preview-body img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
+.pf-preview-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 12px 18px; border-top: 1px solid var(--border); }
+
+/* 阶段弹窗内「里程碑完成 / 中途结案」操作区 */
+.fs-ops-btns { display: flex; gap: 10px; }
+.fs-ops-btns .btn { flex: 1; }
+#fs-choice-note { width: 100%; min-height: 54px; background: var(--bg-soft); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px; font-family: inherit; outline: none; box-sizing: border-box; resize: vertical; }
+#fs-choice-note:focus { border-color: var(--accent); }
+.fs-choice-actions { display: flex; gap: 10px; margin-top: 8px; }
+.fs-choice-actions .btn { flex: 1; }
+
+
+
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="top-sticky">
+  <div class="topbar">
+    <button class="back-btn" id="back-btn">← 返回列表</button>
+    <span class="crumb">智能硬件方案项目 · 项目详情</span>
+    <div class="theme-switch" id="theme-switch">
+      <button data-theme="dark">深色</button>
+      <button data-theme="light">浅色</button>
+      <button data-theme="warm">暖色</button>
+    </div>
+  </div>
+
+  <!-- 日期专区（当前日期 / 星期 / 时刻 / 年底倒计时） -->
+  <div class="date-zone" id="date-zone">
+    <div class="dz-left">
+      <span class="dz-date" id="dz-date">--</span>
+      <span class="dz-week" id="dz-week">--</span>
+    </div>
+    <span class="dz-time" id="dz-time">--:--:--</span>
+    <div class="dz-countdown">
+      <span class="dz-cd-label">距今年 12月31日 还有</span>
+      <span class="dz-cd-num" id="dz-cd-num">--</span>
+      <span class="dz-cd-unit">天</span>
+    </div>
+  </div>
+  </div>
+
+  <!-- 详情面板（有数据时显示） -->
+  <div class="detail-panel" id="detail-panel" style="display:none;">
+    <div class="detail-head">
+      <div class="d-title" id="d-title">项目名称</div>
+      <div class="tags" id="d-tags"></div>
+    </div>
+    <div class="detail-tabs">
+      <button class="dtab active" data-tab="info">基本信息</button>
+      <button class="dtab" data-tab="stages">项目阶段</button>
+      <button class="dtab" data-tab="nodes">项目节点</button>
+      <button class="dtab" data-tab="flow">项目 Flow</button>
+      <button class="dtab" data-tab="custnodes">客户节点</button>
+      <button class="dtab" data-tab="risk">项目风险与变更</button>
+      <button class="dtab" data-tab="history">更新历史</button>
+    </div>
+    <div class="detail-meta" id="d-meta"></div>
+    <div class="readonly-banner" id="readonly-banner" style="display:none">👁 浏览模式（只读）· 切换到「管理模式」后可编辑与开会</div>
+    <div class="detail-body">
+      <div class="tab-pane active" id="pane-info">
+        <div class="field-grid"><!-- 表单由 JS 生成 --></div>
+      </div>
+      <div class="tab-pane" id="pane-stages"></div>
+      <div class="tab-pane" id="pane-nodes"></div>
+      <div class="tab-pane" id="pane-flow"></div>
+      <div class="tab-pane" id="pane-custnodes"></div>
+      <div class="tab-pane" id="pane-risk"></div>
+      <div class="tab-pane" id="pane-history"></div>
+    </div>
+    <div class="detail-foot" id="detail-foot">
+      <button class="save-btn" id="save-btn">保存修改</button>
+      <button class="del-btn" id="del-btn">删除项目</button>
+      <span class="save-hint">保存后返回列表即可看到更新（临时存储，可在列表页重置）</span>
+    </div>
+  </div>
+
+  <!-- 项目不存在提示 -->
+  <div class="not-found" id="not-found" style="display:none;">
+    <h2>未找到该项目</h2>
+    <p id="not-found-text">请从列表页点击项目卡片进入详情。</p>
+    <br>
+    <button class="back-btn" onclick="window.location.href='GeekDash.html'">返回列表</button>
+  </div>
+</div>
+
+<div class="toast" id="toast">已保存</div>
+
+<!-- 输入建议：客户 / 工程师 / 项目标签（来自「数据管理」页维护的基础数据） -->
+<datalist id="dl-customers"></datalist>
+<datalist id="dl-engineers"></datalist>
+<datalist id="dl-tags"></datalist>
+
+<script src="projects-data.js"></script>
+<script>
+/* ==========================================================================
+   项目详情页（读取 URL ?id= 加载对应项目）
+   ========================================================================== */
+const { STATUS_LIST, PRIORITY_LIST, SIGNAL_LIST, STATUS_STYLE, PRIORITY_STYLE, SIGNAL_STYLE, normalizeChips, normalizeHistory, todayStr, todayTimeStr } = PROJECT_DB;
+
+let projects = PROJECT_DB.load();
+let currentProject = null;
+let chipCatalog = PROJECT_DB.loadChips();
+let selectedChipNames = [];
+
+function $(sel) { return document.querySelector(sel); }
+function $$(sel, root = document) { return [...root.querySelectorAll(sel)]; }
+function display(v) { return (v === "" || v === null || v === undefined) ? "-" : v; }
+// 项目状态描述是多行原始记录：统一换行符，但不清除用户输入的首尾空行。
+function normalizeMultilineText(v) { return String(v == null ? "" : v).replace(/\r\n?/g, "\n"); }
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
+// ---- 日期工具 ----
+function parseDate(s) {
+  if (!s || s === "-") return null;
+  const d = new Date(s + "T00:00:00");
+  return isNaN(d.getTime()) ? null : d;
+}
+function fmtDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+function addDays(d, n) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+
+// ---- 里程碑状态推导 ----
+function milestoneStatus(projectStatus, idx, total) {
+  if (projectStatus === "已结案") return "done";
+  if (projectStatus === "暂缓")   return idx === 0 ? "done" : (idx === 1 ? "active" : "pending");
+  if (projectStatus === "提案中") return idx === 0 ? "active" : "pending";
+  const prog = idx / (total - 1);
+  if (prog < 0.5) return "done";
+  if (prog < 0.7) return "active";
+  return "pending";
+}
+
+// ---- 甘特图 / 里程碑数据生成 ----
+function buildTimeline(p) {
+  const startDate = parseDate(p.proposalDate);
+  const endDate = parseDate(p.dueDate);
+  if (!startDate || !endDate) return { valid: false };
+
+  const totalDays = Math.max(1, Math.round((endDate - startDate) / 86400000));
+  const start = fmtDate(startDate), end = fmtDate(endDate);
+
+  const phaseDefs = [
+    ["需求/立项", 0,    0.15, "#58a6ff"],
+    ["硬件设计", 0.15, 0.38, "#a371f7"],
+    ["软件设计", 0.38, 0.62, "#39c5cf"],
+    ["打样验证", 0.62, 0.80, "#f0883e"],
+    ["测试认证", 0.80, 0.92, "#f85149"],
+    ["试产/量产", 0.92, 1.0, "#3fb950"]
+  ];
+  const phases = phaseDefs.map(([name, s, e, color]) => ({
+    name,
+    start: fmtDate(addDays(startDate, Math.round(totalDays * s))),
+    end: fmtDate(addDays(startDate, Math.round(totalDays * e))),
+    color
+  }));
+
+  const mileDefs = [
+    { at: 0,    title: "项目提案",   desc: "方案提案并立项" },
+    { at: 0.12, title: "方案评审通过", desc: "立项评审 / 方案冻结" },
+    { at: 0.40, title: "PCBA 定版",  desc: "硬件原理图 / PCB 定版" },
+    { at: 0.62, title: "首次打样",   desc: "软硬件联调打样" },
+    { at: 0.82, title: "试产验证",   desc: "小批量试产与验证" },
+    { at: 1.0,  title: "量产交付",   desc: "结案 / 量产交付" }
+  ];
+  const milestones = mileDefs.map((m, idx) => ({
+    date: fmtDate(addDays(startDate, Math.round(totalDays * m.at))),
+    title: m.title,
+    desc: m.desc,
+    status: milestoneStatus(p.status, idx, mileDefs.length)
+  }));
+
+  return { valid: true, start, end, totalDays, startDate, endDate, phases, milestones };
+}
+
+// ---- 渲染头部（标题 + 标签 + meta） ----
+function renderHead(p) {
+  $("#d-title").textContent = p.name || "新建项目";
+  const st = STATUS_STYLE[p.status];
+  const pr = PRIORITY_STYLE[p.priority];
+  const sg = SIGNAL_STYLE[p.signal] || { cls: "signal-green", color: "#3fb950" };
+  $("#d-tags").innerHTML = `
+    <span class="signal-tag ${sg.cls}"><span class="signal-dot"></span>${esc(p.signal)}</span>
+    <span class="status-with-maintenance"><span class="st-tag ${st.cls}">${esc(p.status)}</span>${PROJECT_DB.isProductionMaintenance(p) ? `<span class="maintenance-badge" title="研发已结案，仍在响应客户量产问题">量产维护</span>` : ""}</span>
+    <span class="pri-tag ${pr.cls}">${esc(p.priority)}优先级</span>`;
+  $("#d-meta").innerHTML = `
+    <span>客户 <b>${esc(display(p.customer))}</b></span>
+    <span>产品线 <b>${esc(display(p.productLine))}</b></span>
+    <span>ODM 工厂 <b>${esc(display(p.odmFactory))}</b></span>
+    <span>硬件负责人 <b>${esc(display(p.hwOwner))}</b></span>
+    <span>软件负责人 <b>${esc(display(p.swOwner))}</b></span>
+    <span>核心芯片 <b>${esc(normalizeChips(p.chips).join(" / ") || "-")}</b></span>`;
+}
+
+function canonicalChipSelection(values) {
+  const byKey = new Map(chipCatalog.map(item => [PROJECT_DB.chipNameKey(item.name), item.name]));
+  const seen = new Set();
+  return normalizeChips(values).map(name => byKey.get(PROJECT_DB.chipNameKey(name)) || name).filter(name => {
+    const key = PROJECT_DB.chipNameKey(name);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function renderChipPickerState() {
+  const selectedBox = $("#chip-selected");
+  const select = $("#chip-select");
+  const warning = $("#chip-picker-warning");
+  if (!selectedBox || !select) return;
+  const catalogKeys = new Set(chipCatalog.map(item => PROJECT_DB.chipNameKey(item.name)));
+  selectedBox.innerHTML = selectedChipNames.length ? selectedChipNames.map(name => {
+    const missing = !catalogKeys.has(PROJECT_DB.chipNameKey(name));
+    return `<span class="project-chip-tag ${missing ? "unregistered" : ""}" title="${missing ? "历史数据：基础芯片库中尚无此型号" : "来自基础芯片库"}">${esc(name)}${missing ? "（待入库）" : ""}<button type="button" class="project-chip-remove" data-chip-name="${esc(name)}" title="移除">×</button></span>`;
+  }).join("") : `<span class="chip-picker-empty">尚未选择核心芯片</span>`;
+  const selectedKeys = new Set(selectedChipNames.map(PROJECT_DB.chipNameKey));
+  const available = chipCatalog.filter(item => !selectedKeys.has(PROJECT_DB.chipNameKey(item.name)));
+  select.innerHTML = `<option value="">${chipCatalog.length ? "请选择芯片型号" : "基础芯片库为空"}</option>` + available.map(item =>
+    `<option value="${esc(item.name)}">${esc(item.name)}${item.manufacturer ? ` · ${esc(item.manufacturer)}` : ""}</option>`
+  ).join("");
+  select.disabled = !available.length;
+  $("#chip-select-add").disabled = !available.length;
+  const missing = selectedChipNames.filter(name => !catalogKeys.has(PROJECT_DB.chipNameKey(name)));
+  warning.style.display = missing.length ? "" : "none";
+  warning.textContent = missing.length ? `检测到 ${missing.length} 个 1.028 历史芯片尚未进入基础芯片库。原值会继续保留；请在基础信息新增后返回并刷新。` : "";
+}
+
+function renderChipPicker(p) {
+  selectedChipNames = canonicalChipSelection(p.chips);
+  return `<div class="chip-picker" id="chip-picker">
+    <div class="chip-picker-selected" id="chip-selected"></div>
+    <div class="chip-picker-actions">
+      <select id="chip-select" aria-label="从基础芯片库选择"></select>
+      <button type="button" class="chip-picker-btn" id="chip-select-add">＋ 添加所选</button>
+      <button type="button" class="chip-picker-btn" id="chip-refresh">刷新芯片库</button>
+      <a class="chip-manage-link" href="data-manage.html?tab=chips" target="_blank" rel="noopener">前往基础信息新增</a>
+    </div>
+    <div class="chip-picker-hint">项目只能选择基础芯片库中的型号；新增页面会在新窗口打开，当前项目草稿不会丢失。</div>
+    <div class="chip-picker-warning" id="chip-picker-warning" style="display:none"></div>
+  </div>`;
+}
+
+function refreshChipCatalog(showMessage) {
+  const previousCatalog = chipCatalog;
+  const nextCatalog = PROJECT_DB.loadChips();
+  const nextById = new Map(nextCatalog.map(item => [item.id, item]));
+  const renamedByOldKey = new Map();
+  previousCatalog.forEach(item => {
+    const next = nextById.get(item.id);
+    if (next && next.name !== item.name) renamedByOldKey.set(PROJECT_DB.chipNameKey(item.name), next.name);
+  });
+  selectedChipNames = selectedChipNames.map(name => renamedByOldKey.get(PROJECT_DB.chipNameKey(name)) || name);
+  chipCatalog = nextCatalog;
+  selectedChipNames = canonicalChipSelection(selectedChipNames);
+  renderChipPickerState();
+  if (showMessage) showToast("芯片库已刷新");
+}
+
+// 受控人员选择器：项目人员只能从基础工程师库中搜索和选择。
+function personCatalog() {
+  return PROJECT_DB.loadEngineers().filter(e => e && e.name).slice().sort((a, b) =>
+    String(a.role || "").localeCompare(String(b.role || ""), "zh") || String(a.name).localeCompare(String(b.name), "zh"));
+}
+function isCatalogPerson(name) { return personCatalog().some(e => e.name === name); }
+function normalizedPeople(values) { return [...new Set(normalizeChips(values).filter(v => v && v !== "-"))]; }
+function personPickerHtml(id, values, multiple) {
+  const selected = normalizedPeople(values);
+  const hidden = multiple
+    ? selected.map(name => `<input type="hidden" class="part-input person-value" value="${esc(name)}">`).join("")
+    : `<input type="hidden" id="${id}" class="person-value" value="${esc(selected[0] || "-")}">`;
+  return `<div class="person-picker" data-person-picker data-target="${id}" data-multiple="${multiple ? "true" : "false"}">
+    ${hidden}
+    <div class="person-picker-selected"></div>
+    <input type="search" class="person-search" autocomplete="off" placeholder="输入姓名或角色快速搜索" aria-label="搜索基础信息库人员">
+    <div class="person-options" role="listbox"></div>
+    <div class="person-picker-hint">仅可选择基础信息库中的人员；<a href="data-manage.html?tab=engineers" target="_blank" rel="noopener">前往基础信息新增</a></div>
+  </div>`;
+}
+function pickerValues(picker) {
+  return $$(".person-value", picker).map(input => input.value).filter(value => value && value !== "-");
+}
+function renderPersonPickerState(picker) {
+  const multiple = picker.dataset.multiple === "true";
+  const selected = pickerValues(picker);
+  const selectedBox = picker.querySelector(".person-picker-selected");
+  selectedBox.innerHTML = selected.length ? selected.map(name => `<span class="person-chip ${isCatalogPerson(name) ? "" : "legacy"}" title="${isCatalogPerson(name) ? "基础信息库人员" : "历史人员，需先补充到基础信息库"}">${esc(name)}${isCatalogPerson(name) ? "" : "（待入库）"}<button type="button" class="person-chip-remove" data-name="${esc(name)}" aria-label="移除 ${esc(name)}">×</button></span>`).join("") : `<span class="person-picker-hint">尚未选择人员</span>`;
+  const keyword = picker.querySelector(".person-search").value.trim().toLowerCase();
+  const candidates = personCatalog().filter(e => !selected.includes(e.name) && (!keyword || `${e.name} ${e.role || ""}`.toLowerCase().includes(keyword)));
+  const options = picker.querySelector(".person-options");
+  options.innerHTML = candidates.length ? candidates.map(e => `<button type="button" class="person-option" data-name="${esc(e.name)}" role="option"><span>${esc(e.name)}</span><span class="person-option-role">${esc(e.role || "未设置角色")}</span></button>`).join("") : `<div class="person-picker-hint" style="padding:7px">未找到可选择人员，请先到基础信息库新增。</div>`;
+  if (!multiple && selected.length > 1) {
+    picker.querySelectorAll(".person-value").forEach((input, index) => { if (index > 0) input.remove(); });
+  }
+}
+function addPickerPerson(picker, name) {
+  if (!isCatalogPerson(name)) return;
+  const multiple = picker.dataset.multiple === "true";
+  if (multiple) {
+    if (pickerValues(picker).includes(name)) return;
+    picker.insertAdjacentHTML("afterbegin", `<input type="hidden" class="part-input person-value" value="${esc(name)}">`);
+  } else {
+    picker.querySelector(".person-value").value = name;
+  }
+  picker.querySelector(".person-search").value = "";
+  renderPersonPickerState(picker);
+  if (!multiple) picker.classList.remove("open");
+}
+function removePickerPerson(picker, name) {
+  const values = pickerValues(picker).filter(value => value !== name);
+  const multiple = picker.dataset.multiple === "true";
+  picker.querySelectorAll(".person-value").forEach(input => input.remove());
+  if (multiple) values.forEach(value => picker.insertAdjacentHTML("afterbegin", `<input type="hidden" class="part-input person-value" value="${esc(value)}">`));
+  else picker.insertAdjacentHTML("afterbegin", `<input type="hidden" id="${esc(picker.dataset.target)}" class="person-value" value="-">`);
+  renderPersonPickerState(picker);
+}
+let personPickerDocumentCloseBound = false;
+function setupPersonPickers() {
+  $$('[data-person-picker]').forEach(picker => {
+    renderPersonPickerState(picker);
+    const search = picker.querySelector(".person-search");
+    search.addEventListener("focus", () => { picker.classList.add("open"); renderPersonPickerState(picker); });
+    search.addEventListener("input", () => { picker.classList.add("open"); renderPersonPickerState(picker); });
+    search.addEventListener("keydown", event => {
+      if (event.key === "Escape") { picker.classList.remove("open"); search.blur(); }
+      if (event.key === "Enter") { const first = picker.querySelector(".person-option"); if (first) { event.preventDefault(); addPickerPerson(picker, first.dataset.name); } }
+    });
+    picker.addEventListener("click", event => {
+      const option = event.target.closest(".person-option");
+      if (option) { addPickerPerson(picker, option.dataset.name); return; }
+      const remove = event.target.closest(".person-chip-remove");
+      if (remove) { removePickerPerson(picker, remove.dataset.name); return; }
+    });
+  });
+  if (!personPickerDocumentCloseBound) {
+    document.addEventListener("click", event => { if (!event.target.closest("[data-person-picker]")) $$('[data-person-picker].open').forEach(picker => picker.classList.remove("open")); });
+    personPickerDocumentCloseBound = true;
+  }
+}
+
+// 渲染状态更新历史（时间线，倒序）
+function renderHistory(p) {
+  const history = normalizeHistory(p.statusHistory);
+  if (!history.length) return `<div class="history-empty">暂无更新记录</div>`;
+  const items = history.slice().reverse().map(h => `
+    <div class="h-item">
+      <span class="h-dot"></span>
+      <div class="h-body">
+        <div class="h-date">${esc(h.date)}</div>
+        <div class="h-text">${esc(h.text)}</div>
+      </div>
+    </div>`).join("");
+  return `<div class="history">${items}</div>`;
+}
+
+function renderStatusDescriptionHistory(p) {
+  const history = PROJECT_DB.statusDescriptionHistory(p);
+  const legacy = normalizeHistory(p.statusHistory).slice(0, p.statusDescLegacyHistoryCount == null ? undefined : p.statusDescLegacyHistoryCount);
+  return `<details class="statusdesc-history" id="statusdesc-history"><summary>状态描述历史（${history.length} 条）</summary>
+    ${history.length ? `<div class="history">${history.slice().reverse().map(h => `<div class="h-item"><span class="h-dot"></span><div class="h-body"><div class="h-date">${esc(h.date) || "时间未记录"}</div><div class="h-text">${h.text ? esc(h.text) : "（已清空状态描述）"}</div></div></div>`).join("")}</div>` : `<div class="history-empty">暂无状态描述记录</div>`}
+    ${legacy.length ? `<details><summary>旧版完整更新记录（${legacy.length} 条，保留原文）</summary>${renderHistory({ statusHistory: legacy })}</details>` : ""}
+  </details>`;
+}
+
+// 根据阶段名反查 stageId（节点写入时固化归属，供「项目 Flow」泳道分组）
+function stageIdOfName(name) {
+  const s = PROJECT_DB.STAGES.find(x => x.name === name);
+  return s ? s.id : 0;
+}
+
+// 渲染项目节点列表（含新增/编辑表单）
+function renderNodes(p) {
+  const nodes = PROJECT_DB.normalizeNodes(p.nodes);
+  const doneCount = nodes.filter(n => n.doneDate).length;
+  const stageOptions = PROJECT_DB.STAGES.map(s => `<option value="${esc(s.name)}">S${s.id} ${esc(s.name)}</option>`).join("");
+
+  const list = nodes.length
+    ? nodes.map(n => {
+        const done = !!n.doneDate;
+        return `<div class="node-item ${done ? "done" : ""}">
+          <div class="node-head">
+            <span class="node-name">${esc(n.name || "未命名节点")}</span>
+            <span class="node-stage">${esc(n.stage) || "-"}</span>
+            ${done ? `<span class="node-badge done">已完成</span>` : `<span class="node-badge todo">进行中</span>`}
+            <button type="button" class="node-edit" data-id="${n.id}" title="编辑该节点">编辑</button>
+            <button type="button" class="node-del" data-id="${n.id}" title="删除该节点">删除</button>
+          </div>
+          <div class="node-dates">
+            <span>目标完成：${esc(n.targetDate || "-")}</span>
+            ${done ? `<span class="node-done-date">实际完成：${esc(n.doneDate)}</span>` : ""}
+          </div>
+          <div class="node-output">输出成果：${esc(n.output || "-")}</div>
+        </div>`;
+      }).join("")
+    : `<div class="node-empty">暂无项目节点，点击下方「＋ 新增节点」创建</div>`;
+
+  return `<div class="nodes-wrap">
+    <div class="nodes-toolbar">
+      <span class="nodes-hint">共 ${nodes.length} 个节点 · 已完成 ${doneCount} 个</span>
+      <button type="button" class="node-add-btn" id="node-add">＋ 新增节点</button>
+    </div>
+    <div class="node-form" id="node-form" style="display:none">
+      <div class="node-form-title" id="node-form-title">新增节点</div>
+      <div class="node-form-grid">
+        <div class="field">
+          <label>节点名称 *</label>
+          <input type="text" id="node-name" placeholder="如：EVT 全功能送测">
+        </div>
+        <div class="field">
+          <label>所属阶段 *</label>
+          <select id="node-stage">${stageOptions}</select>
+        </div>
+        <div class="field">
+          <label>目标完成日期</label>
+          <input type="date" id="node-target">
+        </div>
+        <div class="field">
+          <label>实际完成日期</label>
+          <input type="date" id="node-done">
+        </div>
+      </div>
+      <div class="field field-full">
+        <label>输出成果 *</label>
+        <textarea id="node-output" placeholder="填写该节点的输出成果"></textarea>
+      </div>
+      <div class="node-form-hint">填写「实际完成日期」并点确定，表示该节点已完成。</div>
+      <div class="form-actions">
+        <button type="button" class="save-btn" id="node-confirm">确定</button>
+        <button type="button" class="cancel-btn" id="node-cancel">取消</button>
+      </div>
+    </div>
+    <div class="node-list">${list}</div>
+  </div>`;
+}
+
+// 当前正在编辑的节点 id（null = 新增模式）
+let editingNodeId = null;
+
+// 新增 / 编辑项目节点
+function saveNode() {
+  const p = isNewMode ? draftProject : currentProject;
+  if (!p) return;
+  const name = $("#node-name").value.trim();
+  const stage = $("#node-stage").value;
+  const output = $("#node-output").value.trim();
+  if (!name) { showToast("请填写节点名称", 2000); return; }
+  if (!stage) { showToast("请选择所属阶段", 2000); return; }
+  if (!output) { showToast("请填写节点输出成果", 2000); return; }
+  const nodes = PROJECT_DB.normalizeNodes(p.nodes);
+  const targetDate = $("#node-target").value;
+  const doneDate = $("#node-done").value;
+
+  p.statusHistory = normalizeHistory(p.statusHistory);
+  if (editingNodeId != null) {
+    const n = nodes.find(x => x.id === editingNodeId);
+    if (n) {
+      n.name = name; n.stage = stage; n.stageId = stageIdOfName(stage); n.targetDate = targetDate; n.output = output; n.doneDate = doneDate;
+      p.statusHistory.push({ date: todayTimeStr(), text: `编辑项目节点（${stage}${doneDate ? "，已完成" : ""}）：${name} · ${output}` });
+    }
+  } else {
+    const id = PROJECT_DB.nextId(nodes);
+    nodes.push({ id, name, stage, stageId: stageIdOfName(stage), targetDate, output, doneDate });
+    p.statusHistory.push({ date: todayTimeStr(), text: `新增项目节点（${stage}${doneDate ? "，已完成" : ""}）：${name} · ${output}` });
+  }
+  p.nodes = nodes;
+  if (!isNewMode) PROJECT_DB.save(projects);
+  editingNodeId = null;
+  $("#pane-nodes").innerHTML = renderNodes(p);
+  $("#pane-custnodes").innerHTML = renderCustomerNodes(p);
+  $("#pane-history").innerHTML = renderHistory(p);
+  refreshFlow(p);
+  showToast(doneDate ? "节点已保存并标记完成" : "节点已保存", 1800);
+}
+
+// 打开节点表单（新增 / 编辑）
+function openNodeForm(node) {
+  editingNodeId = node ? node.id : null;
+  $("#node-form-title").textContent = node ? "编辑节点" : "新增节点";
+  $("#node-name").value = node ? node.name : "";
+  $("#node-stage").value = node ? node.stage : PROJECT_DB.STAGES[0].name;
+  $("#node-target").value = node ? node.targetDate : "";
+  $("#node-done").value = node ? node.doneDate : "";
+  $("#node-output").value = node ? node.output : "";
+  $("#node-form").style.display = "";
+  $("#node-name").focus();
+}
+
+// 删除项目节点
+function deleteNode(id) {
+  const p = isNewMode ? draftProject : currentProject;
+  if (!p) return;
+  let nodes = PROJECT_DB.normalizeNodes(p.nodes);
+  const target = nodes.find(n => n.id === id);
+  nodes = nodes.filter(n => n.id !== id);
+  p.nodes = nodes;
+  if (target) {
+    p.statusHistory = normalizeHistory(p.statusHistory);
+    p.statusHistory.push({ date: todayTimeStr(), text: `删除项目节点（${target.stage}）：${target.name || "未命名节点"} · ${target.output}` });
+  }
+  if (editingNodeId === id) editingNodeId = null;
+  if (!isNewMode) PROJECT_DB.save(projects);
+  $("#pane-nodes").innerHTML = renderNodes(p);
+  $("#pane-custnodes").innerHTML = renderCustomerNodes(p);
+  $("#pane-history").innerHTML = renderHistory(p);
+  refreshFlow(p);
+  showToast("节点已删除", 1600);
+}
+
+// ======================= 客户项目节点 =======================
+// 渲染客户项目节点列表（含新增/编辑表单）：记录节点名称 / 预期完成时间 / 实际完成时间 / 备注
+function renderCustomerNodes(p) {
+  const nodes = PROJECT_DB.normalizeCustomerNodes(p.customerNodes);
+  const doneCount = nodes.filter(n => n.doneDate).length;
+
+  const list = nodes.length
+    ? nodes.map(n => {
+        const done = !!n.doneDate;
+        return `<div class="node-item ${done ? "done" : ""}">
+          <div class="node-head">
+            <span class="node-name">${esc(n.name || "未命名节点")}</span>
+            ${done ? `<span class="node-badge done">已完成</span>` : `<span class="node-badge todo">进行中</span>`}
+            <button type="button" class="node-edit" data-id="${n.id}" title="编辑该节点">编辑</button>
+            <button type="button" class="node-del" data-id="${n.id}" title="删除该节点">删除</button>
+          </div>
+          <div class="node-dates">
+            <span>预期完成：${esc(n.targetDate || "-")}</span>
+            ${done ? `<span class="node-done-date">实际完成：${esc(n.doneDate)}</span>` : ""}
+          </div>
+          ${n.note ? `<div class="node-output">备注：${esc(n.note)}</div>` : ""}
+        </div>`;
+      }).join("")
+    : `<div class="node-empty">暂无客户项目节点，点击下方「＋ 新增节点」创建</div>`;
+
+  return `<div class="nodes-wrap">
+    <div class="nodes-toolbar">
+      <span class="nodes-hint">共 ${nodes.length} 个节点 · 已完成 ${doneCount} 个</span>
+      <button type="button" class="node-add-btn" id="custnode-add">＋ 新增节点</button>
+    </div>
+    <div class="node-form" id="custnode-form" style="display:none">
+      <div class="node-form-title" id="custnode-form-title">新增节点</div>
+      <div class="node-form-grid">
+        <div class="field">
+          <label>节点名称 *</label>
+          <input type="text" id="custnode-name" placeholder="如：客户样机验收">
+        </div>
+        <div class="field">
+          <label>预期完成时间</label>
+          <input type="date" id="custnode-target">
+        </div>
+        <div class="field">
+          <label>实际完成时间</label>
+          <input type="date" id="custnode-done">
+        </div>
+      </div>
+      <div class="field field-full">
+        <label>备注（交付内容 / 客户反馈等）</label>
+        <textarea id="custnode-note" placeholder="填写备注信息"></textarea>
+      </div>
+      <div class="node-form-hint">填写「实际完成时间」并点确定，表示该节点已完成。</div>
+      <div class="form-actions">
+        <button type="button" class="save-btn" id="custnode-confirm">确定</button>
+        <button type="button" class="cancel-btn" id="custnode-cancel">取消</button>
+      </div>
+    </div>
+    <div class="node-list">${list}</div>
+  </div>`;
+}
+
+// 当前正在编辑的客户节点 id（null = 新增模式）
+let editingCustNodeId = null;
+
+function openCustomerNodeForm(node) {
+  editingCustNodeId = node ? node.id : null;
+  $("#custnode-form-title").textContent = node ? "编辑节点" : "新增节点";
+  $("#custnode-name").value = node ? node.name : "";
+  $("#custnode-target").value = node ? node.targetDate : "";
+  $("#custnode-done").value = node ? node.doneDate : "";
+  $("#custnode-note").value = node ? node.note : "";
+  $("#custnode-form").style.display = "";
+  $("#custnode-name").focus();
+}
+
+function saveCustomerNode() {
+  const p = isNewMode ? draftProject : currentProject;
+  if (!p) return;
+  const name = $("#custnode-name").value.trim();
+  if (!name) { showToast("请填写节点名称", 2000); return; }
+  const nodes = PROJECT_DB.normalizeCustomerNodes(p.customerNodes);
+  const targetDate = $("#custnode-target").value;
+  const doneDate = $("#custnode-done").value;
+  const note = $("#custnode-note").value.trim();
+
+  p.statusHistory = normalizeHistory(p.statusHistory);
+  if (editingCustNodeId != null) {
+    const n = nodes.find(x => x.id === editingCustNodeId);
+    if (n) {
+      n.name = name; n.targetDate = targetDate; n.doneDate = doneDate; n.note = note;
+      p.statusHistory.push({ date: todayTimeStr(), text: `编辑客户节点（${name}${doneDate ? "，已完成" : ""}）：${note}` });
+    }
+  } else {
+    const id = PROJECT_DB.nextId(nodes);
+    nodes.push({ id, name, targetDate, doneDate, note });
+    p.statusHistory.push({ date: todayTimeStr(), text: `新增客户节点（${name}${doneDate ? "，已完成" : ""}）：${note}` });
+  }
+  p.customerNodes = nodes;
+  if (!isNewMode) PROJECT_DB.save(projects);
+  editingCustNodeId = null;
+  $("#pane-custnodes").innerHTML = renderCustomerNodes(p);
+  $("#pane-history").innerHTML = renderHistory(p);
+  showToast(doneDate ? "节点已保存并标记完成" : "节点已保存", 1800);
+}
+
+function deleteCustomerNode(id) {
+  const p = isNewMode ? draftProject : currentProject;
+  if (!p) return;
+  let nodes = PROJECT_DB.normalizeCustomerNodes(p.customerNodes);
+  const target = nodes.find(n => n.id === id);
+  nodes = nodes.filter(n => n.id !== id);
+  p.customerNodes = nodes;
+  if (target) {
+    p.statusHistory = normalizeHistory(p.statusHistory);
+    p.statusHistory.push({ date: todayTimeStr(), text: `删除客户节点（${target.name || "未命名节点"}）：${target.note}` });
+  }
+  if (editingCustNodeId === id) editingCustNodeId = null;
+  if (!isNewMode) PROJECT_DB.save(projects);
+  $("#pane-custnodes").innerHTML = renderCustomerNodes(p);
+  $("#pane-history").innerHTML = renderHistory(p);
+  showToast("节点已删除", 1600);
+}
+
+// 渲染风险预警列表
+function renderRiskList(p) {
+  const risks = PROJECT_DB.normalizeRisks(p.risks);
+  if (!risks.length) return `<div class="risk-empty">暂无风险预警</div>`;
+  return risks.map(r => {
+    const level = r.level || "中";
+    const levelBadge = `<span class="risk-level lv-${level}">${level}</span>`;
+    const badge = r.resolved
+      ? `<span class="risk-badge resolved">已解除</span>`
+      : `<span class="risk-badge active">预警中</span>`;
+    const resolveInfo = r.resolved
+      ? `<div class="risk-resolve-info">解除方法：${esc(r.resolveMethod) || "-"}（${esc(r.resolvedAt)}）</div>`
+      : `<button type="button" class="risk-resolve-btn" data-id="${r.id}">解除</button>
+         <div class="risk-resolve-form" data-id="${r.id}" style="display:none">
+           <textarea class="risk-resolve-note" placeholder="填写解除方法"></textarea>
+           <div class="risk-actions">
+             <button type="button" class="risk-resolve-confirm" data-id="${r.id}">确定</button>
+             <button type="button" class="risk-resolve-cancel">取消</button>
+           </div>
+         </div>`;
+    return `<div class="risk-item ${r.resolved ? "resolved" : ""}" data-id="${r.id}">
+      <div class="risk-item-head">
+        ${levelBadge}
+        <span class="risk-content">${esc(r.content)}</span>
+        ${badge}${!readOnly ? `<button type="button" class="risk-resolve-btn risk-edit" data-id="${r.id}">编辑</button>` : ""}
+      </div>
+      <div class="risk-meta">预警时间：${esc(r.createdAt)}</div>
+      ${resolveInfo}
+    </div>`;
+  }).join("");
+}
+
+// 新增风险预警
+let editingRiskId = null;
+function addRisk(content, level, method) {
+  if (readOnly) return;
+  const p = isNewMode ? draftProject : currentProject;
+  if (!p) return;
+  const lvl = PROJECT_DB.RISK_LEVEL_LIST.indexOf(level) >= 0 ? level : "中";
+  const risks = PROJECT_DB.normalizeRisks(p.risks);
+  const existing = risks.find(r => r.id === editingRiskId);
+  let text;
+  if (existing) {
+    const edits = [];
+    if (existing.content !== content) edits.push(`内容：${existing.content} → ${content}`);
+    if (existing.level !== lvl) edits.push(`等级：${existing.level} → ${lvl}`);
+    if (existing.resolved && existing.resolveMethod !== method) edits.push(`解除方法：${existing.resolveMethod} → ${method}`);
+    if (!edits.length) { editingRiskId = null; renderRiskChangeTab(p); showToast("没有修改"); return; }
+    Object.assign(existing, { content, level: lvl, updatedAt: todayTimeStr() });
+    if (existing.resolved) existing.resolveMethod = method;
+    text = `修正风险预警：${edits.join("；")}`;
+  } else {
+    risks.push({ id: PROJECT_DB.nextId(risks), content, level: lvl, createdAt: todayTimeStr(), resolved: false, resolveMethod: "", resolvedAt: "" });
+    text = `新增风险预警（${lvl}）：${content}`;
+  }
+  p.risks = risks;
+  p.statusHistory = normalizeHistory(p.statusHistory);
+  p.statusHistory.push({ date: todayTimeStr(), text });
+  editingRiskId = null;
+  if (!isNewMode) PROJECT_DB.save(projects);
+  renderRiskChangeTab(p);
+  $("#pane-history").innerHTML = renderHistory(p);
+  $("#pane-nodes").innerHTML = renderNodes(p);
+  $("#pane-custnodes").innerHTML = renderCustomerNodes(p);
+  showToast(existing ? "风险预警已修改" : "风险预警已添加", 1800);
+}
+
+// 解除风险预警
+function resolveRisk(id, method) {
+  const p = isNewMode ? draftProject : currentProject;
+  if (!p) return;
+  const risks = PROJECT_DB.normalizeRisks(p.risks);
+  const r = risks.find(x => x.id === id);
+  if (!r) return;
+  r.resolved = true;
+  r.resolveMethod = method;
+  r.resolvedAt = todayTimeStr();
+  p.risks = risks;
+  p.statusHistory = normalizeHistory(p.statusHistory);
+  p.statusHistory.push({ date: todayTimeStr(), text: `解除风险预警：${r.content}（解除方法：${method}）` });
+  if (!isNewMode) PROJECT_DB.save(projects);
+  renderRiskChangeTab(p);
+  $("#pane-history").innerHTML = renderHistory(p);
+  $("#pane-nodes").innerHTML = renderNodes(p);
+  $("#pane-custnodes").innerHTML = renderCustomerNodes(p);
+  showToast("风险预警已解除", 1800);
+}
+
+// 渲染项目需求变更列表（永久展示，不可解除）
+function renderChangeList(p) {
+  const changes = PROJECT_DB.normalizeChanges(p.changes);
+  if (!changes.length) return `<div class="risk-empty">暂无需求变更记录</div>`;
+  return changes.map(c => {
+    const srcBadge = c.source === "客户"
+      ? `<span class="chg-src src-customer">客户</span>`
+      : `<span class="chg-src src-biz">业务</span>`;
+    const stBadge = c.status === "接受"
+      ? `<span class="chg-status st-accept">接受</span>`
+      : `<span class="chg-status st-reject">拒绝</span>`;
+    return `<div class="chg-item ${c.status === "接受" ? "accepted" : "rejected"}">
+      <div class="chg-head">
+        ${srcBadge}${stBadge}
+        <span class="chg-time">${esc(c.createdAt)}</span>${!readOnly ? `<button type="button" class="risk-resolve-btn change-edit" data-id="${c.id}">编辑</button>` : ""}
+      </div>
+      <div class="chg-content">${esc(c.content)}</div>
+      <div class="chg-reason">理由：${esc(c.reason) || "-"}</div>
+    </div>`;
+  }).join("");
+}
+
+// 新增需求变更
+let editingChangeId = null;
+function addChange(source, content, status, reason) {
+  if (readOnly) return;
+  const p = isNewMode ? draftProject : currentProject;
+  if (!p) return;
+  const changes = PROJECT_DB.normalizeChanges(p.changes);
+  const existing = changes.find(c => c.id === editingChangeId);
+  let text;
+  if (existing) {
+    const edits = [["source", "来源", source], ["content", "内容", content], ["status", "处理方式", status], ["reason", "理由", reason]]
+      .filter(([key, , value]) => existing[key] !== value).map(([key, label, value]) => `${label}：${existing[key]} → ${value}`);
+    if (!edits.length) { editingChangeId = null; renderRiskChangeTab(p); showToast("没有修改"); return; }
+    Object.assign(existing, { source, content, status, reason, updatedAt: todayTimeStr() });
+    text = `修正需求变更：${edits.join("；")}`;
+  } else {
+    changes.push({ id: PROJECT_DB.nextId(changes), source, content, status, reason, createdAt: todayTimeStr() });
+    text = `新增需求变更（${source}·${status}）：${content}（理由：${reason}）`;
+  }
+  p.changes = changes;
+  p.statusHistory = normalizeHistory(p.statusHistory);
+  p.statusHistory.push({ date: todayTimeStr(), text });
+  editingChangeId = null;
+  if (!isNewMode) PROJECT_DB.save(projects);
+  renderRiskChangeTab(p);
+  $("#pane-history").innerHTML = renderHistory(p);
+  $("#pane-nodes").innerHTML = renderNodes(p);
+  $("#pane-custnodes").innerHTML = renderCustomerNodes(p);
+  showToast(existing ? "需求变更已修改" : "需求变更已添加", 1800);
+}
+
+// ---- 渲染项目阶段（七大阶段） ----
+// 计算两个 YYYY-MM-DD 日期相差天数（b - a）；任一无效返回 null
+function daysBetween(a, b) {
+  if (!a || !b || a === "-" || b === "-") return null;
+  const da = new Date(a), db = new Date(b);
+  if (isNaN(da.getTime()) || isNaN(db.getTime())) return null;
+  return Math.round((db.getTime() - da.getTime()) / 86400000);
+}
+
+function renderStages(p) {
+  const stages = PROJECT_DB.normalizeStages(p.stages);
+  const current = PROJECT_DB.currentStage(p);
+  // 总工期 = 各阶段预期天数之和（空值取中位默认值）
+  const totalDays = stages.reduce((sum, s, i) => sum + (parseInt(s.days, 10) || PROJECT_DB.STAGES[i].mid), 0);
+  const doneCount = stages.filter(s => s.done).length;
+  const isClosed = p.status === "已结案";
+  // 总工期不能超过 预计结案日期 − 提案日期，否则顶部显著标识「计算工期出错」
+  const maxDays = daysBetween(p.proposalDate, p.dueDate);
+  const durError = (maxDays !== null && totalDays > maxDays);
+  const errorBanner = durError
+    ? `<div class="stages-error">⚠ 计算工期出错：项目总工期 <b>${totalDays}</b> 天，超过「预计结案日期 − 提案日期」<b>${maxDays}</b> 天，请调整各阶段预期天数或项目日期。</div>`
+    : "";
+  const hint = `<div class="stages-hint">里程碑按顺序推进：当前阶段可选「里程碑完成」（填写评述后进入下一阶段）或「中途结案」（填写理由后归档至已结案看板）。预期天数默认中位值，可直接修改。</div>`;
+  const total = `<div class="stages-total">项目总工期：<b>${totalDays}</b> 天（已完成 <b>${doneCount}</b> / ${PROJECT_DB.STAGES.length} 个阶段）${maxDays !== null ? ` · 可用窗口：<b>${maxDays}</b> 天` : ""}</div>`;
+  const cards = PROJECT_DB.STAGES.map((s, i) => {
+    const st = stages[i];
+    const isCurrent = !isClosed && current && current.index === i;
+    // 四态底纹：已完成=浅绿 / 进行中=绿 / 中途结案=深灰 / 尚未开始=浅灰
+    const cls = st.done ? "stage-done" : (isClosed ? "stage-closed" : (isCurrent ? "stage-current" : "stage-todo"));
+    let action;
+    if (st.done) {
+      action = `<div class="stage-done-tag">✅ 里程碑已完成${st.doneDate ? " · " + esc(st.doneDate) : ""}</div>
+                ${st.note ? `<div class="stage-note-view">评述：${esc(st.note)}</div>` : ""}
+                ${!readOnly ? `<button type="button" class="choice-btn stage-rollback" data-idx="${i}">回退到此阶段</button>` : ""}`;
+    } else if (isClosed) {
+      action = `<div class="stage-locked">⏹ 项目已中途结案</div>`;
+    } else if (isCurrent) {
+      action = `<div class="stage-choice">
+          <button type="button" class="choice-btn choice-done" data-idx="${i}">✅ 里程碑完成</button>
+          <button type="button" class="choice-btn choice-close" data-idx="${i}">⏹ 中途结案</button>
+        </div>
+        <div class="stage-choice-form" data-idx="${i}" style="display:none">
+          <textarea class="choice-note" placeholder=""></textarea>
+          <div class="choice-actions">
+            <button type="button" class="choice-confirm">确定</button>
+            <button type="button" class="choice-cancel">取消</button>
+          </div>
+        </div>`;
+    } else {
+      action = `<div class="stage-locked">🔒 待上一阶段完成后解锁</div>`;
+    }
+    return `<div class="stage-card ${cls}">
+      <div class="stage-head">
+        <span class="stage-idx">S${s.id}</span>
+        <span class="stage-name">${esc(s.name)}${isCurrent ? "（进行中）" : ""}</span>
+        <span class="stage-progress">进度 ${s.progress}%</span>
+      </div>
+      <div class="stage-milestone"><span class="m-label">里程碑：</span>${esc(s.milestone)}</div>
+      <details class="stage-lines">
+        <summary>三线工作要点</summary>
+        <div class="line"><b>硬件</b>：${esc(s.hw)}</div>
+        <div class="line"><b>固件</b>：${esc(s.sw)}</div>
+        <div class="line"><b>业务</b>：${esc(s.biz)}</div>
+      </details>
+      <div class="stage-days">预期天数 <input type="text" class="stage-days-input" data-idx="${i}" value="${esc(st.days || s.mid)}" placeholder="${esc(s.standard)}">（标准 ${esc(s.standard)} / 建议 ${s.mid} 天）</div>
+      ${action}
+    </div>`;
+  }).join("");
+  return `<div class="stages-wrap">${errorBanner}${hint}${total}${isClosed && !readOnly ? `<button type="button" class="choice-btn stage-reopen">撤销结案</button>` : ""}${cards}
+    <div class="stages-actions">
+      <button type="button" class="save-btn" id="stage-save-btn">保存阶段修改</button>
+      <span class="stages-save-hint">预期天数等修改保存后同步记录到更新历史</span>
+    </div>
+  </div>`;
+}
+
+// 从阶段表单收集预期天数写回项目（done/note 由「里程碑完成」直接写入）
+function collectStages(p) {
+  const stages = PROJECT_DB.normalizeStages(p.stages);
+  const cards = $("#pane-stages").querySelectorAll(".stage-card");
+  cards.forEach((card, i) => {
+    const days = card.querySelector(".stage-days-input");
+    if (days && days.value.trim() !== (stages[i].days || String(PROJECT_DB.STAGES[i].mid))) stages[i].days = days.value.trim();
+  });
+  p.stages = stages;
+}
+
+// 里程碑完成：写评述 → 标记该阶段完成 → 进入下一阶段（S1 需求立项完成自动「提案中」转「进行中」）
+function confirmStageDone(idx, note) {
+  const p = currentProject;
+  if (!p || readOnly || p.status === "已结案" || PROJECT_DB.currentStage(p)?.index !== idx) return;
+  const before = JSON.parse(JSON.stringify(p));
+  const stages = PROJECT_DB.normalizeStages(p.stages);
+  stages[idx].done = true;
+  stages[idx].note = note;
+  stages[idx].doneDate = PROJECT_DB.todayStr();
+  p.stages = stages;
+  const stageName = PROJECT_DB.STAGES[idx].name;
+  let statusChanged = false;
+  if (idx === 0 && p.status === "提案中") {
+    p.stageInitialStatus = p.status;
+    p.status = "进行中";
+    statusChanged = true;
+  }
+  p.statusHistory = normalizeHistory(p.statusHistory);
+  p.statusHistory.push({ date: todayTimeStr(), text: `阶段「${stageName}」里程碑完成；完成日期：${stages[idx].doneDate}；评述：${note}` + (statusChanged ? "，状态自动从「提案中」转为「进行中」" : "") });
+  if (!saveStageChange(p, before)) return;
+  showToast(statusChanged ? "里程碑完成，项目已自动转为「进行中」" : "里程碑完成，进入下一阶段", 2400);
+}
+
+function saveStageChange(p, before) {
+  try { PROJECT_DB.saveBusinessDataAtomic({ projects }); }
+  catch (error) {
+    Object.keys(p).forEach(key => { if (!(key in before)) delete p[key]; });
+    Object.assign(p, before);
+    showToast("阶段操作保存失败：" + error.message, 3000);
+    return false;
+  }
+  renderHead(p);
+  $("#f-status").value = p.status;
+  $("#f-production-maintenance").checked = PROJECT_DB.isProductionMaintenance(p);
+  $("#f-status").dispatchEvent(new Event("change"));
+  $("#pane-stages").innerHTML = renderStages(p);
+  $("#pane-history").innerHTML = renderHistory(p);
+  $("#pane-nodes").innerHTML = renderNodes(p);
+  $("#pane-custnodes").innerHTML = renderCustomerNodes(p);
+  refreshFlow(p);
+  return true;
+}
+
+// 中途结案：写理由 → 项目归档至已结案看板
+function confirmStageClose(reason) {
+  const p = currentProject;
+  if (!p || readOnly || p.status === "已结案") return;
+  const before = JSON.parse(JSON.stringify(p));
+  p.stageCloseBefore = { status: p.status, isProductionMaintenance: !!p.isProductionMaintenance, closeReason: p.closeReason || "" };
+  p.status = "已结案";
+  p.isProductionMaintenance = false;
+  p.closeReason = reason;
+  p.statusHistory = normalizeHistory(p.statusHistory);
+  p.statusHistory.push({ date: todayTimeStr(), text: `中途结案：${reason}` });
+  if (!saveStageChange(p, before)) return;
+  showToast("项目已中途结案，归档至「已结案看板」", 2600);
+}
+
+let rollbackStageIndex = null;
+function openStageRollback(idx = null) {
+  const p = currentProject;
+  if (!p || readOnly || (idx === null && p.status !== "已结案")) return;
+  const stages = PROJECT_DB.normalizeStages(p.stages);
+  if (idx !== null && !stages[idx]?.done) return;
+  rollbackStageIndex = idx;
+  const affected = idx === null ? "阶段完成记录保持当前状态。" : `S${idx + 1}「${PROJECT_DB.STAGES[idx].name}」及后续全部阶段恢复未完成，撤销其完成日期及评述；排期和预期天数保留。`;
+  const isClosed = p.status === "已结案";
+  const known = p.stageCloseBefore && ["提案中", "进行中", "暂缓"].includes(p.stageCloseBefore.status);
+  $("#rollback-description").textContent = affected + "原完成评述、完成日期及结案理由保留在更新历史。"
+    + (isClosed ? (known ? `结案前状态为「${p.stageCloseBefore.status}」，确认后恢复。` : "旧版未记录结案前状态，请选择恢复状态。") : "");
+  $("#rollback-status-field").hidden = !isClosed;
+  $("#rollback-status").value = known ? p.stageCloseBefore.status : (stages[0].done ? "进行中" : "提案中");
+  $("#rollback-status").disabled = !!known;
+  closePfStageDialog();
+  $("#stage-rollback-dialog").showModal();
+}
+function confirmStageRollback() {
+  const p = currentProject;
+  if (!p || readOnly) return;
+  const before = JSON.parse(JSON.stringify(p));
+  const stages = PROJECT_DB.normalizeStages(p.stages);
+  const idx = rollbackStageIndex;
+  const details = [];
+  if (idx !== null) {
+    if (!stages[idx]?.done) return;
+    stages.forEach((stage, i) => {
+      if (i < idx) return;
+      if (stage.done || stage.doneDate || stage.note) details.push(`S${i + 1}「${PROJECT_DB.STAGES[i].name}」原完成日期：${stage.doneDate || "未记录"}；原评述：${stage.note || "未记录"}`);
+      Object.assign(stage, { done: false, doneDate: "", note: "" });
+    });
+    p.stages = stages;
+  }
+  if (p.status === "已结案") {
+    details.push(`原结案理由：${p.closeReason || "未记录"}`);
+    p.status = $("#rollback-status").value;
+    p.isProductionMaintenance = false;
+    p.closeReason = p.stageCloseBefore?.closeReason || "";
+    delete p.stageCloseBefore;
+  }
+  if (idx === 0 && p.status === "进行中" && p.stageInitialStatus === "提案中") p.status = "提案中";
+  if (idx === 0) delete p.stageInitialStatus;
+  const action = idx === null ? "撤销结案" : `回退到 S${idx + 1}「${PROJECT_DB.STAGES[idx].name}」，该阶段及后续阶段恢复未完成`;
+  p.statusHistory = normalizeHistory(p.statusHistory);
+  p.statusHistory.push({ date: todayTimeStr(), text: `${action}；状态：${before.status} → ${p.status}；${details.join("；")}` });
+  if (!saveStageChange(p, before)) return;
+  $("#stage-rollback-dialog").close();
+  showToast("回退已保存，原记录保留在更新历史", 2400);
+}
+
+// ---- 渲染基本信息表单 ----
+// 组合字段候选选项：产品线来自产品线库；ODM 来自客户库中带 ODM 标签的客户；APP 来自配套 APP 库（补充项目已有值）
+function comboOptions() {
+  const plOptions = PROJECT_DB.loadProductLines().map(pl => pl.name);
+  const odmOptions = PROJECT_DB.loadCustomers()
+    .filter(c => (c.tags || []).some(t => t.indexOf("ODM") >= 0))
+    .map(c => c.name);
+  const appOptions = [...new Set([
+    ...PROJECT_DB.loadApps().map(a => a.name),
+    ...projects.map(p => p.app).filter(v => v && v !== "-")
+  ])];
+  return { plOptions, odmOptions, appOptions };
+}
+
+// 初始化组合字段：值在候选中 → 下拉选中；不在（自定义值）→ 显示文本输入框
+function setupCombo(selId, inputId, value) {
+  const sel = $("#" + selId), input = $("#" + inputId);
+  const opts = [...sel.options].map(o => o.value);
+  const v = (value && value !== "-") ? value : "";
+  if (v && !opts.includes(v)) {
+    sel.style.display = "none";
+    input.style.display = "";
+    input.value = v;
+  } else {
+    sel.value = v;
+  }
+  sel.onchange = () => {
+    if (sel.value === "__custom__") {
+      sel.style.display = "none";
+      input.style.display = "";
+      input.value = "";
+      input.focus();
+    }
+  };
+}
+
+// 取组合字段当前值（输入框可见取输入框，否则取下拉；空/自定义占位统一为 "-"）
+function comboValue(selId, inputId) {
+  const sel = $("#" + selId), input = $("#" + inputId);
+  if (input.style.display !== "none") return input.value.trim() || "-";
+  const v = sel.value;
+  return (v === "" || v === "__custom__") ? "-" : v;
+}
+
+// 项目是否已逾期：系统时间超过预期结案日期
+function isOverdue(dueDate) {
+  if (!dueDate || dueDate === "-") return false;
+  return todayStr() > dueDate; // "YYYY-MM-DD" 字符串比较
+}
+
+function setupStatusDescMentions() {
+  const input = $("#f-statusdesc"), menu = $("#statusdesc-mention-menu");
+  if (!input || !menu) return;
+  let matches = [], activeIndex = 0, composing = false;
+  const token = () => input.value.slice(0, input.selectionStart).match(/@([^\s@，,。；;：:！？!?（）()\[\]【】、<>]*)$/u);
+  const close = () => { menu.classList.remove("open"); matches = []; };
+  const render = (keepActive = false) => {
+    if (composing) return;
+    const found = token();
+    if (!found) return close();
+    const keyword = found[1].toLowerCase();
+    matches = PROJECT_DB.loadEngineers().filter(e => String(e.name || "").toLowerCase().includes(keyword))
+      .sort((a, b) => Number(b.name.toLowerCase() === keyword) - Number(a.name.toLowerCase() === keyword)).slice(0, 8);
+    if (!keepActive) activeIndex = 0;
+    menu.innerHTML = matches.length ? matches.map((e, i) => `<button type="button" class="mention-option ${i === activeIndex ? "active" : ""}" data-name="${esc(e.name)}" role="option"><span>@${esc(e.name)}</span><span class="mention-role">${esc(e.role || "")}</span></button>`).join("")
+      : `<div class="mention-option">按回车新增「${esc(found[1])}」（角色留空）</div>`;
+    menu.classList.add("open");
+  };
+  const choose = name => {
+    const found = token(); if (!found) return close();
+    const before = input.value.slice(0, input.selectionStart), at = before.lastIndexOf("@");
+    input.setRangeText(`@${name} `, at, input.selectionStart, "end"); input.focus(); close();
+  };
+  input.addEventListener("input", () => render());
+  input.addEventListener("compositionstart", () => { composing = true; });
+  input.addEventListener("compositionend", () => { composing = false; render(); });
+  input.addEventListener("keydown", e => {
+    if (readOnly || composing || e.isComposing || e.keyCode === 229) return;
+    if (e.key === "Escape") { close(); return; }
+    const found = token();
+    if (!found || !menu.classList.contains("open")) return;
+    if (e.key === "Enter" && !matches.length && found[1]) {
+      e.preventDefault();
+      try { const engineer = PROJECT_DB.addStatusEngineer(found[1]); choose(engineer.name); showToast(`已新增工程师「${engineer.name}」，角色留空`); }
+      catch (error) { showToast("新增工程师失败：" + error.message, 3000); }
+      return;
+    }
+    if (!matches.length) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); activeIndex = (activeIndex + (e.key === "ArrowDown" ? 1 : matches.length - 1)) % matches.length; render(true); }
+    else if (e.key === "Enter") { e.preventDefault(); choose(matches[activeIndex].name); }
+    else if (e.key === "Escape") { close(); }
+  });
+  menu.addEventListener("mousedown", e => { const button = e.target.closest("button[data-name]"); if (button) { e.preventDefault(); choose(button.dataset.name); } });
+  input.addEventListener("blur", () => setTimeout(close, 120));
+}
+
+function renderForm(p) {
+  const { plOptions, odmOptions, appOptions } = comboOptions();
+  $(".field-grid").innerHTML = `
+    <div class="field field-full">
+      <label>项目名称</label>
+      <input type="text" id="f-name" value="${esc(p.name)}">
+    </div>
+    <div class="field field-full">
+      <label>项目详情备注（选填，可填写项目规格等信息）</label>
+      <textarea id="f-detailnote" placeholder="选填：项目规格、参数、注意事项等">${esc(p.detailNote || "")}</textarea>
+    </div>
+    <div class="field">
+      <label>客户名称</label>
+      <input type="text" id="f-customer" list="dl-customers" value="${esc(display(p.customer))}" placeholder="输入或从客户库选择">
+    </div>
+    <div class="field">
+      <label>分组</label>
+      <select id="f-group">
+        <option value="">未分组</option>
+        ${PROJECT_DB.loadGroups().map(g => `<option value="${esc(g.name)}" ${g.name === (p.group || "") ? "selected" : ""}>${esc(g.name)}</option>`).join("")}
+      </select>
+    </div>
+    <div class="field">
+      <label>产品线</label>
+      <select id="f-productline-sel" class="combo-select">
+        <option value="">未选择</option>
+        ${plOptions.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("")}
+        <option value="__custom__">＋ 自定义输入…</option>
+      </select>
+      <input type="text" id="f-productline" value="" placeholder="输入自定义产品线" style="display:none">
+    </div>
+    <div class="field">
+      <label>ODM 工厂</label>
+      <select id="f-odm-sel" class="combo-select">
+        <option value="">未选择</option>
+        ${odmOptions.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("")}
+        <option value="__custom__">＋ 自定义输入…</option>
+      </select>
+      <input type="text" id="f-odm" value="" placeholder="输入自定义 ODM 工厂" style="display:none">
+    </div>
+    <div class="field">
+      <label>配套 APP</label>
+      <select id="f-app-sel" class="combo-select">
+        <option value="">未选择</option>
+        ${appOptions.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("")}
+        <option value="__custom__">＋ 自定义输入…</option>
+      </select>
+      <input type="text" id="f-app" value="" placeholder="输入自定义 App 名称" style="display:none">
+    </div>
+    <div class="field">
+      <label>提案日期</label>
+      <input type="date" id="f-proposal" value="${p.proposalDate !== "-" ? p.proposalDate : ""}">
+    </div>
+    <div class="field">
+      <label>立案日期</label>
+      <input type="date" id="f-filing" value="${p.filingDate !== "-" ? p.filingDate : ""}">
+    </div>
+    <div class="field">
+      <label>启动日期</label>
+      <input type="date" id="f-start" value="${p.startDate && p.startDate !== "-" ? p.startDate : ""}">
+    </div>
+    <div class="field">
+      <label>预计结案日期</label>
+      <input type="date" id="f-due" value="${p.dueDate !== "-" ? p.dueDate : ""}">
+      <div class="due-hint">设置启动日期后，预计结案日期为必填</div>
+    </div>
+    <div class="field">
+      <label>项目优先级</label>
+      <select id="f-priority">
+        ${PRIORITY_LIST.map(x => `<option value="${x}" ${x === p.priority ? "selected" : ""}>${x}优先级</option>`).join("")}
+      </select>
+    </div>
+    <div class="field field-full">
+      <label>核心芯片（可添加多个）</label>
+      ${renderChipPicker(p)}
+    </div>
+    <div class="field">
+      <label>项目状态</label>
+      <select id="f-status">
+        ${STATUS_LIST.map(s => `<option value="${s}" ${s === p.status ? "selected" : ""}>${s}</option>`).join("")}
+      </select>
+    </div>
+    <div class="field" id="production-maintenance-field" style="${p.status === "已结案" ? "" : "display:none"}">
+      <label>量产维护</label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="f-production-maintenance" ${PROJECT_DB.isProductionMaintenance(p) ? "checked" : ""}> 研发已结案，但仍需跟踪客户量产问题</label>
+    </div>
+    <div class="field">
+      <label>硬件负责人</label>
+      ${personPickerHtml("f-hw", [p.hwOwner], false)}
+    </div>
+    <div class="field">
+      <label>软件负责人</label>
+      ${personPickerHtml("f-sw", [p.swOwner], false)}
+    </div>
+    <div class="field">
+      <label>项目经理</label>
+      ${personPickerHtml("f-pm", [p.pm], false)}
+    </div>
+    <div class="field field-full">
+      <label>参与人（可多选，也可不选）</label>
+      ${personPickerHtml("f-participants", p.participants, true)}
+    </div>
+    <div class="field field-full">
+      <label>项目标签（多个用顿号「、」分隔，可从标签库选择）</label>
+      <input type="text" id="f-tags" list="dl-tags" value="${esc(normalizeChips(p.tags).join("、"))}" placeholder="如：重点项目、战略客户">
+    </div>
+    <div class="field field-full">
+      <label>项目简介</label>
+      <textarea id="f-summary" placeholder="简要介绍项目，将显示在外部项目卡片上">${esc(p.summary || "")}</textarea>
+    </div>
+    <div class="field field-full">
+      ${renderStatusDescriptionHistory(p)}
+      <label class="statusdesc-label">项目状态描述（可定期更新）<span class="statusdesc-saved" id="statusdesc-saved">${p.statusDescUpdatedAt ? `最近保存：${esc(p.statusDescUpdatedAt)}` : "尚未保存"}</span></label>
+      <div class="mention-wrap"><textarea id="f-statusdesc" placeholder="输入 @ 可快速选择基础资料中的人员">${esc(p.statusDesc)}</textarea><div class="mention-menu" id="statusdesc-mention-menu" role="listbox"></div></div>
+    </div>
+    <div class="field field-full">
+      <label>项目市场预期</label>
+      <textarea id="f-market">${esc(p.marketExpectation)}</textarea>
+    </div>`;
+  // textarea 在 HTML 源码中会吞掉紧跟标签的首个换行；改用 DOM 值回填以保留原文。
+  $("#f-statusdesc").value = normalizeMultilineText(p.statusDesc);
+  // 组合字段初始化（下拉选中 / 自定义值切换输入框）
+  setupCombo("f-productline-sel", "f-productline", p.productLine);
+  setupCombo("f-odm-sel", "f-odm", p.odmFactory);
+  setupCombo("f-app-sel", "f-app", p.app);
+  renderChipPickerState();
+  setupPersonPickers();
+  setupStatusDescMentions();
+  const statusSelect = $("#f-status");
+  const maintenanceField = $("#production-maintenance-field");
+  const maintenanceInput = $("#f-production-maintenance");
+  const syncProductionMaintenanceControl = () => {
+    const isClosed = statusSelect.value === "已结案";
+    maintenanceField.style.display = isClosed ? "" : "none";
+    maintenanceInput.disabled = !isClosed;
+    if (!isClosed) maintenanceInput.checked = false;
+  };
+  statusSelect.addEventListener("change", syncProductionMaintenanceControl);
+  syncProductionMaintenanceControl();
+}
+
+// ---- 渲染「项目风险与变更」tab：信号灯 + 风险预警 + 需求变更 + 延期项目控制 ----
+function renderRiskChange(p) {
+  return `
+    <div class="field-grid" style="margin-top:0">
+      <div class="field">
+        <label>信号灯（红黄绿灯）</label>
+        <select id="f-signal">
+          ${SIGNAL_LIST.map(s => `<option value="${s}" ${s === p.signal ? "selected" : ""}>${s}</option>`).join("")}
+        </select>
+      </div>
+      <div class="field">
+        <label>信号灯备注</label>
+        <input type="text" id="f-signalnote" value="${esc(display(p.signalNote))}" placeholder="填写标黄 / 标红原因">
+      </div>
+      <div class="field field-full signal-rule">
+        <details>
+          <summary>红黄绿灯判定规则（供人工参考）</summary>
+          <ul>
+            <li><b class="rule-g">绿灯</b>：进度正常；延期＜7 天；关键问题有责任人和计划；客户需求稳定；无阻塞</li>
+            <li><b class="rule-y">黄灯</b>：预计延期 7‑14 天；关键问题未关闭但有方案；需求有变更；任一环节有风险</li>
+            <li><b class="rule-r">红灯</b>：延期＞14 天；无解决方案；负责人资源冲突；客户重大投诉；关键物料缺料</li>
+          </ul>
+        </details>
+      </div>
+    </div>
+    <div class="rc-section">
+      <div class="rc-section-title">项目风险预警</div>
+      <div class="risk-list">${renderRiskList(p)}</div>
+      <button type="button" class="risk-add-btn" id="risk-add">＋ 新增风险预警</button>
+      <div class="risk-form" id="risk-form" style="display:none">
+        <textarea class="risk-note" id="risk-note" placeholder="填写风险预警信息"></textarea>
+        <div class="risk-form-row">
+          <label class="risk-row-label">风险等级</label>
+          <div class="risk-level-select" id="risk-level-select">
+            <button type="button" class="rlv-btn rlv-高" data-level="高">高</button>
+            <button type="button" class="rlv-btn rlv-中 active" data-level="中">中</button>
+            <button type="button" class="rlv-btn rlv-低" data-level="低">低</button>
+          </div>
+        </div>
+        <div id="risk-method-field" style="display:none"><label>解除方法</label><textarea class="risk-note" id="risk-method"></textarea></div>
+        <div class="risk-actions">
+          <button type="button" class="risk-confirm" id="risk-confirm">确认增加</button>
+          <button type="button" class="risk-cancel">取消</button>
+        </div>
+      </div>
+    </div>
+    <div class="rc-section">
+      <div class="rc-section-title">项目需求变更</div>
+      <div class="chg-list">${renderChangeList(p)}</div>
+      <button type="button" class="risk-add-btn" id="change-add">＋ 新增项目需求变更</button>
+      <div class="chg-form" id="chg-form" style="display:none">
+        <div class="chg-form-row">
+          <label class="chg-row-label">变更来源</label>
+          <select id="chg-source">
+            <option value="客户">客户</option>
+            <option value="业务">业务</option>
+          </select>
+        </div>
+        <textarea class="chg-content-input" id="chg-content" placeholder="填写变更内容"></textarea>
+        <div class="chg-form-row">
+          <label class="chg-row-label">处理方式</label>
+          <label class="chg-radio"><input type="radio" name="chg-status" value="接受" checked>接受</label>
+          <label class="chg-radio"><input type="radio" name="chg-status" value="拒绝">拒绝</label>
+        </div>
+        <textarea class="chg-reason-input" id="chg-reason" placeholder="填写理由（接受或拒绝均需填写）"></textarea>
+        <div class="risk-actions">
+          <button type="button" class="risk-confirm" id="chg-confirm">确认增加</button>
+          <button type="button" class="risk-cancel" id="chg-cancel">取消</button>
+        </div>
+      </div>
+    </div>
+    <div class="rc-section">
+      <div class="rc-section-title">延期项目控制</div>
+      ${renderDelayControl(p)}
+    </div>
+  `;
+}
+function renderRiskChangeTab(p) {
+  $("#pane-risk").innerHTML = renderRiskChange(p);
+}
+
+// ---- 延期项目控制：是否延期（下拉框，用户主动选择）+ 延期 1/2/3… 记录 ----
+function renderDelayControl(p) {
+  const delays = PROJECT_DB.normalizeDelays(p.delays);
+  const state = PROJECT_DB.projectDelayState(p);
+  const delayed = state === "overdue";
+  const statusHtml = `<span id="delay-auto-status">${PROJECT_DB.projectDelayText(state)}</span><span class="delay-hint"> · 按预计结案日期 ${esc(p.dueDate || "未设置")} 自动判断</span>`;
+  const listHtml = delays.length
+    ? delays.map((d, i) => `
+      <div class="delay-item" data-id="${d.id}">
+        <div class="delay-item-head">
+          <span class="delay-no">延期${i + 1}</span>
+          <span class="delay-time">${esc(d.createdAt)}</span>
+          <span class="delay-ops">
+            <button type="button" class="delay-op-btn" data-act="edit" data-id="${d.id}">编辑</button>
+            <button type="button" class="delay-op-btn danger" data-act="del" data-id="${d.id}">删除</button>
+          </span>
+        </div>
+        <div class="delay-line"><span class="dl-label">延期原因</span><span class="dl-val">${esc(d.reason) || "-"}</span></div>
+        <div class="delay-line"><span class="dl-label">新的目标完成日期</span><span class="dl-val">${esc(d.newTargetDate) || "-"}</span></div>
+        <div class="delay-line"><span class="dl-label">应对措施</span><span class="dl-val">${esc(d.measures) || "-"}</span></div>
+      </div>`).join("")
+    : `<div class="risk-empty">暂无延期记录</div>`;
+  const addBtn = (delayed || delays.length > 0)
+    ? `<button type="button" class="risk-add-btn" id="delay-add">＋ 新增延期${delays.length ? delays.length + 1 : 1}</button>
+       <div class="delay-form" id="delay-form" style="display:none">
+         <div class="delay-form-title" id="delay-form-title">新增延期${delays.length ? delays.length + 1 : 1}</div>
+         <div class="delay-form-row">
+           <label class="chg-row-label">延期原因</label>
+           <textarea class="chg-content-input" id="delay-reason" placeholder="填写延期原因"></textarea>
+         </div>
+         <div class="delay-form-row">
+           <label class="chg-row-label">新的目标完成日期</label>
+           <input type="date" id="delay-target">
+         </div>
+         <div class="delay-form-row">
+           <label class="chg-row-label">应对措施</label>
+           <textarea class="chg-content-input" id="delay-measures" placeholder="填写应对措施"></textarea>
+         </div>
+         <div class="risk-actions">
+           <button type="button" class="risk-confirm" id="delay-confirm">确认增加</button>
+           <button type="button" class="risk-cancel" id="delay-cancel">取消</button>
+         </div>
+       </div>`
+    : `<div class="delay-hint">延期状态按预计结案日期自动计算。</div>`;
+  return `
+    <div class="delay-control-head">项目是否延期：${statusHtml}</div>
+    <div class="delay-list">${listHtml}</div>
+    ${addBtn}`;
+}
+
+// 延期记录编辑状态（null = 新增模式；否则为正在编辑的延期记录 id）
+let editingDelayId = null;
+
+// 新增 / 编辑延期记录（延期1/2/3…）
+function addDelay(reason, newTargetDate, measures) {
+  const p = isNewMode ? draftProject : currentProject;
+  if (!p) return;
+  if (!reason.trim() && !newTargetDate && !measures.trim()) { showToast("请至少填写延期原因、新目标日期或应对措施之一", 2200); return; }
+  const delays = PROJECT_DB.normalizeDelays(p.delays);
+  p.statusHistory = normalizeHistory(p.statusHistory);
+  if (editingDelayId) {
+    const d = delays.find(x => x.id === editingDelayId);
+    if (d) {
+      d.reason = reason.trim();
+      d.newTargetDate = newTargetDate;
+      d.measures = measures.trim();
+      p.statusHistory.push({ date: todayTimeStr(), text: `编辑延期记录：${reason.trim() || "-"}（新目标完成日期：${newTargetDate || "-"}）` });
+      showToast("延期记录已更新", 1800);
+    }
+  } else {
+    const id = PROJECT_DB.nextId(delays);
+    delays.push({ id, reason: reason.trim(), newTargetDate, measures: measures.trim(), createdAt: todayTimeStr() });
+    p.statusHistory.push({ date: todayTimeStr(), text: `新增延期${delays.length}：${reason.trim() || "-"}（新目标完成日期：${newTargetDate || "-"}）` });
+    showToast(`延期${delays.length}已添加`, 1800);
+  }
+  p.delays = delays;
+  editingDelayId = null;
+  if (!isNewMode) PROJECT_DB.save(projects);
+  renderRiskChangeTab(p);
+  $("#pane-history").innerHTML = renderHistory(p);
+  $("#pane-nodes").innerHTML = renderNodes(p);
+  $("#pane-custnodes").innerHTML = renderCustomerNodes(p);
+}
+
+// 打开编辑延期记录（把该条内容填入表单）
+function openDelayEdit(id) {
+  const p = isNewMode ? draftProject : currentProject;
+  if (!p) return;
+  const delays = PROJECT_DB.normalizeDelays(p.delays);
+  const d = delays.find(x => x.id === id);
+  if (!d) return;
+  editingDelayId = id;
+  $("#delay-reason").value = d.reason || "";
+  $("#delay-target").value = d.newTargetDate || "";
+  $("#delay-measures").value = d.measures || "";
+  $("#delay-form-title").textContent = "编辑延期" + (delays.indexOf(d) + 1);
+  $("#delay-confirm").textContent = "确认修改";
+  $("#delay-form").style.display = "";
+  $("#delay-reason").focus();
+}
+
+// 删除延期记录
+function removeDelay(id) {
+  const p = isNewMode ? draftProject : currentProject;
+  if (!p) return;
+  if (!confirm("确定删除该延期记录？")) return;
+  const delays = PROJECT_DB.normalizeDelays(p.delays).filter(d => d.id !== id);
+  p.delays = delays;
+  p.statusHistory = normalizeHistory(p.statusHistory);
+  p.statusHistory.push({ date: todayTimeStr(), text: "删除延期记录" });
+  if (!isNewMode) PROJECT_DB.save(projects);
+  renderRiskChangeTab(p);
+  $("#pane-history").innerHTML = renderHistory(p);
+  $("#pane-nodes").innerHTML = renderNodes(p);
+  $("#pane-custnodes").innerHTML = renderCustomerNodes(p);
+  showToast("延期记录已删除", 1800);
+}
+
+/* ==========================================================================
+   Flow 流程图：阶段泳道（可点击编辑）+ 主节点（手动新建）+ 导出
+   ========================================================================== */
+const FLOW_LANE_H = 96, FLOW_LABEL_W = 190, FLOW_NODE_W = 150, FLOW_NODE_H = 60;
+function flowProject() { return isNewMode ? draftProject : currentProject; }
+
+// 节点坐标自动归位：按阶段泳道纵向排布、同阶段横向排列
+function flowNodePos(stageId, index) {
+  const i = Math.max(0, PROJECT_DB.STAGES.findIndex(s => s.id === stageId));
+  return {
+    x: FLOW_LABEL_W + 20 + index * (FLOW_NODE_W + 28),
+    y: i * FLOW_LANE_H + (FLOW_LANE_H - FLOW_NODE_H) / 2
+  };
+}
+// 连线总数（只按 nextId 单向计数，避免重复）
+function countFlowLinks(nodes) {
+  let c = 0; nodes.forEach(n => { if (n.nextId != null) c++; }); return c;
+}
+
+function renderFlow(p) {
+  if (!p) return "";
+  const stages = PROJECT_DB.normalizeStages(p.stages);
+  const nodes = PROJECT_DB.normalizeNodes(p.nodes);
+  const current = PROJECT_DB.currentStage(p);
+  const isClosed = p.status === "已结案";
+
+  const totalDays = stages.reduce((sum, s, i) => sum + (parseInt(s.days, 10) || PROJECT_DB.STAGES[i].mid), 0);
+  const doneStageCount = stages.filter(s => s.done).length;
+  const doneNodeCount = nodes.filter(n => n.doneDate).length;
+  const maxDays = daysBetween(p.proposalDate, p.dueDate);
+  const durError = (maxDays !== null && totalDays > maxDays);
+
+  // 按 stageId 分组，并为无坐标节点自动归位
+  const laneCount = {};
+  const byStage = {};
+  PROJECT_DB.STAGES.forEach(s => { byStage[s.id] = []; });
+  byStage[0] = [];
+  nodes.forEach(n => {
+    const sid = (n.stageId && byStage[n.stageId] != null) ? n.stageId : 0;
+    byStage[sid].push(n);
+    if (n.x == null || n.y == null) {
+      const cnt = laneCount[sid] || 0;
+      const pos = flowNodePos(sid, cnt);
+      n.x = pos.x; n.y = pos.y;
+      laneCount[sid] = cnt + 1;
+    }
+  });
+  // 把自动归位的坐标写回原始数据（仅当原始缺失）
+  const rawNodes = Array.isArray(p.nodes) ? p.nodes : [];
+  nodes.forEach(n => {
+    const raw = rawNodes.find(r => r && String(r.id) === String(n.id));
+    if (raw && (raw.x == null || raw.y == null)) { raw.x = n.x; raw.y = n.y; }
+  });
+
+  const errorBanner = durError
+    ? `<div class="stages-error">⚠ 计算工期出错：项目总工期 <b>${totalDays}</b> 天，超过「预计结案日期 − 提案日期」<b>${maxDays}</b> 天，请调整各阶段预期天数或项目日期。</div>`
+    : "";
+
+  const summary = `<div class="stages-total">项目总工期：<b>${totalDays}</b> 天 · 阶段完成 <b>${doneStageCount}</b>/${PROJECT_DB.STAGES.length} · 节点 <b>${nodes.length}</b> 个（完成 <b>${doneNodeCount}</b>）${maxDays !== null ? ` · 可用窗口 <b>${maxDays}</b> 天` : ""}</div>`;
+
+  // 泳道 + 标签
+  const lanes = PROJECT_DB.STAGES.map((s, i) => {
+    const st = stages[i];
+    const isCurrent = !isClosed && current && current.index === i;
+    const laneCls = st.done ? "lane-done" : (isClosed ? "lane-closed" : (isCurrent ? "lane-current" : ""));
+    const stateTxt = st.done ? "✅ 已完成" + (st.doneDate ? " · " + st.doneDate : "")
+      : (isClosed ? "⏹ 已结案" : (isCurrent ? "🔵 进行中" : "🔒 待解锁"));
+    return `
+      <div class="flow-lane" data-stage="${s.id}" style="top:${i * FLOW_LANE_H}px"></div>
+      <div class="flow-lane-label ${laneCls}" data-stage="${s.id}" style="top:${i * FLOW_LANE_H}px" title="点击编辑阶段 S${s.id} ${esc(s.name)}">
+        <span class="sl-name">S${s.id} ${esc(s.name)}</span>
+        <span class="sl-milestone" title="${esc(s.milestone)}">里程碑：${esc(s.milestone)}</span>
+        <span class="sl-state">${stateTxt}</span>
+      </div>`;
+  }).join("");
+
+  // 节点（可拖拽 + 左右端口连线）
+  const nodeHtml = nodes.map(n => {
+    const done = !!n.doneDate;
+    return `<div class="flow-node ${done ? "done" : "todo"}" data-id="${n.id}" data-stage="${n.stageId}" style="left:${n.x}px;top:${n.y}px" title="点击编辑节点">
+      <button type="button" class="fn-del" data-id="${n.id}" title="删除该节点">×</button>
+      <span class="flow-port in" data-id="${n.id}" title="连接上一个节点（拖到其它节点）"></span>
+      <div class="fn-name">${esc(n.name || "未命名节点")}</div>
+      <div class="fn-date">${done ? "✓ " + esc(n.doneDate) : (esc(n.targetDate) || "未排期")}</div>
+      <span class="flow-port out" data-id="${n.id}" title="连接下一个节点（拖到其它节点）"></span>
+    </div>`;
+  }).join("");
+
+  // 每个泳道右侧「＋ 节点」按钮
+  const laneAddBtns = PROJECT_DB.STAGES.map((s, i) => `
+      <button type="button" class="flow-lane-add" data-stage="${s.id}" style="top:${i * FLOW_LANE_H + 10}px" title="在该阶段新增节点">＋ 节点</button>`).join("");
+
+  const totalH = PROJECT_DB.STAGES.length * FLOW_LANE_H + 24;
+
+  return `<div class="flow-toolbar">
+      <span class="flow-hint">拖节点调整位置 · 拖节点左右圆点连线（可跨阶段）· 点连线删除 · 点节点编辑 · 点左侧泳道标签编辑阶段</span>
+      <span class="flow-hint" style="margin-left:auto">节点 ${nodes.length} 个 · 连线 ${countFlowLinks(nodes)} 条</span>
+      <button type="button" class="btn" id="flow-preview">🖼 预览图</button>
+      <button type="button" class="btn" id="flow-export-md">导出 Markdown</button>
+      <button type="button" class="btn primary" id="flow-export-pdf">导出 PDF</button>
+    </div>
+    ${errorBanner}${summary}
+    <div class="flow-canvas" id="flow-canvas">
+      <div class="flow-inner" id="flow-inner" style="height:${totalH}px">
+        <svg class="flow-links" id="flow-links" width="1600" height="${totalH}"></svg>
+        ${lanes}
+        ${nodeHtml}
+      </div>
+      ${laneAddBtns}
+    </div>`;
+}
+
+// 刷新 Flow（重渲染 + 重绘连线）
+function refreshFlow(p) {
+  if (!p) return;
+  $("#pane-flow").innerHTML = renderFlow(p);
+  renderFlowLinks(p);
+}
+
+// 绘制节点连线（SVG 贝塞尔曲线 + 可点击删除的透明命中线）
+function renderFlowLinks(p) {
+  const svg = document.getElementById("flow-links");
+  if (!svg) return;
+  const nodes = PROJECT_DB.normalizeNodes(p.nodes);
+  const byId = {};
+  nodes.forEach(n => { byId[String(n.id)] = n; });
+  let h = '';
+  const drawn = new Set();
+  const cy = FLOW_NODE_H / 2;
+  nodes.forEach(m => {
+    if (m.nextId != null) {
+      const b = byId[String(m.nextId)];
+      if (b) {
+        const key = m.id + "-" + b.id;
+        if (drawn.has(key)) return;
+        drawn.add(key);
+        const x1 = m.x + FLOW_NODE_W + 7, y1 = m.y + cy;
+        const x2 = b.x - 7, y2 = b.y + cy;
+        const mx = (x1 + x2) / 2;
+        h += `<path class="flow-link-path" d="M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}"/>`;
+        h += `<circle class="flow-link-dot" cx="${x1}" cy="${y1}" r="3.5"/><circle class="flow-link-dot" cx="${x2}" cy="${y2}" r="3.5"/>`;
+        h += `<path class="flow-link-hit" data-from="${m.id}" data-to="${b.id}" d="M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}" title="点击删除连线"/>`;
+      }
+    }
+  });
+  svg.innerHTML = h;
+}
+
+/* ---- 阶段编辑对话框（编辑日期 / 天数 / 备注 + 里程碑完成 / 中途结案） ---- */
+let pfEditStageId = null;
+let fsChoiceMode = null;
+
+function openPfStageDialog(stageId) {
+  const p = flowProject(); if (!p) return;
+  pfEditStageId = stageId;
+  const stages = PROJECT_DB.normalizeStages(p.stages);
+  const idx = PROJECT_DB.STAGES.findIndex(s => s.id === stageId);
+  const st = stages[idx] || {};
+  const s = PROJECT_DB.STAGES[idx];
+  const current = PROJECT_DB.currentStage(p);
+  const isCurrent = !(p.status === "已结案") && current && current.index === idx;
+  $("#fs-title").textContent = "编辑阶段 · S" + stageId + " " + (s ? s.name : "");
+  $("#fs-days").value = st.days || (s ? s.mid : "");
+  $("#fs-start").value = st.startDate || "";
+  $("#fs-expected").value = st.expectedEndDate || "";
+  $("#fs-actual").value = st.doneDate || "";
+  $("#fs-note").value = st.note || "";
+  const ops = $("#fs-ops");
+  if (ops) { ops.style.display = isCurrent ? "" : "none"; }
+  $("#fs-rollback-btn").style.display = st.done && !readOnly ? "" : "none";
+  $("#fs-reopen-btn").style.display = p.status === "已结案" && !readOnly ? "" : "none";
+  resetFsChoice();
+  $("#flow-stage-overlay").style.display = "flex";
+}
+function resetFsChoice() {
+  fsChoiceMode = null;
+  const form = $("#fs-choice-form");
+  if (form) form.style.display = "none";
+  const note = $("#fs-choice-note");
+  if (note) note.value = "";
+}
+function showFsChoice(mode, placeholder) {
+  fsChoiceMode = mode;
+  const form = $("#fs-choice-form");
+  const note = $("#fs-choice-note");
+  if (form) form.style.display = "";
+  if (note) { note.value = ""; note.placeholder = placeholder; note.focus(); }
+}
+function confirmFsChoice() {
+  const p = flowProject(); if (!p) return;
+  const text = $("#fs-choice-note").value.trim();
+  const idx = PROJECT_DB.STAGES.findIndex(s => s.id === pfEditStageId);
+  if (idx < 0) return;
+  if (fsChoiceMode === "done") {
+    if (!text) { showToast("请填写里程碑完成评述", 2000); return; }
+    closePfStageDialog();
+    confirmStageDone(idx, text);
+  } else if (fsChoiceMode === "close") {
+    if (!text) { showToast("请填写中途结案理由", 2000); return; }
+    closePfStageDialog();
+    confirmStageClose(text);
+  }
+}
+function savePfStage() {
+  const p = flowProject(); if (!p) return;
+  const idx = PROJECT_DB.STAGES.findIndex(s => s.id === pfEditStageId);
+  if (idx < 0) return;
+  if (!Array.isArray(p.stages)) p.stages = [];
+  if (!p.stages[idx]) p.stages[idx] = {};
+  p.stages[idx].days = $("#fs-days").value.trim();
+  p.stages[idx].startDate = $("#fs-start").value;
+  p.stages[idx].expectedEndDate = $("#fs-expected").value;
+  p.stages[idx].doneDate = $("#fs-actual").value;
+  p.stages[idx].note = $("#fs-note").value;
+  p.statusHistory = normalizeHistory(p.statusHistory);
+  p.statusHistory.push({ date: todayTimeStr(), text: `编辑阶段「${PROJECT_DB.STAGES[idx].name}」日期/天数/备注` });
+  if (!isNewMode) PROJECT_DB.save(projects);
+  closePfStageDialog();
+  refreshFlow(p);
+  $("#pane-stages").innerHTML = renderStages(p);
+  showToast("阶段已保存", 1600);
+}
+function closePfStageDialog() { $("#flow-stage-overlay").style.display = "none"; resetFsChoice(); }
+
+/* ---- 节点编辑对话框（新增 / 编辑 / 标记完成 / 前后置连线） ---- */
+let pfEditNodeId = null, pfNodeStageId = 0;
+
+function openPfNodeDialog(node, stageId) {
+  const p = flowProject(); if (!p) return;
+  pfEditNodeId = node ? node.id : null;
+  pfNodeStageId = node ? node.stageId : stageId;
+  $("#pfn-title").textContent = node ? "编辑节点" : "新增节点";
+  $("#pfn-name").value = node ? node.name : "";
+  $("#pfn-target").value = node ? node.targetDate : "";
+  $("#pfn-done").value = node ? node.doneDate : "";
+  $("#pfn-output").value = node ? node.output : "";
+  // 前置 / 后置节点下拉（连线关系）
+  const allNodes = PROJECT_DB.normalizeNodes(p.nodes).filter(n => !node || n.id !== node.id);
+  const opt = allNodes.length
+    ? `<option value="">无</option>` + allNodes.map(o => `<option value="${o.id}">${esc(o.name || ("节点" + o.id))}（${esc(o.stage || "-")}）</option>`).join("")
+    : `<option value="">暂无其它节点</option>`;
+  $("#pfn-prev").innerHTML = opt;
+  $("#pfn-prev").value = (node && node.prevId != null) ? String(node.prevId) : "";
+  $("#pfn-next").innerHTML = opt;
+  $("#pfn-next").value = (node && node.nextId != null) ? String(node.nextId) : "";
+  $("#pf-node-overlay").style.display = "flex";
+  $("#pfn-name").focus();
+}
+function savePfNode() {
+  const p = flowProject(); if (!p) return;
+  const name = $("#pfn-name").value.trim();
+  const output = $("#pfn-output").value.trim();
+  if (!name) { showToast("请填写节点名称", 2000); return; }
+  if (!output) { showToast("请填写输出成果", 2000); return; }
+  const targetDate = $("#pfn-target").value;
+  const doneDate = $("#pfn-done").value;
+  const stageName = (PROJECT_DB.STAGES.find(s => s.id === pfNodeStageId) || {}).name || "";
+  const prevId = $("#pfn-prev").value ? Number($("#pfn-prev").value) : null;
+  const nextId = $("#pfn-next").value ? Number($("#pfn-next").value) : null;
+  const arr = Array.isArray(p.nodes) ? p.nodes : [];
+  p.statusHistory = normalizeHistory(p.statusHistory);
+  if (pfEditNodeId != null) {
+    const n = arr.find(x => x && String(x.id) === String(pfEditNodeId));
+    if (n) {
+      n.name = name; n.targetDate = targetDate; n.doneDate = doneDate; n.output = output;
+      if (pfNodeStageId) { n.stageId = pfNodeStageId; n.stage = stageName; }
+      p.statusHistory.push({ date: todayTimeStr(), text: `编辑项目节点（${stageName}${doneDate ? "，已完成" : ""}）：${name} · ${output}` });
+    }
+  } else {
+    const id = PROJECT_DB.nextId(arr);
+    arr.push({ id, name, stage: stageName, stageId: pfNodeStageId, targetDate, output, doneDate, prevId: null, nextId: null, x: null, y: null });
+    pfEditNodeId = id;
+    p.statusHistory.push({ date: todayTimeStr(), text: `新增项目节点（${stageName}${doneDate ? "，已完成" : ""}）：${name} · ${output}` });
+  }
+  applyNodeLink(arr, pfEditNodeId, prevId, nextId);
+  if (!isNewMode) PROJECT_DB.save(projects);
+  closePfNodeDialog();
+  refreshFlow(p);
+  $("#pane-nodes").innerHTML = renderNodes(p);
+  $("#pane-history").innerHTML = renderHistory(p);
+  showToast(doneDate ? "节点已保存并标记完成" : "节点已保存", 1800);
+}
+function closePfNodeDialog() { $("#pf-node-overlay").style.display = "none"; }
+
+// 统一写入节点前后置连线（prevId/nextId 双向同步）
+function applyNodeLink(arr, selfId, prevId, nextId) {
+  const self = arr.find(x => x && String(x.id) === String(selfId));
+  if (!self) return;
+  if (self.prevId != null) { const old = arr.find(x => x && String(x.id) === String(self.prevId)); if (old && old.nextId === selfId) old.nextId = null; }
+  if (self.nextId != null) { const old = arr.find(x => x && String(x.id) === String(self.nextId)); if (old && old.prevId === selfId) old.prevId = null; }
+  self.prevId = prevId;
+  self.nextId = nextId;
+  if (prevId != null) { const a = arr.find(x => x && String(x.id) === String(prevId)); if (a) a.nextId = selfId; }
+  if (nextId != null) { const b = arr.find(x => x && String(x.id) === String(nextId)); if (b) b.prevId = selfId; }
+}
+
+function deletePfNode(id) {
+  const p = flowProject(); if (!p) return;
+  if (!confirm("确定删除该节点？其相关连线会一并清除。")) return;
+  const arr = Array.isArray(p.nodes) ? p.nodes : [];
+  const target = arr.find(n => n && String(n.id) === String(id));
+  // 清理其它节点对该节点的前后置引用
+  arr.forEach(x => {
+    if (x && x.prevId != null && String(x.prevId) === String(id)) x.prevId = null;
+    if (x && x.nextId != null && String(x.nextId) === String(id)) x.nextId = null;
+  });
+  p.nodes = arr.filter(x => !x || String(x.id) !== String(id));
+  p.statusHistory = normalizeHistory(p.statusHistory);
+  if (target) p.statusHistory.push({ date: todayTimeStr(), text: `删除项目节点（${target.stage || "-"}）：${target.name || "未命名节点"}` });
+  if (!isNewMode) PROJECT_DB.save(projects);
+  refreshFlow(p);
+  $("#pane-nodes").innerHTML = renderNodes(p);
+  $("#pane-history").innerHTML = renderHistory(p);
+  showToast("节点已删除", 1600);
+}
+
+// 删除一条连线（A→B）
+function deleteFlowLink(fromId, toId) {
+  const p = flowProject(); if (!p) return;
+  const arr = Array.isArray(p.nodes) ? p.nodes : [];
+  const a = arr.find(x => x && String(x.id) === String(fromId));
+  const b = arr.find(x => x && String(x.id) === String(toId));
+  if (a && a.nextId === toId) a.nextId = null;
+  if (b && b.prevId === fromId) b.prevId = null;
+  if (!isNewMode) PROJECT_DB.save(projects);
+  refreshFlow(p);
+  showToast("连线已删除", 1500);
+}
+
+// 新增节点（挂到指定阶段泳道，就地补全）
+function addFlowNode(stageId) {
+  const p = flowProject(); if (!p) return;
+  const arr = Array.isArray(p.nodes) ? p.nodes : [];
+  const id = PROJECT_DB.nextId(arr);
+  const stageName = (PROJECT_DB.STAGES.find(s => s.id === stageId) || {}).name || "";
+  const pos = flowNodePos(stageId, arr.filter(n => n && n.stageId === stageId).length);
+  arr.push({ id, name: "新节点" + (arr.length + 1), stage: stageName, stageId, targetDate: "", output: "", doneDate: "", prevId: null, nextId: null, x: pos.x, y: pos.y });
+  if (!isNewMode) PROJECT_DB.save(projects);
+  refreshFlow(p);
+  $("#pane-nodes").innerHTML = renderNodes(p);
+  openPfNodeDialog(PROJECT_DB.normalizeNodes(p.nodes).find(n => n.id === id), stageId);
+}
+
+/* ---- 拖拽节点 + 拖线连线 ---- */
+let flowDrag = null, flowLink = null, flowMoved = false;
+
+document.addEventListener("mousedown", e => {
+  const port = e.target.closest(".flow-port");
+  if (port && port.closest("#pane-flow")) { startFlowLink(e, port); return; }
+  const node = e.target.closest("#pane-flow .flow-node");
+  if (!node) return;
+  if (e.target.closest(".fn-del")) return; // 删除按钮不触发拖拽
+  if (readOnly) return;
+  const p = flowProject(); if (!p) return;
+  const inner = document.getElementById("flow-inner");
+  const rect = inner.getBoundingClientRect();
+  flowDrag = { id: node.dataset.id, startX: e.clientX, startY: e.clientY, offX: e.clientX - rect.left - parseInt(node.style.left, 10), offY: e.clientY - rect.top - parseInt(node.style.top, 10) };
+  flowMoved = false;
+  node.classList.add("dragging");
+  e.preventDefault();
+});
+
+document.addEventListener("mousemove", e => {
+  if (flowLink) { updateFlowLinkGhost(e); return; }
+  if (!flowDrag) return;
+  if (Math.abs(e.clientX - flowDrag.startX) > 4 || Math.abs(e.clientY - flowDrag.startY) > 4) flowMoved = true;
+  const inner = document.getElementById("flow-inner");
+  if (!inner) return;
+  const rect = inner.getBoundingClientRect();
+  const x = Math.max(FLOW_LABEL_W - 20, Math.round(e.clientX - rect.left - flowDrag.offX));
+  const y = Math.max(0, Math.round(e.clientY - rect.top - flowDrag.offY));
+  const node = document.querySelector(`.flow-node[data-id="${flowDrag.id}"]`);
+  if (node) { node.style.left = x + "px"; node.style.top = y + "px"; }
+});
+
+document.addEventListener("mouseup", e => {
+  if (flowLink) { endFlowLink(e); return; }
+  if (!flowDrag) return;
+  const p = flowProject();
+  const node = document.querySelector(`.flow-node[data-id="${flowDrag.id}"]`);
+  if (p && node) {
+    const arr = Array.isArray(p.nodes) ? p.nodes : [];
+    const nd = arr.find(n => n && String(n.id) === String(flowDrag.id));
+    if (nd) { nd.x = parseInt(node.style.left, 10); nd.y = parseInt(node.style.top, 10); }
+    renderFlowLinks(p);
+    if (!isNewMode) PROJECT_DB.save(projects);
+  }
+  document.querySelectorAll(".flow-node.dragging").forEach(el => el.classList.remove("dragging"));
+  flowDrag = null;
+});
+
+function startFlowLink(e, port) {
+  const p = flowProject(); if (!p || readOnly) return;
+  flowLink = { id: port.dataset.id, type: port.classList.contains("out") ? "out" : "in", startX: e.clientX, startY: e.clientY };
+  flowMoved = false;
+  e.preventDefault();
+}
+function updateFlowLinkGhost(e) {
+  if (Math.abs(e.clientX - flowLink.startX) > 4 || Math.abs(e.clientY - flowLink.startY) > 4) flowMoved = true;
+  const inner = document.getElementById("flow-inner");
+  const svg = document.getElementById("flow-links");
+  if (!inner || !svg) return;
+  const rect = inner.getBoundingClientRect();
+  const from = document.querySelector(`.flow-node[data-id="${flowLink.id}"]`);
+  if (!from) return;
+  const isOut = flowLink.type === "out";
+  const x1 = parseInt(from.style.left, 10) + (isOut ? FLOW_NODE_W : 0);
+  const y1 = parseInt(from.style.top, 10) + FLOW_NODE_H / 2;
+  const x2 = e.clientX - rect.left;
+  const y2 = e.clientY - rect.top;
+  let ghost = document.getElementById("flow-ghost");
+  if (!ghost) {
+    ghost = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    ghost.setAttribute("id", "flow-ghost");
+    ghost.setAttribute("class", "flow-ghost");
+    svg.appendChild(ghost);
+  }
+  const mx = (x1 + x2) / 2;
+  ghost.setAttribute("d", `M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`);
+}
+function endFlowLink(e) {
+  const ghost = document.getElementById("flow-ghost");
+  if (ghost) ghost.remove();
+  const p = flowProject();
+  const target = e.target.closest("#pane-flow .flow-node");
+  if (flowLink && flowMoved && p && target && String(target.dataset.id) !== String(flowLink.id)) {
+    const arr = Array.isArray(p.nodes) ? p.nodes : [];
+    const nd = arr.find(n => n && String(n.id) === String(flowLink.id));
+    const tg = arr.find(n => n && String(n.id) === String(target.dataset.id));
+    if (nd && tg) {
+      if (flowLink.type === "out") {
+        if (nd.nextId != null) { const old = arr.find(x => x && String(x.id) === String(nd.nextId)); if (old && old.prevId === flowLink.id) old.prevId = null; }
+        nd.nextId = Number(target.dataset.id); tg.prevId = Number(flowLink.id);
+      } else {
+        if (nd.prevId != null) { const old = arr.find(x => x && String(x.id) === String(nd.prevId)); if (old && old.nextId === flowLink.id) old.nextId = null; }
+        nd.prevId = Number(target.dataset.id); tg.nextId = Number(flowLink.id);
+      }
+      renderFlowLinks(p);
+      if (!isNewMode) PROJECT_DB.save(projects);
+      showToast(flowLink.type === "out" ? "已连接下一个节点" : "已连接上一个节点", 1500);
+    }
+  }
+  flowLink = null;
+}
+
+/* ---- 事件委托（仅「项目 Flow」tab 内生效） ---- */
+document.addEventListener("click", e => {
+  const inFlow = e.target.closest("#pane-flow");
+  if (!inFlow) return;
+
+  // 点连线删除
+  const hit = e.target.closest(".flow-link-hit");
+  if (hit) { if (!readOnly) deleteFlowLink(Number(hit.dataset.from), Number(hit.dataset.to)); return; }
+  // 节点删除按钮
+  const delBtn = e.target.closest(".fn-del");
+  if (delBtn) { if (!readOnly) deletePfNode(Number(delBtn.dataset.id)); return; }
+  // 泳道「＋ 节点」按钮
+  const addBtn = e.target.closest(".flow-lane-add");
+  if (addBtn) { if (!readOnly) addFlowNode(Number(addBtn.dataset.stage)); return; }
+  // 点泳道标签 → 编辑阶段
+  const lane = e.target.closest(".flow-lane-label");
+  if (lane) { if (!readOnly) openPfStageDialog(Number(lane.dataset.stage)); return; }
+  // 点节点 → 编辑节点
+  const node = e.target.closest(".flow-node");
+  if (node) {
+    if (flowMoved) { flowMoved = false; return; }
+    if (!readOnly) {
+      const id = Number(node.dataset.id);
+      const n = PROJECT_DB.normalizeNodes(flowProject().nodes).find(x => x.id === id);
+      if (n) openPfNodeDialog(n, n.stageId);
+    }
+    return;
+  }
+});
+
+// 双击泳道空白 → 在该阶段新增节点
+document.addEventListener("dblclick", e => {
+  const lane = e.target.closest(".flow-lane");
+  if (lane && lane.closest("#pane-flow") && !readOnly) addFlowNode(Number(lane.dataset.stage));
+});
+
+/* ---- 导出 Markdown / PDF（阶段 + 节点清单） ---- */
+function flowDownload(filename, content, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function flowBuildText() {
+  const p = flowProject(); if (!p) return { md: "", html: "" };
+  const stages = PROJECT_DB.normalizeStages(p.stages);
+  const nodes = PROJECT_DB.normalizeNodes(p.nodes);
+  const byStage = {};
+  PROJECT_DB.STAGES.forEach(s => { byStage[s.id] = []; });
+  byStage[0] = [];
+  nodes.forEach(n => { const sid = (n.stageId && byStage[n.stageId]) ? n.stageId : 0; byStage[sid].push(n); });
+  const md = [], html = [];
+  const title = (p.name || "项目") + " · 项目 Flow";
+  md.push("# " + title, "", "导出时间：" + todayTimeStr(), "");
+  html.push('<h1>' + esc(title) + '</h1>', '<div class="fbp-meta">导出时间：' + todayTimeStr() + '</div>');
+  PROJECT_DB.STAGES.forEach((s, i) => {
+    const st = stages[i] || {};
+    md.push("## " + s.id + ". " + s.name, "");
+    md.push("- 里程碑：" + (s.milestone || "-"));
+    md.push("- 预期天数：" + (st.days || s.mid));
+    md.push("- 开始日期：" + (st.startDate || "-") + "　预计完成：" + (st.expectedEndDate || "-") + "　实际完成：" + (st.doneDate || "-"));
+    md.push("- 备注：" + (st.note || "-"), "");
+    html.push('<div class="fbp-item"><div class="fbp-head">' + s.id + '. ' + esc(s.name) + '（' + (st.startDate || '-') + ' → ' + (st.expectedEndDate || '-') + '）</div><div class="fbp-content">里程碑：' + esc(s.milestone || '-') + '</div></div>');
+    (byStage[s.id] || []).forEach(n => {
+      md.push("### 节点：" + (n.name || "-"), "");
+      md.push("- 目标完成：" + (n.targetDate || "-") + "　实际完成：" + (n.doneDate || "-"));
+      md.push("- 输出成果：" + (n.output || "-"), "");
+      html.push('<div class="fbp-item"><div class="fbp-head">　节点：' + esc(n.name || '-') + '（' + (n.targetDate || '-') + (n.doneDate ? ' → ' + n.doneDate : '') + '）</div><div class="fbp-content">输出成果：' + esc(n.output || '-') + '</div></div>');
+    });
+  });
+  return { md: md.join("\n"), html: html.join("") };
+}
+function flowExportMd() {
+  const p = flowProject(); if (!p) return;
+  const t = flowBuildText();
+  flowDownload("Flow_" + (p.name || "项目") + "_" + todayStr() + ".md", t.md, "text/markdown;charset=utf-8");
+  showToast("Markdown 已导出", 1600);
+}
+function flowExportPdf() {
+  const p = flowProject(); if (!p) return;
+  const t = flowBuildText();
+  $("#flow-print-area").innerHTML = t.html;
+  window.print();
+}
+
+/* ---- 预览图：SVG 渲染 → PNG 导出 + 页面内预览 ---- */
+function escXml(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function svgTextLines(text, maxChars) {
+  const lines = [];
+  let cur = "";
+  for (const ch of String(text)) {
+    if (cur.length >= maxChars) { lines.push(cur); cur = ""; }
+    cur += ch;
+  }
+  if (cur) lines.push(cur);
+  return lines.slice(0, 2);
+}
+function buildFlowSvg(p) {
+  const nodes = PROJECT_DB.normalizeNodes(p.nodes);
+  const stages = PROJECT_DB.normalizeStages(p.stages);
+  const current = PROJECT_DB.currentStage(p);
+  const isClosed = p.status === "已结案";
+  const W = Math.max(1100, ...nodes.map(n => n.x + FLOW_NODE_W + 60));
+  const H = PROJECT_DB.STAGES.length * FLOW_LANE_H + 16;
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Microsoft YaHei, PingFang SC, sans-serif">`;
+  svg += `<rect width="100%" height="100%" fill="#ffffff"/>`;
+  // 泳道 + 标签
+  PROJECT_DB.STAGES.forEach((s, i) => {
+    const st = stages[i];
+    const isCur = !isClosed && current && current.index === i;
+    const y = i * FLOW_LANE_H;
+    svg += `<rect x="0" y="${y}" width="${W}" height="${FLOW_LANE_H}" fill="${isCur ? "#eef4ff" : (i % 2 ? "#f8fafc" : "#ffffff")}" stroke="#e5e7eb"/>`;
+    svg += `<rect x="0" y="${y}" width="${FLOW_LABEL_W}" height="${FLOW_LANE_H}" fill="${isCur ? "#dbeafe" : "#f3f4f6"}" stroke="#e5e7eb"/>`;
+    const stateTxt = st.done ? "已完成" : (isClosed ? "已结案" : (isCur ? "进行中" : "待解锁"));
+    const stateColor = st.done ? "#16a34a" : (isClosed ? "#6b7280" : (isCur ? "#2563eb" : "#9ca3af"));
+    svg += `<text x="14" y="${y + 22}" font-size="13" font-weight="bold" fill="#111827">S${s.id} ${escXml(s.name)}</text>`;
+    svg += `<text x="14" y="${y + 44}" font-size="10" fill="#6b7280">${escXml((s.milestone || "").slice(0, 22))}</text>`;
+    svg += `<text x="14" y="${y + 66}" font-size="11" font-weight="bold" fill="${stateColor}">${stateTxt}</text>`;
+  });
+  // 连线
+  const byId = {};
+  nodes.forEach(n => byId[String(n.id)] = n);
+  const drawn = new Set();
+  nodes.forEach(m => {
+    if (m.nextId != null) {
+      const b = byId[String(m.nextId)];
+      if (b) {
+        const key = m.id + "-" + b.id;
+        if (drawn.has(key)) return;
+        drawn.add(key);
+        const x1 = m.x + FLOW_NODE_W + 7, y1 = m.y + FLOW_NODE_H / 2;
+        const x2 = b.x - 7, y2 = b.y + FLOW_NODE_H / 2;
+        const mx = (x1 + x2) / 2;
+        svg += `<path d="M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}" stroke="#2563eb" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+        svg += `<circle cx="${x2}" cy="${y2}" r="4" fill="#2563eb"/>`;
+      }
+    }
+  });
+  // 节点
+  nodes.forEach(n => {
+    const done = !!n.doneDate;
+    const x = n.x, y = n.y;
+    const fill = done ? "#f0fdf4" : "#fff7ed";
+    const stroke = done ? "#16a34a" : "#ea580c";
+    svg += `<rect x="${x}" y="${y}" width="${FLOW_NODE_W}" height="${FLOW_NODE_H}" rx="8" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`;
+    const lines = svgTextLines(n.name || "未命名节点", 12);
+    lines.forEach((ln, k) => {
+      svg += `<text x="${x + 12}" y="${y + 20 + k * 16}" font-size="12" font-weight="bold" fill="#111827">${escXml(ln)}</text>`;
+    });
+    svg += `<text x="${x + 12}" y="${y + FLOW_NODE_H - 12}" font-size="10" fill="#6b7280">${done ? "✓ " + escXml(n.doneDate) : escXml(n.targetDate || "未排期")}</text>`;
+    svg += `<circle cx="${x}" cy="${y + FLOW_NODE_H / 2}" r="5" fill="${stroke}"/>`;
+    svg += `<circle cx="${x + FLOW_NODE_W}" cy="${y + FLOW_NODE_H / 2}" r="5" fill="${stroke}"/>`;
+  });
+  svg += `</svg>`;
+  return svg;
+}
+function svgToPng(svg, cb) {
+  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.onload = () => {
+    const scale = 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = img.width * scale;
+    canvas.height = img.height * scale;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    URL.revokeObjectURL(url);
+    try { cb(canvas.toDataURL("image/png")); } catch (e) { cb(null); }
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); cb(null); };
+  img.src = url;
+}
+function flowPreview() {
+  const p = flowProject(); if (!p) return;
+  svgToPng(buildFlowSvg(p), (dataUrl) => {
+    if (!dataUrl) { showToast("预览图生成失败", 2000); return; }
+    $("#pf-preview-img").src = dataUrl;
+    $("#pf-preview-title").textContent = (p.name || "项目") + " · 项目阶段节点图";
+    $("#pf-preview-overlay").style.display = "flex";
+  });
+}
+function downloadFlowPreview() {
+  const img = $("#pf-preview-img");
+  if (!img || !img.src || !img.src.startsWith("data:")) return;
+  const a = document.createElement("a");
+  a.href = img.src;
+  a.download = "项目阶段节点图_" + (flowProject() ? flowProject().name : "项目") + "_" + todayStr() + ".png";
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function closeFlowPreview() { $("#pf-preview-overlay").style.display = "none"; }
+
+document.addEventListener("click", e => {
+  if (e.target.closest("#fs-save")) { savePfStage(); return; }
+  if (e.target.closest("#fs-cancel") || e.target.closest("#fs-close")) { closePfStageDialog(); return; }
+  if (e.target.closest("#fs-done-btn")) { showFsChoice("done", "填写里程碑完成评述"); return; }
+  if (e.target.closest("#fs-close-btn")) { showFsChoice("close", "填写中途结案理由"); return; }
+  if (e.target.closest("#fs-rollback-btn")) { openStageRollback(PROJECT_DB.STAGES.findIndex(s => s.id === pfEditStageId)); return; }
+  if (e.target.closest("#fs-reopen-btn")) { openStageRollback(); return; }
+  if (e.target.closest("#rollback-confirm")) { confirmStageRollback(); return; }
+  if (e.target.closest("#rollback-cancel")) { $("#stage-rollback-dialog").close(); return; }
+  if (e.target.closest("#fs-choice-confirm")) { confirmFsChoice(); return; }
+  if (e.target.closest("#fs-choice-cancel")) { resetFsChoice(); return; }
+  if (e.target.closest("#pfn-save")) { savePfNode(); return; }
+  if (e.target.closest("#pfn-cancel") || e.target.closest("#pfn-close")) { closePfNodeDialog(); return; }
+  if (e.target.closest("#flow-preview")) { flowPreview(); return; }
+  if (e.target.closest("#pf-preview-download")) { downloadFlowPreview(); return; }
+  if (e.target.closest(".pf-preview-close")) { closeFlowPreview(); return; }
+  if (e.target.id === "pf-preview-overlay") { closeFlowPreview(); return; }
+  if (e.target.closest("#flow-export-md")) { flowExportMd(); return; }
+  if (e.target.closest("#flow-export-pdf")) { flowExportPdf(); return; }
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { closePfStageDialog(); closePfNodeDialog(); closeFlowPreview(); }
+});
+
+// ---- tab 切换 ----
+function switchTab(tab) {
+  document.querySelectorAll(".dtab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  document.querySelectorAll(".tab-pane").forEach(pane => pane.classList.toggle("active", pane.id === "pane-" + tab));
+  const isInfo = tab === "info";
+  const isRisk = tab === "risk";
+  $("#d-meta").style.display = isInfo ? "" : "none";
+  $("#detail-foot").style.display = ((isInfo || isRisk) && !readOnly) ? "" : "none";
+  if (tab === "flow") {
+    const p = isNewMode ? draftProject : currentProject;
+    if (p) { refreshFlow(p); }
+  }
+}
+
+// ---- 保存 ----
+function saveDetail() {
+  if (readOnly) return; // 浏览只读模式禁止保存
+  // 新建模式：创建项目
+  if (isNewMode) { createProject(); return; }
+
+  const p = currentProject;
+  if (!p) return;
+  const oldStatus = p.status;
+  // 保存前快照，用于对比生成更新历史
+  const oldSnap = {
+    name: p.name, summary: p.summary || "", customer: p.customer, group: p.group, productLine: p.productLine, odmFactory: p.odmFactory,
+    app: p.app, proposalDate: p.proposalDate, filingDate: p.filingDate, startDate: p.startDate, dueDate: p.dueDate,
+    priority: p.priority, signal: p.signal, signalNote: p.signalNote, chips: normalizeChips(p.chips).join("、"),
+    status: p.status, statusDesc: p.statusDesc, hwOwner: p.hwOwner, swOwner: p.swOwner, pm: p.pm,
+    tags: normalizeChips(p.tags).join("、"),
+    participants: normalizeChips(p.participants).join("、"),
+    marketExpectation: p.marketExpectation, isProductionMaintenance: PROJECT_DB.isProductionMaintenance(p), stages: PROJECT_DB.normalizeStages(p.stages),
+    detailNote: p.detailNote || ""
+  };
+
+  p.name         = $("#f-name").value.trim() || p.name;
+  p.summary      = normalizeMultilineText($("#f-summary").value);
+  p.customer     = $("#f-customer").value.trim() || "-";
+  p.group        = $("#f-group").value || "";
+  p.productLine  = comboValue("f-productline-sel", "f-productline");
+  p.odmFactory   = comboValue("f-odm-sel", "f-odm");
+  p.app          = comboValue("f-app-sel", "f-app");
+  p.proposalDate = $("#f-proposal").value || "-";
+  p.filingDate   = $("#f-filing").value || "-";
+  p.startDate    = $("#f-start").value || "-";
+  p.dueDate      = $("#f-due").value || "-";
+  // 一旦启动日期定了，预计结案日期必填
+  if (p.startDate && p.startDate !== "-" && (!p.dueDate || p.dueDate === "-")) {
+    showToast("已设置启动日期，预计结案日期不能为空", 2400); $("#f-due").focus(); return;
+  }
+  p.priority     = $("#f-priority").value;
+  p.signal       = $("#f-signal").value;
+  p.signalNote   = $("#f-signalnote").value.trim();
+  p.chips        = selectedChipNames.slice();
+  p.status       = $("#f-status").value;
+  p.isProductionMaintenance = p.status === "已结案" && !!$("#f-production-maintenance").checked;
+  p.hwOwner      = $("#f-hw").value || "-";
+  p.swOwner      = $("#f-sw").value || "-";
+  p.pm           = $("#f-pm").value || "-";
+  p.participants = [...document.querySelectorAll("#f-participants ~ .person-value, [data-target=\"f-participants\"] .person-value")].map(i => i.value).filter(v => v && v !== "-");
+  p.tags         = $("#f-tags").value.split(/[、,，]/).map(s => s.trim()).filter(v => v);
+  const nextStatusDesc = normalizeMultilineText($("#f-statusdesc").value);
+  const statusDescChanged = PROJECT_DB.updateStatusDescription(p, nextStatusDesc);
+  p.marketExpectation = $("#f-market").value.trim();
+  p.detailNote   = $("#f-detailnote").value.trim();
+  collectStages(p);
+
+  // 生成更新历史：字段 / 状态 / 阶段等任何变更都记录
+  const changes = [];
+  const FIELDS = [
+    ["name", "项目名称"], ["summary", "项目简介"], ["customer", "客户"], ["group", "分组"], ["productLine", "产品线"], ["odmFactory", "ODM 工厂"],
+    ["app", "配套 APP"], ["proposalDate", "提案日期"], ["filingDate", "立案日期"], ["startDate", "启动日期"], ["dueDate", "预计结案日期"],
+    ["priority", "优先级"], ["signal", "信号灯"], ["signalNote", "信号灯备注"],
+    ["hwOwner", "硬件负责人"], ["swOwner", "软件负责人"], ["pm", "项目经理"], ["marketExpectation", "市场预期"], ["detailNote", "项目详情备注"]
+  ];
+  FIELDS.forEach(([k, label]) => {
+    const a = oldSnap[k], b = p[k];
+    if (display(a) !== display(b)) changes.push(`${label}：${display(a)} → ${display(b)}`);
+  });
+  const aChips = oldSnap.chips, bChips = normalizeChips(p.chips).join("、");
+  if (aChips !== bChips) changes.push(`核心芯片：${aChips || "-"} → ${bChips || "-"}`);
+  if (oldSnap.tags !== normalizeChips(p.tags).join("、")) changes.push(`项目标签：${oldSnap.tags || "-"} → ${normalizeChips(p.tags).join("、") || "-"}`);
+  if (oldSnap.participants !== normalizeChips(p.participants).join("、")) changes.push(`参与人：${oldSnap.participants || "-"} → ${normalizeChips(p.participants).join("、") || "-"}`);
+  if (oldSnap.status !== p.status) {
+    let t = `状态：${oldSnap.status} → ${p.status}`;
+    if (p.status === "已结案") t += "（归档至已结案看板）";
+    else if (oldSnap.status === "已结案") t += "（移回进行中看板）";
+    changes.push(t);
+  }
+  if (oldSnap.isProductionMaintenance !== p.isProductionMaintenance) {
+    changes.push(`量产维护：${p.isProductionMaintenance ? "已开启（移至量产维护看板）" : "已关闭（移回已结案看板）"}`);
+  }
+  if (display(oldSnap.statusDesc) !== display(p.statusDesc)) changes.push(`状态描述：${p.statusDesc || "-"}`);
+  const newStages = PROJECT_DB.normalizeStages(p.stages);
+  newStages.forEach((s, i) => {
+    const name = PROJECT_DB.STAGES[i].name;
+    const o = oldSnap.stages[i];
+    if (o.done !== s.done) changes.push(`阶段「${name}」：${o.done ? "已完成" : "未完成"} → ${s.done ? "已完成" : "未完成"}`);
+    // 预期天数：空值视为中位默认值，避免默认填充被误报为变更
+    const omid = String(PROJECT_DB.STAGES[i].mid);
+    const oDays = o.days || omid, sDays = s.days || omid;
+    if (oDays !== sDays) changes.push(`阶段「${name}」预期天数：${oDays} → ${sDays}`);
+  });
+  if (changes.length) {
+    p.statusHistory = normalizeHistory(p.statusHistory);
+    p.statusHistory.push({ date: todayTimeStr(), text: changes.join("；") });
+  }
+
+  // 写回共享存储（列表页下次加载即可看到）
+  PROJECT_DB.save(projects);
+  if (statusDescChanged) $("#statusdesc-saved").textContent = "最近保存：" + p.statusDescUpdatedAt;
+
+  // 刷新头部（状态/优先级可能变化）与项目阶段
+  renderHead(p);
+  renderForm(p);
+  renderRiskChangeTab(p);
+  $("#pane-stages").innerHTML = renderStages(p);
+  $("#pane-history").innerHTML = renderHistory(p);
+  $("#pane-nodes").innerHTML = renderNodes(p);
+  $("#pane-custnodes").innerHTML = renderCustomerNodes(p);
+
+  // 状态切换 → 看板归档 / 移回提示
+  let msg = "已保存";
+  let dur = 1600;
+  if (oldStatus !== p.status && p.status === "已结案") {
+    msg = "已保存 · 项目已归档至「已结案看板」";
+    dur = 2600;
+  } else if (oldStatus === "已结案" && p.status !== "已结案") {
+    msg = "已保存 · 项目已移回「进行中看板」";
+    dur = 2600;
+  }
+  showToast(msg, dur);
+}
+
+// ---- 新建项目 ----
+function createProject() {
+  const name = $("#f-name").value.trim();
+  if (!name) { showToast("请填写项目名称", 2200); $("#f-name").focus(); return; }
+  const startDate = $("#f-start").value;
+  const dueDate = $("#f-due").value;
+  // 一旦启动日期定了，预计结案日期必填
+  if (startDate && !dueDate) { showToast("已设置启动日期，预计结案日期不能为空", 2400); $("#f-due").focus(); return; }
+  // 收集首次保存前在“项目阶段”标签中编辑的表单值。
+  collectStages(draftProject);
+  const draftHistory = normalizeHistory(draftProject && draftProject.statusHistory);
+
+  const p = {
+    id: PROJECT_DB.nextId(projects),
+    name,
+    summary: normalizeMultilineText($("#f-summary").value),
+    customer:     $("#f-customer").value.trim() || "-",
+    group:        $("#f-group").value || "",
+    productLine:  comboValue("f-productline-sel", "f-productline"),
+    odmFactory:   comboValue("f-odm-sel", "f-odm"),
+    app:          comboValue("f-app-sel", "f-app"),
+    proposalDate: $("#f-proposal").value || "-",
+    filingDate:   $("#f-filing").value || "-",
+    startDate:    startDate || "-",
+    dueDate:      dueDate || "-",
+    priority:     $("#f-priority").value,
+    signal:       $("#f-signal").value,
+    signalNote:   $("#f-signalnote").value.trim(),
+    chips:        selectedChipNames.slice(),
+    status:       $("#f-status").value,
+    isProductionMaintenance: $("#f-status").value === "已结案" && !!$("#f-production-maintenance").checked,
+    hwOwner:      $("#f-hw").value || "-",
+    swOwner:      $("#f-sw").value || "-",
+    pm:           $("#f-pm").value || "-",
+    participants: [...document.querySelectorAll('[data-target="f-participants"] .person-value')].map(i => i.value).filter(v => v && v !== "-"),
+    tags:         $("#f-tags").value.split(/[、,，]/).map(s => s.trim()).filter(v => v),
+    statusDesc:   normalizeMultilineText($("#f-statusdesc").value),
+    statusDescUpdatedAt: normalizeMultilineText($("#f-statusdesc").value) ? todayTimeStr() : "",
+    statusDescHistory: normalizeMultilineText($("#f-statusdesc").value) ? [{ date: todayTimeStr(), text: normalizeMultilineText($("#f-statusdesc").value) }] : [],
+    statusDescLegacyHistoryCount: 0,
+    marketExpectation: $("#f-market").value.trim(),
+    detailNote:   $("#f-detailnote").value.trim(),
+    stages:       PROJECT_DB.normalizeStages(draftProject && draftProject.stages),
+    risks:        (draftProject && draftProject.risks) || [],
+    changes:      (draftProject && draftProject.changes) || [],
+    delays:       (draftProject && draftProject.delays) || [],
+    flowLinks:    (draftProject && draftProject.flowLinks) || [],
+    milestones:   (draftProject && draftProject.milestones) || [],
+    isDelayed: false,
+    nodes:        PROJECT_DB.normalizeNodes(draftProject && draftProject.nodes),
+    customerNodes: PROJECT_DB.normalizeCustomerNodes(draftProject && draftProject.customerNodes),
+    createdAt:    todayTimeStr(),
+    lastCheckAt:  Date.now(),
+    statusHistory: [{ date: todayTimeStr(), text: `项目创建，进入「${$("#f-status").value}」状态` }, ...draftHistory]
+  };
+  projects.push(p);
+  PROJECT_DB.save(projects);
+
+  // 切换为编辑模式（URL 同步，不刷新页面）
+  isNewMode = false;
+  currentProject = p;
+  try { history.replaceState(null, "", `?id=${p.id}`); } catch (e) { /* file:// 下可能受限，忽略 */ }
+
+  renderHead(p);
+  renderForm(p);
+  renderRiskChangeTab(p);
+  $("#pane-stages").innerHTML = renderStages(p);
+  $("#pane-history").innerHTML = renderHistory(p);
+  $("#pane-nodes").innerHTML = renderNodes(p);
+  $("#pane-custnodes").innerHTML = renderCustomerNodes(p);
+  $("#save-btn").textContent = "保存修改";
+  $("#del-btn").style.display = "";
+  $(".save-hint").textContent = "保存后返回列表即可看到更新（临时存储，可在列表页重置）";
+  showToast("项目已创建", 2200);
+}
+
+// ---- 删除项目 ----
+function deleteProject() {
+  const p = currentProject;
+  if (!p || isNewMode) return;
+  if (!confirm(`确定删除项目「${p.name}」？\n删除后不可恢复（可先在列表页导出备份）。`)) return;
+  const idx = projects.findIndex(x => x.id === p.id);
+  if (idx >= 0) projects.splice(idx, 1);
+  PROJECT_DB.save(projects);
+  returnToSourceList();
+}
+
+function showToast(msg, duration) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("show"), duration || 1600);
+}
+
+/* ==========================================================================
+   初始化：读取 URL 参数加载项目（?id=new 为新建模式）
+   ========================================================================== */
+let isNewMode = false;
+let draftProject = null; // 新建模式下暂存的风险/变更/延期等数据，创建项目时带入
+
+// 浏览/管理模式：浏览模式为只读（默认），管理模式才可编辑
+const MODE_KEY = "hw_project_board_mode";
+let readOnly = true;
+try { readOnly = localStorage.getItem(MODE_KEY) !== "manage"; } catch (e) { readOnly = true; }
+function applyReadOnly() {
+  const foot = $("#detail-foot");
+  if (foot) foot.style.display = readOnly ? "none" : "";
+  const banner = $("#readonly-banner");
+  if (banner) banner.style.display = readOnly ? "" : "none";
+  if (readOnly) {
+    document.querySelectorAll("#detail-panel input, #detail-panel select, #detail-panel textarea, #detail-panel button").forEach(el => {
+      if (!el.closest("#readonly-banner") && !el.closest(".detail-tabs") && !el.closest(".flow-toolbar") && !el.closest(".pf-toggle")) el.disabled = true;
+    });
+  }
+}
+
+// 填充客户 / 工程师建议（datalist，输入框可自由输入；产品线 / ODM / APP 已改为下拉组合控件）
+function fillDatalists() {
+  $("#dl-customers").innerHTML = PROJECT_DB.loadCustomers()
+    .map(c => `<option value="${esc(c.name)}">`).join("");
+  $("#dl-engineers").innerHTML = PROJECT_DB.loadEngineers()
+    .map(e => `<option value="${esc(e.name)}">`).join("");
+  $("#dl-tags").innerHTML = PROJECT_DB.loadTags()
+    .map(t => `<option value="${esc(t.name)}">`).join("");
+}
+
+function init() {
+  fillDatalists();
+  const idParam = new URLSearchParams(window.location.search).get("id");
+  // 支持 ?tab=stages/nodes/... 直达对应 tab（如项目状态简要页点击阶段跳转）
+  const tabParam = new URLSearchParams(window.location.search).get("tab");
+  const initialTab = ["info", "stages", "nodes", "flow", "custnodes", "risk", "history"].includes(tabParam) ? tabParam : "info";
+
+  // 新建项目模式：空白表单，保存即创建
+  if (idParam === "new") {
+    isNewMode = true;
+    const draft = {
+      id: 0, name: "", customer: "", group: "", productLine: "", odmFactory: "", app: "",
+      proposalDate: "", filingDate: "", startDate: "", dueDate: "",
+      chips: [], status: "提案中", statusDesc: "",
+      priority: "中", signal: "绿灯", signalNote: "",
+      statusHistory: [], hwOwner: "", swOwner: "", pm: "李经理", marketExpectation: "", detailNote: "", risks: [], changes: [], delays: [], flowLinks: [], milestones: [], isDelayed: false, nodes: [], customerNodes: [], participants: [], stages: PROJECT_DB.normalizeStages(null)
+    };
+    draftProject = draft;
+    $("#detail-panel").style.display = "block";
+    renderHead(draft);
+    renderForm(draft);
+    renderRiskChangeTab(draft);
+    $("#pane-stages").innerHTML = renderStages(draft);
+    $("#pane-history").innerHTML = renderHistory(draft);
+    $("#pane-nodes").innerHTML = renderNodes(draft);
+    $("#pane-custnodes").innerHTML = renderCustomerNodes(draft);
+    switchTab(initialTab);
+    $("#save-btn").textContent = "保存新建";
+    $("#del-btn").style.display = "none";
+    $(".save-hint").textContent = "保存后项目将进入「进行中看板」（新建默认为提案中）";
+    applyReadOnly();
+    if (!readOnly) $("#f-name").focus();
+    return;
+  }
+
+  const id = parseInt(idParam, 10);
+  currentProject = projects.find(p => p.id === id);
+
+  if (!currentProject) {
+    $("#detail-panel").style.display = "none";
+    $("#not-found").style.display = "block";
+    if (isNaN(id)) {
+      $("#not-found-text").textContent = "未指定项目 ID，请从列表页点击项目卡片进入详情。";
+    }
+    return;
+  }
+
+  // 打开项目即视为一次 check（项目经理需打开项目 check 一遍；浏览只读模式下不记录）
+  if (!readOnly) {
+    currentProject.lastCheckAt = Date.now();
+    PROJECT_DB.save(projects);
+  }
+
+  $("#detail-panel").style.display = "block";
+  renderHead(currentProject);
+  renderForm(currentProject);
+  renderRiskChangeTab(currentProject);
+  $("#pane-stages").innerHTML = renderStages(currentProject);
+  $("#pane-history").innerHTML = renderHistory(currentProject);
+  $("#pane-nodes").innerHTML = renderNodes(currentProject);
+  $("#pane-custnodes").innerHTML = renderCustomerNodes(currentProject);
+  switchTab(initialTab);
+  applyReadOnly();
+}
+
+/* ==========================================================================
+   事件绑定
+   ========================================================================== */
+// 来源看板视图：保留提案中/暂缓、进行中、已结案、量产维护四种来源
+const fromParam = new URLSearchParams(window.location.search).get("from");
+const fromView = ["proposal", "active", "closed", "maintenance"].includes(fromParam) ? fromParam : "active";
+const DETAIL_RETURN_CONTEXT_KEY = "hw_project_board_detail_return_context";
+function getDetailReturnContext() {
+  try {
+    const context = JSON.parse(sessionStorage.getItem(DETAIL_RETURN_CONTEXT_KEY) || "null");
+    const projectId = new URLSearchParams(location.search).get("id");
+    return context && String(context.projectId) === String(projectId) ? context : null;
+  } catch (error) {
+    return null;
+  }
+}
+function returnToSourceList() {
+  const context = getDetailReturnContext();
+  if (context && history.length > 1) {
+    history.back();
+    return;
+  }
+  location.href = context?.url || ("GeekDash.html?view=" + fromView);
+}
+
+$("#back-btn").addEventListener("click", () => {
+  // 新建模式未保存时提示放弃
+  if (isNewMode && $("#f-name").value.trim()) {
+    if (!confirm("新建项目尚未保存，确定放弃并返回列表？")) return;
+  }
+  returnToSourceList();
+});
+$("#save-btn").addEventListener("click", saveDetail);
+$("#del-btn").addEventListener("click", deleteProject);
+document.querySelectorAll(".dtab").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
+
+// 阶段操作：里程碑完成 / 中途结案 / 确定 / 取消 / 保存阶段修改（事件委托）
+$("#pane-stages").addEventListener("click", e => {
+  if (readOnly) return;
+  const rollback = e.target.closest(".stage-rollback");
+  if (rollback) { openStageRollback(Number(rollback.dataset.idx)); return; }
+  if (e.target.closest(".stage-reopen")) { openStageRollback(); return; }
+  // 里程碑完成：展开评述表单
+  const doneBtn = e.target.closest(".choice-done");
+  if (doneBtn) {
+    const form = doneBtn.closest(".stage-card").querySelector(".stage-choice-form");
+    const ta = form.querySelector(".choice-note");
+    ta.placeholder = "填写里程碑完成评述";
+    ta.value = "";
+    form.dataset.mode = "done";
+    form.style.display = "";
+    ta.focus();
+    return;
+  }
+  // 中途结案：展开结案理由表单
+  const closeBtn = e.target.closest(".choice-close");
+  if (closeBtn) {
+    const form = closeBtn.closest(".stage-card").querySelector(".stage-choice-form");
+    const ta = form.querySelector(".choice-note");
+    ta.placeholder = "填写中途结案理由";
+    ta.value = "";
+    form.dataset.mode = "close";
+    form.style.display = "";
+    ta.focus();
+    return;
+  }
+  // 取消
+  if (e.target.closest(".choice-cancel")) {
+    e.target.closest(".choice-cancel").closest(".stage-choice-form").style.display = "none";
+    return;
+  }
+  // 确定
+  const confirmBtn = e.target.closest(".choice-confirm");
+  if (confirmBtn) {
+    const form = confirmBtn.closest(".stage-choice-form");
+    const idx = parseInt(form.dataset.idx, 10);
+    const mode = form.dataset.mode;
+    const text = form.querySelector(".choice-note").value.trim();
+    if (mode === "done") {
+      if (!text) { showToast("请填写里程碑完成评述", 2000); return; }
+      confirmStageDone(idx, text);
+    } else if (mode === "close") {
+      if (!text) { showToast("请填写中途结案理由", 2000); return; }
+      confirmStageClose(text);
+    }
+    return;
+  }
+  // 保存阶段修改
+  if (e.target.closest("#stage-save-btn")) saveDetail();
+});
+
+// 项目节点：新增 / 确认 / 取消 / 删除（事件委托）
+$("#pane-nodes").addEventListener("click", e => {
+  if (e.target.closest("#node-add")) {
+    openNodeForm(null);
+    return;
+  }
+  if (e.target.closest("#node-cancel")) {
+    $("#node-form").style.display = "none";
+    editingNodeId = null;
+    return;
+  }
+  if (e.target.closest("#node-confirm")) {
+    saveNode();
+    return;
+  }
+  const edit = e.target.closest(".node-edit");
+  if (edit) {
+    const id = parseInt(edit.dataset.id, 10);
+    const node = PROJECT_DB.normalizeNodes(currentProject.nodes).find(n => n.id === id);
+    openNodeForm(node);
+    return;
+  }
+  const del = e.target.closest(".node-del");
+  if (del) {
+    if (confirm("确定删除该节点？")) deleteNode(parseInt(del.dataset.id, 10));
+    return;
+  }
+});
+
+// 客户项目节点：新增 / 确认 / 取消 / 编辑 / 删除（事件委托）
+$("#pane-custnodes").addEventListener("click", e => {
+  if (e.target.closest("#custnode-add")) {
+    openCustomerNodeForm(null);
+    return;
+  }
+  if (e.target.closest("#custnode-cancel")) {
+    $("#custnode-form").style.display = "none";
+    editingCustNodeId = null;
+    return;
+  }
+  if (e.target.closest("#custnode-confirm")) {
+    saveCustomerNode();
+    return;
+  }
+  const edit = e.target.closest(".node-edit");
+  if (edit) {
+    const id = parseInt(edit.dataset.id, 10);
+    const node = PROJECT_DB.normalizeCustomerNodes(currentProject.customerNodes).find(n => n.id === id);
+    openCustomerNodeForm(node);
+    return;
+  }
+  const del = e.target.closest(".node-del");
+  if (del) {
+    if (confirm("确定删除该节点？")) deleteCustomerNode(parseInt(del.dataset.id, 10));
+    return;
+  }
+});
+
+// 核心芯片受控选择 / 刷新 / 移除
+document.addEventListener("click", e => {
+  if (e.target.closest("#chip-select-add")) {
+    const select = $("#chip-select");
+    const value = select && select.value;
+    if (!value) { showToast("请先选择芯片型号", 1800); return; }
+    selectedChipNames = canonicalChipSelection(selectedChipNames.concat(value));
+    renderChipPickerState();
+    return;
+  }
+  if (e.target.closest("#chip-refresh")) {
+    refreshChipCatalog(true);
+    return;
+  }
+  const chipRemove = e.target.closest(".project-chip-remove");
+  if (chipRemove) {
+    const key = PROJECT_DB.chipNameKey(chipRemove.dataset.chipName);
+    selectedChipNames = selectedChipNames.filter(name => PROJECT_DB.chipNameKey(name) !== key);
+    renderChipPickerState();
+    return;
+  }
+});
+
+// 从新窗口维护基础芯片后，回到详情页即刷新选项并保留当前草稿。
+window.addEventListener("focus", () => {
+  if ($("#chip-picker")) refreshChipCatalog(false);
+});
+
+// 风险预警：新增 / 解除（事件委托）
+document.addEventListener("click", e => {
+  if (readOnly) return;
+  const edit = e.target.closest(".risk-edit");
+  if (edit) {
+    const p = isNewMode ? draftProject : currentProject;
+    const risk = PROJECT_DB.normalizeRisks(p.risks).find(r => r.id === Number(edit.dataset.id));
+    if (!risk) return;
+    editingRiskId = risk.id;
+    $("#risk-form").style.display = "";
+    $("#risk-note").value = risk.content;
+    $("#risk-method-field").style.display = risk.resolved ? "" : "none";
+    $("#risk-method").value = risk.resolveMethod;
+    $("#risk-confirm").textContent = "保存修改";
+    document.querySelectorAll("#risk-level-select .rlv-btn").forEach(b => b.classList.toggle("active", b.dataset.level === risk.level));
+    $("#risk-note").focus();
+    return;
+  }
+  // 展开新增风险预警表单
+  if (e.target.closest("#risk-add")) {
+    editingRiskId = null;
+    $("#risk-confirm").textContent = "确认增加";
+    $("#risk-method-field").style.display = "none";
+    const form = $("#risk-form");
+    form.style.display = "";
+    $("#risk-note").value = "";
+    $("#risk-note").focus();
+    // 重置等级为「中」
+    document.querySelectorAll("#risk-level-select .rlv-btn").forEach(b => b.classList.toggle("active", b.dataset.level === "中"));
+    return;
+  }
+  // 选择风险等级
+  if (e.target.closest("#risk-level-select .rlv-btn")) {
+    const btn = e.target.closest("#risk-level-select .rlv-btn");
+    document.querySelectorAll("#risk-level-select .rlv-btn").forEach(b => b.classList.toggle("active", b === btn));
+    return;
+  }
+  // 确认新增风险预警
+  if (e.target.closest("#risk-confirm")) {
+    const content = $("#risk-note").value.trim();
+    if (!content) { showToast("请填写风险预警信息", 2000); return; }
+    const levelBtn = document.querySelector("#risk-level-select .rlv-btn.active");
+    const level = levelBtn ? levelBtn.dataset.level : "中";
+    const risk = PROJECT_DB.normalizeRisks((isNewMode ? draftProject : currentProject).risks).find(r => r.id === editingRiskId);
+    const method = $("#risk-method").value.trim();
+    if (risk && risk.resolved && !method) { showToast("请填写解除方法", 2000); return; }
+    addRisk(content, level, method);
+    return;
+  }
+  // 取消新增
+  if (e.target.closest("#risk-form .risk-cancel")) {
+    editingRiskId = null;
+    $("#risk-form").style.display = "none";
+    $("#risk-note").value = "";
+    return;
+  }
+  // 展开解除表单
+  const resolveBtn = e.target.closest(".risk-resolve-btn");
+  if (resolveBtn) {
+    const id = parseInt(resolveBtn.dataset.id, 10);
+    const form = document.querySelector(`.risk-resolve-form[data-id="${id}"]`);
+    if (form) { form.style.display = ""; form.querySelector(".risk-resolve-note").focus(); }
+    return;
+  }
+  // 确认解除
+  const resolveConfirm = e.target.closest(".risk-resolve-confirm");
+  if (resolveConfirm) {
+    const id = parseInt(resolveConfirm.dataset.id, 10);
+    const form = resolveConfirm.closest(".risk-resolve-form");
+    const method = form.querySelector(".risk-resolve-note").value.trim();
+    if (!method) { showToast("请填写解除方法", 2000); return; }
+    resolveRisk(id, method);
+    return;
+  }
+  // 取消解除
+  if (e.target.closest(".risk-resolve-cancel")) {
+    e.target.closest(".risk-resolve-cancel").closest(".risk-resolve-form").style.display = "none";
+    return;
+  }
+});
+
+// 项目需求变更：新增（事件委托）
+document.addEventListener("click", e => {
+  if (readOnly) return;
+  const edit = e.target.closest(".change-edit");
+  if (edit) {
+    const p = isNewMode ? draftProject : currentProject;
+    const change = PROJECT_DB.normalizeChanges(p.changes).find(c => c.id === Number(edit.dataset.id));
+    if (!change) return;
+    editingChangeId = change.id;
+    $("#chg-form").style.display = "";
+    $("#chg-content").value = change.content;
+    $("#chg-reason").value = change.reason;
+    $("#chg-source").value = change.source;
+    document.querySelectorAll('input[name="chg-status"]').forEach(input => input.checked = input.value === change.status);
+    $("#chg-confirm").textContent = "保存修改";
+    $("#chg-content").focus();
+    return;
+  }
+  // 展开新增需求变更表单
+  if (e.target.closest("#change-add")) {
+    editingChangeId = null;
+    $("#chg-confirm").textContent = "确认增加";
+    $("#chg-form").style.display = "";
+    $("#chg-content").value = "";
+    $("#chg-reason").value = "";
+    $("#chg-source").value = "客户";
+    document.querySelector('input[name="chg-status"][value="接受"]').checked = true;
+    $("#chg-content").focus();
+    return;
+  }
+  // 确认新增需求变更
+  if (e.target.closest("#chg-confirm")) {
+    const source = $("#chg-source").value;
+    const content = $("#chg-content").value.trim();
+    const statusEl = document.querySelector('input[name="chg-status"]:checked');
+    const status = statusEl ? statusEl.value : "接受";
+    const reason = $("#chg-reason").value.trim();
+    if (!content) { showToast("请填写变更内容", 2000); return; }
+    if (!reason) { showToast("请填写理由（接受或拒绝均需填写）", 2200); return; }
+    addChange(source, content, status, reason);
+    return;
+  }
+  // 取消新增
+  if (e.target.closest("#chg-cancel")) {
+    editingChangeId = null;
+    $("#chg-form").style.display = "none";
+    return;
+  }
+});
+
+// 延期项目控制：新增 / 编辑 / 删除延期记录（事件委托）
+document.addEventListener("click", e => {
+  // 展开新增延期表单（重置为新增模式）
+  if (e.target.closest("#delay-add")) {
+    editingDelayId = null;
+    const p = isNewMode ? draftProject : currentProject;
+    const cnt = p ? PROJECT_DB.normalizeDelays(p.delays).length : 0;
+    $("#delay-form").style.display = "";
+    $("#delay-reason").value = "";
+    $("#delay-target").value = "";
+    $("#delay-measures").value = "";
+    $("#delay-form-title").textContent = "新增延期" + (cnt + 1);
+    $("#delay-confirm").textContent = "确认增加";
+    $("#delay-reason").focus();
+    return;
+  }
+  // 编辑 / 删除延期记录
+  const op = e.target.closest(".delay-op-btn");
+  if (op) {
+    const id = parseInt(op.dataset.id, 10);
+    if (op.dataset.act === "edit") openDelayEdit(id);
+    else if (op.dataset.act === "del") removeDelay(id);
+    return;
+  }
+  // 确认新增 / 编辑延期
+  if (e.target.closest("#delay-confirm")) {
+    const reason = $("#delay-reason").value.trim();
+    const target = $("#delay-target").value;
+    const measures = $("#delay-measures").value.trim();
+    if (!reason && !target && !measures) { showToast("请至少填写延期原因、新目标完成日期或应对措施之一", 2400); return; }
+    addDelay(reason, target, measures);
+    return;
+  }
+  // 取消新增 / 编辑
+  if (e.target.closest("#delay-cancel")) {
+    editingDelayId = null;
+    $("#delay-form").style.display = "none";
+    return;
+  }
+});
+
+/* ---- 主题切换（与列表页共享同一 localStorage key） ---- */
+const THEME_KEY = "hw_project_board_theme";
+function applyTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* 忽略 */ }
+  document.querySelectorAll("#theme-switch button").forEach(b => b.classList.toggle("active", b.dataset.theme === t));
+}
+let theme;
+try { theme = localStorage.getItem(THEME_KEY) || "dark"; } catch (e) { theme = "dark"; }
+$("#theme-switch").addEventListener("click", e => {
+  const b = e.target.closest("button[data-theme]");
+  if (b) applyTheme(b.dataset.theme);
+});
+applyTheme(theme);
+
+init();
+
+/* ---- 日期专区：当前日期 / 星期 / 时刻 / 距年底倒计时 ---- */
+const WEEK_CN = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+function updateDateZone() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const dateEl = $("#dz-date"), weekEl = $("#dz-week"), timeEl = $("#dz-time"), cdEl = $("#dz-cd-num");
+  if (dateEl) dateEl.textContent = y + "年" + (now.getMonth() + 1) + "月" + now.getDate() + "日";
+  if (weekEl) weekEl.textContent = WEEK_CN[now.getDay()];
+  if (timeEl) timeEl.textContent = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0") + ":" + String(now.getSeconds()).padStart(2, "0");
+  if (cdEl) {
+    const endOfYear = new Date(y, 11, 31);
+    const todayStart = new Date(y, now.getMonth(), now.getDate());
+    cdEl.textContent = String(Math.max(0, Math.round((endOfYear - todayStart) / 86400000)));
+  }
+}
+updateDateZone();
+setInterval(updateDateZone, 1000);
+</script>
+
+<dialog id="stage-rollback-dialog">
+  <div class="flow-modal">
+    <div class="flow-modal-head"><span class="title">确认阶段回退</span></div>
+    <div class="flow-modal-body">
+      <div id="rollback-description"></div>
+      <div class="field" id="rollback-status-field"><label for="rollback-status">恢复项目状态</label><select id="rollback-status"><option>提案中</option><option>进行中</option><option>暂缓</option></select></div>
+    </div>
+    <div class="flow-modal-foot"><button type="button" class="choice-btn" id="rollback-cancel">取消</button><button type="button" class="save-btn" id="rollback-confirm">确认回退</button></div>
+  </div>
+</dialog>
+
+<div class="modal-overlay" id="flow-stage-overlay" style="display:none">
+  <div class="flow-modal">
+    <div class="flow-modal-head">
+      <span class="title" id="fs-title">编辑阶段</span>
+      <button class="flow-modal-close" id="fs-close" type="button">×</button>
+    </div>
+    <div class="flow-modal-body">
+      <div class="field"><label>预期天数</label><input type="text" id="fs-days" placeholder="如 17"></div>
+      <div class="field"><label>开始日期</label><input type="date" id="fs-start"></div>
+      <div class="field"><label>预计完成日期</label><input type="date" id="fs-expected"></div>
+      <div class="field"><label>实际完成日期</label><input type="date" id="fs-actual"></div>
+      <div class="field"><label>备注</label><textarea id="fs-note" placeholder="填写阶段备注"></textarea></div>
+      <div class="field" id="fs-ops" style="display:none">
+        <label>阶段操作（当前阶段）</label>
+        <div class="fs-ops-btns">
+          <button type="button" class="btn" id="fs-done-btn">✅ 里程碑完成</button>
+          <button type="button" class="btn" id="fs-close-btn">⏹ 中途结案</button>
+        </div>
+        <div id="fs-choice-form" style="display:none; margin-top:8px;">
+          <textarea id="fs-choice-note" placeholder=""></textarea>
+          <div class="fs-choice-actions">
+            <button type="button" class="btn primary" id="fs-choice-confirm">确定</button>
+            <button type="button" class="btn" id="fs-choice-cancel">取消</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="flow-modal-foot">
+      <button class="choice-btn" id="fs-rollback-btn" type="button" style="display:none">回退到此阶段</button>
+      <button class="choice-btn" id="fs-reopen-btn" type="button" style="display:none">撤销结案</button>
+      <button class="btn primary" id="fs-save" type="button">保存</button>
+      <button class="btn" id="fs-cancel" type="button">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="pf-node-overlay" style="display:none">
+  <div class="flow-modal">
+    <div class="flow-modal-head">
+      <span class="title" id="pfn-title">编辑节点</span>
+      <button class="flow-modal-close" id="pfn-close" type="button">×</button>
+    </div>
+    <div class="flow-modal-body">
+      <div class="field"><label>节点名称 *</label><input type="text" id="pfn-name" placeholder="如：EVT 全功能送测"></div>
+      <div class="field"><label>目标完成日期</label><input type="date" id="pfn-target"></div>
+      <div class="field"><label>实际完成日期</label><input type="date" id="pfn-done"></div>
+      <div class="field"><label>输出成果 *</label><textarea id="pfn-output" placeholder="填写该节点的输出成果"></textarea></div>
+      <div class="field"><label>前置节点（连入本节点）</label><select id="pfn-prev"></select></div>
+      <div class="field"><label>后置节点（本节点连出）</label><select id="pfn-next"></select></div>
+      <div class="node-form-hint">填写「实际完成日期」并保存，表示该节点已完成；连线也可直接在画布上拖拽节点圆点完成。</div>
+    </div>
+    <div class="flow-modal-foot">
+      <button class="btn primary" id="pfn-save" type="button">保存</button>
+      <button class="btn" id="pfn-cancel" type="button">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay pf-preview-overlay" id="pf-preview-overlay" style="display:none">
+  <div class="pf-preview-box">
+    <div class="pf-preview-head">
+      <span class="title" id="pf-preview-title">项目阶段节点图</span>
+      <button class="flow-modal-close pf-preview-close" type="button">×</button>
+    </div>
+    <div class="pf-preview-body"><img id="pf-preview-img" alt="项目阶段节点图"></div>
+    <div class="pf-preview-foot">
+      <button class="btn primary" id="pf-preview-download" type="button">下载 PNG</button>
+      <button class="btn pf-preview-close" type="button">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="flow-print-area" id="flow-print-area"></div>
+</body>
+</html>

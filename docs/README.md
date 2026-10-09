@@ -75,3 +75,7 @@ docs/
 接手工作先读 handoff 与系统真相，再读技术栈、需求和本次相关规格。字段反推及正式实体关系图读 ERD（内含核心 PNG 与完整 SVG 入口）；规则确认查 decisions；实施和文档维护遵循根目录 AGENTS。需求到规格、测试的完整映射只在 requirements 维护。
 
 实际施工接着读[执行文档](implementation/execution-plan.md)。图示可打开[深接口架构](evidence/diagrams/geekdash-execution.html)和[项目保存时序](evidence/diagrams/geekdash-save.html)，静态预览与浏览器核验范围见[图示复核记录](evidence/diagrams/execution-review.json)。
+
+## 独立本地版 V1.051
+
+本轮用户指定的1050修正版位于`geekdashdesktop/`，入口与MySQL版分开。需求见REQ-L1051，规则见[SPEC-L1051](specifications/specification.md#spec-l1051-本地版修正契约)，运行及1049/1050旧数据路径见[使用说明](usage/user-guide.md#本地-v1051-运行与旧版数据升级)，准确验收见[报告](testing/reports/2026-10-09-local-v1051.md)。发布包不包含用户业务数据库。

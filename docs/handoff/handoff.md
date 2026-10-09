@@ -30,3 +30,9 @@
 test-results里的部署脚本是本轮受控辅助材料，不作为新的发布系统；接续必须先读实际状态，不能盲重跑初始化。首次发布包装/夹具、Compose挂载与ready协议错误处理归报告GD-CORE-001～004。
 
 不删卷、不全局prune、不操作其他项目容器。之前独立空库目录D:/geekwon/geekdash-data/fresh-save-check清理被自动审批拒绝仍保留，不能当主库；旧浏览器41861大整数地址也不是当前公网项目。原始备份与source-review始终受控且忽略。
+
+## 5. 本轮独立本地版 V1.051
+
+目标与范围：附件1050本地修正，用户十项及所有最新状态折叠、1049兼容；规则归SPEC-L1051。施工`codex/local-v1051`，基线`a587ecac627bd2f85591fa7823e8e209430231f3`；managed worktree为`C:/Users/Administrator/.codex/worktrees/local-v1051/geekdash`。不修改主工作区原有服务器讨论稿。
+
+代码与本地发布包已完成，验证归[报告](../testing/reports/2026-10-09-local-v1051.md)。交付`D:/geekwon/geekdash-local-releases/GeekDash1051.zip`；源为`geekdashdesktop/`，忽略test-results只保留生成辅助/合成数据。当前本地版本没有服务器部署任务；真人首次OS文件授权仍由实际使用完成，不是代码阻塞。Git合并/远程回读完成后在本节补充实际提交，不能将施工分支推送说成main完成。

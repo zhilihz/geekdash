@@ -1,0 +1,41 @@
+{
+  "version": "V1.051",
+  "files": [
+    {
+      "file": "GeekDash.html",
+      "sha256": "81c5d757afeba786e907d92baa7a750069c9eb3c48c6e2d33e9b6a7623d7b4d0"
+    },
+    {
+      "file": "project-detail.html",
+      "sha256": "94f5c49ed7f200654f40174f9d3767561f5bad08bd30eae34b378838d38d865a"
+    },
+    {
+      "file": "project-status-summary.html",
+      "sha256": "0cc9e5993b59cd6240433dafbe51caad16bf9d5d387004cc364e813adeed5437"
+    },
+    {
+      "file": "chip-statistics.html",
+      "sha256": "d841d02d18b899960e1a39dad52497e478dc21e907b0504563a1808d9a25e066"
+    },
+    {
+      "file": "data-manage.html",
+      "sha256": "a3d15c1caa6a3294c650e0971eb4338ccac1e9a1365a143ea56cc5dec1b3333a"
+    },
+    {
+      "file": "settings.html",
+      "sha256": "52e352c6e709ccde49157de4fb60c7008d60bbad05f78871068269f2064b3e80"
+    },
+    {
+      "file": "projects-data.js",
+      "sha256": "23583bcb27ebf82d2a650eca73611900bcf6b8e39fba8a288a29419e0612422b"
+    },
+    {
+      "file": "启动GeekDash.cmd",
+      "sha256": "bf30d19dac5ba9671eb6ee03741ba542304e5ad490d7f4b00fcd19e47a88ff0a"
+    },
+    {
+      "file": "README版本_V1.051.txt",
+      "sha256": "dffde01ae65216c97bb3e2dd72a8360a1097d7f00888a4a90cb3459db291e59a"
+    }
+  ]
+}

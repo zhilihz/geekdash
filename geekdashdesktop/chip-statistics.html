@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>芯片项目统计 · 智能硬件项目管理看板系统</title>
+<style>
+:root, [data-theme="dark"] {
+  --bg: #0d1117; --bg-soft: #0f141a; --card: #161b22; --card-hover: #1b222c;
+  --border: #30363d; --border-soft: #21262d;
+  --text: #e6edf3; --text-dim: #8b949e; --text-faint: #6e7681;
+  --accent: #58a6ff; --accent-dim: #1f6feb;
+  --p-high: #f85149; --p-mid: #f0883e; --p-low: #3fb950;
+}
+[data-theme="light"] {
+  --bg: #f6f8fa; --bg-soft: #ffffff; --card: #ffffff; --card-hover: #f0f3f6;
+  --border: #d0d7de; --border-soft: #eaeef2;
+  --text: #1f2328; --text-dim: #57606a; --text-faint: #8c959f;
+  --accent: #0969da; --accent-dim: #1f6feb;
+  --p-high: #d1242f; --p-mid: #bf5b0a; --p-low: #1a7f37;
+}
+[data-theme="warm"] {
+  --bg: #faf5ec; --bg-soft: #f5eee0; --card: #fffaf0; --card-hover: #f3e9d7;
+  --border: #e3d5bd; --border-soft: #efe5d0;
+  --text: #3d3428; --text-dim: #7a6a52; --text-faint: #a08d70;
+  --accent: #b45309; --accent-dim: #c2701d;
+  --p-high: #c0392b; --p-mid: #d98324; --p-low: #6f9e3b;
+}
+[data-theme="tech"] {
+  --bg: #0a0f1e; --bg-soft: #0d1428; --card: #101a30; --card-hover: #16233e;
+  --border: #1e2a45; --border-soft: #182238;
+  --text: #dbe6f7; --text-dim: #7f93b5; --text-faint: #5c7094;
+  --accent: #22d3ee; --accent-dim: #0ea5b7;
+  --p-high: #fb7185; --p-mid: #fbbf24; --p-low: #34d399;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+               "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+  font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased;
+}
+.page { max-width: 1320px; margin: 0 auto; padding: 24px 20px 60px; }
+
+.topbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.back-btn {
+  background: transparent; color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 14px; font-size: 13px; cursor: pointer;
+}
+.back-btn:hover { color: var(--text); background: var(--card-hover); }
+.topbar .title { font-size: 20px; font-weight: 800; letter-spacing: .5px; }
+.topbar .title .ver { font-size: 12px; font-weight: 600; color: var(--text-faint); margin-left: 8px; }
+.topbar .gen-date { margin-left: auto; font-size: 12.5px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.topbar .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.head-btn {
+  background: transparent; color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 7px 13px; font-size: 13px; cursor: pointer;
+}
+.head-btn:hover { color: var(--text); background: var(--card-hover); }
+.head-btn.primary { background: var(--accent-dim); color: #fff; border-color: var(--accent-dim); font-weight: 600; }
+.head-btn.primary:hover { background: var(--accent); }
+
+.sort-wrap { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-dim); }
+.sort-wrap select {
+  background: var(--bg-soft); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 6px 10px; font-size: 13px; cursor: pointer; outline: none;
+}
+.sort-wrap select:focus { border-color: var(--accent); }
+.table-card.hide-note .col-note { display: none; }
+.table-card.hide-node .col-node { display: none; }
+.table-card.hide-status .col-status { display: none; }
+.table-card.hide-stage .col-stage { display: none; }
+.table-card.hide-date .col-date { display: none; }
+.table-card.hide-delay .col-delay { display: none; }
+td.cell-node { color: var(--text-dim); line-height: 1.6; }
+td.cell-node .node-item { white-space: nowrap; }
+td.cell-node .node-none { color: var(--text-faint); }
+td.cell-chip { color: var(--accent); font-weight: 500; }
+td.cell-chip .chip-item { display: inline-block; background: rgba(88,166,255,.12); border: 1px solid rgba(88,166,255,.35); color: var(--accent); border-radius: 6px; padding: 0 8px; margin: 1px 4px 1px 0; font-size: 12px; white-space: nowrap; }
+td.cell-chip .chip-none { color: var(--text-faint); }
+
+/* 芯片筛选下拉 */
+.chip-filter { position: relative; display: inline-block; margin-bottom: 10px; }
+.cf-toggle {
+  background: var(--card); color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 7px 14px; font-size: 13px; cursor: pointer;
+}
+.cf-toggle:hover { color: var(--text); border-color: var(--accent); }
+.cf-toggle.active { border-color: var(--accent); color: var(--accent); }
+.cf-toggle .cf-count { color: var(--accent); font-weight: 600; }
+.cf-panel {
+  position: absolute; top: 40px; left: 0; z-index: 30;
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.28);
+  padding: 12px 14px; min-width: 300px; max-width: 480px; display: none;
+}
+.cf-panel.open { display: block; }
+.cf-panel .cf-label { font-size: 12px; color: var(--text-faint); display: block; margin-bottom: 8px; }
+.cf-list { display: flex; flex-wrap: wrap; gap: 6px; max-height: 260px; overflow-y: auto; }
+.cf-chip { background: transparent; color: var(--text-dim); border: 1px solid var(--border); border-radius: 14px; padding: 3px 12px; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
+.cf-chip:hover { color: var(--text); background: var(--card-hover); }
+.cf-chip.active { background: var(--accent-dim); color: #fff; border-color: var(--accent-dim); font-weight: 600; }
+.cf-actions { display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-soft); }
+.cf-actions .head-btn { padding: 5px 12px; font-size: 12.5px; }
+.col-list { flex-direction: column; align-items: flex-start; }
+.col-checkbox { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-dim); cursor: pointer; padding: 4px 0; }
+.col-checkbox:hover { color: var(--text); }
+.col-checkbox input { width: 15px; height: 15px; accent-color: var(--accent-dim); cursor: pointer; }
+
+/* 状态筛选 chip 行 */
+.status-filter-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.status-filter-bar .sf-label { font-size: 13px; color: var(--text-dim); }
+
+.hint { font-size: 12.5px; color: var(--text-dim); margin-bottom: 12px; }
+.hint b { color: var(--text); }
+.hint a { color: var(--accent); cursor: pointer; text-decoration: none; }
+.hint a:hover { text-decoration: underline; }
+
+.table-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  text-align: left; font-size: 12.5px; font-weight: 600; color: var(--text-dim);
+  padding: 12px 14px; border-bottom: 1px solid var(--border);
+  background: var(--bg-soft); white-space: nowrap; position: sticky; top: 0;
+}
+tbody td { padding: 9px 14px; border-bottom: 1px solid var(--border-soft); font-size: 13.5px; vertical-align: top; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr { cursor: default; }
+tbody tr.dragging { opacity: .4; }
+tbody tr.drag-over td { background: var(--card-hover); }
+
+.col-check { width: 34px; text-align: center; }
+.col-check input { cursor: pointer; width: 15px; height: 15px; accent-color: var(--accent-dim); }
+.col-grip { width: 28px; color: var(--text-faint); cursor: grab; text-align: center; user-select: none; }
+.col-grip:hover { color: var(--text-dim); }
+.col-action { width: 50px; text-align: center; white-space: nowrap; }
+td.cell-customer { font-weight: 600; color: var(--text); white-space: nowrap; }
+td.cell-name { font-weight: 500; }
+td.cell-date { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--text-dim); }
+td.cell-stage { white-space: nowrap; }
+.stage-link { color: var(--accent); text-decoration: none; font-weight: 500; }
+.stage-link:hover { text-decoration: underline; }
+td.cell-status { color: var(--text-dim); line-height: 1.5; }
+td.cell-delay { white-space: nowrap; }
+td.cell-note { min-width: 120px; color: var(--text); cursor: text; line-height: 1.5; }
+td.cell-note:empty::before { content: "点击填写备注"; color: var(--text-faint); }
+td.cell-note:focus { outline: 1px dashed var(--accent); background: var(--bg-soft); border-radius: 4px; }
+.return-focus { outline: 3px solid var(--accent); outline-offset: -3px; }
+
+.hide-btn { background: transparent; border: none; color: var(--text-faint); cursor: pointer; font-size: 12px; padding: 2px 7px; border-radius: 6px; }
+.hide-btn:hover { color: var(--p-high); background: var(--card-hover); }
+
+.delay-tag { display: inline-block; padding: 1px 10px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+.delay-tag.overdue { background: rgba(248,81,73,.15); color: #f85149; border: 1px solid rgba(248,81,73,.4); }
+.delay-tag.normal { background: rgba(63,185,80,.15); color: #3fb950; border: 1px solid rgba(63,185,80,.4); }
+.delay-tag.closed { background: rgba(139,148,158,.15); color: var(--text-dim); border: 1px solid var(--border); }
+.delay-tag.none { background: rgba(139,148,158,.12); color: var(--text-faint); border: 1px solid var(--border); }
+
+.empty { text-align: center; color: var(--text-faint); padding: 40px 16px; }
+
+@media print {
+  .topbar, .hint, .chip-filter, .col-check, .col-grip, .col-action { display: none !important; }
+  tr.print-hide { display: none !important; }
+  .page { padding: 0; }
+  body { background: #fff; color: #000; }
+  .table-card { border: 1px solid #ccc; }
+  td.cell-note:empty::before { content: ""; }
+}
+@media (max-width: 640px) {
+  .topbar .gen-date { margin-left: 0; width: 100%; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="topbar">
+    <button class="back-btn" id="back-btn">← 返回看板</button>
+    <span class="title">芯片项目统计<span class="ver" id="ver"></span></span>
+    <span class="gen-date" id="gen-date"></span>
+    <div class="actions">
+      <label class="sort-wrap">排序
+        <select id="sort-select" title="选择排序方式">
+          <option value="chip">按芯片</option>
+          <option value="customer">按客户</option>
+          <option value="stage">按阶段</option>
+          <option value="duedate">按预计结案日期</option>
+        </select>
+      </label>
+      <button class="head-btn" id="toggle-note" title="显示/隐藏备注列">备注列：显示</button>
+      <button class="head-btn" id="toggle-node" title="显示/隐藏关键节点列">关键节点列：显示</button>
+      <button class="head-btn" id="reset-order" title="恢复默认顺序（同芯片相邻）">↺ 重置顺序</button>
+      <button class="head-btn primary" id="export-csv-btn" title="按勾选项目导出 CSV">⬇ 导出 CSV</button>
+      <button class="head-btn primary" id="export-pdf-btn" title="按勾选项目导出 PDF（打印）">⬇ 导出 PDF</button>
+    </div>
+  </div>
+
+  <div class="chip-filter">
+    <button class="cf-toggle" id="cf-toggle">🔍 芯片筛选：<span class="cf-count" id="cf-count">全部</span> ▾</button>
+    <div class="cf-panel" id="cf-panel">
+      <span class="cf-label">选择核心芯片（可单选 / 多选 / 全选）：</span>
+      <div class="cf-list" id="cf-list"></div>
+      <div class="cf-actions">
+        <button class="head-btn primary" id="cf-apply">确定</button>
+        <button class="head-btn" id="cf-clear">清空（显示全部）</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="chip-filter">
+    <button class="cf-toggle" id="col-toggle">📋 列显示：<span class="cf-count" id="col-count">-</span> ▾</button>
+    <div class="cf-panel" id="col-panel">
+      <span class="cf-label">选择要显示的列（状态 / 阶段 / 日期 / 延期，默认隐藏）：</span>
+      <div class="cf-list col-list" id="col-list">
+        <label class="col-checkbox"><input type="checkbox" data-col="status"> 项目最新状态</label>
+        <label class="col-checkbox"><input type="checkbox" data-col="stage"> 当前阶段</label>
+        <label class="col-checkbox"><input type="checkbox" data-col="date"> 预计结案日期</label>
+        <label class="col-checkbox"><input type="checkbox" data-col="delay"> 是否延期</label>
+      </div>
+      <div class="cf-actions">
+        <button class="head-btn primary" id="col-apply">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-filter-bar" id="status-filter-bar"></div>
+
+  <div class="hint" id="hint"></div>
+
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-check"><input type="checkbox" id="check-all" title="全选"></th>
+          <th class="col-grip" title="拖拽调整顺序">⠿</th>
+          <th>核心芯片</th>
+          <th>客户</th>
+          <th>项目名称</th>
+          <th class="col-status">项目最新状态</th>
+          <th class="col-note">备注</th>
+          <th class="col-stage">当前阶段</th>
+          <th class="col-node">关键节点</th>
+          <th class="col-date">预计结案日期</th>
+          <th class="col-delay">是否延期</th>
+          <th class="col-action">操作</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="projects-data.js"></script>
+<script>
+const { currentStage, normalizeNodes, normalizeChips, todayStr, todayTimeStr, load } = PROJECT_DB;
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const display = v => (v === "" || v === null || v === undefined) ? "-" : v;
+const DETAIL_RETURN_CONTEXT_KEY = "hw_project_board_detail_return_context";
+function rememberDetailReturn(projectId) {
+  try {
+    sessionStorage.setItem(DETAIL_RETURN_CONTEXT_KEY, JSON.stringify({ projectId: String(projectId), url: location.href, path: location.pathname, scrollX: window.scrollX, scrollY: window.scrollY }));
+  } catch (error) { console.warn("无法保存详情返回上下文", error); }
+}
+function restoreDetailReturnContext() {
+  let context;
+  try { context = JSON.parse(sessionStorage.getItem(DETAIL_RETURN_CONTEXT_KEY) || "null"); } catch (error) { sessionStorage.removeItem(DETAIL_RETURN_CONTEXT_KEY); return; }
+  if (!context || context.path !== location.pathname || context.url !== location.href) return;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    window.scrollTo(context.scrollX || 0, context.scrollY || 0);
+    const target = document.querySelector(`#tbody tr[data-id="${CSS.escape(context.projectId)}"]`);
+    if (target) {
+      target.setAttribute("tabindex", "-1");
+      target.classList.add("return-focus");
+      target.focus({ preventScroll: true });
+      setTimeout(() => target.classList.remove("return-focus"), 1800);
+    }
+    sessionStorage.removeItem(DETAIL_RETURN_CONTEXT_KEY);
+  }));
+}
+window.addEventListener("pageshow", restoreDetailReturnContext);
+document.addEventListener("click", (event) => {
+  const link = event.target.closest('a[href^="project-detail.html?id="]');
+  if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const projectId = new URL(link.href).searchParams.get("id");
+  if (projectId) rememberDetailReturn(projectId);
+});
+
+/* ---- 主题 ---- */
+const THEME_KEY = "hw_project_board_theme";
+function applyTheme(t) { document.documentElement.setAttribute("data-theme", t); }
+let theme = "dark";
+try { theme = localStorage.getItem(THEME_KEY) || "dark"; } catch (e) {}
+applyTheme(theme);
+
+/* ---- 版本 ---- */
+$("#ver").textContent = window.APP_VERSION || PROJECT_DB.APP_VERSION || "";
+
+/* ---- localStorage 持久化 ---- */
+const ORDER_KEY = "hw_project_board_chipstat_order";
+const HIDDEN_KEY = "hw_project_board_chipstat_hidden";
+const NOTES_KEY = "hw_project_board_chipstat_notes";
+function loadOrder() { try { return JSON.parse(localStorage.getItem(ORDER_KEY) || "null") || null; } catch (e) { return null; } }
+function saveOrder(ids) { try { localStorage.setItem(ORDER_KEY, JSON.stringify(ids)); } catch (e) {} }
+function loadHidden() { try { return JSON.parse(localStorage.getItem(HIDDEN_KEY) || "[]") || []; } catch (e) { return []; } }
+function saveHidden(ids) { try { localStorage.setItem(HIDDEN_KEY, JSON.stringify(ids)); } catch (e) {} }
+function loadNotes() { try { return JSON.parse(localStorage.getItem(NOTES_KEY) || "{}") || {}; } catch (e) { return {}; } }
+function saveNotes(notes) { try { localStorage.setItem(NOTES_KEY, JSON.stringify(notes)); } catch (e) {} }
+
+/* ---- 芯片相关 ---- */
+function projectChips(p) { return normalizeChips(p.chips); }
+function chipsText(p) {
+  const cs = projectChips(p);
+  return cs.length ? cs.join("、") : "-";
+}
+function chipsHtml(p) {
+  const cs = projectChips(p);
+  if (!cs.length) return `<span class="chip-none">-</span>`;
+  return cs.map(c => `<span class="chip-item">${esc(c)}</span>`).join("");
+}
+function allChipNames(projects) {
+  const set = new Set();
+  projects.forEach(p => projectChips(p).forEach(c => set.add(c)));
+  return [...set].sort((a, b) => a.localeCompare(b, "zh"));
+}
+
+/* ---- 最新状态 / 阶段 / 延期 ---- */
+function latestStatus(p) { return PROJECT_DB.latestProjectStatus(p); }
+function stageName(p) {
+  return PROJECT_DB.projectStageName(p);
+}
+function delayState(p) {
+  return PROJECT_DB.projectDelayState(p);
+}
+function delayText(ds) {
+  return PROJECT_DB.projectDelayText(ds);
+}
+
+/* ---- 未完成关键节点 ---- */
+function pendingNodes(p) { return PROJECT_DB.pendingProjectNodes(p); }
+function pendingNodesHtml(p) {
+  const nodes = pendingNodes(p);
+  if (!nodes.length) return `<span class="node-none">-</span>`;
+  return nodes.map((n, i) =>
+    `<div class="node-item">${i + 1}. ${esc(n.name)}${n.targetDate ? `（${esc(n.targetDate)}）` : ""}</div>`
+  ).join("");
+}
+function pendingNodesText(p) {
+  return PROJECT_DB.pendingProjectNodesText(p);
+}
+
+/* ---- 排序 ---- */
+const SORT_KEY = "hw_project_board_chipstat_sort";
+let sortMode = "chip";
+try { sortMode = localStorage.getItem(SORT_KEY) || "chip"; } catch (e) { sortMode = "chip"; }
+function saveSort(m) { try { localStorage.setItem(SORT_KEY, m); } catch (e) {} }
+function dueSortKey(p) {
+  const d = p.dueDate;
+  return (!d || d === "-") ? "9999-99-99" : d;
+}
+// 按芯片：按项目首个芯片分组（无芯片排最后），组内按结案日期
+function sortByChip(projects) {
+  return [...projects].sort((a, b) => {
+    const ca = projectChips(a)[0] || "\uFFFF";
+    const cb = projectChips(b)[0] || "\uFFFF";
+    if (ca !== cb) return ca.localeCompare(cb, "zh");
+    return dueSortKey(a).localeCompare(dueSortKey(b));
+  });
+}
+function defaultOrder(projects) {
+  const result = [];
+  const groups = new Map();
+  projects.forEach(p => {
+    const c = (p.customer && p.customer !== "-") ? p.customer : "未指定客户";
+    if (!groups.has(c)) groups.set(c, []);
+    groups.get(c).push(p);
+  });
+  groups.forEach((list) => {
+    list.sort((a, b) => dueSortKey(a).localeCompare(dueSortKey(b)));
+    list.forEach(p => result.push(p));
+  });
+  return result;
+}
+function sortByStage(projects) {
+  return [...projects].sort((a, b) => {
+    const sa = currentStage(a), sb = currentStage(b);
+    const ia = sa ? sa.index : 99;
+    const ib = sb ? sb.index : 99;
+    if (ia !== ib) return ia - ib;
+    return dueSortKey(a).localeCompare(dueSortKey(b));
+  });
+}
+function sortByDueDate(projects) {
+  return [...projects].sort((a, b) => dueSortKey(a).localeCompare(dueSortKey(b)));
+}
+function sortProjects(projects) {
+  const saved = loadOrder();
+  if (saved) {
+    const byId = {}; projects.forEach(p => byId[p.id] = p);
+    const list = saved.map(id => byId[id]).filter(Boolean);
+    projects.forEach(p => { if (!saved.includes(p.id)) list.push(p); });
+    return list;
+  }
+  if (sortMode === "customer") return defaultOrder(projects);
+  if (sortMode === "stage") return sortByStage(projects);
+  if (sortMode === "duedate") return sortByDueDate(projects);
+  return sortByChip(projects);
+}
+
+/* ---- 列显隐 ---- */
+const SHOW_NOTE_KEY = "hw_project_board_chipstat_show_note";
+let showNote = true;
+try { showNote = localStorage.getItem(SHOW_NOTE_KEY) !== "off"; } catch (e) { showNote = true; }
+function saveShowNote(v) { try { localStorage.setItem(SHOW_NOTE_KEY, v ? "on" : "off"); } catch (e) {} }
+function applyShowNote() {
+  document.querySelector(".table-card").classList.toggle("hide-note", !showNote);
+  const btn = $("#toggle-note");
+  if (btn) btn.textContent = "备注列：" + (showNote ? "显示" : "隐藏");
+}
+const SHOW_NODE_KEY = "hw_project_board_chipstat_show_node";
+let showNode = true;
+try { showNode = localStorage.getItem(SHOW_NODE_KEY) !== "off"; } catch (e) { showNode = true; }
+function saveShowNode(v) { try { localStorage.setItem(SHOW_NODE_KEY, v ? "on" : "off"); } catch (e) {} }
+function applyShowNode() {
+  document.querySelector(".table-card").classList.toggle("hide-node", !showNode);
+  const btn = $("#toggle-node");
+  if (btn) btn.textContent = "关键节点列：" + (showNode ? "显示" : "隐藏");
+}
+
+/* ---- 勾选状态 ---- */
+let checkedSet = new Set();
+let notes = loadNotes();
+
+/* ---- 列显隐（状态 / 阶段 / 日期 / 延期，默认隐藏） ---- */
+const COL_VIS_KEY = "hw_project_board_chipstat_colvis";
+let colVis = { status: false, stage: false, date: false, delay: false };
+try { const r = localStorage.getItem(COL_VIS_KEY); if (r) colVis = Object.assign(colVis, JSON.parse(r)); } catch (e) {}
+function saveColVis() { try { localStorage.setItem(COL_VIS_KEY, JSON.stringify(colVis)); } catch (e) {} }
+function applyColVis() {
+  const card = document.querySelector(".table-card");
+  card.classList.toggle("hide-status", !colVis.status);
+  card.classList.toggle("hide-stage", !colVis.stage);
+  card.classList.toggle("hide-date", !colVis.date);
+  card.classList.toggle("hide-delay", !colVis.delay);
+  const shown = ["status", "stage", "date", "delay"].filter(k => colVis[k]).length;
+  const count = $("#col-count");
+  if (count) count.textContent = shown + "/4";
+}
+function renderColFilter() {
+  $$("#col-list input[data-col]").forEach(cb => { cb.checked = colVis[cb.dataset.col]; });
+}
+
+/* ---- 芯片筛选（多选 / 全选） ---- */
+let chipFilter = new Set();  // 空 = 全选（显示所有芯片）
+let allChips = [];
+
+function renderChipFilter() {
+  const list = $("#cf-list");
+  const isAll = chipFilter.size === 0;
+  list.innerHTML = `<button class="cf-chip${isAll ? " active" : ""}" data-chip="__all__">全选</button>` +
+    allChips.map(c => `<button class="cf-chip${chipFilter.has(c) ? " active" : ""}" data-chip="${esc(c)}">${esc(c)}</button>`).join("");
+  list.querySelectorAll(".cf-chip").forEach(chip => {
+    chip.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const c = chip.dataset.chip;
+      if (c === "__all__") { chipFilter = new Set(); }
+      else if (chipFilter.size === 0) {
+        chipFilter = new Set([c]);
+      } else {
+        if (chipFilter.has(c)) chipFilter.delete(c);
+        else chipFilter.add(c);
+        if (chipFilter.size === allChips.length) chipFilter = new Set();
+      }
+      renderChipFilter();  // 仅更新面板选中态，待点「确定」后筛选
+    });
+  });
+}
+function updateChipToggle() {
+  const count = $("#cf-count");
+  if (chipFilter.size === 0) count.textContent = "全部";
+  else count.textContent = chipFilter.size + " 个";
+}
+
+/* ---- 状态筛选（多选 / 全选） ---- */
+let statusFilter = new Set();  // 空 = 全选（显示所有状态）
+const STATUS_OPTIONS = ["提案中", "暂缓", "进行中", "已结案"];
+function renderStatusFilter() {
+  const bar = $("#status-filter-bar");
+  const isAll = statusFilter.size === 0;
+  bar.innerHTML = `<span class="sf-label">状态筛选：</span>
+    <button class="cf-chip${isAll ? " active" : ""}" data-status="__all__">全选</button>` +
+    STATUS_OPTIONS.map(s => `<button class="cf-chip${statusFilter.has(s) ? " active" : ""}" data-status="${esc(s)}">${esc(s)}</button>`).join("");
+  bar.querySelectorAll(".cf-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      const s = chip.dataset.status;
+      if (s === "__all__") { statusFilter = new Set(); }
+      else if (statusFilter.size === 0) {
+        statusFilter = new Set([s]);
+      } else {
+        if (statusFilter.has(s)) statusFilter.delete(s);
+        else statusFilter.add(s);
+        if (statusFilter.size === STATUS_OPTIONS.length) statusFilter = new Set();
+      }
+      render();
+    });
+  });
+}
+
+/* ---- 渲染 ---- */
+let currentProjects = [];
+let hiddenCount = 0;
+
+function render() {
+  const projects = load();
+  allChips = allChipNames(projects);
+  const hidden = loadHidden();
+  hiddenCount = hidden.length;
+  // 芯片筛选过滤：项目芯片包含任一选中芯片（空 = 全部）
+  const chipFiltered = chipFilter.size === 0
+    ? projects
+    : projects.filter(p => projectChips(p).some(c => chipFilter.has(c)));
+  // 状态筛选过滤（提案中/暂缓/进行中/已结案）
+  const statusFiltered = statusFilter.size === 0
+    ? chipFiltered
+    : chipFiltered.filter(p => statusFilter.has(p.status));
+  currentProjects = sortProjects(statusFiltered).filter(p => !hidden.includes(p.id));
+  notes = loadNotes();
+
+  renderChipFilter();
+  updateChipToggle();
+  renderStatusFilter();
+  $("#gen-date").textContent = "列表生成日期：" + todayTimeStr();
+  $("#sort-select").value = sortMode;
+  applyShowNote();
+  applyShowNode();
+  applyColVis();
+  renderColFilter();
+  const sortLabel = sortMode === "customer" ? "按客户" : sortMode === "stage" ? "按阶段" : sortMode === "duedate" ? "按预计结案日期" : "按芯片";
+  let hintHtml = "共 <b>" + currentProjects.length + "</b> 个项目 · " + sortLabel + "排序 · 拖拽 ⠿ 可微调顺序";
+  if (hiddenCount > 0) {
+    hintHtml += " · 已隐藏 <b>" + hiddenCount + "</b> 个项目 <a id=\"show-hidden\">[全部显示]</a>";
+  }
+  $("#hint").innerHTML = hintHtml;
+  const showLink = $("#show-hidden");
+  if (showLink) showLink.addEventListener("click", () => { saveHidden([]); render(); });
+
+  const tbody = $("#tbody");
+  if (!currentProjects.length) {
+    tbody.innerHTML = `<tr><td colspan="12" class="empty">暂无项目数据（或无匹配芯片），请调整筛选或先在「基础信息管理」创建项目。</td></tr>`;
+    $("#check-all").checked = false;
+    return;
+  }
+
+  tbody.innerHTML = currentProjects.map(p => {
+    const ds = delayState(p);
+    const note = notes[p.id] || "";
+    return `<tr data-id="${p.id}">
+      <td class="col-check"><input type="checkbox" class="row-check" data-id="${p.id}"></td>
+      <td class="col-grip" draggable="true" title="拖拽排序">⠿</td>
+      <td class="cell-chip">${chipsHtml(p)}</td>
+      <td class="cell-customer">${esc(display(p.customer))}</td>
+      <td class="cell-name">${esc(p.name)}${PROJECT_DB.isProductionMaintenance(p) ? " <span class=\"change-tag\">🏭 量产维护</span>" : ""}</td>
+      <td class="cell-status col-status">${esc(latestStatus(p))}</td>
+      <td class="cell-note col-note" contenteditable="true" data-id="${p.id}">${esc(note)}</td>
+      <td class="cell-stage col-stage"><a class="stage-link" href="project-detail.html?id=${p.id}&tab=stages" title="点击查看项目阶段">${esc(stageName(p))}</a></td>
+      <td class="cell-node col-node">${pendingNodesHtml(p)}</td>
+      <td class="cell-date col-date">${esc(display(p.dueDate))}</td>
+      <td class="cell-delay col-delay"><span class="delay-tag ${ds}">${delayText(ds)}</span></td>
+      <td class="col-action"><button class="hide-btn" data-id="${p.id}" title="隐藏此行">隐藏</button></td>
+    </tr>`;
+  }).join("");
+
+  $$("#tbody .row-check").forEach(cb => cb.checked = checkedSet.has(parseInt(cb.dataset.id, 10)));
+  syncCheckAll();
+  bindDrag();
+}
+
+function syncCheckAll() {
+  const boxes = $$("#tbody .row-check");
+  const all = $("#check-all");
+  if (!boxes.length) { all.checked = false; all.indeterminate = false; return; }
+  const checked = boxes.filter(cb => cb.checked).length;
+  all.checked = checked === boxes.length;
+  all.indeterminate = checked > 0 && checked < boxes.length;
+}
+
+/* ---- 拖拽排序 ---- */
+let dragRow = null;
+function bindDrag() {
+  $$("#tbody .col-grip").forEach(h => {
+    h.addEventListener("dragstart", e => {
+      dragRow = h.closest("tr");
+      dragRow.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+    });
+    h.addEventListener("dragend", () => {
+      if (dragRow) dragRow.classList.remove("dragging");
+      $$("#tbody tr.drag-over").forEach(r => r.classList.remove("drag-over"));
+      dragRow = null;
+      persistOrder();
+    });
+  });
+  $$("#tbody tr[data-id]").forEach(row => {
+    row.addEventListener("dragover", e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      if (row !== dragRow) row.classList.add("drag-over");
+    });
+    row.addEventListener("dragleave", () => row.classList.remove("drag-over"));
+    row.addEventListener("drop", e => {
+      e.preventDefault();
+      if (!dragRow || dragRow === row) return;
+      const tbody = $("#tbody");
+      const rect = row.getBoundingClientRect();
+      const after = e.clientY > rect.top + rect.height / 2;
+      tbody.insertBefore(dragRow, after ? row.nextSibling : row);
+    });
+  });
+}
+function persistOrder() {
+  const ids = $$("#tbody tr[data-id]").map(r => parseInt(r.dataset.id, 10));
+  saveOrder(ids);
+}
+
+/* ---- 备注编辑保存 ---- */
+function syncAllNotes() {
+  $$("#tbody .cell-note").forEach(td => {
+    notes[parseInt(td.dataset.id, 10)] = td.textContent.trim();
+  });
+  saveNotes(notes);
+}
+
+/* ---- 导出 ---- */
+function checkedIds() {
+  return $$("#tbody .row-check").filter(cb => cb.checked).map(cb => parseInt(cb.dataset.id, 10));
+}
+function csvCell(v) {
+  v = String(v == null ? "" : v);
+  if (/[",\n]/.test(v)) v = '"' + v.replace(/"/g, '""') + '"';
+  return v;
+}
+function download(filename, content, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function exportCsv() {
+  syncAllNotes();
+  const ids = checkedIds();
+  if (!ids.length) { alert("请先勾选要导出的项目（或使用表头全选）"); return; }
+  const byId = {}; currentProjects.forEach(p => byId[p.id] = p);
+  const header = ["核心芯片", "客户", "项目名称", "量产维护", "项目最新状态", "备注", "当前阶段", "关键节点", "预计结案日期", "是否延期"];
+  const lines = [header.map(csvCell).join(",")];
+  ids.forEach(id => {
+    const p = byId[id]; if (!p) return;
+    const row = [chipsText(p), p.customer, p.name, PROJECT_DB.isProductionMaintenance(p) ? "是" : "否", latestStatus(p), notes[id] || "", stageName(p), pendingNodesText(p), p.dueDate || "-", delayText(delayState(p))];
+    lines.push(row.map(csvCell).join(","));
+  });
+  download("芯片项目统计_" + todayStr() + ".csv", "\uFEFF" + lines.join("\r\n"), "text/csv;charset=utf-8");
+}
+function exportPdf() {
+  syncAllNotes();
+  const ids = checkedIds();
+  if (!ids.length) { alert("请先勾选要导出的项目（或使用表头全选）"); return; }
+  $$("#tbody tr[data-id]").forEach(tr => {
+    tr.classList.toggle("print-hide", !ids.includes(parseInt(tr.dataset.id, 10)));
+  });
+  window.print();
+  setTimeout(() => $$("#tbody tr[data-id]").forEach(tr => tr.classList.remove("print-hide")), 600);
+}
+
+/* ---- 事件 ---- */
+$("#back-btn").addEventListener("click", () => { history.length > 1 ? history.back() : (location.href = "GeekDash.html"); });
+$("#reset-order").addEventListener("click", () => { localStorage.removeItem(ORDER_KEY); render(); });
+$("#sort-select").addEventListener("change", e => {
+  sortMode = e.target.value;
+  saveSort(sortMode);
+  localStorage.removeItem(ORDER_KEY);
+  render();
+});
+$("#toggle-note").addEventListener("click", () => { showNote = !showNote; saveShowNote(showNote); applyShowNote(); });
+$("#toggle-node").addEventListener("click", () => { showNode = !showNode; saveShowNode(showNode); applyShowNode(); });
+$("#export-csv-btn").addEventListener("click", exportCsv);
+$("#export-pdf-btn").addEventListener("click", exportPdf);
+
+/* 芯片筛选下拉开关 */
+function closeOtherPanels(keep) {
+  if (keep !== "cf-panel") { $("#cf-panel").classList.remove("open"); $("#cf-toggle").classList.remove("active"); }
+  if (keep !== "col-panel") { $("#col-panel").classList.remove("open"); $("#col-toggle").classList.remove("active"); }
+}
+$("#cf-toggle").addEventListener("click", e => {
+  e.stopPropagation();
+  closeOtherPanels("cf-panel");
+  $("#cf-panel").classList.toggle("open");
+  $("#cf-toggle").classList.toggle("active", $("#cf-panel").classList.contains("open"));
+});
+// 确定：应用芯片筛选（勾选后点确定才筛选）
+$("#cf-apply").addEventListener("click", () => {
+  updateChipToggle();
+  $("#cf-panel").classList.remove("open");
+  $("#cf-toggle").classList.remove("active");
+  render();
+});
+// 清空：显示全部（立即生效）
+$("#cf-clear").addEventListener("click", () => {
+  chipFilter = new Set();
+  renderChipFilter();
+  updateChipToggle();
+  $("#cf-panel").classList.remove("open");
+  $("#cf-toggle").classList.remove("active");
+  render();
+});
+
+/* 列显隐下拉开关 */
+$("#col-toggle").addEventListener("click", e => {
+  e.stopPropagation();
+  closeOtherPanels("col-panel");
+  renderColFilter();
+  $("#col-panel").classList.toggle("open");
+  $("#col-toggle").classList.toggle("active", $("#col-panel").classList.contains("open"));
+});
+$("#col-apply").addEventListener("click", () => {
+  $$("#col-list input[data-col]").forEach(cb => { colVis[cb.dataset.col] = cb.checked; });
+  saveColVis();
+  applyColVis();
+  $("#col-panel").classList.remove("open");
+  $("#col-toggle").classList.remove("active");
+});
+document.addEventListener("click", e => {
+  if (!e.target.closest(".chip-filter")) {
+    $("#cf-panel").classList.remove("open");
+    $("#cf-toggle").classList.remove("active");
+    $("#col-panel").classList.remove("open");
+    $("#col-toggle").classList.remove("active");
+  }
+});
+
+$("#check-all").addEventListener("change", () => {
+  const checked = $("#check-all").checked;
+  $$("#tbody .row-check").forEach(cb => {
+    cb.checked = checked;
+    const id = parseInt(cb.dataset.id, 10);
+    if (checked) checkedSet.add(id); else checkedSet.delete(id);
+  });
+});
+$("#tbody").addEventListener("change", e => {
+  if (!e.target.classList.contains("row-check")) return;
+  const id = parseInt(e.target.dataset.id, 10);
+  if (e.target.checked) checkedSet.add(id); else checkedSet.delete(id);
+  syncCheckAll();
+});
+$("#tbody").addEventListener("click", e => {
+  const hideBtn = e.target.closest(".hide-btn");
+  if (hideBtn) {
+    const id = parseInt(hideBtn.dataset.id, 10);
+    const hidden = loadHidden();
+    if (!hidden.includes(id)) hidden.push(id);
+    saveHidden(hidden);
+    render();
+  }
+});
+$("#tbody").addEventListener("focusout", e => {
+  const td = e.target.closest(".cell-note");
+  if (td) {
+    notes[parseInt(td.dataset.id, 10)] = td.textContent.trim();
+    saveNotes(notes);
+  }
+});
+
+render();
+</script>
+</body>
+</html>
