@@ -1014,15 +1014,6 @@
   function statusEngineers(p) {
     return [...new Set(Array.from(String(p.statusDesc || "").matchAll(/@([^\s@，,。；;：:！？!?（）()\[\]【】、<>]+)/gu), m => m[1]))];
   }
-  function addStatusEngineer(name) {
-    const engineers = loadEngineers();
-    const existing = engineers.find(e => e.name === name);
-    if (existing) return existing;
-    const engineer = { id: nextId(engineers), name, role: "" };
-    engineers.push(engineer);
-    saveBusinessDataAtomic({ engineers });
-    return engineer;
-  }
 
   // 规范化阶段状态：对齐 STAGES 七阶段，返回 [{days, done, note, doneDate, startDate, expectedEndDate}] 数组
   function normalizeStages(v) {
@@ -1226,7 +1217,7 @@
 
   // 应用版本（每次改动 +0.001）与版本生成时间
   const APP_VERSION = "V1.051";
-  const APP_VERSION_TIME = "2026-10-09 17:39:02";
+  const APP_VERSION_TIME = "2026-10-09 18:19:25";
   // 历史版本更改日志（简要总结；新改动可在此追加新条目并 +0.001 版本号）
   const VERSION_LOG = [
     { version: "V1.051", date: APP_VERSION_TIME, items: [
@@ -1236,9 +1227,9 @@
       "所有看板的项目最新状态区块默认折叠，可手动展开",
       "新增项目简介，详情输入并显示在项目卡片上",
       "状态描述独立保留完整历史，输入栏上方默认折叠，旧版混合历史原文保留",
-      "卡片精简：变更次数、负责人、项目经理和周期移至详情查看",
-      "状态描述 @检索工程师，不存在的姓名回车新增且角色留空",
-      "项目状态简要增加工程师显示列和筛选，仅取最新状态描述中的 @姓名",
+      "卡片精简：不展示变更次数、负责人、项目经理、周期和市场预期，详情保留",
+      "状态描述 @检索工程师，库外姓名回车仅保留文字，不自动新增基础工程师",
+      "项目状态简要显示负责人列和筛选，仅取最新状态描述中的 @姓名",
       "阶段可回退到任意已完成阶段并撤销后续完成，结案可撤销，原记录保留历史",
       "兼容 V1.049 / V1.050 全数据备份与数据库文件，保留旧角色、记录及扩展字段"
     ] },
@@ -1475,7 +1466,7 @@
     STAGES,
     DEFAULT_PROJECTS, DEFAULT_CUSTOMERS, DEFAULT_ENGINEERS, DEFAULT_PRODUCT_LINES, DEFAULT_APPS, DEFAULT_TAGS, DEFAULT_GROUPS, DEFAULT_CHIPS, DEFAULT_COMPANY,
     ENGINEER_ROLE_SUGGESTIONS,
-    normalizeChips, chipNameKey, normalizeHistory, normalizeStatusDescriptionHistory, statusDescriptionHistory, updateStatusDescription, statusEngineers, addStatusEngineer, normalizeStages, normalizeRisks, normalizeChanges, normalizeDelays, normalizeNodes, normalizeCustomerNodes, normalizeMilestones,
+    normalizeChips, chipNameKey, normalizeHistory, normalizeStatusDescriptionHistory, statusDescriptionHistory, updateStatusDescription, statusEngineers, normalizeStages, normalizeRisks, normalizeChanges, normalizeDelays, normalizeNodes, normalizeCustomerNodes, normalizeMilestones,
     currentStage, projectProgress, latestTargetDate, isProjectDelayed, isProductionMaintenance, hasDelay, latestProjectStatus, projectStageName, projectDelayState, projectDelayText, pendingProjectNodes, pendingProjectNodesText,
     todayStr, todayTimeStr, nextId,
     load, save, reset, resetAll,

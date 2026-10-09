@@ -213,7 +213,7 @@ td.cell-note:focus { outline: 1px dashed var(--accent); background: var(--bg-sof
           <th class="col-group">分组</th>
           <th>项目名称</th>
           <th class="col-status">项目最新状态</th>
-          <th class="col-engineers">工程师</th>
+          <th class="col-engineers">负责人</th>
           <th class="col-note">备注</th>
           <th class="col-stage">当前阶段</th>
           <th class="col-node">关键节点</th>
@@ -411,7 +411,7 @@ function sortProjects(projects) {
 const COLUMN_VIS_KEY = "hw_project_board_summary_colvis";
 const REPORT_COLUMNS = [
   { key: "customer", label: "客户" }, { key: "group", label: "分组" },
-  { key: "status", label: "项目最新状态" }, { key: "engineers", label: "工程师" }, { key: "note", label: "备注" },
+  { key: "status", label: "项目最新状态" }, { key: "engineers", label: "负责人" }, { key: "note", label: "备注" },
   { key: "stage", label: "当前阶段" }, { key: "node", label: "关键节点" },
   { key: "dueDate", label: "预计结案日期" }, { key: "delay", label: "是否延期" }
 ];
@@ -497,13 +497,13 @@ function renderStatusFilter() {
   });
 }
 
-/* ---- 工程师筛选：仅取项目最新状态描述中的 @姓名 ---- */
+/* ---- 负责人筛选：仅取项目最新状态描述中的 @姓名 ---- */
 let engineerFilter = new Set();
 function renderEngineerFilter(projects) {
   const names = [...new Set([...PROJECT_DB.loadEngineers().map(e => e.name), ...projects.flatMap(p => PROJECT_DB.statusEngineers(p))])]
     .sort((a, b) => a.localeCompare(b, "zh"));
   const bar = $("#engineer-filter-bar");
-  bar.innerHTML = `<span class="gf-label">工程师筛选：</span><button class="gf-chip${engineerFilter.size ? "" : " active"}" data-engineer="__all__">全选</button>`
+  bar.innerHTML = `<span class="gf-label">负责人筛选：</span><button class="gf-chip${engineerFilter.size ? "" : " active"}" data-engineer="__all__">全选</button>`
     + names.map(name => `<button class="gf-chip${engineerFilter.has(name) ? " active" : ""}" data-engineer="${esc(name)}">${esc(name)}</button>`).join("");
   bar.querySelectorAll("[data-engineer]").forEach(button => button.addEventListener("click", () => {
     const name = button.dataset.engineer;
@@ -741,7 +741,7 @@ function visibleReportFields(p, displayStatus) {
     ["customer", "客户", p.customer], ["group", "项目分组", p.group], ["name", "项目名称", p.name],
     ["status", "原始项目状态", p.status], ["status", "量产维护", PROJECT_DB.isProductionMaintenance(p) ? "是" : "否"],
     ["status", "网页展示状态", displayStatus.label], ["status", "网页色彩标识", `${displayStatus.color}（${displayStatus.hex}）`], ["status", "展示状态依据", displayStatus.reason],
-    ["status", "项目最新状态", latestStatus(p)], ["engineers", "工程师", PROJECT_DB.statusEngineers(p).join("、")], ["note", "备注", notes[p.id] || ""], ["stage", "当前阶段", stageName(p)],
+    ["status", "项目最新状态", latestStatus(p)], ["engineers", "负责人", PROJECT_DB.statusEngineers(p).join("、")], ["note", "备注", notes[p.id] || ""], ["stage", "当前阶段", stageName(p)],
     ["node", "关键节点", pendingNodesText(p)], ["dueDate", "预计结案日期", p.dueDate], ["delay", "是否延期", delayText(delayState(p))]
   ];
   return fields.filter(([key]) => isColumnVisible(key));
@@ -877,7 +877,7 @@ async function exportImage() {
   if (!projects.length) return;
   const width = 1600, left = 58, rowHeight = 42, titleHeight = 128;
   const columns = [
-    ["name", "项目名称", 310, p => p.name], ["customer", "客户", 180, p => display(p.customer)], ["status", "状态", 400, p => latestStatus(p)], ["engineers", "工程师", 220, p => PROJECT_DB.statusEngineers(p).join("、") || "-"], ["dueDate", "预计结案", 170, p => display(p.dueDate)], ["delay", "延期", 130, p => delayText(delayState(p))]
+    ["name", "项目名称", 310, p => p.name], ["customer", "客户", 180, p => display(p.customer)], ["status", "状态", 400, p => latestStatus(p)], ["engineers", "负责人", 220, p => PROJECT_DB.statusEngineers(p).join("、") || "-"], ["dueDate", "预计结案", 170, p => display(p.dueDate)], ["delay", "延期", 130, p => delayText(delayState(p))]
   ].filter(([key]) => isColumnVisible(key));
   const height = titleHeight + rowHeight * (projects.length + 1) + 52;
   const text = (x, y, value, weight = 400, color = "#1f2328") => `<text x="${x}" y="${y}" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="18" font-weight="${weight}" fill="${color}">${xmlEsc(value)}</text>`;

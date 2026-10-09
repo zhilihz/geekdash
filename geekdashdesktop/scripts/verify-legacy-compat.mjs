@@ -9,13 +9,13 @@ const { chromium } = require(path.join(process.env.USERPROFILE, ".cache/codex-ru
 const releases = process.argv[2];
 if (!releases) throw new Error("请传入附件解压后的 releases 目录");
 const base = process.argv[3] || "http://127.0.0.1:41870";
-const output = path.resolve(import.meta.dirname, "../../test-results/local-v1051");
+const output = path.resolve(import.meta.dirname, "../../test-results/local-v1051-followup");
 await fs.mkdir(output, { recursive: true });
 const browser = await chromium.launch({ headless: true, channel: "msedge" });
 const checks = [];
 try {
-  for (const version of ["1049", "1050"]) {
-    const source = await fs.readFile(path.join(releases, "GeekDash" + version, "projects-data.js"), "utf8");
+  for (const version of ["1049", "1050", ...(process.argv[4] ? ["1051"] : [])]) {
+    const source = await fs.readFile(version === "1051" ? process.argv[4] : path.join(releases, "GeekDash" + version, "projects-data.js"), "utf8");
     const values = new Map();
     const legacy = { console, Date, setTimeout, clearTimeout, localStorage: {
       getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, String(value)), removeItem: key => values.delete(key)
@@ -30,7 +30,7 @@ try {
       changes: [{ id: 1, source: "客户", content: "旧需求变更", status: "拒绝", reason: "原理由", createdAt: "2026-08-01" }],
       delays: [{ id: 1, date: "2026-08-03", reason: "旧延期理由", newTargetDate: "2026-12-01" }], isDelayed: true, customLegacyField: "扩展字段保留" };
     // 用附件中相应版本的真实导出实现生成旧格式文件，业务内容均为合成夹具。
-    old.saveBusinessDataAtomic({ projects: [project], engineers: [{ id: 1, name: "旧工程师", role: "硬件/软件" }], customers: [{ id: 1, name: "合成客户", tags: ["ODM 工厂"] }], chips: [{ id: 1, name: "合成芯片" }] });
+    old.saveBusinessDataAtomic({ projects: [project], engineers: [{ id: 1, name: "旧工程师", role: "硬件/软件" }, { id: 2, name: "旧自动新增工程师", role: "" }], customers: [{ id: 1, name: "合成客户", tags: ["ODM 工厂"] }], chips: [{ id: 1, name: "合成芯片" }] });
     const payload = JSON.parse(JSON.stringify(old.buildBackupData()));
     const expected = JSON.parse(JSON.stringify(old.validateBackupData(payload).projects[0]));
     // 1051新增编辑时间；旧记录没有编辑时间，规范化后应为空。
@@ -63,13 +63,14 @@ try {
     await page.reload();
     const readback = await page.evaluate(() => ({ project: PROJECT_DB.load()[0], engineers: PROJECT_DB.loadEngineers(), backup: PROJECT_DB.buildBackupData() }));
     for (const [key, value] of Object.entries(expected)) {
-      if (!["statusDesc", "statusHistory"].includes(key)) assert.deepEqual(readback.project[key], value, version + " 回读字段 " + key);
+      if (!["summary", "statusDesc", "statusHistory"].includes(key)) assert.deepEqual(readback.project[key], value, version + " 回读字段 " + key);
     }
     assert.equal(readback.project.summary, "1051 新简介");
     assert.equal(readback.project.statusDescHistory[0].text, "原状态 @旧工程师");
     assert.deepEqual(readback.project.statusHistory[0], expected.statusHistory[0]);
     assert.equal(readback.engineers.find(e => e.name === "旧工程师").role, "硬件/软件");
-    assert.equal(readback.engineers.find(e => e.name === "兼容新工程师").role, "");
+    assert.equal(readback.engineers.some(e => e.name === "兼容新工程师"), false);
+    assert.equal(readback.engineers.find(e => e.name === "旧自动新增工程师").role, "");
     assert.equal(readback.backup.projects[0].customLegacyField, "扩展字段保留");
     assert.deepEqual(errors, []);
     checks.push({ version: "V1." + version.slice(1), sourceSha256: createHash("sha256").update(source).digest("hex"), legacySchema: payload.version, projectFieldsPreserved: Object.keys(expected).length, opened: true, edited: true, savedToRealFile: true, clearedCacheAndReopened: true, oldRolesAndHistoryPreserved: true });
