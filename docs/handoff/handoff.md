@@ -42,3 +42,7 @@ test-results里的部署脚本是本轮受控辅助材料，不作为新的发�
 目标与范围：附件1050本地修正，用户十项及所有最新状态折叠、1049兼容；规则归SPEC-L1051。施工`codex/local-v1051`，基线`a587ecac627bd2f85591fa7823e8e209430231f3`；managed worktree为`C:/Users/Administrator/.codex/worktrees/local-v1051/geekdash`。不修改主工作区原有服务器讨论稿。
 
 代码与本地发布包已完成，验证归[报告](../testing/reports/2026-10-09-local-v1051.md)。交付`D:/geekwon/geekdash-local-releases/GeekDash1051.zip`；源为`geekdashdesktop/`，忽略test-results只保留生成辅助/合成数据。当前本地版本没有服务器部署任务；真人首次OS文件授权仍由实际使用完成，不是代码阻塞。实现提交`2f5cf2a`、集成提交`7f5c46e35603cb78cfef878849da60d585dfce96`已推送远端main并以ls-remote回读一致。该本地单元无未完成代码或发布任务；服务器第3节接续不变。
+
+### 5.1 1051追加修正
+
+用户明确三项追加修正及保持1051，分支codex/local-v1051-followup，基线eddee0a00993d995fe6e6f4cd06b499c5372a34c。同一工作副本施工，原主工作区未提交文档保留。代码/测试及发布包更新完成，证据归追加报告，原ZIP已留首次交付副本。实现f6ae99a及集成88632871c690ff384d55fbe194cd57082287eecb已回读远端main一致，本地追加单元完成，无云部署任务。

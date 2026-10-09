@@ -1,0 +1,57 @@
+{
+  "baseUrl": "http://127.0.0.1:41870",
+  "results": [
+    {
+      "name": "欢迎页强制打开数据库且业务变更自动回写当前文件",
+      "status": "passed"
+    },
+    {
+      "name": "首页加载、默认视图与版本",
+      "status": "passed"
+    },
+    {
+      "name": "首页统计卡片快速筛选继承当前范围并显示量产维护标识",
+      "status": "passed"
+    },
+    {
+      "name": "主看板详情返回恢复来源视图、筛选、搜索、滚动与项目焦点",
+      "status": "passed"
+    },
+    {
+      "name": "系统管理菜单在窄视口完整显示",
+      "status": "passed"
+    },
+    {
+      "name": "已结案项目可标记量产维护并独立展示",
+      "status": "passed"
+    },
+    {
+      "name": "项目人员仅能从基础库搜索选择并保留历史待入库值",
+      "status": "passed"
+    },
+    {
+      "name": "核心芯片只能从基础库选择，历史值保留且改名级联",
+      "status": "passed"
+    },
+    {
+      "name": "新建项目保留跨标签草稿并避免虚假历史",
+      "status": "passed"
+    },
+    {
+      "name": "完整备份 schema 与异常 ID 拒绝",
+      "status": "passed"
+    },
+    {
+      "name": "单文件导出版构建、执行与数据转义",
+      "status": "passed"
+    },
+    {
+      "name": "项目状态描述保留多行并在报表导出中呈现",
+      "status": "passed"
+    },
+    {
+      "name": "报表详情返回、Markdown 导出与芯片统计页面加载",
+      "status": "passed"
+    }
+  ]
+}

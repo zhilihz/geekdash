@@ -15,5 +15,7 @@
     "package.json": "f53f1c54d6218735f146a1ced7bb419002910be5ba25e2b5308d3bd1874894b3"
   },
   "stageDefinitionSource": "geekdashdesktop/projects-data.js",
-  "stageDefinitionSourceSha256": "23583bcb27ebf82d2a650eca73611900bcf6b8e39fba8a288a29419e0612422b"
+  "stageDefinitionSourceSha256": "0a1080f8655d08ad4ba6b6b1dccd0654c5139caf46c51b48a22de109d064f5a5",
+  "stageDefinitionArraySha256": "1c18b6e2b731aad187f26be9791195a14edb244d80fb06824a28cd62455eb43c",
+  "integration": "整合远端1cc77a1本地1051追加；七阶段静态定义逐字一致，服务器源码摘要保持"
 }

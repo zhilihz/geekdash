@@ -5,7 +5,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const { chromium } = require(path.join(process.env.USERPROFILE, ".cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright"));
 const base = process.argv[2] || "http://127.0.0.1:41870";
-const output = path.resolve(import.meta.dirname, "../../test-results/local-v1051");
+const output = path.resolve(import.meta.dirname, "../../test-results/local-v1051-followup");
 await fs.mkdir(output, { recursive: true });
 const browser = await chromium.launch({ headless: true, channel: "msedge" });
 const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, acceptDownloads: true });
@@ -22,7 +22,7 @@ try {
     const original = JSON.parse(JSON.stringify(PROJECT_DB.DEFAULT_PROJECTS[0]));
     const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
     const day = d => [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
-    const project = Object.assign(original, { id: 900001, name: "1051 独立验收项目", summary: "", status: "进行中", dueDate: day(yesterday), statusDesc: "旧状态\n第二行", statusDescUpdatedAt: "", statusHistory: [{ date: PROJECT_DB.todayTimeStr(), text: "旧版混合原文；阶段操作" }], risks: [
+    const project = Object.assign(original, { id: 900001, name: "1051 独立验收项目", summary: "", marketExpectation: "保留在详情的市场预期", status: "进行中", dueDate: day(yesterday), statusDesc: "旧状态\n第二行", statusDescUpdatedAt: "", statusHistory: [{ date: PROJECT_DB.todayTimeStr(), text: "旧版混合原文；阶段操作" }], risks: [
       { id: 1, content: "原预警", level: "中", createdAt: "2026-09-01 09:00", resolved: false },
       { id: 2, content: "已解除预警", level: "低", createdAt: "2026-09-01 10:00", resolved: true, resolveMethod: "原解除方法", resolvedAt: "2026-09-02 10:00" },
     ], changes: [{ id: 1, source: "客户", content: "原变更", status: "接受", reason: "原理由", createdAt: "2026-09-03 10:00" }], delays: [] });
@@ -42,11 +42,13 @@ try {
   const readFile = () => page.evaluate(async filename => JSON.parse(await (await (await navigator.storage.getDirectory()).getFileHandle(filename)).getFile().then(f => f.text())), filename);
   const waitSaved = () => page.waitForFunction(() => PROJECT_DB.databaseSession()?.state === "saved");
   await page.goto(base + "/project-detail.html?id=900001");
+  assert.equal(await page.locator("#f-market").inputValue(), "保留在详情的市场预期");
   await page.locator("#f-summary").fill("项目简介第一行\n第二行 <安全文本>");
   await page.locator("#f-statusdesc").fill("新进展第一行\n第二行；保留分号");
   await page.locator("#save-btn").click(); await waitSaved();
   let data = await readFile(); let saved = data.projects.find(p => p.id === 900001);
   assert.equal(saved.summary, "项目简介第一行\n第二行 <安全文本>");
+  assert.equal(saved.marketExpectation, "保留在详情的市场预期");
   assert.equal(saved.statusDescHistory.length, 2);
   assert.equal(saved.statusDescHistory[0].text, "旧状态\n第二行");
   assert.equal(saved.statusDescLegacyHistoryCount, 1);
@@ -114,7 +116,7 @@ try {
   }
   await page.goto(base + "/GeekDash.html?view=active");
   const cardText = await page.locator('.card[data-id="900001"]').innerText();
-  for (const label of ["负责人", "项目经理", "变更次数", "周期", "🔄 变更"]) assert.ok(!cardText.includes(label), label);
+  for (const label of ["负责人", "项目经理", "变更次数", "周期", "🔄 变更", "市场预期"]) assert.ok(!cardText.includes(label), label);
   await page.screenshot({ path: path.join(output, "board-card.png"), fullPage: true });
   await page.locator('.card[data-id="900001"] .status-update-btn').click();
   await page.locator('.card[data-id="900001"] .sqe-input').fill("首页快捷新状态");
@@ -129,28 +131,32 @@ try {
   await page.locator("#f-statusdesc").fill("调试 @李雪 联调 @新增工程师");
   await page.locator("#f-statusdesc").press("Enter"); await waitSaved();
   data = await readFile();
-  assert.equal(data.engineers.find(e => e.name === "新增工程师").role, "");
+  assert.equal(data.engineers.some(e => e.name === "新增工程师"), false);
   assert.equal(data.engineers.find(e => e.name === "李雪").role, "软件");
   assert.equal(data.projects[0].statusDesc, "首页快捷新状态");
   await page.locator("#f-statusdesc").fill("联调 @新增工程师");
   await page.locator("#f-statusdesc").press("Enter");
-  assert.equal(await page.evaluate(() => PROJECT_DB.loadEngineers().filter(e => e.name === "新增工程师").length), 1);
+  assert.equal(await page.evaluate(() => PROJECT_DB.loadEngineers().filter(e => e.name === "新增工程师").length), 0);
   await page.locator("#f-statusdesc").fill("测试 @输入法未确认");
   await page.locator("#f-statusdesc").evaluate(input => input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", isComposing: true, keyCode: 229, bubbles: true })));
   assert.equal(await page.evaluate(() => PROJECT_DB.loadEngineers().some(e => e.name === "输入法未确认")), false);
   await page.locator("#f-statusdesc").fill("调试 @李雪 联调 @新增工程师 复核 @李雪");
   await page.locator("#save-btn").click(); await waitSaved();
   saved = (await readFile()).projects[0];
+  assert.equal((await readFile()).engineers.some(e => e.name === "新增工程师"), false);
   assert.equal(saved.statusDescHistory.length, 4);
   assert.deepEqual(await page.evaluate(() => PROJECT_DB.statusEngineers(PROJECT_DB.load()[0])), ["李雪", "新增工程师"]);
   const report = await context.newPage();
   report.on("pageerror", error => errors.push(error.message));
   await report.addInitScript(session => sessionStorage.setItem("hw_project_board_database_session_v1", JSON.stringify(session)), await page.evaluate(() => PROJECT_DB.databaseSession()));
   await report.goto(base + "/project-status-summary.html");
+  assert.equal(await report.locator('th.col-engineers').innerText(), "负责人");
+  assert.ok((await report.locator('#engineer-filter-bar').innerText()).includes("负责人筛选"));
+  assert.equal(await report.locator('[data-column="engineers"]').getAttribute('aria-label'), "隐藏负责人列");
   await report.locator('#engineer-filter-bar [data-engineer="李雪"]').click();
   assert.equal(await report.locator('#tbody tr[data-id]').count(), 1);
   assert.equal(await report.locator('#tbody .col-engineers').innerText(), "李雪、新增工程师");
-  assert.ok((await report.evaluate(() => visibleReportFields(currentProjects[0], presentationStatus(currentProjects[0])))).some(f => f[0] === "engineers"));
+  assert.ok((await report.evaluate(() => visibleReportFields(currentProjects[0], presentationStatus(currentProjects[0])))).some(f => f[0] === "engineers" && f[1] === "负责人"));
   await report.locator('[data-column="engineers"]').click();
   assert.equal(await report.locator('#tbody .col-engineers').isVisible(), false);
   assert.ok(!(await report.evaluate(() => visibleReportFields(currentProjects[0], presentationStatus(currentProjects[0])))).some(f => f[0] === "engineers"));
@@ -164,7 +170,7 @@ try {
   await report.locator('#engineer-filter-bar [data-engineer="新增工程师"]').click();
   assert.equal(await report.locator('#tbody tr[data-id]').count(), 1);
   await report.close();
-  checks.push("@检索选人、回车新增及角色空值、重复与输入法防误建、保存后工程师筛选、去重、历史人员不参与筛选、导出列控制");
+  checks.push("@检索选人、库外姓名回车和保存均不新增基础工程师、既有角色保留、负责人列/筛选/导出、多人去重、历史人员不参与筛选");
 
   await page.locator('[data-tab="stages"]').click();
   for (const index of [0, 1]) {
@@ -220,8 +226,9 @@ try {
   assert.equal(saved.statusDesc, "最新调试 @新增工程师"); assert.equal(saved.statusDescHistory.length, 5);
   assert.equal(saved.risks[0].content, "修正后的预警"); assert.equal(saved.changes[0].content, "修正后的需求");
   assert.equal(saved.statusHistory[0].text, "旧版混合原文；阶段操作");
+  assert.equal(saved.marketExpectation, "保留在详情的市场预期");
   assert.ok(saved.stages.every(s => !s.done));
-  assert.equal(await page.evaluate(() => PROJECT_DB.loadEngineers().find(e => e.name === "新增工程师").role), "");
+  assert.equal(await page.evaluate(() => PROJECT_DB.loadEngineers().some(e => e.name === "新增工程师")), false);
   checks.push("清除缓存和会话后，使用新文件句柄重新打开并回读全部修改");
   const standalone = await page.evaluate(() => buildStandaloneHTML(PROJECT_DB.load(), false));
   assert.ok(!/__GD_[A-Z_]+__/.test(standalone));
@@ -230,6 +237,7 @@ try {
   exportPage.setDefaultTimeout(10000);
   await exportPage.setContent(standalone);
   assert.ok((await exportPage.locator('.card[data-id="900001"]').innerText()).includes("项目简介第一行"));
+  assert.ok(!(await exportPage.locator('.card[data-id="900001"]').innerText()).includes("市场预期"));
   assert.equal(await exportPage.evaluate(() => isProjectDelayed({ status: "进行中", dueDate: "2999-01-01", isDelayed: true })), false);
   await exportPage.locator('.card[data-id="900001"] .card-name').click();
   assert.equal(await exportPage.locator(".statusdesc-history").getAttribute("open"), null);

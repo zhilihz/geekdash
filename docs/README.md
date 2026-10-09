@@ -81,3 +81,5 @@ docs/
 本轮用户指定的1050修正版位于`geekdashdesktop/`，入口与MySQL版分开。需求见REQ-L1051，规则见[SPEC-L1051](specifications/specification.md#spec-l1051-本地版修正契约)，运行及1049/1050旧数据路径见[使用说明](usage/user-guide.md#本地-v1051-运行与旧版数据升级)，准确验收见[报告](testing/reports/2026-10-09-local-v1051.md)。发布包不包含用户业务数据库。
 
 阶段开始/完成的实际协议见[项目动作API](specifications/api/project-actions.md)，本轮验证入口见[阶段报告](testing/reports/2026-10-09-stage-actions.md)。运行状态仍查系统真相。
+
+1051本日补充修正（负责人名称、@新姓名不自动入库、卡片隐藏市场预期）准确验证见[追加报告](testing/reports/2026-10-09-local-v1051-followup.md)，版本按用户指令保持1051。
