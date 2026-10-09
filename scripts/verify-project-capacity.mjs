@@ -55,8 +55,8 @@ try {
     const target=ids[worker];
     const list=await measured('list','/api/projects?view=all&customer='+encodeURIComponent('规模夹具-customers-'+worker)); assert.equal(list.pagination.total,125);
     const detail=await measured('detail','/api/projects/'+target); assert.equal(detail.stages.length,7); assert.equal(detail.nodes.length,1); assert.equal(detail.risks.length,1);
-    const result=await measured('save','/api/projects/'+target,'PATCH',{expectedVersion:detail.project.version,idempotencyKey:randomUUID(),changes:{summaryNote:`四人容量验证${worker}轮次${round}`}});
-    const fresh=await api('/api/projects/'+target); assert.equal(fresh.project.summaryNote,result.result.values.summaryNote); assert.equal(fresh.project.version,result.result.savedVersion);
+    const result=await measured('save','/api/projects/'+target,'PATCH',{expectedVersion:detail.project.version,idempotencyKey:randomUUID(),changes:{summaryNote:`四人容量验证${worker}轮次${round}`,signal:round%2?'red':'yellow',priority:round%2?'high':'low',chipIds:[references.chips[(worker+round)%4]],people:[{id:references.engineers[worker],role:'hardware_owner'}]}});
+    const fresh=await api('/api/projects/'+target); assert.equal(fresh.project.summaryNote,result.result.values.summaryNote); assert.equal(fresh.project.version,result.result.savedVersion); assert.deepEqual(fresh.project.chips.map(chip=>chip.id),result.result.values.chipIds); assert.equal(fresh.project.priority,result.result.values.priority);
     const audit=await measured('audit','/api/projects/'+target+'/audit'); assert.equal(audit.items[0].versionAfter,result.result.savedVersion);
   }));
   // 第 501 个项目可入库和查询，500 是验收规模，不是结构或读取总量上限。
@@ -72,7 +72,8 @@ try {
   if (!app) await runtime?.close();
   if (owned) {
     for (const table of ['audit_log','project_risks','project_nodes','project_chips','project_people','project_tags','project_stages']) await connection.execute(`DELETE FROM ${table} WHERE project_id IN (SELECT id FROM projects WHERE source_namespace=?)`,[namespace]);
-    await connection.execute('DELETE FROM command_receipts WHERE command_scope IN ('+ids.map(()=>'?').join(',')+')',ids.map(id=>'anonymous:project:'+id+':text'));
+    const scopes=ids.flatMap(id=>['text','ordinary'].map(mode=>'anonymous:project:'+id+':'+mode));
+    await connection.execute('DELETE FROM command_receipts WHERE command_scope IN ('+scopes.map(()=>'?').join(',')+')',scopes);
     await connection.execute('DELETE FROM projects WHERE source_namespace=?',[namespace]);
     for (const [table,refs] of Object.entries(references)) for (const reference of refs) await connection.execute(`DELETE FROM ${table} WHERE id=?`,[reference]);
   }

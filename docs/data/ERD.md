@@ -932,9 +932,9 @@ erDiagram
 | projects.data_kind | V16，ASCII 精确比较，非空、默认 business；CHECK ∈ {business,trial} | 服务端判定当前项目是否在匿名试用范围，页面显示测试标记；既有行取 business，避免把未知/真实来源自动当测试。与 source_namespace 的导入溯源职责不同，公共保存不可修改本列 |
 | audit_log.actor_kind | 原列不变，CHECK 扩展 user/system/anonymous | 准确区分可信用户、系统任务和未认证人工操作。anonymous 的空 actor_id 与“未认证操作”显示名由保存模块统一生成，本轮不增加组合来源键/检查字段 |
 | command_receipts.actor_id | 改为可空，保留 users 外键；保留/显式建立 actor_id 前缀索引 | anonymous 回执留空，未来可信账号仍关联真实 users；旧 ID 原样保留。独立索引是新主键不再以 actor_id 开头后维持外键的必要支持，先建立再切主键 |
-| command_receipts 主键 | 改为 (command_scope,idempotency_key) | 当前由服务器生成 anonymous:project:<id>:text 作用域，随机操作编号只标识本次提交；同次重试沿用。未来可信账号可在作用域中加入实际账号 ID，再与 actor_id 核对归属，不增加一列复制账号范围。scope/key/hash/result/time 类型不变 |
+| command_receipts 主键 | 改为 (command_scope,idempotency_key) | 当前由服务器生成 anonymous:project:<id>:text 或 anonymous:project:<id>:ordinary 作用域，随机操作编号只标识本次提交；同次重试沿用。未来可信账号可在作用域中加入实际账号 ID，再与 actor_id 核对归属，不增加一列复制账号范围。scope/key/hash/result/time 类型不变 |
 
-当前环境没有旧回执或业务行，施工时重新核对这一前提后直接调整主键；不做历史回填框架。若发现已有待保留回执，先核对其作用域再处理，不丢弃或清空。不能把可空 actor_id 继续放在主键；服务端构造 command_scope，不信任客户端自报来源/账号。操作编号用于防止重复提交，不识别人，也不是登录凭证。
+接入 0002 前曾核实没有旧回执或业务行；该前提不能用于后续环境，实际增量见系统真相。后续升级保留已有行；不做历史回填框架。若发现已有待保留回执，先核对其作用域再处理，不丢弃或清空。不能把可空 actor_id 继续放在主键；服务端构造 command_scope，不信任客户端自报来源/账号。操作编号用于防止重复提交，不识别人，也不是登录凭证。
 
 本单元独立目标计数为 **34 表/314 列/55 外键**，不是实际执行结果；索引与 CHECK 清单随固定目标资源核验。未来若再接 5.5 邀请码增量，两项均采用时才合并计算，不改写此前单独目标计数。没有新增匿名 users、每人测试账号、独立匿名审计表或回执表。
 

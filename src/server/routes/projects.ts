@@ -6,6 +6,12 @@ import { projectSaves, validateSave, validId, type SaveRequest } from '../module
 export function registerProjectReads(app: FastifyInstance, database?: RuntimeDatabase) {
   const reads = database ? projectReads(database) : undefined;
   const saves = database ? projectSaves(database) : undefined;
+  app.get('/api/project-options', async (_request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    if (!saves) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE' });
+    try { return await saves.options(); }
+    catch (error) { app.log.warn({ code: (error as { code?: string }).code }, '项目候选资料未能读取'); return reply.code(503).send({ code: 'PROJECT_OPTIONS_UNAVAILABLE' }); }
+  });
   // 不接受浏览器提供的身份、范围或额外业务字段；错误响应不回显正文。
   async function saveHandler(request: { params: { id: string }; body: unknown; id: string }, reply: import('fastify').FastifyReply, confirm: boolean) {
     reply.header('Cache-Control', 'no-store');

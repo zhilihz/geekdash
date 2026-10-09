@@ -1,0 +1,38 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-09T03:23:32.758Z",
+  "source": "真实 test MySQL 与 HTTP；合成输入",
+  "checks": [
+    {
+      "check": "ordinary-fields-relations-single-version-fresh-sql-http-filter-stats-audit",
+      "passed": true
+    },
+    {
+      "check": "existing-disabled-kept-new-disabled-rejected-receipt-replay-and-no-change",
+      "passed": true
+    },
+    {
+      "check": "whitelist-reference-validation-relation-and-audit-failure-all-rollback",
+      "passed": true
+    },
+    {
+      "check": "explicit-clear-and-omitted-relations-preserved",
+      "passed": true
+    },
+    {
+      "check": "same-version-conflict-real-commit-lost-ack-reopen-and-exact-replay",
+      "passed": true
+    },
+    {
+      "check": "reference-row-lock-observes-concurrent-disabled-before-new-link",
+      "passed": true
+    },
+    {
+      "check": "four-workers-same-project-five-rounds-one-winner",
+      "passed": true,
+      "requests": 20,
+      "p95Ms": 25,
+      "maxMs": 25
+    }
+  ]
+}

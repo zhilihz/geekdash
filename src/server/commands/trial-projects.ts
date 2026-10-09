@@ -11,6 +11,21 @@ try {
   const { connection } = await connectDatabase(target);
   try {
     await connection.beginTransaction();
+    // 明确合成候选；重复运行只复用原 ID，不改名、启用或覆盖已保存资料。
+    const referenceIds: Record<string, string[]> = {};
+    for (const [table, fields] of Object.entries({ apps: ['app_version', 'description'], chips: ['original_model', 'manufacturer', 'firmware_version'], customers: ['contact', 'background'], engineers: ['role'], product_lines: [], project_groups: [], tags: [] })) {
+      referenceIds[table] = [];
+      for (const index of [1, 2]) {
+        const name = `[合成试用] ${table} ${index}`;
+        let [rows] = await connection.query<RowDataPacket[]>(`SELECT CAST(id AS CHAR) id FROM ${table} WHERE name=? FOR UPDATE`, [name]);
+        if (rows.length > 1) throw new Error('TRIAL_REFERENCE_AMBIGUOUS');
+        if (!rows.length) {
+          await connection.execute(`INSERT INTO ${table} (name,${fields.map(field => field + ',').join('')}created_at,updated_at) VALUES (?${fields.map(() => ',?').join('')},UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))`, [name, ...fields.map(field => field === 'original_model' ? 'SYNTHETIC-' + index : field === 'manufacturer' ? '合成厂商' : '')]);
+          [rows] = await connection.query<RowDataPacket[]>(`SELECT CAST(id AS CHAR) id FROM ${table} WHERE name=?`, [name]);
+        }
+        referenceIds[table].push(rows[0].id);
+      }
+    }
     // 唯一来源键保证重跑不会重置人工文字；只补尚不存在的完整项目。
     const samples = [];
     for (const [key, name, signal] of [['01', '合成测试 · 智能家居方案', 'green'], ['02', '合成测试 · 穿戴方案', 'yellow'], ['03', '合成测试 · 网关方案', 'red']]) {
@@ -22,7 +37,7 @@ try {
       samples.push(rows[0].id);
     }
     await connection.commit();
-    console.log(JSON.stringify({ status: 'verified', profile, projectIds: samples, source: 'synthetic' }));
+    console.log(JSON.stringify({ status: 'verified', profile, projectIds: samples, referenceIds, source: 'synthetic' }));
   } catch (error) { await connection.rollback(); throw error; }
   finally { await connection.end(); }
 } catch (error) { console.error(JSON.stringify({ status: 'failed', code: (error as { code?: string }).code ?? (error as Error).message })); process.exitCode = 1; }

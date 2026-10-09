@@ -33,7 +33,7 @@ try {
     throw new Error('前端脚本或样式产物缺失');
   }
   for (const asset of assets) await access(new URL(`web${asset}`, candidate));
-  const build = { revision, dirty: dirty === 'true', builtAt: new Date().toISOString(), stage: 'project-save', schemaVersion };
+  const build = { revision, dirty: dirty === 'true', builtAt: new Date().toISOString(), stage: 'project-ordinary', schemaVersion };
   await writeFile(new URL('build-info.json', candidate), JSON.stringify(build, null, 2) + '\n');
   const { createApp } = await import(new URL('server/app.js', candidate));
   const app = await createApp();

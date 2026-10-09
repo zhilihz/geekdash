@@ -21,7 +21,8 @@
     "test:readiness": "node scripts/verify-readiness.mjs",
     "test:projects": "node scripts/verify-project-reads.mjs",
     "test:saves": "node scripts/verify-project-saves.mjs",
-    "test:capacity": "node scripts/verify-project-capacity.mjs"
+    "test:capacity": "node scripts/verify-project-capacity.mjs",
+    "test:ordinary": "node scripts/verify-project-ordinary.mjs"
   },
   "dependencies": {
     "@fastify/static": "10.1.5",

@@ -8,11 +8,14 @@ export type Project = {
 export type List = { items: Project[]; stats: Record<string, number>; options: Record<string, string[]>; stageCounts: { value: string; count: string | number }[]; pagination: { page: number; pageSize: number; total: number; pageCount: number }; readOnly: true };
 export type Entry = Record<string, string | number | null>;
 export type TextValues = { name: string; marketExpectation: string; detailNote: string; summaryNote: string };
-export type SaveRequest = { expectedVersion: string; idempotencyKey: string; changes: Partial<TextValues> };
-export type SaveResult = { projectId: string; operationId: string; changed: boolean; savedVersion: string; values: TextValues; savedAt: string | null };
-export type Audit = { id: string; actorDisplayName: string; actorKind: string; versionBefore: string; versionAfter: string; createdAt: string; beforeValues: Partial<TextValues>; afterValues: Partial<TextValues> };
+export type EditValues = TextValues & { signalNote: string; chipstatNote: string; statusDesc: string; signal: string; priority: string; customerId: string | null; odmCustomerId: string | null; productLineId: string | null; appId: string | null; groupId: string | null; chipIds: string[]; tagIds: string[]; people: { id: string; role: string }[] };
+export type CatalogItem = { id: string; name: string; enabled: number; originalModel?: string; manufacturer?: string; firmwareVersion?: string };
+export type Catalog = Record<string, CatalogItem[]>;
+export type SaveRequest = { expectedVersion: string; idempotencyKey: string; changes: Partial<EditValues> };
+export type SaveResult = { projectId: string; operationId: string; changed: boolean; savedVersion: string; values: TextValues | EditValues; savedAt: string | null; display?: Record<string, unknown> };
+export type Audit = { id: string; actorDisplayName: string; actorKind: string; versionBefore: string; versionAfter: string; createdAt: string; beforeValues: Record<string, unknown>; afterValues: Record<string, unknown> };
 export type AuditPage = { items: Audit[]; nextCursor: string | null; pageSize: number };
-export type Detail = { project: Project & TextValues & Record<string, unknown>; stages: Entry[]; nodes: Entry[]; risks: Entry[]; changes: Entry[]; delays: Entry[]; history: Entry[]; readOnly: boolean; capabilities: { editText: boolean } };
+export type Detail = { project: Project & TextValues & Record<string, unknown>; stages: Entry[]; nodes: Entry[]; risks: Entry[]; changes: Entry[]; delays: Entry[]; history: Entry[]; readOnly: boolean; capabilities: { editText: boolean; editOrdinary?: boolean } };
 export class SaveError extends Error {
   constructor(public code: string, public outcome: string, public fields?: Record<string, string>) {
     super(({ PROJECT_VERSION_CONFLICT: '项目已被他人更新，请重新进入项目。', OPERATION_KEY_REUSED: '操作编号与原请求不一致，请保留文字并核对原操作。', PROJECT_READ_ONLY: '此项目只能查看。', INVALID_PROJECT_FIELDS: '请修正标出的字段。', DATABASE_UNAVAILABLE: '数据库暂时不可用，请重试。', SAVE_ROLLED_BACK: '保存未完成，修改已保留。' } as Record<string, string>)[code] ?? '保存结果尚未确认，请确认结果或重试原操作。');

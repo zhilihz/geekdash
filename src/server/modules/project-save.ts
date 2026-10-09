@@ -3,10 +3,17 @@ import type { PoolConnection, RowDataPacket, ResultSetHeader } from 'mysql2/prom
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 
 export const textColumns = { name: 'name', marketExpectation: 'market_expectation', detailNote: 'detail_note', summaryNote: 'summary_note' } as const;
-type Field = keyof typeof textColumns;
-export type TextValues = Record<Field, string>;
-export type SaveRequest = { expectedVersion: string; idempotencyKey: string; changes: Partial<TextValues> };
-export type SaveResult = { projectId: string; operationId: string; changed: boolean; savedVersion: string; values: TextValues; savedAt: string | null };
+const columns = { ...textColumns, signalNote: 'signal_note', chipstatNote: 'chipstat_note', statusDesc: 'status_description', signal: 'signal', priority: 'priority', customerId: 'customer_id', odmCustomerId: 'odm_customer_id', productLineId: 'product_line_id', appId: 'app_id', groupId: 'group_id' } as const;
+const referenceFields = { customerId: 'customers', odmCustomerId: 'customers', productLineId: 'product_lines', appId: 'apps', groupId: 'project_groups', chipIds: 'chips', tagIds: 'tags', people: 'engineers' } as const;
+const collections = ['chipIds', 'tagIds', 'people'] as const;
+const roles = ['pm', 'hardware_owner', 'software_owner', 'participant'];
+type Person = { id: string; role: string };
+export type TextValues = Record<keyof typeof textColumns, string>;
+type Values = TextValues & { signalNote: string; chipstatNote: string; statusDesc: string; signal: string; priority: string; customerId: string | null; odmCustomerId: string | null; productLineId: string | null; appId: string | null; groupId: string | null; chipIds: string[]; tagIds: string[]; people: Person[] };
+type Field = keyof Values;
+const keys = [...Object.keys(columns), ...collections] as Field[];
+export type SaveRequest = { expectedVersion: string; idempotencyKey: string; changes: Partial<Values> };
+export type SaveResult = { projectId: string; operationId: string; changed: boolean; savedVersion: string; values: TextValues | Values; savedAt: string | null; display?: Record<string, unknown> };
 
 export function failure(code: string, status: number, extra: Record<string, unknown> = {}): never {
   throw Object.assign(new Error(code), { code, status, ...extra });
@@ -21,65 +28,153 @@ export function validateSave(value: unknown): SaveRequest {
     || !object(value.changes) || !Object.keys(value.changes).length) failure('INVALID_SAVE_REQUEST', 400);
   const fields: Record<string, string> = {};
   for (const [key, text] of Object.entries(value.changes)) {
-    if (!Object.hasOwn(textColumns, key) || typeof text !== 'string') failure('INVALID_SAVE_REQUEST', 400);
+    if (!keys.includes(key as Field)) failure('INVALID_SAVE_REQUEST', 400);
+    if (Object.hasOwn(referenceFields, key)) {
+      if (collections.includes(key as typeof collections[number])) {
+        if (!Array.isArray(text)) failure('INVALID_SAVE_REQUEST', 400);
+        const identities: string[] = [];
+        for (const item of text) {
+          if (key === 'people') {
+            if (!object(item) || Object.keys(item).length !== 2 || !validId(item.id) || typeof item.role !== 'string' || !roles.includes(item.role)) failure('INVALID_SAVE_REQUEST', 400);
+            identities.push(item.id + ':' + item.role);
+          } else { if (!validId(item)) failure('INVALID_SAVE_REQUEST', 400); identities.push(item); }
+        }
+        if (new Set(identities).size !== identities.length) fields[key] = '同一关联不能重复选择';
+      } else if (text !== null && !validId(text)) failure('INVALID_SAVE_REQUEST', 400);
+      continue;
+    }
+    if (typeof text !== 'string') failure('INVALID_SAVE_REQUEST', 400);
+    if (key === 'signal' || key === 'priority') {
+      if (!(key === 'signal' ? ['green', 'yellow', 'red'] : ['high', 'mid', 'low']).includes(text)) fields[key] = '请选择有效选项';
+      continue;
+    }
     // utf8mb4 不支持孤立代理码；禁止传输/数据库替换原输入。
     if (!text.isWellFormed()) fields[key] = '包含无效 Unicode 字符';
     else if (key === 'name' && (!text.trim() || [...text].length > 255 || /[\r\n]/.test(text))) fields[key] = '项目名称应为 1～255 个字符，不能仅含空白或换行';
     else if (key !== 'name' && Buffer.byteLength(text, 'utf8') > 65535) fields[key] = '说明超过 65535 字节，请缩短后保存';
   }
   if (Object.keys(fields).length) failure('INVALID_PROJECT_FIELDS', 422, { fields });
-  return value as SaveRequest;
+  const request = value as SaveRequest;
+  return request.changes.people ? { ...request, changes: { ...request.changes, people: request.changes.people.map(({ id, role }) => ({ id, role })) } } : request;
 }
 async function query(connection: PoolConnection, sql: string, values: unknown[] = []) {
   return (await connection.query<RowDataPacket[]>({ sql, timeout: 3000 }, values))[0];
 }
 function requestHash(id: string, request: SaveRequest) {
-  const changes = Object.fromEntries(Object.keys(textColumns).filter(key => Object.hasOwn(request.changes, key)).map(key => [key, request.changes[key as Field]]));
-  return createHash('sha256').update(JSON.stringify([id, 'text', request.expectedVersion, changes])).digest();
+  const changes = Object.fromEntries(keys.filter(key => Object.hasOwn(request.changes, key)).map(key => [key, key === 'people' ? request.changes.people!.map(person => ({ id: person.id, role: person.role })) : request.changes[key]]));
+  return createHash('sha256').update(JSON.stringify([id, mode(request), request.expectedVersion, changes])).digest();
 }
-const scope = (id: string) => `anonymous:project:${id}:text`;
+const mode = (request: SaveRequest) => Object.keys(request.changes).every(key => Object.hasOwn(textColumns, key)) ? 'text' : 'ordinary';
+const scope = (id: string, request: SaveRequest) => `anonymous:project:${id}:${mode(request)}`;
 function receiptResult(receipt: RowDataPacket, hash: Buffer): SaveResult {
   if (!Buffer.isBuffer(receipt.request_hash) || !receipt.request_hash.equals(hash)) failure('OPERATION_KEY_REUSED', 409);
   return typeof receipt.response_json === 'string' ? JSON.parse(receipt.response_json) : receipt.response_json;
 }
 async function project(connection: PoolConnection, id: string, locked: boolean) {
   const row = (await query(connection, `SELECT CAST(id AS CHAR) id,CAST(version AS CHAR) version,data_kind,
-    name,market_expectation marketExpectation,detail_note detailNote,summary_note summaryNote FROM projects WHERE id=?${locked ? ' FOR UPDATE' : ''}`, [id]))[0];
+    ${Object.entries(columns).map(([key, column]) => `${column.endsWith('_id') ? `CAST(\`${column}\` AS CHAR)` : `\`${column}\``} \`${key}\``).join(',')} FROM projects WHERE id=?${locked ? ' FOR UPDATE' : ''}`, [id]))[0];
   if (!row) failure('PROJECT_NOT_FOUND', 404);
   if (row.data_kind !== 'trial') failure('PROJECT_READ_ONLY', 403);
   return row;
 }
+async function linkedValues(connection: PoolConnection, id: string) {
+  const chipIds = (await query(connection, 'SELECT CAST(chip_id AS CHAR) id FROM project_chips WHERE project_id=? ORDER BY sort_order,chip_id', [id])).map(row => row.id);
+  const tagIds = (await query(connection, 'SELECT CAST(tag_id AS CHAR) id FROM project_tags WHERE project_id=? ORDER BY sort_order,tag_id', [id])).map(row => row.id);
+  const people = (await query(connection, 'SELECT CAST(engineer_id AS CHAR) id,role FROM project_people WHERE project_id=? ORDER BY sort_order,engineer_id,role', [id])).map(row => ({ id: row.id, role: row.role }));
+  return { chipIds, tagIds, people };
+}
+function idsOf(key: string, value: unknown): string[] {
+  return key === 'people' ? (value as Person[]).map(person => person.id) : Array.isArray(value) ? value : value === null ? [] : [value as string];
+}
+async function lockReferences(connection: PoolConnection, changes: SaveRequest['changes']) {
+  const ids: Record<string, Set<string>> = {};
+  for (const [key, table] of Object.entries(referenceFields)) if (Object.hasOwn(changes, key)) {
+    ids[table] ??= new Set(); idsOf(key, changes[key as Field]).forEach(id => ids[table].add(id));
+  }
+  const locked: Record<string, RowDataPacket[]> = {};
+  for (const table of Object.keys(ids).sort()) {
+    locked[table] = [];
+    for (const id of [...ids[table]].sort((a, b) => BigInt(a) < BigInt(b) ? -1 : 1)) locked[table].push(...await query(connection, `SELECT CAST(id AS CHAR) id,name,enabled FROM ${table} WHERE id=? FOR SHARE`, [id]));
+  }
+  return locked;
+}
+async function displayValues(connection: PoolConnection, values: Values) {
+  const display: Record<string, unknown> = { ...values };
+  for (const [key, table] of Object.entries(referenceFields)) {
+    const value = values[key as Field];
+    const ids = idsOf(key, value);
+    if (!ids.length) continue;
+    const rows = await query(connection, `SELECT CAST(id AS CHAR) id,name FROM ${table} WHERE id IN (${ids.map(() => '?').join(',')})`, ids);
+    const named = (id: string) => ({ id, name: rows.find(row => row.id === id)?.name ?? id });
+    display[key] = key === 'people' ? (value as Person[]).map(person => ({ ...named(person.id), role: person.role })) : Array.isArray(value) ? ids.map(named) : named(ids[0]);
+  }
+  return display;
+}
 export function projectSaves(database: RuntimeDatabase) {
   return {
+    options() {
+      return database.readSnapshot(async connection => {
+        const result: Record<string, RowDataPacket[]> = {};
+        for (const table of [...new Set(Object.values(referenceFields))].sort()) result[table] = await query(connection, `SELECT CAST(id AS CHAR) id,name,enabled${table === 'chips' ? ',original_model originalModel,manufacturer,firmware_version firmwareVersion' : ''} FROM ${table} ORDER BY name,id`);
+        return result;
+      });
+    },
     save(id: string, request: SaveRequest, requestId: string) {
       const hash = requestHash(id, request);
       return database.writeTransaction(async connection => {
+        const extended = mode(request) === 'ordinary';
+        // 资料锁在项目锁之前；取得锁后才检查原回执和新增引用资格。
+        const locked = extended ? await lockReferences(connection, request.changes) : {};
         const current = await project(connection, id, true);
         // 当前锁定读在版本判断前，等待前一次提交后可读到真实回执。
-        const receipt = (await query(connection, 'SELECT request_hash,response_json FROM command_receipts WHERE command_scope=? AND idempotency_key=? FOR UPDATE', [scope(id), request.idempotencyKey]))[0];
+        const receipt = (await query(connection, 'SELECT request_hash,response_json FROM command_receipts WHERE command_scope=? AND idempotency_key=? FOR UPDATE', [scope(id, request), request.idempotencyKey]))[0];
         if (receipt) return receiptResult(receipt, hash);
         if (current.version !== request.expectedVersion) failure('PROJECT_VERSION_CONFLICT', 409, { currentVersion: current.version });
-        const fields = (Object.keys(textColumns) as Field[]).filter(key => Object.hasOwn(request.changes, key) && request.changes[key] !== current[key]);
+        if (extended) Object.assign(current, await linkedValues(connection, id));
+        const errors: Record<string, string> = {};
+        for (const [key, table] of Object.entries(referenceFields)) if (Object.hasOwn(request.changes, key)) {
+          const previous = new Set(key === 'people' ? (current.people as Person[]).map(person => person.id + ':' + person.role) : idsOf(key, current[key]));
+          for (const target of idsOf(key, request.changes[key as Field])) {
+            const row = locked[table]?.find(row => row.id === target);
+            const retained = key === 'people' ? request.changes.people!.filter(person => person.id === target).every(person => previous.has(person.id + ':' + person.role)) : previous.has(target);
+            if (!row || !row.enabled && !retained) errors[key] = `资料 ${target} 不存在或已停用，请重新选择`;
+          }
+        }
+        if (Object.keys(errors).length) failure('INVALID_PROJECT_FIELDS', 422, { fields: errors });
+        const fields = keys.filter(key => Object.hasOwn(request.changes, key) && JSON.stringify(request.changes[key]) !== JSON.stringify(current[key]));
         if (fields.length && current.version === '18446744073709551615') failure('PROJECT_VERSION_EXHAUSTED', 422);
-        const values = Object.fromEntries(Object.keys(textColumns).map(key => [key, Object.hasOwn(request.changes, key) ? request.changes[key as Field] : current[key]])) as TextValues;
+        const values = Object.fromEntries((extended ? keys : Object.keys(textColumns) as Field[]).map(key => [key, Object.hasOwn(request.changes, key) ? request.changes[key] : current[key]])) as Values;
         const result: SaveResult = { projectId: id, operationId: request.idempotencyKey, changed: fields.length > 0,
           savedVersion: fields.length ? String(BigInt(current.version) + 1n) : current.version, values, savedAt: fields.length ? new Date().toISOString() : null };
         if (fields.length) {
-          const [updated] = await connection.execute<ResultSetHeader>(`UPDATE projects SET ${fields.map(key => `${textColumns[key]}=?`).join(',')},version=version+1,updated_at=? WHERE id=? AND version=?`, [...fields.map(key => values[key]), result.savedAt!.slice(0, 23).replace('T', ' '), id, current.version]);
+          const plain = fields.filter(key => Object.hasOwn(columns, key)) as (keyof typeof columns)[];
+          const timestamp = result.savedAt!.slice(0, 23).replace('T', ' ');
+          const [updated] = await connection.execute<ResultSetHeader>(`UPDATE projects SET ${plain.map(key => `\`${columns[key]}\`=?,`).join('')}${fields.includes('statusDesc') ? 'status_description_updated_at=?,' : ''}version=version+1,updated_at=? WHERE id=? AND version=?`, [...plain.map(key => values[key]), ...(fields.includes('statusDesc') ? [timestamp] : []), timestamp, id, current.version]);
           if (updated.affectedRows !== 1) failure('PROJECT_VERSION_CONFLICT', 409);
-          const before = Object.fromEntries(fields.map(key => [key, current[key]]));
-          const after = Object.fromEntries(fields.map(key => [key, values[key]]));
+          for (const key of collections) if (fields.includes(key)) {
+            const table = key === 'chipIds' ? 'project_chips' : key === 'tagIds' ? 'project_tags' : 'project_people';
+            await connection.execute(`DELETE FROM ${table} WHERE project_id=?`, [id]);
+            for (const [order, item] of (values[key] as (string | Person)[]).entries()) {
+              if (key === 'people') await connection.execute('INSERT INTO project_people (project_id,engineer_id,role,sort_order) VALUES (?,?,?,?)', [id, (item as Person).id, (item as Person).role, order]);
+              else await connection.execute(`INSERT INTO ${table} (project_id,${key === 'chipIds' ? 'chip_id' : 'tag_id'},sort_order) VALUES (?,?,?)`, [id, item, order]);
+            }
+          }
+          const beforeDisplay = extended ? await displayValues(connection, current as Values) : current;
+          const afterDisplay = extended ? await displayValues(connection, values) : values;
+          if (extended) result.display = afterDisplay;
+          const before = Object.fromEntries(fields.map(key => [key, beforeDisplay[key]]));
+          const after = Object.fromEntries(fields.map(key => [key, afterDisplay[key]]));
           await connection.execute(`INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,version_before,version_after,before_json,after_json,request_id,created_at)
-            VALUES (NULL,'未认证操作','anonymous','project.text.save','project',?,?,?,?,?,?,?,?)`, [id, id, current.version, result.savedVersion, JSON.stringify(before), JSON.stringify(after), requestId, result.savedAt!.slice(0, 23).replace('T', ' ')]);
+            VALUES (NULL,'未认证操作','anonymous',?,'project',?,?,?,?,?,?,?,?)`, [extended ? 'project.ordinary.save' : 'project.text.save', id, id, current.version, result.savedVersion, JSON.stringify(before), JSON.stringify(after), requestId, timestamp]);
         }
-        await connection.execute('INSERT INTO command_receipts (actor_id,command_scope,idempotency_key,request_hash,response_code,response_json,committed_at) VALUES (NULL,?,?,?,?,?,UTC_TIMESTAMP(3))', [scope(id), request.idempotencyKey, hash, 200, JSON.stringify(result)]);
+        await connection.execute('INSERT INTO command_receipts (actor_id,command_scope,idempotency_key,request_hash,response_code,response_json,committed_at) VALUES (NULL,?,?,?,?,?,UTC_TIMESTAMP(3))', [scope(id, request), request.idempotencyKey, hash, 200, JSON.stringify(result)]);
         return result;
       });
     },
     confirm(id: string, request: SaveRequest) {
       return database.readSnapshot(async connection => {
         await project(connection, id, false);
-        const receipt = (await query(connection, 'SELECT request_hash,response_json FROM command_receipts WHERE command_scope=? AND idempotency_key=?', [scope(id), request.idempotencyKey]))[0];
+        const receipt = (await query(connection, 'SELECT request_hash,response_json FROM command_receipts WHERE command_scope=? AND idempotency_key=?', [scope(id, request), request.idempotencyKey]))[0];
         return receipt ? { outcome: 'committed', result: receiptResult(receipt, requestHash(id, request)) } : { outcome: 'not_found' };
       });
     },

@@ -71,7 +71,7 @@ async function enrich(connection: PoolConnection, projects: RowDataPacket[]) {
   const ids = projects.map(project => project.id);
   const slots = ids.map(() => '?').join(',');
   const chips = await rows(connection, `SELECT CAST(pc.project_id AS CHAR) projectId, CAST(c.id AS CHAR) id,c.name FROM project_chips pc JOIN chips c ON c.id=pc.chip_id WHERE pc.project_id IN (${slots}) ORDER BY pc.sort_order,c.id`, ids);
-  const people = await rows(connection, `SELECT CAST(pp.project_id AS CHAR) projectId,CAST(e.id AS CHAR) id,e.name,pp.role FROM project_people pp JOIN engineers e ON e.id=pp.engineer_id WHERE pp.project_id IN (${slots}) ORDER BY pp.sort_order,e.id`, ids);
+  const people = await rows(connection, `SELECT CAST(pp.project_id AS CHAR) projectId,CAST(e.id AS CHAR) id,e.name,pp.role FROM project_people pp JOIN engineers e ON e.id=pp.engineer_id WHERE pp.project_id IN (${slots}) ORDER BY pp.sort_order,e.id,pp.role`, ids);
   const tags = await rows(connection, `SELECT CAST(pt.project_id AS CHAR) projectId,CAST(t.id AS CHAR) id,t.name FROM project_tags pt JOIN tags t ON t.id=pt.tag_id WHERE pt.project_id IN (${slots}) ORDER BY pt.sort_order,t.id`, ids);
   for (const project of projects) {
     project.chips = chips.filter(item => item.projectId === project.id).map(({ projectId: _projectId, ...item }) => item);
@@ -110,6 +110,8 @@ export function projectReads(database: RuntimeDatabase) {
           DATE_FORMAT(p.filed_on,'%Y-%m-%d') filingDate,DATE_FORMAT(p.started_on,'%Y-%m-%d') startDate,
           DATE_FORMAT(p.original_due_date,'%Y-%m-%d') originalDueDate,DATE_FORMAT(p.closed_on,'%Y-%m-%d') closedOn,
           p.signal_note signalNote,p.detail_note detailNote,p.summary_note summaryNote,p.chipstat_note chipstatNote,
+          CAST(p.customer_id AS CHAR) customerId,CAST(p.odm_customer_id AS CHAR) odmCustomerId,
+          CAST(p.product_line_id AS CHAR) productLineId,CAST(p.app_id AS CHAR) appId,CAST(p.group_id AS CHAR) groupId,
           p.closure_type closureType,p.closure_note closureNote,p.remaining_work_note remainingWorkNote
           ${joins} WHERE p.id=?`, [id])))[0];
         if (!project) return null;
@@ -119,7 +121,7 @@ export function projectReads(database: RuntimeDatabase) {
         const changes = await rows(connection, 'SELECT CAST(id AS CHAR) id,source,content,decision,reason FROM project_changes WHERE project_id=? ORDER BY sort_order,id', [id]);
         const delays = await rows(connection, "SELECT CAST(id AS CHAR) id,kind,DATE_FORMAT(old_date,'%Y-%m-%d') oldDate,DATE_FORMAT(new_date,'%Y-%m-%d') newDate,reason,measures FROM schedule_changes WHERE project_id=? ORDER BY created_at,id", [id]);
         const history = await rows(connection, 'SELECT CAST(id AS CHAR) id,source_date_text date,body text FROM legacy_project_history WHERE project_id=? ORDER BY source_sequence,id', [id]);
-        return { project, stages: projectStages, nodes, risks, changes, delays, history, readOnly: project.dataKind !== 'trial', capabilities: { editText: project.dataKind === 'trial' } };
+        return { project, stages: projectStages, nodes, risks, changes, delays, history, readOnly: project.dataKind !== 'trial', capabilities: { editText: project.dataKind === 'trial', editOrdinary: project.dataKind === 'trial' } };
       });
     },
   };

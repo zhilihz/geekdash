@@ -2,7 +2,7 @@
 <html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>GeekDash 项目看板</title></head>
 <body><div class="page">
   <div class="top-sticky"><header><div class="head-left"><h1>智能硬件项目看板系统 <span class="app-version">GeekDash</span></h1><p>项目、阶段与业务资料</p></div><div class="head-actions"><div class="view-switch theme-switch"><button data-theme="dark">深色</button><button data-theme="light">浅色</button><button data-theme="warm">暖色</button></div><button class="head-btn" id="reload">刷新数据</button></div></header></div>
-<div class="read-notice">当前开放项目查询和测试项目四项文字保存。标为“测试项目”的详情可明确保存；阶段动作、新建、导入和其他业务页面按施工单元接入。</div>
+<div class="read-notice">当前开放项目查询和测试项目普通信息保存，包括文字、人工灯色/紧急程度、客户、芯片和业务人员等资料关联。统一点击“保存项目”；阶段动作、新建、导入按施工单元接入。</div>
   <nav class="view-switch" aria-label="项目视图"><button data-view="active">进行中</button><button data-view="proposal">提案 / 暂缓</button><button data-view="closed">已结案</button><button data-view="maintenance">量产维护</button><button data-view="all">全部项目</button></nav>
   <div class="stats" id="stats-bar"></div><div class="stage-chart" id="stage-chart"></div>
   <div class="toolbar-panel"><label class="read-label" for="search">搜索项目</label><input id="search" type="search" maxlength="255" placeholder="搜索项目名称 / 客户 / 芯片 / 负责人 / 市场预期…"><div class="filter-head"><button class="filter-toggle" id="filter-toggle" aria-expanded="true">筛选 ▾</button><button class="head-btn" id="clear">清空筛选</button></div><div id="filter-rows"></div><div class="result-line" id="result-count"></div></div>
