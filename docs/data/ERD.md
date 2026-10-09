@@ -1004,3 +1004,15 @@ DEC-108复用projects.proposed_on/filed_on/started_on/closed_on及project_stages
 7. 首次建库、含数据升级、失败中断恢复和隔离备份恢复分别执行。DDL 可能隐式提交，不声称多文件建表能靠一次 ROLLBACK 撤回；迁移逐文件验证 checksum/实际结构及恢复入口，详见[MySQL 隐式提交](https://dev.mysql.com/doc/refman/8.4/en/implicit-commit.html)。
 
 本轮交付是可审查的完整施工设计与实体必要性审查。下一步生成并验证版本化 SQL 迁移；性能与实践通过必须以真实执行报告证明，不能在讨论阶段提前标记。
+
+## 独立本地1051结案字段补充（2026-10-09）
+
+仅描述`geekdashdesktop/projects-data.js`的本地JSON结构，行为归SPEC-L1051；不改变服务器ERD/迁移或导入审查规则。
+
+| 项目字段 | 本地类型与旧数据映射 |
+|---|---|
+| closureType | 可选字符串，completed/early；旧文件缺失时不补写，兼容显示依据见SPEC-L1051 |
+| closedProgress | 可选number，0～100；新中途结案进度快照，整体结案/重开删除；旧缺失仍可派生显示 |
+| stageCloseBefore | 可选对象，status/isProductionMaintenance/closeReason；当前结案前状态快照，撤销时消费，不伪造旧缺失状态 |
+
+三个字段由原项目扩展字段保留路径进入全数据JSON，schema仍为2；不改变原stages、risks、changes或历史结构。

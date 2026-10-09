@@ -1136,8 +1136,33 @@
     }));
   }
 
-  // 当前进行中的阶段：第一个未完成阶段（全部完成返回 null）
+  // 旧版中途结案由阶段入口写入 closeReason；未标记方式的旧数据沿用此依据。
+  function isEarlyClosure(p) {
+    return !!(p && p.status === "已结案" && (p.closureType ? p.closureType === "early" : p.closeReason));
+  }
+
+  function setProjectStatus(p, status, closureType = "completed") {
+    if (p.status !== status) {
+      if (status === "已结案") {
+        const progress = projectProgress(p);
+        p.stageCloseBefore = { status: p.status, isProductionMaintenance: !!p.isProductionMaintenance, closeReason: p.closeReason || "" };
+        p.closureType = closureType;
+        if (closureType === "early") p.closedProgress = progress;
+        else { delete p.closedProgress; p.closeReason = ""; }
+      } else if (p.status === "已结案") {
+        delete p.closureType;
+        delete p.closedProgress;
+        delete p.stageCloseBefore;
+        p.closeReason = "";
+        p.isProductionMaintenance = false;
+      }
+    }
+    p.status = status;
+  }
+
+  // 当前阶段：整体结案或阶段全部完成返回 null，中途结案保留所在阶段。
   function currentStage(p) {
+    if (p.status === "已结案" && !isEarlyClosure(p)) return null;
     const stages = normalizeStages(p.stages);
     const idx = stages.findIndex(s => !s.done);
     if (idx < 0) return null;
@@ -1146,6 +1171,10 @@
 
   // 项目整体进度：按阶段完成情况估算（用于卡片进度指示）
   function projectProgress(p) {
+    if (p.status === "已结案") {
+      if (!isEarlyClosure(p)) return 100;
+      if (typeof p.closedProgress === "number" && p.closedProgress >= 0 && p.closedProgress <= 100) return p.closedProgress;
+    }
     const stages = normalizeStages(p.stages);
     const doneCount = stages.filter(s => s.done).length;
     if (doneCount === 0) return 0;
@@ -1172,6 +1201,7 @@
     return (p && p.statusDesc) || "-";
   }
   function projectStageName(p) {
+    if (p && p.status === "已结案" && !isEarlyClosure(p)) return "整体结案";
     const current = currentStage(p || {});
     return current ? current.stage.name : "已全部完成";
   }
@@ -1217,12 +1247,14 @@
 
   // 应用版本（每次改动 +0.001）与版本生成时间
   const APP_VERSION = "V1.051";
-  const APP_VERSION_TIME = "2026-10-09 18:19:25";
+  const APP_VERSION_TIME = "2026-10-09 19:31:00";
   // 历史版本更改日志（简要总结；新改动可在此追加新条目并 +0.001 版本号）
   const VERSION_LOG = [
     { version: "V1.051", date: APP_VERSION_TIME, items: [
       "详情滚动时项目标题保持可见，日期时钟正常滚动",
       "风险预警与需求变更支持编辑，保留创建时间并记录修改前后内容",
+      "首页移除风险预警与需求变更独立专区，修改仍在项目最新状态和详情历史查看",
+      "基本信息直接设为已结案按100%整体结案；阶段中途结案保留当时进度，撤销可恢复",
       "未结案项目按预计结案日期自动判断延期，所有页面与导出统一口径",
       "所有看板的项目最新状态区块默认折叠，可手动展开",
       "新增项目简介，详情输入并显示在项目卡片上",
@@ -1467,7 +1499,7 @@
     DEFAULT_PROJECTS, DEFAULT_CUSTOMERS, DEFAULT_ENGINEERS, DEFAULT_PRODUCT_LINES, DEFAULT_APPS, DEFAULT_TAGS, DEFAULT_GROUPS, DEFAULT_CHIPS, DEFAULT_COMPANY,
     ENGINEER_ROLE_SUGGESTIONS,
     normalizeChips, chipNameKey, normalizeHistory, normalizeStatusDescriptionHistory, statusDescriptionHistory, updateStatusDescription, statusEngineers, normalizeStages, normalizeRisks, normalizeChanges, normalizeDelays, normalizeNodes, normalizeCustomerNodes, normalizeMilestones,
-    currentStage, projectProgress, latestTargetDate, isProjectDelayed, isProductionMaintenance, hasDelay, latestProjectStatus, projectStageName, projectDelayState, projectDelayText, pendingProjectNodes, pendingProjectNodesText,
+    currentStage, projectProgress, isEarlyClosure, setProjectStatus, latestTargetDate, isProjectDelayed, isProductionMaintenance, hasDelay, latestProjectStatus, projectStageName, projectDelayState, projectDelayText, pendingProjectNodes, pendingProjectNodesText,
     todayStr, todayTimeStr, nextId,
     load, save, reset, resetAll,
     loadCustomers, saveCustomers, loadEngineers, saveEngineers, loadProductLines, saveProductLines, loadApps, saveApps, loadTags, saveTags, loadGroups, saveGroups, loadChips, saveChips, loadCompany, saveCompany, saveBusinessDataAtomic,

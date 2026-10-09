@@ -24,6 +24,27 @@ vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(root, "projects-data.js"), "utf8"), context);
 const db = context.PROJECT_DB;
 assert.equal(db.APP_VERSION, "V1.051");
+const template = fs.readFileSync(path.join(root, "src/standalone-template.html"), "utf8")
+  .replace("__GD_PROJECT_RULES__", ["isEarlyClosure", "setProjectStatus", "currentStage", "projectProgress", "projectStageName", "projectDelayState", "normalizeStatusDescriptionHistory", "statusDescriptionHistory", "updateStatusDescription"].map(name => db[name].toString()).join("\n"))
+  .replaceAll("__GD_STAGES_JSON__", "[]").replaceAll("__GD_CHIPS_JSON__", "[]")
+  .replaceAll("__GD_DATA_JSON__", "[]").replaceAll("__GD_READONLY__", "true").replaceAll("__GD_EXPORT_KEY__", "syntax-test");
+for (const [, script] of template.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)) new Function(script);
+const closing = { status: "进行中", stages: db.normalizeStages([{ done: true }, { done: true }]) };
+const originalStages = JSON.stringify(closing.stages);
+assert.equal(db.projectProgress(closing), 10);
+db.setProjectStatus(closing, "已结案");
+assert.equal(db.projectProgress(closing), 100);
+assert.equal(db.projectStageName(closing), "整体结案");
+assert.equal(JSON.stringify(closing.stages), originalStages);
+db.setProjectStatus(closing, "进行中");
+assert.equal(db.projectProgress(closing), 10);
+db.setProjectStatus(closing, "已结案", "early"); closing.closeReason = "阶段中途结案";
+assert.equal(db.projectProgress(closing), 10);
+db.setProjectStatus(closing, "已结案");
+assert.equal(closing.closureType, "early");
+assert.equal(db.projectProgress(db.validateBackupData({ version: 2, projects: [{ ...closing, id: 9002, name: "结案回读" }] }).projects[0]), 10);
+assert.equal(db.projectProgress({ status: "已结案", closeReason: "旧中途理由", stages: closing.stages }), 10);
+assert.equal(db.projectProgress({ status: "已结案", stages: closing.stages }), 100);
 for (const [dueDate, status, expected] of [
   ["2026-10-08", "进行中", "overdue"], ["2026-10-09", "进行中", "normal"],
   ["2026-10-10", "暂缓", "normal"], ["2026-10-08", "提案中", "overdue"],

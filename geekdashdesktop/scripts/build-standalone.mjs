@@ -56,7 +56,7 @@ function buildStandaloneHTML(data, readOnly) {
     __GD_STAGES_JSON__: standaloneSafeJSON(window.PROJECT_DB.STAGES),
     __GD_CHIPS_JSON__: standaloneSafeJSON(window.PROJECT_DB.loadChips()),
     __GD_DATA_JSON__: standaloneSafeJSON(data),
-    __GD_PROJECT_RULES__: ["projectDelayState", "normalizeStatusDescriptionHistory", "statusDescriptionHistory", "updateStatusDescription"].map(name => PROJECT_DB[name].toString()).join("\\n"),
+    __GD_PROJECT_RULES__: ["isEarlyClosure", "setProjectStatus", "currentStage", "projectProgress", "projectStageName", "projectDelayState", "normalizeStatusDescriptionHistory", "statusDescriptionHistory", "updateStatusDescription"].map(name => PROJECT_DB[name].toString()).join("\\n"),
     __GD_READONLY__: readOnly ? "true" : "false",
     __GD_EXPORT_KEY__: exportKey,
   };
