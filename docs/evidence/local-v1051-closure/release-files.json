@@ -1,0 +1,46 @@
+{
+  "version": "V1.051",
+  "revision": "2026-10-09-closure",
+  "files": [
+    {
+      "file": "GeekDash.html",
+      "sha256": "e95a4730276d73513f9b788939b0b0e3d4ed415e5bfaf6ec9fe5c7f5fe523922"
+    },
+    {
+      "file": "project-detail.html",
+      "sha256": "8e85c5453d604e7110d0cb6a5c9669f757a374d315a24b1d19921cbe90673d59"
+    },
+    {
+      "file": "project-status-summary.html",
+      "sha256": "396dcac56bc86964d5bf51b15172c14f4ae823f187cb169c59ad0f9a4bef0d34"
+    },
+    {
+      "file": "chip-statistics.html",
+      "sha256": "d841d02d18b899960e1a39dad52497e478dc21e907b0504563a1808d9a25e066"
+    },
+    {
+      "file": "data-manage.html",
+      "sha256": "a3d15c1caa6a3294c650e0971eb4338ccac1e9a1365a143ea56cc5dec1b3333a"
+    },
+    {
+      "file": "settings.html",
+      "sha256": "1c4feeb3960bc4e60a67321177651979e6d9d55531e96005feffe4d7ae5ef17d"
+    },
+    {
+      "file": "projects-data.js",
+      "sha256": "69df76f2f3ff3d06b6f47370a892dc8eff8a91f5a747ffd0ddb9e2002f0d7fef"
+    },
+    {
+      "file": "启动GeekDash.cmd",
+      "sha256": "bf30d19dac5ba9671eb6ee03741ba542304e5ad490d7f4b00fcd19e47a88ff0a"
+    },
+    {
+      "file": "README版本_V1.051.txt",
+      "sha256": "6902d1e19ae145200de69193d543862148cea81807e263540f29dbaabe00a299"
+    }
+  ],
+  "archiveSha256": "5817dfd8098dffb2dd376c4ea1f82d8e30ac9d5581e0f9b8cef4186dbd68da19",
+  "archiveBytes": 205431,
+  "whitelistVerified": true,
+  "sourceDeliveryZipByteEqual": true
+}

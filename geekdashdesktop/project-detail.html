@@ -2031,7 +2031,7 @@ function renderStages(p) {
     ? `<div class="stages-error">⚠ 计算工期出错：项目总工期 <b>${totalDays}</b> 天，超过「预计结案日期 − 提案日期」<b>${maxDays}</b> 天，请调整各阶段预期天数或项目日期。</div>`
     : "";
   const hint = `<div class="stages-hint">里程碑按顺序推进：当前阶段可选「里程碑完成」（填写评述后进入下一阶段）或「中途结案」（填写理由后归档至已结案看板）。预期天数默认中位值，可直接修改。</div>`;
-  const total = `<div class="stages-total">项目总工期：<b>${totalDays}</b> 天（已完成 <b>${doneCount}</b> / ${PROJECT_DB.STAGES.length} 个阶段）${maxDays !== null ? ` · 可用窗口：<b>${maxDays}</b> 天` : ""}</div>`;
+  const total = `<div class="stages-total">项目总工期：<b>${totalDays}</b> 天（已完成 <b>${doneCount}</b> / ${PROJECT_DB.STAGES.length} 个阶段）${maxDays !== null ? ` · 可用窗口：<b>${maxDays}</b> 天` : ""}${isClosed ? ` · ${PROJECT_DB.isEarlyClosure(p) ? "中途结案" : "整体结案"}：<b>${PROJECT_DB.projectProgress(p)}%</b>` : ""}</div>`;
   const cards = PROJECT_DB.STAGES.map((s, i) => {
     const st = stages[i];
     const isCurrent = !isClosed && current && current.index === i;
@@ -2043,7 +2043,7 @@ function renderStages(p) {
                 ${st.note ? `<div class="stage-note-view">评述：${esc(st.note)}</div>` : ""}
                 ${!readOnly ? `<button type="button" class="choice-btn stage-rollback" data-idx="${i}">回退到此阶段</button>` : ""}`;
     } else if (isClosed) {
-      action = `<div class="stage-locked">⏹ 项目已中途结案</div>`;
+      action = `<div class="stage-locked">⏹ ${PROJECT_DB.isEarlyClosure(p) ? "项目已中途结案" : "项目已整体结案（100%）"}</div>`;
     } else if (isCurrent) {
       action = `<div class="stage-choice">
           <button type="button" class="choice-btn choice-done" data-idx="${i}">✅ 里程碑完成</button>
@@ -2143,8 +2143,7 @@ function confirmStageClose(reason) {
   const p = currentProject;
   if (!p || readOnly || p.status === "已结案") return;
   const before = JSON.parse(JSON.stringify(p));
-  p.stageCloseBefore = { status: p.status, isProductionMaintenance: !!p.isProductionMaintenance, closeReason: p.closeReason || "" };
-  p.status = "已结案";
+  PROJECT_DB.setProjectStatus(p, "已结案", "early");
   p.isProductionMaintenance = false;
   p.closeReason = reason;
   p.statusHistory = normalizeHistory(p.statusHistory);
@@ -2189,10 +2188,10 @@ function confirmStageRollback() {
   }
   if (p.status === "已结案") {
     details.push(`原结案理由：${p.closeReason || "未记录"}`);
-    p.status = $("#rollback-status").value;
+    const closeBefore = p.stageCloseBefore;
+    PROJECT_DB.setProjectStatus(p, $("#rollback-status").value);
     p.isProductionMaintenance = false;
-    p.closeReason = p.stageCloseBefore?.closeReason || "";
-    delete p.stageCloseBefore;
+    p.closeReason = closeBefore?.closeReason || "";
   }
   if (idx === 0 && p.status === "进行中" && p.stageInitialStatus === "提案中") p.status = "提案中";
   if (idx === 0) delete p.stageInitialStatus;
@@ -3360,7 +3359,7 @@ function saveDetail() {
   p.signal       = $("#f-signal").value;
   p.signalNote   = $("#f-signalnote").value.trim();
   p.chips        = selectedChipNames.slice();
-  p.status       = $("#f-status").value;
+  PROJECT_DB.setProjectStatus(p, $("#f-status").value);
   p.isProductionMaintenance = p.status === "已结案" && !!$("#f-production-maintenance").checked;
   p.hwOwner      = $("#f-hw").value || "-";
   p.swOwner      = $("#f-sw").value || "-";
@@ -3391,7 +3390,7 @@ function saveDetail() {
   if (oldSnap.participants !== normalizeChips(p.participants).join("、")) changes.push(`参与人：${oldSnap.participants || "-"} → ${normalizeChips(p.participants).join("、") || "-"}`);
   if (oldSnap.status !== p.status) {
     let t = `状态：${oldSnap.status} → ${p.status}`;
-    if (p.status === "已结案") t += "（归档至已结案看板）";
+    if (p.status === "已结案") t += "（整体结案100%，归档至已结案看板）";
     else if (oldSnap.status === "已结案") t += "（移回进行中看板）";
     changes.push(t);
   }
