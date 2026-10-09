@@ -1,6 +1,6 @@
-# E04-B01 阶段动作 API
+# E04 项目动作 API
 
-来源：`src/server/routes/projects.ts`、`modules/project-actions.ts`；2026-10-09。本批只实现startStage/completeStage，行为正文引用SPEC-002/003/014；部署事实归系统真相及部署记录。身份、CSRF及可信账号头沿[项目主干](project-core.md)，所有ID/版本使用十进制字符串。
+来源：`src/server/routes/projects.ts`、`modules/project-actions.ts`；2026-10-09。当前实现startStage/completeStage/startProject，行为正文引用SPEC-002/003/014；部署事实归系统真相及部署记录。身份、CSRF及可信账号头沿[项目主干](project-core.md)，所有ID/版本使用十进制字符串。
 
 ## 1. 明确保存与原结果确认
 
@@ -60,7 +60,7 @@ stages只列本次影响的阶段。确认入口未发现回执返回HTTP200 `{"
 | 409 OPERATION_KEY_REUSED | 原编号正文不一致，保留原请求并核对，不能另造编号猜测 |
 | 422 INVALID_STAGE_DATE | fields.actualDate说明日期/相邻顺序错误，未保存输入保留 |
 | 422 STAGE_SEQUENCE_REVIEW_REQUIRED / STAGE_DATE_REVIEW_REQUIRED | 既有阶段事实不完整或矛盾，先核对/纠正，不静默补造 |
-| 422 PROJECT_START_REQUIRED | S1完成后须先明确启动项目，本批未接启动动作 |
+| 422 PROJECT_START_REQUIRED | S1完成后须先明确保存启动项目 |
 | 422 STAGE_PREDECESSOR_INCOMPLETE / STAGE_STATE_CHANGED / PROJECT_STAGE_ACTION_BLOCKED | 当前前置/状态不允许推进，重新核对当前事实 |
 | 422 PROJECT_VERSION_EXHAUSTED | 版本无法继续增加，交维护处理 |
 | 503 COMMIT_UNKNOWN / 客户端响应丢失 | 结果待确认，沿原编号原正文恢复 |
@@ -72,3 +72,17 @@ stages只列本次影响的阶段。确认入口未发现回执返回HTTP200 `{"
 详情增加businessDate（Asia/Shanghai业务日）及stageActions：每阶段code/startBlocked/completeBlocked，null表示本次快照条件允许。它是页面可用性提示，保存仍在事务内校验。项目日期未知、旧事实、资料、灯色/优先级及周检查事实不被此动作自动重写。
 
 阶段页复用原面板卡片与静态阶段定义；开始/完成表单在卡片内，明确保存后新GET。阶段工期/评述仍只读；结案、回退等后续功能不可用，不触发原浏览器数据库脚本。审计含stageChanges前后状态/有效日期，完成另含completionNote；创建的beforeValues可以为null。
+
+## 4. E04-B02 人工启动
+
+同一动作/原结果路径接受 `action=startProject`，必填 actualDate、dueDate、expectedVersion、idempotencyKey、configVersion、ruleVersion、previewWeek、previewFirstCheckWeek；planReason选填，修改已有当前计划时必须填写。日期均为YYYY-MM-DD，三个版本为十进制字符串，编号UUIDv4，说明UTF-8至多65535字节。不得添加阶段、负责人或应检计算结果。
+
+先GET详情/公共规则取得预览，同次事务核对其设置版本、当前业务周与首次应检周。成功result含projectId/operationId/action/savedVersion及status/startDate/dueDate/originalDueDate/firstCheckWeek/firstCheckRuleVersion。后续新GET显示进行中，S2保持待开始；保存周建立检查义务，规则正文引用SPEC-003/004/005/019。
+
+- 409 CHECK_PREVIEW_CHANGED：跨周、跨截止或设置变化；保留日期输入，重新打开启动表单核对预览，再明确保存。
+- 422 CHECK_RULE_REQUIRED：维护账号先初始化规则，重新进入项目。
+- 422 PROJECT_S1_REQUIRED / PROJECT_START_BLOCKED / PROJECT_START_HISTORY_REVIEW_REQUIRED：前置或既有事实不允许启动；先核对/纠正，禁止自动补事实。
+- 422 INVALID_PROJECT_DATE：fields.actualDate/dueDate指明错误，原输入可恢复。
+- 422 PLAN_REASON_REQUIRED：补充同次改期原因。
+
+详情增加startBlocked、checkRule以及project.firstCheckWeek/firstCheckRuleVersion；未知依据返回null，不猜测。checkRule协议见[公共设置](public-settings.md)。原阶段回执请求指纹保持兼容。已确认后GET失败只提示重新进入，不再次生成动作；未确认请求保留原编号/正文。

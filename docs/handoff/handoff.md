@@ -2,6 +2,14 @@
 
 更新时间：2026-10-09。E03-W00～W12项目主干与最小身份已完成代码、真实MySQL/API、公网及实际app进程恢复并部署；浏览器完整联验仍有工具缺口。[系统真相31](../status/current-system-truth.md#31-e03-完整项目主干与最小身份2026-10-09)是当前事实入口，[报告](../testing/reports/2026-10-09-project-core.md)是准确验证入口。本轮不接真实备份。E04-B01代码、页面/真实MySQL、公网与实际恢复已交付，见[系统真相34](../status/current-system-truth.md#34-e04-b01-阶段开始与完成2026-10-09固定部署)。
 
+## 0. 当前活动 E04-B02～B09
+
+本轮目标是完成整个E04，已有用户授权直接实施。当前分支codex/e04-b02-project-start，基线5c8cdd1；B02代码/真实MySQL六组76请求与原生浏览器主链已验证，固定构建/合并/部署尚待，准确范围见[人工启动报告](../testing/reports/2026-10-09-project-start.md)。新文件project-dates/public-settings/settings页面、verify-project-start；project-actions扩startProject并保持旧指纹，无迁移。未提交文件以git status实时核验，不覆盖。
+
+本机Docker在验收收尾期间停止，已通过已安装Docker Desktop启动，接手先docker info确认，再停止/移除本轮geekdash-start-browser让其SIGTERM清理自己夹具；若进程已被外部强停则按脚本本轮start_751766c5来源及私有夹具ID逐项核对，不能清空共享测试库。不要动旧orphan容器。测试阶段回归在浏览器夹具前已通过。
+
+B02接续：完成固定构建/main推送与两端app更新、维护规则实际保存、公网新合成项目启动/历史/原结果和真实app重启，更新报告/系统真相。随后B03～B09按已确认执行计划逐批继续，目标保持active；不导入真实备份，不恢复邀请码/私人稿/SSE等范围。新加坡当前运行3ec251d已TAT新读确认19容器；部署前再次核对。
+
 ## 1. 位置、基线与授权
 
 - D:/geekwon/geekdash；当前施工codex/e04-b01-stage-actions，基线f5bf84d，固定实现3ec251d已合并回读远端main；E03基线与旧发布见系统真相31。文档收尾同分支合并main，接手须重新fetch/status核验最终refs及未提交文件。

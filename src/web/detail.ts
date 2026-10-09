@@ -1,6 +1,6 @@
 import './shared/detail.css';
 import './shared/read.css';
-import { get, send, SaveError, esc, label, projectTags, setupTheme, requireIdentity, account, stageMessages, type StageCommand, type Detail, type Entry, type EditValues, type Catalog, type SaveRequest, type SaveResult, type AuditPage } from './shared/api';
+import { get, send, SaveError, esc, label, projectTags, setupTheme, requireIdentity, account, stageMessages, type StageCommand, type StartCommand, type ProjectCommand, type CheckRuleContext, type Detail, type Entry, type EditValues, type Catalog, type SaveRequest, type SaveResult, type AuditPage } from './shared/api';
 
 const element = (id: string) => document.getElementById(id)!;
 const id = new URLSearchParams(location.search).get('id') ?? '';
@@ -30,8 +30,8 @@ type Buffer = { format: 2; baseVersion: string; values: EditValues; pending?: Sa
 let candidate: Buffer | undefined;
 let legacyCopy: Buffer | undefined;
 let bufferKey = '';
-let stagePending: StageCommand | undefined;
-let stageDraft: Omit<StageCommand, 'idempotencyKey'> | undefined;
+let stagePending: ProjectCommand | undefined;
+let stageDraft: Omit<StageCommand, 'idempotencyKey'> | Omit<StartCommand, 'idempotencyKey'> | undefined;
 declare const __GEEKDASH_STAGES__: { id: number; name: string; standard: string; progress: number; mid: number; milestone: string; hw: string; sw: string; biz: string }[];
 const stageKey = () => `geekdash_stage_action:${account!.id}:${id}`;
 function persistStage() {
@@ -64,23 +64,33 @@ function stagePanel() {
       ${stage.state === 'completed' ? `<div class="stage-done-tag">✅ 里程碑已完成${stage.completedOn ? ' · ' + esc(stage.completedOn) : ''}</div><button type="button" class="choice-btn stage-rollback" disabled title="回退功能暂不可用">回退到此阶段</button>` : p.status === 'closed' ? '<div class="stage-locked">⏹ 项目已结案</div>' : stage.state === 'locked' ? `<div class="stage-locked">🔒 ${esc(stageMessages[blocked ?? 'STAGE_PREDECESSOR_INCOMPLETE'])}</div>` : `<div class="stage-choice">${button}<button type="button" class="choice-btn choice-close" disabled title="结案功能暂不可用">⏹ 中途结案</button></div>${blocked ? `<div class="stage-locked">${esc(stageMessages[blocked] ?? blocked)}</div>` : ''}`}
       <div class="stage-choice-form" id="stage-form-${stage.code}"></div></div>`;
   }).join('');
-  return `<div class="stages-wrap">${maxDays !== null && totalDays > maxDays ? `<div class="stages-error">⚠ ${estimated ? '参考工期' : '项目总工期'} <b>${totalDays}</b> 天，超过可用窗口 <b>${maxDays}</b> 天，请核对工期或项目日期。</div>` : ''}<div class="stages-hint">按顺序推进：开始和里程碑完成都需明确保存，完成后只解锁下一阶段。S1完成后仍需明确启动项目。工期与评述当前仅供查看。</div><div class="stages-total">${estimated ? '参考总工期' : '项目总工期'}：<b>${totalDays}</b> 天（已完成 <b>${doneCount}</b> / 7 个阶段）${estimated ? ' · 未填工期按建议值估算，不写入项目' : ''}${maxDays !== null ? ` · 可用窗口：<b>${maxDays}</b> 天` : ''}</div>${cards}</div>`
+  const start = p.status === 'proposal' ? `<div class="stage-card"><div class="stage-head"><span class="stage-name">正式启动项目</span></div><p>S1完成后，核对实际启动日期和预计结案日期，明确保存。启动后S2仍为待开始。</p><button class="choice-btn choice-done" id="project-start"${snapshot!.startBlocked ? ' disabled' : ''}>启动项目</button>${snapshot!.startBlocked ? `<p class="stage-locked">${esc(stageMessages[snapshot!.startBlocked] ?? snapshot!.startBlocked)}</p>` : ''}<a class="back-btn" href="/settings.html">查看公共检查规则</a><div class="stage-choice-form" id="project-start-form"></div></div>` : `<div class="stages-hint">首次应检周：${esc(p.firstCheckWeek ?? '依据未知，待核对')} · 本周截止：${esc(snapshot!.checkRule.deadlineDate ?? '规则未初始化')}</div>`;
+  return `<div class="stages-wrap">${maxDays !== null && totalDays > maxDays ? `<div class="stages-error">⚠ ${estimated ? '参考工期' : '项目总工期'} <b>${totalDays}</b> 天，超过可用窗口 <b>${maxDays}</b> 天，请核对工期或项目日期。</div>` : ''}<div class="stages-hint">按顺序推进：开始和里程碑完成都需明确保存，完成后只解锁下一阶段。S1完成后仍需明确启动项目。工期与评述当前仅供查看。</div>${start}<div class="stages-total">${estimated ? '参考总工期' : '项目总工期'}：<b>${totalDays}</b> 天（已完成 <b>${doneCount}</b> / 7 个阶段）${estimated ? ' · 未填工期按建议值估算，不写入项目' : ''}${maxDays !== null ? ` · 可用窗口：<b>${maxDays}</b> 天` : ''}</div>${cards}</div>`
     + (stagePending ? '<p role="status">阶段操作结果待确认。请确认原结果或重试原操作。</p><button class="back-btn" id="stage-confirm">确认原阶段结果</button> <button class="back-btn" id="stage-retry">重试原阶段操作</button>' : '')
-    + (stageDraft && !stagePending ? '<button class="back-btn" id="stage-restore">恢复本标签页阶段表单</button> <button class="back-btn" id="stage-discard">放弃阶段表单副本</button>' : '');
+    + (stageDraft && !stagePending ? `<button class="back-btn" id="stage-restore">恢复本标签页${stageDraft.action === 'startProject' ? '启动' : '阶段'}表单</button> <button class="back-btn" id="stage-discard">放弃动作表单副本</button>` : '');
 }
-async function openStage(code: string, action: StageCommand['action']) {
-  if (!snapshot || inFlight || pending || responsibilityPending || stagePending || stale || authFrozen || loading) return;
+async function prepareAction(action: ProjectCommand['action'], code?: string) {
+  if (!snapshot || inFlight || pending || responsibilityPending || stagePending || stale || authFrozen || loading) return false;
   if (dirty()) {
     const choice = await choose('阶段动作前请处理未保存内容。', [['cancel', '继续编辑'], ['save', '保存项目后继续'], ['discard', '放弃编辑后继续']]);
-    if (choice === 'cancel') return;
-    if (choice === 'save') { await saveNew(); if (dirty() || pending || stale || authFrozen) return; }
+    if (choice === 'cancel') return false;
+    if (choice === 'save') { await saveNew(); if (dirty() || pending || stale || authFrozen) return false; }
     else { values = baseline(); candidate = undefined; persist(); render(); }
   }
+  if (stageDraft?.expectedVersion !== undefined && stageDraft.expectedVersion !== snapshot.project.version) { note('动作副本已过期，请复制核对后放弃，再重新填写。', true); controls(); return false; }
+  if (stageDraft && (stageDraft.action !== action || stageDraft.action !== 'startProject' && stageDraft.stageCode !== code)) {
+    if (await choose('已有另一个未保存动作表单，是否明确放弃后继续？', [['cancel', '保留原表单'], ['discard', '放弃原表单后继续']]) !== 'discard') return false;
+    stageDraft = undefined; persistStage();
+  }
+  return true;
+}
+async function openStage(code: string, action: StageCommand['action']) {
+  if (!await prepareAction(action, code) || !snapshot) return;
   const availability = snapshot.stageActions.find(item => item.code === code);
   const blocked = action === 'startStage' ? availability?.startBlocked : availability?.completeBlocked;
   if (!availability || blocked) { note(stageMessages[blocked ?? 'STAGE_SEQUENCE_REVIEW_REQUIRED'], true); return; }
   if (stageDraft && stageDraft.expectedVersion !== snapshot.project.version) { note('阶段副本已过期，请复制核对后放弃，再重新填写。', true); controls(); return; }
-  if (!stageDraft || stageDraft.stageCode !== code || stageDraft.action !== action) stageDraft = { expectedVersion: snapshot.project.version, stageCode: code, action, actualDate: snapshot.businessDate, ...(action === 'completeStage' ? { completionNote: '' } : {}) };
+  if (!stageDraft || stageDraft.action === 'startProject' || stageDraft.stageCode !== code || stageDraft.action !== action) stageDraft = { expectedVersion: snapshot.project.version, stageCode: code, action, actualDate: snapshot.businessDate, ...(action === 'completeStage' ? { completionNote: '' } : {}) };
   tab = 'stages'; render();
   const formArea = element('stage-form-' + code);
   const draft = stageDraft;
@@ -92,6 +102,30 @@ async function openStage(code: string, action: StageCommand['action']) {
     event.preventDefault(); capture();
     if (inFlight || loading || stagePending || pending || responsibilityPending) return;
     if (stale || authFrozen || draft.expectedVersion !== snapshot!.project.version) { element('stage-error').textContent = '项目或账号已变化，请复制输入并重新进入。'; return; }
+    stagePending = { ...draft, idempotencyKey: crypto.randomUUID() }; persistStage(); await executeStage(false);
+  };
+  persistStage(); controls();
+}
+async function openStart() {
+  if (!await prepareAction('startProject') || !snapshot) return;
+  if (snapshot.startBlocked && snapshot.startBlocked !== 'CHECK_RULE_REQUIRED') { note(stageMessages[snapshot.startBlocked], true); return; }
+  let context: CheckRuleContext;
+  try { context = await get<CheckRuleContext>('/api/settings/check-rule'); }
+  catch (error) { note((error as Error).message, true); return; }
+  if (inFlight || loading || stagePending || pending || responsibilityPending || stale || authFrozen) return;
+  if (!context.rule || !context.configVersion || !context.firstCheckWeek) { note(stageMessages.CHECK_RULE_REQUIRED, true); return; }
+  if (!stageDraft || stageDraft.action !== 'startProject') stageDraft = { action: 'startProject', actualDate: context.businessDate, dueDate: String(snapshot.project.dueDate ?? ''), planReason: '', expectedVersion: snapshot.project.version, configVersion: context.configVersion, ruleVersion: context.rule.version, previewWeek: context.weekStart, previewFirstCheckWeek: context.firstCheckWeek };
+  const draft = stageDraft;
+  if (draft.ruleVersion !== context.rule.version || draft.previewWeek !== context.weekStart || draft.previewFirstCheckWeek !== context.firstCheckWeek) note('检查依据已更新，请核对当前截止与首次应检周后保存。', true);
+  Object.assign(draft, { configVersion: context.configVersion, ruleVersion: context.rule.version, previewWeek: context.weekStart, previewFirstCheckWeek: context.firstCheckWeek });
+  tab = 'stages'; render();
+  element('project-start-form').innerHTML = `<form id="start-form"><p>${esc(snapshot.project.name)} · 进入版本 ${esc(draft.expectedVersion)}</p><label for="start-date">实际启动日期</label><input type="date" id="start-date" required max="${esc(context.businessDate)}" value="${esc(draft.actualDate)}"><label for="start-due">预计结案日期</label><input type="date" id="start-due" required value="${esc(draft.dueDate)}"><p>原当前计划：${esc(snapshot.project.dueDate ?? '未定')}。修改已有计划时，下面的调整原因必填。</p><label for="start-reason">同时调整计划的原因</label><textarea class="choice-note" id="start-reason">${esc(draft.planReason)}</textarea><p>本周截止：${esc(context.deadlineDate)}（全天可检查）；首次应检周：${esc(context.firstCheckWeek)}。实际启动日补录为过去，也不补造过去检查。</p><div class="choice-actions"><button class="choice-confirm" type="submit">保存启动项目</button><button class="choice-cancel" type="button" id="start-cancel">取消</button></div></form>`;
+  const capture = () => { draft.actualDate = (element('start-date') as HTMLInputElement).value; draft.dueDate = (element('start-due') as HTMLInputElement).value; draft.planReason = (element('start-reason') as HTMLTextAreaElement).value; persistStage(); };
+  for (const name of ['start-date', 'start-due', 'start-reason']) element(name).oninput = capture;
+  element('start-cancel').onclick = () => { capture(); render(); };
+  element('start-form').onsubmit = async event => {
+    event.preventDefault(); capture();
+    if (inFlight || loading || stagePending || pending || responsibilityPending || stale || authFrozen || draft.expectedVersion !== snapshot!.project.version) return;
     stagePending = { ...draft, idempotencyKey: crypto.randomUUID() }; persistStage(); await executeStage(false);
   };
   persistStage(); controls();
@@ -111,13 +145,13 @@ async function executeStage(confirm: boolean) {
     if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'PASSWORD_CHANGE_REQUIRED'].includes(failure.code)) authFrozen = true;
     if (failure.code === 'PROJECT_VERSION_CONFLICT') stale = true;
     if (failure.outcome === 'not_committed' && failure.code !== 'OPERATION_KEY_REUSED') stagePending = undefined;
-    note(failure.fields?.actualDate ?? failure.message, true); persistStage();
+    note(Object.values(failure.fields ?? {})[0] ?? failure.message, true); persistStage();
   } finally { inFlight = false; render(); }
   if (result) {
     observedVersion = result.savedVersion;
     const refreshed = await load();
     if (!refreshed) stale = true;
-    note(`阶段${original.action === 'startStage' ? '开始' : '完成'}已确认保存，版本${result.savedVersion}。${refreshed ? original.stageCode === 'S1' && original.action === 'completeStage' ? '下一步需明确启动项目，项目仍为提案中。' : '' : '后续刷新失败，请重新进入查看；无需再次保存。'}`, !refreshed);
+    note(`${original.action === 'startProject' ? '项目启动' : '阶段' + (original.action === 'startStage' ? '开始' : '完成')}已确认保存，版本${result.savedVersion}。${refreshed ? original.action === 'startProject' ? 'S2仍待开始，请单独保存开始阶段。' : original.stageCode === 'S1' && original.action === 'completeStage' ? '下一步需明确启动项目，项目仍为提案中。' : '' : '后续刷新失败，请重新进入查看；无需再次保存。'}`, !refreshed);
     controls();
   }
 }
@@ -183,6 +217,7 @@ function controls() {
   for (const action of ['confirm', 'retry']) { const button = document.getElementById(action) as HTMLButtonElement | null; if (button) button.disabled = inFlight; }
   (element('reload') as HTMLButtonElement).disabled = frozen;
   document.querySelectorAll<HTMLButtonElement>('[data-stage-action]').forEach(button => { const item = snapshot?.stageActions.find(item => item.code === button.dataset.stage); const blocked = button.dataset.stageAction === 'startStage' ? item?.startBlocked : item?.completeBlocked; button.disabled = frozen || stale || authFrozen || !item || !!blocked; });
+  const startButton = document.getElementById('project-start') as HTMLButtonElement | null; if (startButton) startButton.disabled = frozen || stale || authFrozen || !!snapshot?.startBlocked;
   for (const name of ['stage-confirm', 'stage-retry']) { const button = document.getElementById(name) as HTMLButtonElement | null; if (button) button.disabled = inFlight || loading || authFrozen; }
   element('copy').hidden = !dirty() && !candidate && !legacyCopy && !pending && !stageDraft && !stagePending;
   const state = document.getElementById('edit-state');
@@ -229,7 +264,7 @@ function choose(text: string, options: [string, string][], extra = ''): Promise<
 }
 async function copyText() {
   const stageCopy = stagePending ?? stageDraft;
-  const text = (stageCopy ? `阶段操作副本\n${label(stageCopy.stageCode)} · ${stageCopy.action === 'startStage' ? '开始' : '完成'}\n实际日期：${stageCopy.actualDate}\n说明：${stageCopy.completionNote ?? ''}\n进入版本：${stageCopy.expectedVersion}\n\n` : '') + keys.map(key => `${titles[key]}\n${showValue(key, values?.[key])}`).join('\n\n') + (candidate ? '\n\n——恢复候选副本——\n' + keys.map(key => `${titles[key]}\n${showValue(key, candidate!.values[key])}`).join('\n\n') : '') + (legacyCopy ? '\n\n——旧匿名试用副本（仅供核对）——\n' + keys.map(key => `${titles[key]}\n${showValue(key, legacyCopy!.values[key])}`).join('\n\n') : '');
+  const text = (stageCopy ? stageCopy.action === 'startProject' ? `启动项目副本\n实际启动：${stageCopy.actualDate}\n预计结案：${stageCopy.dueDate}\n调整原因：${stageCopy.planReason ?? ''}\n首次应检周：${stageCopy.previewFirstCheckWeek}\n进入版本：${stageCopy.expectedVersion}\n\n` : `阶段操作副本\n${label(stageCopy.stageCode)} · ${stageCopy.action === 'startStage' ? '开始' : '完成'}\n实际日期：${stageCopy.actualDate}\n说明：${stageCopy.completionNote ?? ''}\n进入版本：${stageCopy.expectedVersion}\n\n` : '') + keys.map(key => `${titles[key]}\n${showValue(key, values?.[key])}`).join('\n\n') + (candidate ? '\n\n——恢复候选副本——\n' + keys.map(key => `${titles[key]}\n${showValue(key, candidate!.values[key])}`).join('\n\n') : '') + (legacyCopy ? '\n\n——旧匿名试用副本（仅供核对）——\n' + keys.map(key => `${titles[key]}\n${showValue(key, legacyCopy!.values[key])}`).join('\n\n') : '');
   await choose('以下文字可选择后复制；复制不会保存项目。', [['cancel', '关闭']], `<textarea class="copy-text" readonly aria-label="未保存文字">${esc(text)}</textarea>`);
 }
 function editor() {
@@ -261,7 +296,7 @@ function showValue(key: string, value: unknown): string {
     const item = catalog?.[referenceFields[key as keyof typeof referenceFields]]?.find(item => item.id === value);
     return `${item?.name ?? value} [ID ${value}]`;
   }
-  return ['signal', 'priority'].includes(key) ? label(value) : String(value);
+  return ['signal', 'priority', 'status'].includes(key) ? label(value) : String(value);
 }
 async function loadCatalog() {
   if (catalogLoading) return;
@@ -406,7 +441,7 @@ function render() {
   } else if (tab === 'stages') content = stagePanel();
   else if (tab === 'nodes' || tab === 'custnodes') content = table(snapshot.nodes.filter(node => node.kind === (tab === 'nodes' ? 'project' : 'customer')), [['title', '节点'], ['stage', '阶段'], ['targetDate', '目标日期'], ['completedOn', '完成日期'], ['output', '成果'], ['note', '说明']]);
   else if (tab === 'history') content = '<h2>服务器修改历史</h2><p class="read-message">时间为 UTC，每页 20 条。只有实际变化才产生修改历史。</p>'
-    + (audit?.items.length ? audit.items.map(item => `<article class="audit-entry"><h3>${esc(item.actorDisplayName)} · ${esc(item.createdAt)} · 版本 ${esc(item.versionBefore)} → ${esc(item.versionAfter)}</h3>${Object.keys(item.afterValues).map(key => `<div><strong>${esc(titles[key as keyof EditValues] ?? ({ stageChanges: '阶段状态与实际日期', completionNote: '完成说明' } as Record<string, string>)[key] ?? key)}</strong><div class="audit-diff"><div><span class="read-label">修改前</span><div class="read-value">${esc(showValue(key, item.beforeValues?.[key]))}</div></div><div><span class="read-label">修改后</span><div class="read-value">${esc(showValue(key, item.afterValues[key]))}</div></div></div></div>`).join('')}</article>`).join('') : '<p>暂无服务器修改历史。</p>')
+    + (audit?.items.length ? audit.items.map(item => `<article class="audit-entry"><h3>${esc(item.actorDisplayName)} · ${esc(item.createdAt)} · 版本 ${esc(item.versionBefore)} → ${esc(item.versionAfter)}</h3>${Object.keys(item.afterValues).map(key => `<div><strong>${esc(titles[key as keyof EditValues] ?? ({ stageChanges: '阶段状态与实际日期', completionNote: '完成说明', status: '项目状态', startDate: '实际启动日期', dueDate: '当前计划结案日期', originalDueDate: '原计划结案日期', firstCheckWeek: '首次应检周', firstCheckRuleVersion: '首次应检规则版本' } as Record<string, string>)[key] ?? key)}</strong><div class="audit-diff"><div><span class="read-label">修改前</span><div class="read-value">${esc(showValue(key, item.beforeValues?.[key]))}</div></div><div><span class="read-label">修改后</span><div class="read-value">${esc(showValue(key, item.afterValues[key]))}</div></div></div></div>`).join('')}</article>`).join('') : '<p>暂无服务器修改历史。</p>')
     + `<p class="read-message">${esc(auditMessage)}</p><button class="back-btn" id="audit-refresh">重新读取历史</button>${audit?.nextCursor ? '<button class="back-btn" id="audit-more">读取更早记录</button>' : ''}`
     + '<h2>旧来源历史</h2><p class="read-message">保留原来源时间文本，与服务器修改历史分开。</p>' + table(snapshot.history.slice().reverse(), [['date', '来源时间'], ['text', '更新内容']]);
   else if (tab === 'risk') content = '<h2>风险</h2>' + table(snapshot.risks.map(risk => ({ ...risk, resolved: risk.resolved ? '已解决' : '未解决' })), [['content', '风险内容'], ['level', '级别'], ['resolved', '状态'], ['resolution', '解决说明']]) + '<h2>需求变更</h2>' + table(snapshot.changes, [['source', '来源'], ['content', '内容'], ['decision', '结论'], ['reason', '原因']]) + '<h2>改期与说明</h2>' + table(snapshot.delays, [['oldDate', '原日期'], ['newDate', '新日期'], ['reason', '原因'], ['measures', '措施']]);
@@ -415,7 +450,8 @@ function render() {
   bindEditor();
   document.querySelectorAll<HTMLButtonElement>('[data-stage-action]').forEach(button => button.onclick = () => { void openStage(button.dataset.stage!, button.dataset.stageAction as StageCommand['action']); });
   for (const [name, confirm] of [['stage-confirm', true], ['stage-retry', false]] as const) { const button = document.getElementById(name); if (button) button.onclick = () => { void executeStage(confirm); }; }
-  const restoreStage = document.getElementById('stage-restore'); if (restoreStage) restoreStage.onclick = () => { if (stageDraft) void openStage(stageDraft.stageCode, stageDraft.action); };
+  const startButton = document.getElementById('project-start'); if (startButton) startButton.onclick = () => { void openStart(); };
+  const restoreStage = document.getElementById('stage-restore'); if (restoreStage) restoreStage.onclick = () => { if (stageDraft) { if (stageDraft.action === 'startProject') void openStart(); else void openStage(stageDraft.stageCode, stageDraft.action); } };
   const discardStage = document.getElementById('stage-discard'); if (discardStage) discardStage.onclick = () => { stageDraft = undefined; persistStage(); render(); };
   const refresh = document.getElementById('audit-refresh'); if (refresh) refresh.onclick = () => { void loadAudit(); };
   const more = document.getElementById('audit-more'); if (more) more.onclick = () => { void loadAudit(true); };
@@ -483,6 +519,6 @@ void requireIdentity().then(async () => {
   // 匿名副本不归属任一账号；只提示保留供核对，不自动作为实名编辑恢复。
   if (sessionStorage.getItem(`geekdash_trial_text_v1:${id}`)) note('发现旧试用副本，请保留原标签页内容供核对；新编辑按当前账号隔离。');
   try { responsibilityPending = JSON.parse(sessionStorage.getItem(responsibilityKey()) ?? 'null') ?? undefined; } catch { note('责任变更恢复信息损坏，请先核对当前负责人。', true); }
-  try { const saved = JSON.parse(sessionStorage.getItem(stageKey()) ?? 'null'); for (const part of ['pending', 'draft'] as const) { const v = saved?.[part]; if (v && /^S[1-7]$/.test(v.stageCode) && ['startStage', 'completeStage'].includes(v.action) && typeof v.actualDate === 'string' && /^[1-9][0-9]{0,19}$/.test(v.expectedVersion) && (v.completionNote === undefined || typeof v.completionNote === 'string') && (part === 'draft' || typeof v.idempotencyKey === 'string')) { if (part === 'pending') stagePending = v; else stageDraft = v; } } } catch { note('阶段恢复信息无法读取，请核对当前阶段。', true); }
+  try { const saved = JSON.parse(sessionStorage.getItem(stageKey()) ?? 'null'); for (const part of ['pending', 'draft'] as const) { const v = saved?.[part]; const validAction = v && (v.action === 'startProject' ? ['dueDate', 'configVersion', 'ruleVersion', 'previewWeek', 'previewFirstCheckWeek'].every(key => typeof v[key] === 'string') : /^S[1-7]$/.test(v.stageCode) && ['startStage', 'completeStage'].includes(v.action) && (v.completionNote === undefined || typeof v.completionNote === 'string')); if (validAction && typeof v.actualDate === 'string' && /^[1-9][0-9]{0,19}$/.test(v.expectedVersion) && (part === 'draft' || typeof v.idempotencyKey === 'string')) { if (part === 'pending') stagePending = v; else stageDraft = v; } } } catch { note('动作恢复信息无法读取，请核对当前项目。', true); }
   await load(true); legacyCopy = readBuffer(`geekdash_trial_text_v1:${id}`); await loadCatalog(); if (responsibilityPending) await changeResponsibility(true);
 }).catch(error => { note((error as Error).message, true); const link = document.createElement('a'); link.href = '/login.html'; link.textContent = '登录 GeekDash'; element('message').append(' ', link); });

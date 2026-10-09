@@ -33,10 +33,10 @@ export function registerIdentity(app: FastifyInstance, database: RuntimeDatabase
     attempts.set(key, item); if (++item.count > maximum) failure('AUTH_RATE_LIMITED', 429);
   }
   app.setErrorHandler((error, request, reply) => {
-    const known = error as { status?: number; code?: string; statusCode?: number };
+    const known = error as { status?: number; code?: string; statusCode?: number; fields?: Record<string, string>; currentVersion?: string };
     const status = known.status ?? (known.statusCode && known.statusCode < 500 ? known.statusCode : 503);
     if (status >= 500) app.log.warn({ code: known.code }, '请求未完成');
-    reply.code(status).send({ code: known.status ? known.code : status < 500 ? 'INVALID_REQUEST' : known.code === 'COMMIT_UNKNOWN' ? 'COMMIT_UNKNOWN' : 'DATABASE_UNAVAILABLE', outcome: known.code === 'COMMIT_UNKNOWN' ? 'unknown' : 'not_committed', requestId: request.id });
+    reply.code(status).send({ code: known.status ? known.code : status < 500 ? 'INVALID_REQUEST' : known.code === 'COMMIT_UNKNOWN' ? 'COMMIT_UNKNOWN' : 'DATABASE_UNAVAILABLE', outcome: known.code === 'COMMIT_UNKNOWN' ? 'unknown' : 'not_committed', fields: known.status ? known.fields : undefined, currentVersion: known.status ? known.currentVersion : undefined, requestId: request.id });
   });
   app.addHook('preHandler', async request => {
     const path = request.url.split('?')[0];

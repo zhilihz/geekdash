@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 import type { RuntimeDatabase } from './infrastructure/runtime-database.js';
 import { registerProjectReads } from './routes/projects.js';
 import { registerIdentity, readAuthConfig, type AuthConfig } from './routes/identity.js';
+import { registerSettings } from './routes/settings.js';
 
 export async function createApp(database?: RuntimeDatabase, auth?: AuthConfig) {
   const build = JSON.parse(await readFile(new URL('../build-info.json', import.meta.url), 'utf8'));
@@ -50,6 +51,7 @@ export async function createApp(database?: RuntimeDatabase, auth?: AuthConfig) {
   // 旧匿名回归仅在隔离 test 库运行；实际 dev 服务默认要求身份。
   if (database && (auth || database.fact.database !== 'geekdash_test')) registerIdentity(app, database, auth ?? readAuthConfig());
   registerProjectReads(app, database);
+  registerSettings(app, database);
   app.get('/GeekDash.html', (_request, reply) => reply.sendFile('index.html'));
   return app;
 }

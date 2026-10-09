@@ -25,6 +25,7 @@
     "test:ordinary": "node scripts/verify-project-ordinary.mjs",
     "test:core": "node scripts/verify-project-core.mjs",
     "test:stages": "node scripts/verify-stage-actions.mjs",
+    "test:start": "node scripts/verify-project-start.mjs",
     "db:test-accounts": "node dist/server/commands/test-accounts.js"
   },
   "dependencies": {

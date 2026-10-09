@@ -1,6 +1,7 @@
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
-import { businessToday, stageBlock, type StageFact } from './project-actions.js';
+import { stageBlock, startProjectBlock, type StageFact } from './project-actions.js';
+import { checkContext } from './project-dates.js';
 
 // V1.050 的阶段名称、完成权重和里程碑；查询不自动改变业务状态。
 export const stages = [
@@ -110,7 +111,7 @@ export function projectReads(database: RuntimeDatabase) {
       return database.readSnapshot(async connection => {
         const project = (await enrich(connection, await rows(connection, `SELECT ${columns},${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress,
           DATE_FORMAT(p.filed_on,'%Y-%m-%d') filingDate,DATE_FORMAT(p.started_on,'%Y-%m-%d') startDate,
-          DATE_FORMAT(p.original_due_date,'%Y-%m-%d') originalDueDate,DATE_FORMAT(p.closed_on,'%Y-%m-%d') closedOn,
+          DATE_FORMAT(p.original_due_date,'%Y-%m-%d') originalDueDate,DATE_FORMAT(p.closed_on,'%Y-%m-%d') closedOn,DATE_FORMAT(p.first_check_week,'%Y-%m-%d') firstCheckWeek,CAST(p.first_check_rule_version AS CHAR) firstCheckRuleVersion,
           p.signal_note signalNote,p.detail_note detailNote,p.summary_note summaryNote,p.chipstat_note chipstatNote,
           CAST(p.customer_id AS CHAR) customerId,CAST(p.odm_customer_id AS CHAR) odmCustomerId,
           CAST(p.product_line_id AS CHAR) productLineId,CAST(p.app_id AS CHAR) appId,CAST(p.group_id AS CHAR) groupId,
@@ -128,7 +129,9 @@ export function projectReads(database: RuntimeDatabase) {
         const stageActions = projectStages.map(stage => ({ code: stage.code,
           startBlocked: !accountId || !editable ? 'PROJECT_READ_ONLY' : stageBlock(project.status, projectStages as (RowDataPacket & StageFact)[], stage.code, 'startStage'),
           completeBlocked: !accountId || !editable ? 'PROJECT_READ_ONLY' : stageBlock(project.status, projectStages as (RowDataPacket & StageFact)[], stage.code, 'completeStage') }));
-        return { project, stages: projectStages, stageActions, businessDate: businessToday(), nodes, risks, changes, delays, history, responsible, readOnly: !editable, capabilities: { editText: editable, editOrdinary: editable, join: !!accountId && !editable, leave: !!accountId && editable } };
+        const checkRule = await checkContext(connection, accountId);
+        const startBlocked = !accountId || !editable ? 'PROJECT_READ_ONLY' : startProjectBlock(project as RowDataPacket & { status: string; startDate: string | null; firstCheckWeek: unknown }, projectStages as (RowDataPacket & StageFact)[]) ?? (!checkRule.rule ? 'CHECK_RULE_REQUIRED' : null);
+        return { project, stages: projectStages, stageActions, startBlocked, checkRule, businessDate: checkRule.businessDate, nodes, risks, changes, delays, history, responsible, readOnly: !editable, capabilities: { editText: editable, editOrdinary: editable, join: !!accountId && !editable, leave: !!accountId && editable } };
       });
     },
   };
