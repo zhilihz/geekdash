@@ -2,7 +2,7 @@ export type Project = {
   id: string; version: string; dataKind: 'business' | 'trial'; name: string; status: string; priority: string; signal: string;
   customer: string | null; odmFactory: string | null; productLine: string | null; app: string | null; projectGroup: string | null;
   proposalDate: string | null; dueDate: string | null; marketExpectation: string; statusDesc: string;
-  manualDelayed: number; maintenanceEnabled: number; updatedAt: string; stage: string; progress: string | number;
+  manualDelayed: number; maintenanceEnabled: number; updatedAt: string; stage: string; stageState: string; progress: string | number;
   chips: { id: string; name: string }[]; people: { id: string; name: string; role: string }[]; tags: { id: string; name: string }[];
 };
 export type List = { items: Project[]; stats: Record<string, number>; options: Record<string, string[]>; stageCounts: { value: string; count: string | number }[]; pagination: { page: number; pageSize: number; total: number; pageCount: number }; readOnly: true };
@@ -13,9 +13,11 @@ export type CatalogItem = { id: string; name: string; enabled: number; originalM
 export type Catalog = Record<string, CatalogItem[]>;
 export type SaveRequest = { expectedVersion: string; idempotencyKey: string; changes: Partial<EditValues> };
 export type SaveResult = { projectId: string; operationId: string; changed: boolean; savedVersion: string; values: TextValues | EditValues; savedAt: string | null; display?: Record<string, unknown> };
-export type Audit = { id: string; actorDisplayName: string; actorKind: string; versionBefore: string; versionAfter: string; createdAt: string; beforeValues: Record<string, unknown>; afterValues: Record<string, unknown> };
+export type Audit = { id: string; actorDisplayName: string; actorKind: string; versionBefore: string; versionAfter: string; createdAt: string; beforeValues: Record<string, unknown> | null; afterValues: Record<string, unknown> };
 export type AuditPage = { items: Audit[]; nextCursor: string | null; pageSize: number };
-export type Detail = { project: Project & TextValues & Record<string, unknown>; stages: Entry[]; nodes: Entry[]; risks: Entry[]; changes: Entry[]; delays: Entry[]; history: Entry[]; responsible?: { id: string; name: string; enabled: number }[]; readOnly: boolean; capabilities: { editText: boolean; editOrdinary?: boolean; join?: boolean; leave?: boolean } };
+export type StageCommand = { action: 'startStage' | 'completeStage'; stageCode: string; actualDate: string; expectedVersion: string; idempotencyKey: string; completionNote?: string };
+export type Detail = { project: Project & TextValues & Record<string, unknown>; stages: Entry[]; stageActions: { code: string; startBlocked: string | null; completeBlocked: string | null }[]; businessDate: string; nodes: Entry[]; risks: Entry[]; changes: Entry[]; delays: Entry[]; history: Entry[]; responsible?: { id: string; name: string; enabled: number }[]; readOnly: boolean; capabilities: { editText: boolean; editOrdinary?: boolean; join?: boolean; leave?: boolean } };
+export const stageMessages: Record<string, string> = { INVALID_STAGE_COMMAND: '阶段请求无效，请重新核对表单。', INVALID_STAGE_DATE: '请核对实际日期及前后顺序。', STAGE_SEQUENCE_REVIEW_REQUIRED: '阶段记录不完整或顺序存在矛盾，需要先纠正。', PROJECT_STAGE_ACTION_BLOCKED: '项目暂缓或已结案，当前不能推进阶段。', PROJECT_START_REQUIRED: '需先明确启动项目；启动功能在后续批次接入。', STAGE_PREDECESSOR_INCOMPLETE: '请先完成前置阶段。', STAGE_STATE_CHANGED: '此阶段当前不能执行该动作，请核对阶段状态。', STAGE_DATE_REVIEW_REQUIRED: '阶段实际日期缺失或存在矛盾，请先核对并纠正。', PROJECT_READ_ONLY: '请先加入本项目负责范围。' };
 export type Account = { id: string; name: string; mustChangePassword: boolean };
 export let account: Account | undefined;
 const context = new BroadcastChannel('geekdash_identity');
@@ -38,7 +40,7 @@ export function setAccount(value: Account) { account = value; contextChanged = f
 export function notifyIdentityChange() { context.postMessage('changed'); }
 export class SaveError extends Error {
   constructor(public code: string, public outcome: string, public fields?: Record<string, string>) {
-    super(authMessages[code] ?? ({ PROJECT_VERSION_CONFLICT: '项目已被他人更新，请重新进入项目。', OPERATION_KEY_REUSED: '操作编号与原请求不一致，请保留文字并核对原操作。', PROJECT_READ_ONLY: '此项目只能查看。', INVALID_PROJECT_FIELDS: '请修正标出的字段。', DATABASE_UNAVAILABLE: '数据库暂时不可用，请重试。', SAVE_ROLLED_BACK: '保存未完成，修改已保留。' } as Record<string, string>)[code] ?? '保存结果尚未确认，请确认结果或重试原操作。');
+    super(authMessages[code] ?? stageMessages[code] ?? ({ PROJECT_VERSION_CONFLICT: '项目已被他人更新，请重新进入项目。', OPERATION_KEY_REUSED: '操作编号与原请求不一致，请保留文字并核对原操作。', PROJECT_READ_ONLY: '此项目只能查看。', INVALID_PROJECT_FIELDS: '请修正标出的字段。', DATABASE_UNAVAILABLE: '数据库暂时不可用，请重试。', SAVE_ROLLED_BACK: '保存未完成，修改已保留。' } as Record<string, string>)[code] ?? '保存结果尚未确认，请确认结果或重试原操作。');
   }
 }
 export async function send<T>(path: string, method: 'PATCH' | 'POST', body: unknown, active = true): Promise<T> {

@@ -3,11 +3,21 @@ import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 import { projectReads, type ProjectQuery } from '../modules/projects.js';
 import { projectSaves, validateSave, validId, type SaveRequest } from '../modules/project-save.js';
 import { projectCore, validateCore } from '../modules/project-core.js';
+import { projectActions, validateAction } from '../modules/project-actions.js';
 
 export function registerProjectReads(app: FastifyInstance, database?: RuntimeDatabase) {
   const reads = database ? projectReads(database) : undefined;
   const saves = database ? projectSaves(database) : undefined;
   const core = database ? projectCore(database) : undefined;
+  const actions = database ? projectActions(database) : undefined;
+  async function actionHandler(request: import('fastify').FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: import('fastify').FastifyReply, confirm: boolean) {
+    if (!request.actor) return reply.code(401).send({ code: 'AUTH_REQUIRED', outcome: 'not_committed' });
+    if (!validId(request.params.id)) return reply.code(400).send({ code: 'INVALID_PROJECT_ID', outcome: 'not_committed' });
+    if (!actions) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE', outcome: 'not_committed' });
+    return { ...await actions.run(request.actor, request.params.id, validateAction(request.body), request.id, confirm), requestId: request.id };
+  }
+  app.post<{ Params: { id: string }; Body: unknown }>('/api/projects/:id/actions', (request, reply) => actionHandler(request, reply, false));
+  app.post<{ Params: { id: string }; Body: unknown }>('/api/projects/:id/action-results/query', (request, reply) => actionHandler(request, reply, true));
   async function coreHandler(request: import('fastify').FastifyRequest<{ Params: { id?: string }; Body: unknown }>, reply: import('fastify').FastifyReply, confirm: boolean) {
     if (!request.actor) return reply.code(401).send({ code: 'AUTH_REQUIRED', outcome: 'not_committed' });
     const id = request.params.id;

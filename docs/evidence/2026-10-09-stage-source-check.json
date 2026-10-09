@@ -1,0 +1,19 @@
+{
+  "source": "本轮已验证施工树；Git提交后源码应逐项保持一致",
+  "baseline": "f5bf84d456998b3309e9bb8c8db66b345bb96daa",
+  "files": {
+    "src/server/modules/project-actions.ts": "e4cefd4eefec344d14c317c55e9950d8186834557ccf8af6bf184205ce8c29df",
+    "src/server/modules/projects.ts": "405529370d0916aec84000e82bd7bb853c1297946ae99e22aa0cfe9ecb9967dc",
+    "src/server/routes/projects.ts": "0e655c75dd53fedab3b7b59b569d84e0627afe6a1735d79dd9a0ff2278f8b606",
+    "src/web/detail.ts": "e0367447748b3b8feb5e8fe5ee1e20be9da624d207d8be956d5473837286a3b2",
+    "src/web/shared/api.ts": "2a639f29342504b3393667001b4c483c180b020e9045e10f5d915409290f9a94",
+    "src/web/shared/detail.css": "ca06b65b75ac91eacfc014bad258dec32d3ab50282ea2e77926125c1c08ceb56",
+    "src/web/board.ts": "c7f33f1225bda68be3633e09040ac211ea52cd477b8bf5b7589ebe5c6e7cad07",
+    "vite.config.ts": "a7c92a10d05d0707a109b57b923cc31e9747aa26f86d79a2b2c620ac5c9285c6",
+    "scripts/verify-stage-actions.mjs": "ee8a15df5a0ca7c4cfac0f37dbb1f92c91d85199c048f493c839c66b9456958f",
+    "scripts/build.mjs": "f0e6cf8c884932c6d3a8253d0230c733bc982fc0ed4c870a1d7c764d3986cc3e",
+    "package.json": "f53f1c54d6218735f146a1ced7bb419002910be5ba25e2b5308d3bd1874894b3"
+  },
+  "stageDefinitionSource": "geekdashdesktop/projects-data.js",
+  "stageDefinitionSourceSha256": "23583bcb27ebf82d2a650eca73611900bcf6b8e39fba8a288a29419e0612422b"
+}

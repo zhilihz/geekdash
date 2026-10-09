@@ -1,5 +1,6 @@
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
+import { businessToday, stageBlock, type StageFact } from './project-actions.js';
 
 // V1.050 的阶段名称、完成权重和里程碑；查询不自动改变业务状态。
 export const stages = [
@@ -34,6 +35,7 @@ const collectionFilters: Record<string, string> = {
 // 原版 currentStage 取第一个未完成阶段；项目没有完整七阶段时不伪装成全部完成。
 const stageExpression = "COALESCE((SELECT MIN(s.stage_code) FROM project_stages s WHERE s.project_id=p.id AND s.state<>'completed'), IF((SELECT COUNT(*) FROM project_stages s WHERE s.project_id=p.id)=7,'completed','unconfigured'))";
 const progressExpression = `ELT(1+(SELECT COUNT(*) FROM project_stages s WHERE s.project_id=p.id AND s.state='completed'),${[0, ...stages.map(stage => stage.progress)].join(',')})`;
+const stageStateExpression = "COALESCE((SELECT s.state FROM project_stages s WHERE s.project_id=p.id AND s.state<>'completed' ORDER BY s.stage_code LIMIT 1), IF((SELECT COUNT(*) FROM project_stages s WHERE s.project_id=p.id)=7,'completed','unconfigured'))";
 
 function conditions(query: ProjectQuery, includeFilters: boolean) {
   const clauses: string[] = [];
@@ -92,7 +94,7 @@ export function projectReads(database: RuntimeDatabase) {
         const pageSize = query.pageSize ?? 24;
         const pageCount = Math.max(1, Math.ceil(total / pageSize));
         const page = Math.min(query.page ?? 1, pageCount);
-        const items = await enrich(connection, await rows(connection, `SELECT ${columns},${stageExpression} stage,${progressExpression} progress ${joins} ${filtered.sql} ORDER BY p.id DESC LIMIT ? OFFSET ?`, [...filtered.values, pageSize, (page - 1) * pageSize]));
+        const items = await enrich(connection, await rows(connection, `SELECT ${columns},${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress ${joins} ${filtered.sql} ORDER BY p.id DESC LIMIT ? OFFSET ?`, [...filtered.values, pageSize, (page - 1) * pageSize]));
         const options: Record<string, string[]> = {};
         for (const [key, column] of Object.entries(dimensionColumns)) {
           options[key] = (await rows(connection, `SELECT DISTINCT ${column} value ${joins} ${base.sql}${base.sql ? ' AND ' : ' WHERE '}${column} IS NOT NULL ORDER BY value`, base.values)).map(row => row.value);
@@ -106,7 +108,7 @@ export function projectReads(database: RuntimeDatabase) {
     },
     detail(id: string, accountId?: string) {
       return database.readSnapshot(async connection => {
-        const project = (await enrich(connection, await rows(connection, `SELECT ${columns},${stageExpression} stage,${progressExpression} progress,
+        const project = (await enrich(connection, await rows(connection, `SELECT ${columns},${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress,
           DATE_FORMAT(p.filed_on,'%Y-%m-%d') filingDate,DATE_FORMAT(p.started_on,'%Y-%m-%d') startDate,
           DATE_FORMAT(p.original_due_date,'%Y-%m-%d') originalDueDate,DATE_FORMAT(p.closed_on,'%Y-%m-%d') closedOn,
           p.signal_note signalNote,p.detail_note detailNote,p.summary_note summaryNote,p.chipstat_note chipstatNote,
@@ -123,7 +125,10 @@ export function projectReads(database: RuntimeDatabase) {
         const history = await rows(connection, 'SELECT CAST(id AS CHAR) id,source_date_text date,body text FROM legacy_project_history WHERE project_id=? ORDER BY source_sequence,id', [id]);
         const responsible = await rows(connection, 'SELECT CAST(u.id AS CHAR) id,u.display_name name,u.enabled FROM project_responsibilities r JOIN users u ON u.id=r.user_id WHERE r.project_id=? ORDER BY u.id', [id]);
         const editable = accountId ? responsible.some(user => user.id === accountId && !!user.enabled) : project.dataKind === 'trial';
-        return { project, stages: projectStages, nodes, risks, changes, delays, history, responsible, readOnly: !editable, capabilities: { editText: editable, editOrdinary: editable, join: !!accountId && !editable, leave: !!accountId && editable } };
+        const stageActions = projectStages.map(stage => ({ code: stage.code,
+          startBlocked: !accountId || !editable ? 'PROJECT_READ_ONLY' : stageBlock(project.status, projectStages as (RowDataPacket & StageFact)[], stage.code, 'startStage'),
+          completeBlocked: !accountId || !editable ? 'PROJECT_READ_ONLY' : stageBlock(project.status, projectStages as (RowDataPacket & StageFact)[], stage.code, 'completeStage') }));
+        return { project, stages: projectStages, stageActions, businessDate: businessToday(), nodes, risks, changes, delays, history, responsible, readOnly: !editable, capabilities: { editText: editable, editOrdinary: editable, join: !!accountId && !editable, leave: !!accountId && editable } };
       });
     },
   };

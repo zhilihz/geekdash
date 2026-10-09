@@ -24,6 +24,7 @@
     "test:capacity": "node scripts/verify-project-capacity.mjs",
     "test:ordinary": "node scripts/verify-project-ordinary.mjs",
     "test:core": "node scripts/verify-project-core.mjs",
+    "test:stages": "node scripts/verify-stage-actions.mjs",
     "db:test-accounts": "node dist/server/commands/test-accounts.js"
   },
   "dependencies": {
