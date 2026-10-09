@@ -434,14 +434,6 @@ button.about-log-title:hover { color: var(--text); }
     <h2 class="set-head">首页专区</h2>
     <div class="set-card">
       <div class="set-row">
-        <div class="set-label">风险预警专区</div>
-        <div class="seg" id="risk-zone"><button data-val="on">开</button><button data-val="off">关</button></div>
-      </div>
-      <div class="set-row">
-        <div class="set-label">需求变更专区</div>
-        <div class="seg" id="change-zone"><button data-val="on">开</button><button data-val="off">关</button></div>
-      </div>
-      <div class="set-row">
         <div class="set-label">最新状态展示</div>
         <div class="seg" id="activity-zone"><button data-val="on">开</button><button data-val="off">关</button></div>
       </div>
@@ -1211,26 +1203,18 @@ $("#auto-backup-max").addEventListener("change", e => {
   showToast("每天最多备份 " + autoBackupCfg.maxPerDay + " 个文件");
 });
 
-/* ---- 首页专区开关（共享 zone/activity 设置） ---- */
-const ZONE_SETTINGS_KEY = "hw_project_board_zone_settings";
+/* ---- 首页专区开关（共享 activity 设置） ---- */
 const ACTIVITY_SETTINGS_KEY = "hw_project_board_activity_settings";
-let zoneSettings = { riskZone: true, changeZone: true };
 let activitySettings = { enabled: true, count: 10, days: 30 };
-try { const r = localStorage.getItem(ZONE_SETTINGS_KEY); if (r) zoneSettings = Object.assign(zoneSettings, JSON.parse(r)); } catch (e) {}
 try { const r = localStorage.getItem(ACTIVITY_SETTINGS_KEY); if (r) activitySettings = Object.assign(activitySettings, JSON.parse(r)); } catch (e) {}
-function saveZone() { try { localStorage.setItem(ZONE_SETTINGS_KEY, JSON.stringify(zoneSettings)); } catch (e) {} }
 function saveActivity() { try { localStorage.setItem(ACTIVITY_SETTINGS_KEY, JSON.stringify(activitySettings)); } catch (e) {} }
 
 function renderZoneToggles() {
-  document.querySelectorAll("#risk-zone button").forEach(b => b.classList.toggle("active", (b.dataset.val === "on") === zoneSettings.riskZone));
-  document.querySelectorAll("#change-zone button").forEach(b => b.classList.toggle("active", (b.dataset.val === "on") === zoneSettings.changeZone));
   document.querySelectorAll("#activity-zone button").forEach(b => b.classList.toggle("active", (b.dataset.val === "on") === activitySettings.enabled));
   document.querySelectorAll("#activity-count button").forEach(b => b.classList.toggle("active", parseInt(b.dataset.val, 10) === activitySettings.count));
   document.querySelectorAll("#activity-range button").forEach(b => b.classList.toggle("active", parseInt(b.dataset.val, 10) === activitySettings.days));
 }
 renderZoneToggles();
-$("#risk-zone").addEventListener("click", e => { const b = e.target.closest("button[data-val]"); if (!b) return; zoneSettings.riskZone = b.dataset.val === "on"; saveZone(); renderZoneToggles(); });
-$("#change-zone").addEventListener("click", e => { const b = e.target.closest("button[data-val]"); if (!b) return; zoneSettings.changeZone = b.dataset.val === "on"; saveZone(); renderZoneToggles(); });
 $("#activity-zone").addEventListener("click", e => { const b = e.target.closest("button[data-val]"); if (!b) return; activitySettings.enabled = b.dataset.val === "on"; saveActivity(); renderZoneToggles(); });
 $("#activity-count").addEventListener("click", e => { const b = e.target.closest("button[data-val]"); if (!b) return; activitySettings.count = parseInt(b.dataset.val, 10); saveActivity(); renderZoneToggles(); });
 $("#activity-range").addEventListener("click", e => { const b = e.target.closest("button[data-val]"); if (!b) return; activitySettings.days = parseInt(b.dataset.val, 10); saveActivity(); renderZoneToggles(); });
