@@ -2269,7 +2269,7 @@ function setupStatusDescMentions() {
       .sort((a, b) => Number(b.name.toLowerCase() === keyword) - Number(a.name.toLowerCase() === keyword)).slice(0, 8);
     if (!keepActive) activeIndex = 0;
     menu.innerHTML = matches.length ? matches.map((e, i) => `<button type="button" class="mention-option ${i === activeIndex ? "active" : ""}" data-name="${esc(e.name)}" role="option"><span>@${esc(e.name)}</span><span class="mention-role">${esc(e.role || "")}</span></button>`).join("")
-      : `<div class="mention-option">按回车新增「${esc(found[1])}」（角色留空）</div>`;
+      : `<div class="mention-option">按回车保留「${esc(found[1])}」，不会新增到工程师库</div>`;
     menu.classList.add("open");
   };
   const choose = name => {
@@ -2287,8 +2287,7 @@ function setupStatusDescMentions() {
     if (!found || !menu.classList.contains("open")) return;
     if (e.key === "Enter" && !matches.length && found[1]) {
       e.preventDefault();
-      try { const engineer = PROJECT_DB.addStatusEngineer(found[1]); choose(engineer.name); showToast(`已新增工程师「${engineer.name}」，角色留空`); }
-      catch (error) { showToast("新增工程师失败：" + error.message, 3000); }
+      choose(found[1]);
       return;
     }
     if (!matches.length) return;

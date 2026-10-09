@@ -1,0 +1,40 @@
+{
+  "passed": true,
+  "browser": "Microsoft Edge",
+  "storage": "OPFS真实文件句柄",
+  "checks": [
+    {
+      "version": "V1.049",
+      "sourceSha256": "615492b0e22a0db6690c2b0ecfe848226f8f80559c3a476861eba72780bf0f16",
+      "legacySchema": 2,
+      "projectFieldsPreserved": 25,
+      "opened": true,
+      "edited": true,
+      "savedToRealFile": true,
+      "clearedCacheAndReopened": true,
+      "oldRolesAndHistoryPreserved": true
+    },
+    {
+      "version": "V1.050",
+      "sourceSha256": "a0465a0cd2aac1fad73030fd80d90c06e4196cf9916e0c2990a17fa90453c52f",
+      "legacySchema": 2,
+      "projectFieldsPreserved": 25,
+      "opened": true,
+      "edited": true,
+      "savedToRealFile": true,
+      "clearedCacheAndReopened": true,
+      "oldRolesAndHistoryPreserved": true
+    },
+    {
+      "version": "V1.051",
+      "sourceSha256": "23583bcb27ebf82d2a650eca73611900bcf6b8e39fba8a288a29419e0612422b",
+      "legacySchema": 2,
+      "projectFieldsPreserved": 26,
+      "opened": true,
+      "edited": true,
+      "savedToRealFile": true,
+      "clearedCacheAndReopened": true,
+      "oldRolesAndHistoryPreserved": true
+    }
+  ]
+}
