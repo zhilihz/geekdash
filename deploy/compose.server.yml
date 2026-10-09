@@ -12,6 +12,7 @@ services:
       HOST: 0.0.0.0
       PORT: "3000"
       GEEKDASH_DB_PROFILE: dev_app
+      GEEKDASH_ORIGIN: https://geekdash.zhiluan.cool
     ports: ["127.0.0.1:41860:3000"]
     secrets: [dev_app]
     networks: [default, database]

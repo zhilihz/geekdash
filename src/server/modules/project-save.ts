@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { PoolConnection, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
+import { assertActor, type Actor } from './identity.js';
 
 export const textColumns = { name: 'name', marketExpectation: 'market_expectation', detailNote: 'detail_note', summaryNote: 'summary_note' } as const;
 const columns = { ...textColumns, signalNote: 'signal_note', chipstatNote: 'chipstat_note', statusDesc: 'status_description', signal: 'signal', priority: 'priority', customerId: 'customer_id', odmCustomerId: 'odm_customer_id', productLineId: 'product_line_id', appId: 'app_id', groupId: 'group_id' } as const;
@@ -65,16 +66,16 @@ function requestHash(id: string, request: SaveRequest) {
   return createHash('sha256').update(JSON.stringify([id, mode(request), request.expectedVersion, changes])).digest();
 }
 const mode = (request: SaveRequest) => Object.keys(request.changes).every(key => Object.hasOwn(textColumns, key)) ? 'text' : 'ordinary';
-const scope = (id: string, request: SaveRequest) => `anonymous:project:${id}:${mode(request)}`;
+const scope = (id: string, request: SaveRequest, actor?: Actor) => `${actor ? 'user:' + actor.id : 'anonymous'}:project:${id}:${mode(request)}`;
 function receiptResult(receipt: RowDataPacket, hash: Buffer): SaveResult {
   if (!Buffer.isBuffer(receipt.request_hash) || !receipt.request_hash.equals(hash)) failure('OPERATION_KEY_REUSED', 409);
   return typeof receipt.response_json === 'string' ? JSON.parse(receipt.response_json) : receipt.response_json;
 }
-async function project(connection: PoolConnection, id: string, locked: boolean) {
+async function project(connection: PoolConnection, id: string, locked: boolean, authenticated = false) {
   const row = (await query(connection, `SELECT CAST(id AS CHAR) id,CAST(version AS CHAR) version,data_kind,
     ${Object.entries(columns).map(([key, column]) => `${column.endsWith('_id') ? `CAST(\`${column}\` AS CHAR)` : `\`${column}\``} \`${key}\``).join(',')} FROM projects WHERE id=?${locked ? ' FOR UPDATE' : ''}`, [id]))[0];
   if (!row) failure('PROJECT_NOT_FOUND', 404);
-  if (row.data_kind !== 'trial') failure('PROJECT_READ_ONLY', 403);
+  if (!authenticated && row.data_kind !== 'trial') failure('PROJECT_READ_ONLY', 403);
   return row;
 }
 async function linkedValues(connection: PoolConnection, id: string) {
@@ -119,16 +120,18 @@ export function projectSaves(database: RuntimeDatabase) {
         return result;
       });
     },
-    save(id: string, request: SaveRequest, requestId: string) {
+    save(id: string, request: SaveRequest, requestId: string, actor?: Actor) {
       const hash = requestHash(id, request);
       return database.writeTransaction(async connection => {
+        if (actor) await assertActor(connection, actor);
         const extended = mode(request) === 'ordinary';
         // 资料锁在项目锁之前；取得锁后才检查原回执和新增引用资格。
         const locked = extended ? await lockReferences(connection, request.changes) : {};
-        const current = await project(connection, id, true);
+        const current = await project(connection, id, true, !!actor);
         // 当前锁定读在版本判断前，等待前一次提交后可读到真实回执。
-        const receipt = (await query(connection, 'SELECT request_hash,response_json FROM command_receipts WHERE command_scope=? AND idempotency_key=? FOR UPDATE', [scope(id, request), request.idempotencyKey]))[0];
+        const receipt = (await query(connection, 'SELECT request_hash,response_json FROM command_receipts WHERE command_scope=? AND idempotency_key=? FOR UPDATE', [scope(id, request, actor), request.idempotencyKey]))[0];
         if (receipt) return receiptResult(receipt, hash);
+        if (actor && !(await query(connection, 'SELECT user_id FROM project_responsibilities WHERE project_id=? AND user_id=?', [id, actor.id])).length) failure('PROJECT_READ_ONLY', 403);
         if (current.version !== request.expectedVersion) failure('PROJECT_VERSION_CONFLICT', 409, { currentVersion: current.version });
         if (extended) Object.assign(current, await linkedValues(connection, id));
         const errors: Record<string, string> = {};
@@ -165,16 +168,18 @@ export function projectSaves(database: RuntimeDatabase) {
           const before = Object.fromEntries(fields.map(key => [key, beforeDisplay[key]]));
           const after = Object.fromEntries(fields.map(key => [key, afterDisplay[key]]));
           await connection.execute(`INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,version_before,version_after,before_json,after_json,request_id,created_at)
-            VALUES (NULL,'未认证操作','anonymous',?,'project',?,?,?,?,?,?,?,?)`, [extended ? 'project.ordinary.save' : 'project.text.save', id, id, current.version, result.savedVersion, JSON.stringify(before), JSON.stringify(after), requestId, timestamp]);
+            VALUES (?,?,?,?,'project',?,?,?,?,?,?,?,?)`, [actor?.id ?? null, actor?.name ?? '未认证操作', actor ? 'user' : 'anonymous', extended ? 'project.ordinary.save' : 'project.text.save', id, id, current.version, result.savedVersion, JSON.stringify(before), JSON.stringify(after), requestId, timestamp]);
         }
-        await connection.execute('INSERT INTO command_receipts (actor_id,command_scope,idempotency_key,request_hash,response_code,response_json,committed_at) VALUES (NULL,?,?,?,?,?,UTC_TIMESTAMP(3))', [scope(id, request), request.idempotencyKey, hash, 200, JSON.stringify(result)]);
+        await connection.execute('INSERT INTO command_receipts (actor_id,command_scope,idempotency_key,request_hash,response_code,response_json,committed_at) VALUES (?,?,?,?,?,?,UTC_TIMESTAMP(3))', [actor?.id ?? null, scope(id, request, actor), request.idempotencyKey, hash, 200, JSON.stringify(result)]);
         return result;
       });
     },
-    confirm(id: string, request: SaveRequest) {
+    confirm(id: string, request: SaveRequest, actor?: Actor) {
       return database.readSnapshot(async connection => {
-        await project(connection, id, false);
-        const receipt = (await query(connection, 'SELECT request_hash,response_json FROM command_receipts WHERE command_scope=? AND idempotency_key=?', [scope(id, request), request.idempotencyKey]))[0];
+        const current = await project(connection, id, false, !!actor);
+        let receipt = (await query(connection, 'SELECT request_hash,response_json FROM command_receipts WHERE command_scope=? AND idempotency_key=?', [scope(id, request, actor), request.idempotencyKey]))[0];
+        // 旧 trial 匿名提交仅可对账，不把旧请求重放成新的实名写入。
+        if (!receipt && actor && current.data_kind === 'trial') receipt = (await query(connection, 'SELECT request_hash,response_json FROM command_receipts WHERE command_scope=? AND idempotency_key=? AND actor_id IS NULL', [scope(id, request), request.idempotencyKey]))[0];
         return receipt ? { outcome: 'committed', result: receiptResult(receipt, requestHash(id, request)) } : { outcome: 'not_found' };
       });
     },

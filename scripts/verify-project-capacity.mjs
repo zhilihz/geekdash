@@ -4,6 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { createApp } from '../dist/server/app.js';
 import { connectDatabase } from '../dist/server/infrastructure/db.js';
 import { openRuntimeDatabase } from '../dist/server/infrastructure/runtime-database.js';
+import { hashPassword } from '../dist/server/modules/identity.js';
 
 const namespace = '__capacity_500_test__';
 const ids = Array.from({length: 501}, (_, i) => String(9007199254780000n + BigInt(i)));
@@ -12,8 +13,13 @@ let app, runtime, origin, owned = false;
 const references = {customers: [], chips: [], engineers: [], tags: []};
 const measurements = {list: [], detail: [], save: [], audit: []};
 const began = new Date().toISOString();
+const accounts = [];
+const password = '四人容量验证 password 2026';
 async function api(path, method = 'GET', body) {
-  const response = await fetch(origin + path, {method, ...(body ? {headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)} : {})});
+  const target = /^\/api\/projects\/([0-9]+)/.exec(path)?.[1];
+  const index = target ? Math.max(ids.indexOf(target), 0) % 4 : Number(new URL(path, 'http://localhost').searchParams.get('customer')?.slice(-1) ?? 0);
+  const account = accounts[index];
+  const response = await fetch(origin + path, {method, headers: {'Content-Type':'application/json',Cookie:account.cookie,Origin:'http://localhost','X-GeekDash-Request':'1','X-GeekDash-CSRF':account.csrf,'X-GeekDash-Account':account.id,'X-GeekDash-Active':'1'}, ...(body ? {body: JSON.stringify(body)} : {})});
   const result = await response.json(); assert.equal(response.status, 200, JSON.stringify(result)); return result;
 }
 async function measured(kind, path, method, body) { const start = performance.now(); const result = await api(path,method,body); measurements[kind].push(performance.now()-start); return result; }
@@ -21,7 +27,17 @@ try {
   const [existing] = await connection.execute('SELECT id FROM projects WHERE source_namespace=? OR id BETWEEN ? AND ?', [namespace,ids[0],ids.at(-1)]);
   assert.equal(existing.length, 0, '自己的夹具存在；先核对，不能覆盖');
   runtime = await openRuntimeDatabase('test_app');
-  app = await createApp(runtime); origin = await app.listen({host: '127.0.0.1',port: 0});
+  app = await createApp(runtime, {origin:'http://localhost',secure:false}); origin = await app.listen({host: '127.0.0.1',port: 0});
+  const hash = await hashPassword(password);
+  for (let index=0;index<4;index++) {
+    const loginName='capacity_'+randomUUID().slice(0,8)+'_'+index;
+    await connection.execute('INSERT INTO users (login_name,password_hash,display_name,must_change_password,created_at,updated_at) VALUES (?,?,?,0,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))',[loginName,hash,'合成容量账号'+index]);
+    const id=(await connection.query('SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0][0].id;
+    accounts.push({id});
+    const login=await fetch(origin+'/api/auth/login',{method:'POST',headers:{Origin:'http://localhost','X-GeekDash-Request':'1','Content-Type':'application/json'},body:JSON.stringify({loginName,password})});
+    assert.equal(login.status,200); const cookies=login.headers.getSetCookie().map(value=>value.split(';')[0]);
+    Object.assign(accounts[index],{cookie:cookies.find(value=>value.startsWith('geekdash_dev=')),csrf:cookies.find(value=>value.startsWith('geekdash_dev_csrf=')).split('=')[1]});
+  }
   await connection.beginTransaction();
   for (const [table, columns] of Object.entries({customers:['contact','background'], chips:['original_model','manufacturer','firmware_version'],engineers:['role'],tags:[]})) {
     for (let index = 0; index < 4; index++) {
@@ -31,8 +47,10 @@ try {
   }
   for (let index = 0; index < 500; index++) {
     const projectId = ids[index];
+    const account = accounts[index%4];
     await connection.execute(`INSERT INTO projects (id,name,data_kind,source_namespace,source_key,status,customer_id,signal_note,market_expectation,status_description,detail_note,summary_note,chipstat_note,closure_note,remaining_work_note,created_at,updated_at)
       VALUES (?,?,'trial',?,?,'ongoing',?,'合成容量夹具','首版规模试用','待验证',?,'初始摘要','','','',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))`, [projectId,'规模项目'+index,namespace,String(index),references.customers[index%4],('合成项目说明\n内容🙂\n').repeat(10)]);
+    await connection.execute('INSERT INTO project_responsibilities (project_id,user_id,joined_at) VALUES (?,?,UTC_TIMESTAMP(3))',[projectId,account.id]);
     for (let stage=1;stage<=7;stage++) await connection.execute('INSERT INTO project_stages (project_id,stage_code,state,note) VALUES (?,?,?,?)',[projectId,'S'+stage,stage===1 ? index%2 ? 'active' : 'completed' : stage===2 && index%2===0 ? 'ready':'locked','阶段说明']);
     await connection.execute('INSERT INTO project_chips (project_id,chip_id,sort_order) VALUES (?,?,0)',[projectId,references.chips[index%4]]);
     await connection.execute("INSERT INTO project_people (project_id,engineer_id,role,sort_order) VALUES (?,?,'hardware_owner',0)",[projectId,references.engineers[index%4]]);
@@ -65,17 +83,18 @@ try {
   assert.equal((await api('/api/projects?view=all&search='+encodeURIComponent('规模测试项目'))).pagination.total,501);
   const summary=Object.fromEntries(Object.entries(measurements).map(([kind,values])=>{values.sort((a,b)=>a-b);return [kind,{requests:values.length,p50Ms:Math.round(values[Math.ceil(values.length*.5)-1]),p95Ms:Math.round(values[Math.ceil(values.length*.95)-1]),maxMs:Math.round(values.at(-1))}];}));
   await mkdir('test-results',{recursive:true});
-  const result={status:'passed',startedAt:began,checkedAt:new Date().toISOString(),projectCount:500,stageCount:3500,initialAuditCount:500,workers:4,rounds:20,errorCount:0,measurements:summary,noHardProjectLimit:true,source:'专用测试库/合成数据/真实 HTTP；本地或云内环回延时，不代表公司公网浏览器延时'};
+  const result={status:'passed',startedAt:began,checkedAt:new Date().toISOString(),projectCount:500,stageCount:3500,initialAuditCount:500,workers:4,authenticated:true,rounds:20,errorCount:0,measurements:summary,noHardProjectLimit:true,source:'专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时'};
   await writeFile('test-results/project-capacity-check.json',JSON.stringify(result,null,2)+'\n'); console.log(JSON.stringify(result));
 } finally {
   await connection.rollback(); await app?.close();
   if (!app) await runtime?.close();
   if (owned) {
-    for (const table of ['audit_log','project_risks','project_nodes','project_chips','project_people','project_tags','project_stages']) await connection.execute(`DELETE FROM ${table} WHERE project_id IN (SELECT id FROM projects WHERE source_namespace=?)`,[namespace]);
+    for (const table of ['audit_log','project_risks','project_nodes','project_chips','project_people','project_tags','project_stages','project_responsibilities']) await connection.execute(`DELETE FROM ${table} WHERE project_id IN (SELECT id FROM projects WHERE source_namespace=?)`,[namespace]);
     const scopes=ids.flatMap(id=>['text','ordinary'].map(mode=>'anonymous:project:'+id+':'+mode));
     await connection.execute('DELETE FROM command_receipts WHERE command_scope IN ('+scopes.map(()=>'?').join(',')+')',scopes);
     await connection.execute('DELETE FROM projects WHERE source_namespace=?',[namespace]);
     for (const [table,refs] of Object.entries(references)) for (const reference of refs) await connection.execute(`DELETE FROM ${table} WHERE id=?`,[reference]);
   }
+  for (const account of accounts) { await connection.execute('DELETE FROM command_receipts WHERE actor_id=?',[account.id]); await connection.execute('DELETE FROM audit_log WHERE actor_id=?',[account.id]); await connection.execute('DELETE FROM sessions WHERE user_id=?',[account.id]); await connection.execute('DELETE FROM users WHERE id=?',[account.id]); }
   await connection.end();
 }

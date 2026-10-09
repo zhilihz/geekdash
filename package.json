@@ -22,7 +22,9 @@
     "test:projects": "node scripts/verify-project-reads.mjs",
     "test:saves": "node scripts/verify-project-saves.mjs",
     "test:capacity": "node scripts/verify-project-capacity.mjs",
-    "test:ordinary": "node scripts/verify-project-ordinary.mjs"
+    "test:ordinary": "node scripts/verify-project-ordinary.mjs",
+    "test:core": "node scripts/verify-project-core.mjs",
+    "db:test-accounts": "node dist/server/commands/test-accounts.js"
   },
   "dependencies": {
     "@fastify/static": "10.1.5",

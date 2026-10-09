@@ -1,12 +1,13 @@
 import { createApp } from './app.js';
 import { readConfig } from './infrastructure/config.js';
 import { openRuntimeDatabase, type RuntimeDatabase } from './infrastructure/runtime-database.js';
+import { readAuthConfig } from './routes/identity.js';
 
 let database: RuntimeDatabase | undefined;
 try {
   const { databaseProfile, ...listen } = readConfig();
   database = await openRuntimeDatabase(databaseProfile);
-  const app = await createApp(database);
+  const app = await createApp(database, readAuthConfig());
   app.log.info({ database: database.fact.database, schemaVersion: database.fact.version }, '数据库已核验');
   let shuttingDown = false;
   const close = async () => {

@@ -2,10 +2,24 @@ import type { FastifyInstance } from 'fastify';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 import { projectReads, type ProjectQuery } from '../modules/projects.js';
 import { projectSaves, validateSave, validId, type SaveRequest } from '../modules/project-save.js';
+import { projectCore, validateCore } from '../modules/project-core.js';
 
 export function registerProjectReads(app: FastifyInstance, database?: RuntimeDatabase) {
   const reads = database ? projectReads(database) : undefined;
   const saves = database ? projectSaves(database) : undefined;
+  const core = database ? projectCore(database) : undefined;
+  async function coreHandler(request: import('fastify').FastifyRequest<{ Params: { id?: string }; Body: unknown }>, reply: import('fastify').FastifyReply, confirm: boolean) {
+    if (!request.actor) return reply.code(401).send({ code: 'AUTH_REQUIRED', outcome: 'not_committed' });
+    const id = request.params.id;
+    if (id !== undefined && !validId(id)) return reply.code(400).send({ code: 'INVALID_PROJECT_ID', outcome: 'not_committed' });
+    if (!core) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE', outcome: 'not_committed' });
+    const result = await core.run(request.actor, validateCore(request.body, !id), id, request.id, confirm);
+    return { ...result, requestId: request.id };
+  }
+  app.post<{ Params: { id?: string }; Body: unknown }>('/api/projects', (request, reply) => coreHandler(request, reply, false));
+  app.post<{ Params: { id?: string }; Body: unknown }>('/api/projects/create-results/query', (request, reply) => coreHandler(request, reply, true));
+  app.post<{ Params: { id: string }; Body: unknown }>('/api/projects/:id/responsibility', (request, reply) => coreHandler(request, reply, false));
+  app.post<{ Params: { id: string }; Body: unknown }>('/api/projects/:id/responsibility-results/query', (request, reply) => coreHandler(request, reply, true));
   app.get('/api/project-options', async (_request, reply) => {
     reply.header('Cache-Control', 'no-store');
     if (!saves) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE' });
@@ -13,13 +27,13 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
     catch (error) { app.log.warn({ code: (error as { code?: string }).code }, '项目候选资料未能读取'); return reply.code(503).send({ code: 'PROJECT_OPTIONS_UNAVAILABLE' }); }
   });
   // 不接受浏览器提供的身份、范围或额外业务字段；错误响应不回显正文。
-  async function saveHandler(request: { params: { id: string }; body: unknown; id: string }, reply: import('fastify').FastifyReply, confirm: boolean) {
+  async function saveHandler(request: { params: { id: string }; body: unknown; id: string; actor?: import('../modules/identity.js').Actor }, reply: import('fastify').FastifyReply, confirm: boolean) {
     reply.header('Cache-Control', 'no-store');
     if (!validId(request.params.id)) return reply.code(400).send({ code: 'INVALID_PROJECT_ID' });
     if (!saves) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE', outcome: 'not_committed' });
     try {
       const input: SaveRequest = validateSave(request.body);
-      const result = confirm ? await saves.confirm(request.params.id, input) : await saves.save(request.params.id, input, request.id);
+      const result = confirm ? await saves.confirm(request.params.id, input, request.actor) : await saves.save(request.params.id, input, request.id, request.actor);
       return confirm ? { ...result, requestId: request.id } : { outcome: 'committed', result, requestId: request.id };
     } catch (error) {
       const failure = error as { status?: number; code?: string; fields?: unknown; currentVersion?: string; message?: string };
@@ -65,7 +79,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
     if (BigInt(request.params.id) > 18446744073709551615n) return reply.code(400).send({ code: 'INVALID_PROJECT_ID' });
     if (!reads) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE' });
     try {
-      const result = await reads.detail(request.params.id);
+      const result = await reads.detail(request.params.id, request.actor?.id);
       return result ?? reply.code(404).send({ code: 'PROJECT_NOT_FOUND' });
     } catch (error) { app.log.warn({ code: (error as { code?: string }).code }, '项目详情未完成'); return reply.code(503).send({ code: 'PROJECT_READ_UNAVAILABLE' }); }
   });

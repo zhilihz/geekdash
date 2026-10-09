@@ -1,6 +1,6 @@
 import './shared/detail.css';
 import './shared/read.css';
-import { get, send, SaveError, esc, label, projectTags, setupTheme, type Detail, type Entry, type EditValues, type Catalog, type SaveRequest, type SaveResult, type AuditPage } from './shared/api';
+import { get, send, SaveError, esc, label, projectTags, setupTheme, requireIdentity, account, type Detail, type Entry, type EditValues, type Catalog, type SaveRequest, type SaveResult, type AuditPage } from './shared/api';
 
 const element = (id: string) => document.getElementById(id)!;
 const id = new URLSearchParams(location.search).get('id') ?? '';
@@ -19,6 +19,7 @@ let catalogLoading = false;
 let observedVersion = '0';
 let editBaseVersion = '0';
 let stale = false;
+let authFrozen = false;
 let pending: SaveRequest | undefined;
 let inFlight = false;
 let loading = false;
@@ -27,7 +28,48 @@ let storageFailed = false;
 let bufferTimer: ReturnType<typeof setTimeout> | undefined;
 type Buffer = { format: 2; baseVersion: string; values: EditValues; pending?: SaveRequest };
 let candidate: Buffer | undefined;
-const bufferKey = `geekdash_trial_text_v1:${id}`;
+let legacyCopy: Buffer | undefined;
+let bufferKey = '';
+type ResponsibilityCommand = { expectedVersion: string; idempotencyKey: string; action: 'join' | 'leave' };
+let responsibilityPending: ResponsibilityCommand | undefined;
+const responsibilityKey = () => `geekdash_responsibility:${account!.id}:${id}`;
+function responsibilityControls() {
+  if (!snapshot) return;
+  const members = (snapshot.responsible ?? []).map(user => esc(user.name) + (user.enabled ? '' : '（已停用）')).join('、') || '尚未建立账号负责关系';
+  element('responsibility').innerHTML = `项目负责人：${members}。${snapshot.readOnly ? '当前仅可查看。' : '本人已负责，可编辑。'} <button class="back-btn" id="responsibility-save">${snapshot.readOnly ? '保存加入本人负责范围' : '保存退出本人负责范围'}</button>${responsibilityPending ? ' <button class="back-btn" id="responsibility-confirm">确认原责任变更</button><button class="back-btn" id="responsibility-retry">重试原责任变更</button>' : ''}`;
+  (element('responsibility-save') as HTMLButtonElement).disabled = loading || inFlight || stale || !!pending || !!responsibilityPending;
+  element('responsibility-save').onclick = async () => {
+    if (!snapshot || inFlight || pending || stale || responsibilityPending) return;
+    if (dirty()) {
+      const choice = await choose('变更负责范围前请处理未保存内容。', [['cancel', '继续编辑'], ['keep', '保留副本供复制，再变更'], ['discard', '放弃未保存内容，再变更']]);
+      if (choice === 'cancel') return;
+      if (choice === 'keep') { persist(); candidate = { format: 2, baseVersion: editBaseVersion, values: structuredClone(values!) }; }
+      else { candidate = undefined; sessionStorage.removeItem(bufferKey); }
+    }
+    responsibilityPending = { expectedVersion: snapshot.project.version, idempotencyKey: crypto.randomUUID(), action: snapshot.readOnly ? 'join' : 'leave' };
+    try { sessionStorage.setItem(responsibilityKey(), JSON.stringify(responsibilityPending)); } catch { note('恢复存储不可用，请保留页面至结果确认。', true); }
+    await changeResponsibility(false);
+  };
+  for (const [name, confirm] of [['responsibility-confirm', true], ['responsibility-retry', false]] as const) { const button = document.getElementById(name) as HTMLButtonElement | null; if (button) { button.disabled = inFlight; button.onclick = () => { void changeResponsibility(confirm); }; } }
+  if (legacyCopy?.pending) {
+    const button = document.createElement('button'); button.className = 'back-btn'; button.textContent = '确认旧试用保存结果'; button.disabled = inFlight;
+    button.onclick = async () => { try { const response = await send<{ outcome: string }>(`/api/projects/${id}/save-results/query`, 'POST', legacyCopy!.pending!, false); note(response.outcome === 'committed' ? '旧试用保存已经确认。旧文字保留供复制核对，不会作为实名请求重放。' : '暂未查到旧试用保存；旧文字可复制核对，请重新进入后明确保存。'); } catch (error) { note((error as Error).message, true); } };
+    element('responsibility').append(button);
+  }
+}
+async function changeResponsibility(confirm: boolean) {
+  if (!responsibilityPending || inFlight) return; inFlight = true; controls();
+  let committed = false;
+  try {
+    const response = await send<{ outcome: string }>(`/api/projects/${id}/${confirm ? 'responsibility-results/query' : 'responsibility'}`, 'POST', responsibilityPending, !confirm);
+    if (response.outcome === 'committed') { responsibilityPending = undefined; sessionStorage.removeItem(responsibilityKey()); committed = true; }
+    else note('暂未查到原责任变更，可重试原操作；不要另造操作编号。', true);
+  } catch (error) {
+    note((error as Error).message, true);
+    if (error instanceof SaveError && error.outcome === 'not_committed') { responsibilityPending = undefined; sessionStorage.removeItem(responsibilityKey()); if (error.code === 'PROJECT_VERSION_CONFLICT') stale = true; }
+  } finally { inFlight = false; controls(); }
+  if (committed) await load();
+}
 let audit: AuditPage | undefined;
 let auditGeneration = 0;
 let auditMessage = '';
@@ -40,15 +82,16 @@ function baseline(): EditValues {
 function changes() { const base = baseline(); return Object.fromEntries(keys.filter(key => JSON.stringify(values![key]) !== JSON.stringify(base[key])).map(key => [key, values![key]])) as Partial<EditValues>; }
 function dirty() { return !!values && !!snapshot && Object.keys(changes()).length > 0; }
 function controls() {
-  const frozen = inFlight || !!pending || loading;
-  document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('[data-edit]').forEach(input => { input.disabled = frozen || stale || input.dataset.reference === 'true' && !catalog; });
+  responsibilityControls();
+  const frozen = inFlight || !!pending || !!responsibilityPending || loading;
+  document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('[data-edit]').forEach(input => { input.disabled = frozen || stale || authFrozen || input.dataset.reference === 'true' && !catalog; });
   const save = document.getElementById('save') as HTMLButtonElement | null;
-  if (save) save.disabled = frozen || stale || !dirty();
+  if (save) save.disabled = frozen || stale || authFrozen || !dirty();
   const discard = document.getElementById('discard') as HTMLButtonElement | null;
   if (discard) discard.disabled = frozen || !dirty();
   for (const action of ['confirm', 'retry']) { const button = document.getElementById(action) as HTMLButtonElement | null; if (button) button.disabled = inFlight; }
   (element('reload') as HTMLButtonElement).disabled = frozen;
-  element('copy').hidden = !dirty() && !candidate && !pending;
+  element('copy').hidden = !dirty() && !candidate && !legacyCopy && !pending;
   const state = document.getElementById('edit-state');
   if (state) state.textContent = pending ? inFlight ? '正在处理原操作，请等待…' : '原操作结果尚未确认，请确认结果或重试原操作。' : stale ? '项目已被他人更新，请重新进入项目。旧文字已保留供复制。' : dirty() ? '项目尚未保存' : '与进入版本一致';
   const warning = document.getElementById('storage-warning');
@@ -64,9 +107,9 @@ function persist() {
   } catch { storageFailed = true; }
   controls();
 }
-function readBuffer() {
+function readBuffer(key = bufferKey) {
   try {
-    const parsed = JSON.parse(sessionStorage.getItem(bufferKey) ?? 'null');
+    const parsed = JSON.parse(sessionStorage.getItem(key) ?? 'null');
     const valid = (key: string, value: unknown) => {
       if (!keys.includes(key as keyof EditValues)) return false;
       if (key === 'people') return Array.isArray(value) && value.every(person => typeof person?.id === 'string' && /^[1-9][0-9]{0,19}$/.test(person.id) && roles.includes(person.role));
@@ -92,7 +135,7 @@ function choose(text: string, options: [string, string][], extra = ''): Promise<
   });
 }
 async function copyText() {
-  const text = keys.map(key => `${titles[key]}\n${showValue(key, values?.[key])}`).join('\n\n') + (candidate ? '\n\n——恢复候选副本——\n' + keys.map(key => `${titles[key]}\n${showValue(key, candidate!.values[key])}`).join('\n\n') : '');
+  const text = keys.map(key => `${titles[key]}\n${showValue(key, values?.[key])}`).join('\n\n') + (candidate ? '\n\n——恢复候选副本——\n' + keys.map(key => `${titles[key]}\n${showValue(key, candidate!.values[key])}`).join('\n\n') : '') + (legacyCopy ? '\n\n——旧匿名试用副本（仅供核对）——\n' + keys.map(key => `${titles[key]}\n${showValue(key, legacyCopy!.values[key])}`).join('\n\n') : '');
   await choose('以下文字可选择后复制；复制不会保存项目。', [['cancel', '关闭']], `<textarea class="copy-text" readonly aria-label="未保存文字">${esc(text)}</textarea>`);
 }
 function editor() {
@@ -212,6 +255,7 @@ async function execute(confirm: boolean) {
     } else { note('暂未查到原操作回执，结果仍未确认。可稍后确认或重试原操作。', true); persist(); }
   } catch (error) {
     const failure = error instanceof SaveError ? error : new SaveError('TRANSPORT_UNKNOWN', 'unknown');
+    if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'PASSWORD_CHANGE_REQUIRED'].includes(failure.code)) authFrozen = true;
     if (failure.code === 'PROJECT_VERSION_CONFLICT') stale = true;
     if (failure.outcome === 'not_committed' && failure.code !== 'OPERATION_KEY_REUSED') pending = undefined;
     note(failure.message, true); persist();
@@ -223,11 +267,11 @@ async function observe(afterSave = false) {
   if (!entry) return;
   const token = generation;
   try {
-    const current = await get<Detail>('/api/projects/' + id);
+    const current = await get<Detail>('/api/projects/' + id, undefined, !afterSave);
     if (token !== generation || snapshot !== entry) return;
     if (BigInt(current.project.version) > BigInt(observedVersion)) observedVersion = current.project.version;
     if (BigInt(observedVersion) > BigInt(entry.project.version)) { stale = true; note('项目已被他人更新，请重新进入项目。未保存文字已保留供复制。', true); controls(); }
-  } catch { if (afterSave) note('本次保存已确认，后续详情刷新失败。可重新进入查看；无需重复保存。', true); }
+  } catch (error) { if (error instanceof SaveError) { authFrozen = true; persist(); note(error.message, true); controls(); } else if (afterSave) note('本次保存已确认，后续详情刷新失败。可重新进入查看；无需重复保存。', true); }
 }
 async function loadAudit(more = false) {
   const token = ++auditGeneration;
@@ -254,7 +298,7 @@ function table(items: Entry[], fields: [string, string][]) {
 function render() {
   if (!snapshot) return;
   const p = snapshot.project;
-  element('notice').textContent = snapshot.capabilities.editText ? '合成测试项目：普通文字、灯色、紧急程度和资料关联点击“保存项目”后生效，历史记为未认证操作。页面保持进入版本。' : '当前项目只能查看。页面保持进入时的项目版本，点击重新进入读取最新版。';
+  element('notice').textContent = snapshot.capabilities.editText ? '本人负责项目：普通文字、灯色、紧急程度和资料关联点击“保存项目”后生效，历史记录实际账号。页面保持进入版本。' : '当前项目只能查看。保存加入本人负责范围后可编辑；重新进入读取最新版。';
   element('d-title').textContent = p.name;
   element('d-tags').innerHTML = projectTags(p);
   element('d-meta').textContent = `客户：${p.customer ?? '—'} · 产品线：${p.productLine ?? '—'} · 核心芯片：${p.chips.map(chip => chip.name).join(' / ') || '—'} · 项目版本：${p.version}`;
@@ -332,5 +376,11 @@ element('back').onclick = async event => {
 element('copy').onclick = () => { void copyText(); };
 window.addEventListener('focus', () => { void observe(); });
 window.addEventListener('beforeunload', event => { if (!leaving && (dirty() || pending)) { persist(); event.preventDefault(); } });
-void load(true);
-void loadCatalog();
+document.addEventListener('geekdash-identity-changed', () => { persist(); authFrozen = true; note('账号已变化。请复制未保存内容，重新登录原账号后再进入。', true); controls(); });
+void requireIdentity().then(async () => {
+  bufferKey = `geekdash_project_buffer:${account!.id}:${id}`;
+  // 匿名副本不归属任一账号；只提示保留供核对，不自动作为实名编辑恢复。
+  if (sessionStorage.getItem(`geekdash_trial_text_v1:${id}`)) note('发现旧试用副本，请保留原标签页内容供核对；新编辑按当前账号隔离。');
+  try { responsibilityPending = JSON.parse(sessionStorage.getItem(responsibilityKey()) ?? 'null') ?? undefined; } catch { note('责任变更恢复信息损坏，请先核对当前负责人。', true); }
+  await load(true); legacyCopy = readBuffer(`geekdash_trial_text_v1:${id}`); await loadCatalog(); if (responsibilityPending) await changeResponsibility(true);
+}).catch(error => { note((error as Error).message, true); const link = document.createElement('a'); link.href = '/login.html'; link.textContent = '登录 GeekDash'; element('message').append(' ', link); });

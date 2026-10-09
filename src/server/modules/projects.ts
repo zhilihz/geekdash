@@ -104,7 +104,7 @@ export function projectReads(database: RuntimeDatabase) {
         return { items, stats: Object.fromEntries(Object.entries(stats).map(([key, value]) => [key, Number(value)])), stageCounts, options, pagination: { page, pageSize, total, pageCount }, readOnly: true };
       });
     },
-    detail(id: string) {
+    detail(id: string, accountId?: string) {
       return database.readSnapshot(async connection => {
         const project = (await enrich(connection, await rows(connection, `SELECT ${columns},${stageExpression} stage,${progressExpression} progress,
           DATE_FORMAT(p.filed_on,'%Y-%m-%d') filingDate,DATE_FORMAT(p.started_on,'%Y-%m-%d') startDate,
@@ -112,7 +112,7 @@ export function projectReads(database: RuntimeDatabase) {
           p.signal_note signalNote,p.detail_note detailNote,p.summary_note summaryNote,p.chipstat_note chipstatNote,
           CAST(p.customer_id AS CHAR) customerId,CAST(p.odm_customer_id AS CHAR) odmCustomerId,
           CAST(p.product_line_id AS CHAR) productLineId,CAST(p.app_id AS CHAR) appId,CAST(p.group_id AS CHAR) groupId,
-          p.closure_type closureType,p.closure_note closureNote,p.remaining_work_note remainingWorkNote
+          p.closure_type closureType,p.closure_note closureNote,p.remaining_work_note remainingWorkNote,CAST(p.created_by AS CHAR) createdBy
           ${joins} WHERE p.id=?`, [id])))[0];
         if (!project) return null;
         const projectStages = await rows(connection, "SELECT CAST(id AS CHAR) id,stage_code code,state,planned_days plannedDays,note,DATE_FORMAT(started_on,'%Y-%m-%d') startedOn,DATE_FORMAT(completed_on,'%Y-%m-%d') completedOn,DATE_FORMAT(expected_end_on,'%Y-%m-%d') expectedEndOn FROM project_stages WHERE project_id=? ORDER BY stage_code", [id]);
@@ -121,7 +121,9 @@ export function projectReads(database: RuntimeDatabase) {
         const changes = await rows(connection, 'SELECT CAST(id AS CHAR) id,source,content,decision,reason FROM project_changes WHERE project_id=? ORDER BY sort_order,id', [id]);
         const delays = await rows(connection, "SELECT CAST(id AS CHAR) id,kind,DATE_FORMAT(old_date,'%Y-%m-%d') oldDate,DATE_FORMAT(new_date,'%Y-%m-%d') newDate,reason,measures FROM schedule_changes WHERE project_id=? ORDER BY created_at,id", [id]);
         const history = await rows(connection, 'SELECT CAST(id AS CHAR) id,source_date_text date,body text FROM legacy_project_history WHERE project_id=? ORDER BY source_sequence,id', [id]);
-        return { project, stages: projectStages, nodes, risks, changes, delays, history, readOnly: project.dataKind !== 'trial', capabilities: { editText: project.dataKind === 'trial', editOrdinary: project.dataKind === 'trial' } };
+        const responsible = await rows(connection, 'SELECT CAST(u.id AS CHAR) id,u.display_name name,u.enabled FROM project_responsibilities r JOIN users u ON u.id=r.user_id WHERE r.project_id=? ORDER BY u.id', [id]);
+        const editable = accountId ? responsible.some(user => user.id === accountId && !!user.enabled) : project.dataKind === 'trial';
+        return { project, stages: projectStages, nodes, risks, changes, delays, history, responsible, readOnly: !editable, capabilities: { editText: editable, editOrdinary: editable, join: !!accountId && !editable, leave: !!accountId && editable } };
       });
     },
   };

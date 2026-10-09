@@ -1,6 +1,6 @@
 # 测试项目普通保存 API
 
-日期：2026-10-09；代码版本31012c8，实际代码 src/server/routes/projects.ts 与 modules/project-save.ts，结构0002-trial-save；[固定构建](../../operations/deployments/2026-10-09-project-ordinary.md)。行为唯一归 [SPEC-002](../specification.md#spec-002-保存事务并发与审计)；本文件只说明协议。全部响应 Cache-Control: no-store；大整数均为十进制字符串，当前没有登录身份。
+日期：2026-10-09；原普通编辑版本31012c8，本轮 E03-W09～W12 在相同协议上接入实名授权，结构仍0002-trial-save。身份请求头与新增入口见[项目主干 API](project-core.md)，实际构建版本见系统真相。行为唯一归 [SPEC-002](../specification.md#spec-002-保存事务并发与审计)；全部响应 Cache-Control: no-store，大整数均为十进制字符串。新写入要求已改密的真实账号及本人负责关系；匿名历史和旧 trial 回执只保留原来源及只读确认。
 
 ## PATCH /api/projects/:id
 

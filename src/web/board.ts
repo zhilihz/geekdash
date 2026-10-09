@@ -97,4 +97,7 @@ element('card-grid').onclick = event => {
     try { sessionStorage.setItem('geekdash_board_return', JSON.stringify({ url: location.href, scrollY: scrollY })); } catch { /* 无浏览器存储时可正常跳转。 */ }
   }
 };
-void load();
+void import('./shared/api').then(async ({ requireIdentity }) => { await requireIdentity(); await load(); }).catch(error => {
+  element('message').textContent = (error as Error).message;
+  const link = document.createElement('a'); link.href = '/login.html'; link.textContent = '登录 GeekDash'; element('message').append(' ', link);
+});

@@ -6,7 +6,7 @@ export default defineConfig({
   envDir: false,
   build: {
     rollupOptions: {
-      input: ['index.html', 'project-detail.html'].map(path => fileURLToPath(new URL(`./src/web/${path}`, import.meta.url))),
+      input: ['index.html', 'project-detail.html', 'login.html', 'project-new.html'].map(path => fileURLToPath(new URL(`./src/web/${path}`, import.meta.url))),
     },
     outDir: fileURLToPath(new URL('./dist.candidate/web/', import.meta.url)),
     emptyOutDir: true,

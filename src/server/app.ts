@@ -5,8 +5,9 @@ import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import type { RuntimeDatabase } from './infrastructure/runtime-database.js';
 import { registerProjectReads } from './routes/projects.js';
+import { registerIdentity, readAuthConfig, type AuthConfig } from './routes/identity.js';
 
-export async function createApp(database?: RuntimeDatabase) {
+export async function createApp(database?: RuntimeDatabase, auth?: AuthConfig) {
   const build = JSON.parse(await readFile(new URL('../build-info.json', import.meta.url), 'utf8'));
   const app = Fastify({
     genReqId: () => randomUUID(),
@@ -22,7 +23,7 @@ export async function createApp(database?: RuntimeDatabase) {
       if (path.startsWith('/api/') && !['/api/health/live', '/api/health/ready'].includes(path)) {
         reply.header('Cache-Control', 'no-store');
         const result = await database.checkReadiness();
-        if (!result.ready) return reply.code(503).send({ status: 'unavailable', code: 'DATABASE_UNAVAILABLE', reason: result.reason, outcome: request.method === 'PATCH' ? 'not_committed' : 'unknown', requestId: request.id });
+        if (!result.ready) return reply.code(503).send({ status: 'unavailable', code: 'DATABASE_UNAVAILABLE', reason: result.reason, outcome: 'not_committed', requestId: request.id });
       }
     });
   }
@@ -46,6 +47,8 @@ export async function createApp(database?: RuntimeDatabase) {
     index: 'index.html',
     dotfiles: 'deny',
   });
+  // 旧匿名回归仅在隔离 test 库运行；实际 dev 服务默认要求身份。
+  if (database && (auth || database.fact.database !== 'geekdash_test')) registerIdentity(app, database, auth ?? readAuthConfig());
   registerProjectReads(app, database);
   app.get('/GeekDash.html', (_request, reply) => reply.sendFile('index.html'));
   return app;

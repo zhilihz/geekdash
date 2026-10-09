@@ -1,0 +1,6 @@
+form.detail-section { display: grid; gap: 20px; margin: 24px 0; }
+form.detail-section label { display: grid; gap: 8px; color: var(--text-dim); font-size: 13px; }
+form.detail-section input, form.detail-section textarea { box-sizing: border-box; width: 100%; padding: 12px; color: var(--text); background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px; font: inherit; }
+form.detail-section textarea { min-height: 110px; resize: vertical; }
+form.detail-section button { justify-self: start; }
+form[hidden] { display: none; }
