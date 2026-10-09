@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-09T02:31:07.714Z",
+  "source": "本机Node fetch常驻进程、已预热HTTPS连接；三合成trial项目。与Python每次新连接分开记录，不是公司网络验收",
+  "coldLiveMs": 2233,
+  "warmSaveMs": 484,
+  "freshReadbackMs": 525,
+  "workers": 4,
+  "requests": 20,
+  "listP50Ms": 525,
+  "listP95Ms": 2757,
+  "listMaxMs": 2880
+}

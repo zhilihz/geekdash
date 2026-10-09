@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-09T02:26:48Z",
+  "revision": "a22504d769d3be822ee23f8e6ee451e3f246494a",
+  "tlsVerified": true,
+  "projectId": "1",
+  "savedVersion": "2",
+  "saveMs": 2309,
+  "freshRequestValuesMatched": true,
+  "sameOperationReplayAndReadOnlyConfirm": true,
+  "staleSaveRejected": true,
+  "auditAndBoardConsumeSavedResult": true,
+  "publicTrialCount": 3,
+  "fourConcurrentPublicReads": {
+    "requests": 20,
+    "p50Ms": 2412,
+    "p95Ms": 4444,
+    "maxMs": 4693
+  },
+  "source": "本机到新加坡公网HTTPS；仅合成trial数据；不是公司网络实名使用验收"
+}

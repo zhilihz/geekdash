@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-09T02:39:53.926467+00:00",
+  "revision": "a22504d769d3be822ee23f8e6ee451e3f246494a",
+  "actualAppProcessRestarted": true,
+  "newProcessFreshReadback": true,
+  "receiptConfirmedAndReplayedWithoutExtraAudit": true,
+  "publicReadyAndVersionReadback": true,
+  "mysqlIdAndStartedAtPreserved": true,
+  "otherContainerStartedAtPreserved": 17,
+  "appOomKilled": false,
+  "appRestartCount": 0,
+  "project3Version": "2"
+}

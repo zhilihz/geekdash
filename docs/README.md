@@ -1,6 +1,6 @@
 # 文档中心
 
-文档基线：D0.58；更新日期：2026-10-09。E01-F02/F03 的独立本地 MySQL、初始迁移及真实结构核验已完成，结果见[报告](testing/reports/2026-10-08-e01-f02-f03.md)。F04 应用受限连接、启动/恢复、真实就绪及关闭已实现，见[执行文档](implementation/execution-plan.md#f04-单功能操作链路2026-10-08)和[验收报告](testing/reports/2026-10-08-e01-f04.md)。分支交付流程归[代码管理](operations/release-maintenance.md#2-代码管理)，实际 refs 归系统真相。当前公网已接入项目只读看板及详情，见[项目查询验收](testing/reports/2026-10-08-project-reads.md)和[本次部署](operations/deployments/2026-10-08-project-reads.md)；trial四项保存本地验收见[保存报告](testing/reports/2026-10-09-project-save.md)及[接口](specifications/api/project-save.md)；认证、真实导入及四人业务体验待接续。未变更的单篇文档保留原版本号。
+文档基线：D0.58；更新日期：2026-10-09。E01-F02/F03 的独立本地 MySQL、初始迁移及真实结构核验已完成，结果见[报告](testing/reports/2026-10-08-e01-f02-f03.md)。F04 应用受限连接、启动/恢复、真实就绪及关闭已实现，见[执行文档](implementation/execution-plan.md#f04-单功能操作链路2026-10-08)和[验收报告](testing/reports/2026-10-08-e01-f04.md)。分支交付流程归[代码管理](operations/release-maintenance.md#2-代码管理)，实际 refs 归系统真相。当前公网已接入项目只读看板及详情，见[项目查询验收](testing/reports/2026-10-08-project-reads.md)和[本次部署](operations/deployments/2026-10-08-project-reads.md)；trial四项保存本地/云端验收见[保存报告](testing/reports/2026-10-09-project-save.md)及[接口](specifications/api/project-save.md)；认证、真实导入及四人业务体验待接续。未变更的单篇文档保留原版本号。
 
 当前目标任务与六阶段计划：[GD-GOAL-001](implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)；当前四项保存按 E03-W00～W05 执行，验收设计见 [TEST-037](testing/testing.md#test-037-当前测试项目四项保存整链未执行)。用户暂时不在期间的推荐方案选择、选项和理由统一见[明日复核汇总](decisions/decisions.md#代决汇总2026-10-08供明日复核)。计划和测试设计不代表功能已实现。
 
@@ -10,7 +10,7 @@
 
 当前部署逐功能入口：[D01～D07](implementation/execution-plan.md#e12-d01d07首个公网基底的逐功能施工方案)，[Linux 参数与新域名流程](operations/release-maintenance.md#当前首个公网部署单元dec-071)；部署实测入口为系统真相第 26 节，运行命令归运维；未实施业务仍明确为讨论建议。
 
-当前优先级：按 DEC-071 保持免登录，E02 全部后置增强；只读首批已上线，下一单元的测试项目共享编辑范围按 DEC-073 确认，本地已实现0002增量和四项明确保存，当前云版本见系统真相。范围归规格、施工归执行文档、实际部署事实归系统真相与部署记录。
+当前优先级：按 DEC-071 保持免登录，E02 全部后置增强；只读首批已上线，下一单元的测试项目共享编辑范围按 DEC-073 确认，0002增量和四项明确保存已在本机/公网运行；[保存部署](operations/deployments/2026-10-09-project-save.md)记录实际构建，当前云版本见系统真相。范围归规格、施工归执行文档、实际部署事实归系统真相与部署记录。
 
 ## 目录结构
 
