@@ -8,4 +8,4 @@
 
 证据：[专项](../../evidence/local-v1051-followup/acceptance.json)、[13项回归](../../evidence/local-v1051-followup/regression.json)、[旧版兼容](../../evidence/local-v1051-followup/legacy-compatibility.json)、[卡片](../../evidence/local-v1051-followup/board-card.png)、[负责人报表](../../evidence/local-v1051-followup/engineer-report.png)、[发布摘要](../../evidence/local-v1051-followup/release-files.json)。代码入口仍为geekdashdesktop/scripts三个验证脚本及原browser-regression.mjs；兼容脚本可传第四参数为首次1051的projects-data.js。首次来源可由Git实现2f5cf2a恢复到临时文件，与兼容证据SHA256核对。
 
-交付目录和ZIP已更新并逐字节核查；旧ZIP保留为GeekDash1051_首次交付.zip。报告及代码提交将按项目规则回main，无服务器部署。
+交付目录和ZIP已更新并逐字节核查；旧ZIP保留为GeekDash1051_首次交付.zip。实现f6ae99a、集成8863287已合并推送并回读远端main；本报告收尾不改变发布包，无服务器部署。
