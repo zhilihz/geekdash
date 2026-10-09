@@ -1,6 +1,6 @@
 # 数据模型与实体关系（ERD）
 
-版本：D0.60；日期：2026-10-09；状态：0001初始34表/313列/55条引用，0002后实际34表/314列/55外键；E03最小身份、责任和会话复用现有实体，无新结构；实际约束核对范围见[F02/F03 实际报告](../testing/reports/2026-10-08-e01-f02-f03.md)。第 5.6 节由 0002-trial-save 实现；实际迁移和验证结果归系统真相及保存报告。未确认产品行为单列，不以表设计批准新自动化。
+版本：D0.60；日期：2026-10-09；状态：0001初始34表/313列/55条引用，0002后实际34表/314列/55外键；E03最小身份、责任和会话复用现有实体，无新结构。DEC-107节点恢复增量设计归5.8，仅计划加一列、独立目标34/315/55，尚未迁移；DEC-108日期未知复用现有可空列。实际约束核对范围见[F02/F03 实际报告](../testing/reports/2026-10-08-e01-f02-f03.md)。第5.6节由0002-trial-save实现，实际结果归系统真相及保存报告，不以设计批准新自动化。
 
 本文分清三类来源：**B** 是真实 V1.044 备份中观察到的结构，**C** 是 V1.050 源码的读写或归一化结构，**T** 是服务器目标表达。旧系统是 JSON 与浏览器存储，下面的实体名称不代表旧系统已有 MySQL 表。字段反推完成的范围是本次备份与七个运行文件；不证明备份覆盖全部业务数据，也不替代剩余业务规则确认或可执行 DDL。
 
@@ -86,7 +86,7 @@ B 中均缺失。保存与新建来源同上；closeReason 另见 `project-detai
 | statusDescUpdatedAt | 本地时间文本 | 保存来源文字；可验证后映射描述业务更新时间，不能作为服务器审计时间 |
 | detailNote | string | projects.detail_note，与纪要备注及芯片统计备注分别保存 |
 | delays | object[] | schedule_changes；实际日期调整与说明记录分开，原始日期待核对 |
-| isDelayed | boolean | projects.manual_delayed；与自动逾期分别表达 |
+| isDelayed | boolean | 原始来源保留；曾映射projects.manual_delayed，现按DEC-098退出正式业务，兼容结构与移除见5.7 |
 | createdAt | 本地时间文本 | 保存来源创建时间，不伪造可信 created_by；服务器入库时间另记 |
 | closeReason | string | 历史结案说明；closure_type 未提供，不能只凭字段存在判为某种结案 |
 | flowLinks | 新建从草稿透传数组 | 所读当前连线操作实际写 nodes.prevId/nextId；此数组保留受控来源，不能假设已确定元素契约 |
@@ -108,7 +108,7 @@ C 来源：`projects-data.js:984～1105`。B 只有 stages 和 statusHistory 的
 | milestones | 缺失 | id、stageId、name、startDate、expectedEndDate、actualEndDate、note、prevId、nextId、x、y、children | 兼容结构保留来源，映射和展示入口待核实 |
 | milestones.children | 缺失 | id、name、startDate、expectedEndDate、actualEndDate、note | 源码支持这种兼容形状，不等于已确认增加子节点功能 |
 
-连线实证：`project-detail.html:2532～2534/2648～2649` 渲染 nextId；`:2773～2809/2819～2820/2833～2839/2947～2951` 创建、删除和拖拽修改 prevId/nextId。目标首版应保留同项目节点引用，校验悬空/互不对应的来源边；是否允许环、分叉及节点驱动阶段尚待确认，不能利用数据模型擅自增加自动化。
+连线实证：`project-detail.html:2532～2534/2648～2649` 渲染 nextId；`:2773～2809/2819～2820/2833～2839/2947～2951` 创建、删除和拖拽修改 prevId/nextId。目标保留同项目单前/单后节点引用，校验悬空/互不对应来源边；前置完成和禁止新循环由DEC-103/106确认，行为只归SPEC-005。节点不驱动阶段，不从数据模型增设分叉/层级或业务自动化。
 
 七阶段 B 样本均缺少实际日期。导入已完成标记时保留完成事实和缺失日期说明，未完成部分的当前状态须人工核对；禁止用导入时间、自动计算工期或页面旧“进行中”文字补造实际开始/完成日期。
 
@@ -456,7 +456,7 @@ erDiagram
 | projects | `id:I`、`name:V255`、`customer_id:I?`、`odm_customer_id:I?`、`product_line_id:I?`、`app_id:I?`、`group_id:I?`、`created_by:I?`、`source_import_item_id:I?`、`source_namespace:V64?`、`source_key:V128?`、`status:V16`、`version:R`、`proposed_on:D?`、`filed_on:D?`、`started_on:D?`、`original_due_date:D?`、`current_due_date:D?`、`manual_delayed:B`、`priority:V16`、`signal:V16`、`signal_note:X`、`market_expectation:X`、`status_description:X`、`status_description_updated_at:T?`、`detail_note:X`、`summary_note:X`、`chipstat_note:X`、`closure_due_date:D?`、`resume_status:V16?`、`pre_close_status:V16?`、`closure_type:V16?`、`closed_on:D?`、`closure_note:X`、`remaining_work_note:X`、`maintenance_enabled:B`、`first_check_week:D?`、`first_check_rule_version:I?`、`created_at:T`、`updated_at:T` | PK(id)；UK(source_namespace,source_key)，两个来源字段同时空或同时有值由模块校验；IDX(status,id)、IDX(customer_id,status,id)、IDX(current_due_date,id)。 | 项目聚合根、统一版本及筛选字段；两份固定页面备注并入项目；来源身份防止同库重复新增。 |
 | project_responsibilities | `project_id:I`、`user_id:I`、`joined_at:T` | 联合 PK(project_id,user_id)；IDX(user_id,project_id)。 | 当前修改授权，与业务 PM/工程师不同；退出历史由审计承接，不再复制历史表。 |
 | project_stages | `id:I`、`project_id:I`、`stage_code:V2`、`state:V16`、`planned_days:S?`、`note:X`、`started_on:D?`、`completed_on:D?`、`expected_end_on:D?` | PK(id)；UK(project_id,stage_code)，UK(project_id,id) 支持节点的同项目复合外键；七阶段完整性/前置状态在项目事务校验。 | 七阶段的独立状态、工期与实际日期；查询按 project_id 一次取七行，不把状态存在页面偏好中。 |
-| project_nodes | `id:I`、`project_id:I`、`kind:V16`、`stage_id:I?`、`title:V255`、`target_date:D?`、`completed_on:D?`、`output:X`、`note:X`、`previous_node_id:I?`、`next_node_id:I?`、`x:DEC?`、`y:DEC?`、`sort_order:N`、`source_key:V128?` | PK(id)；UK(project_id,id)；IDX(project_id,kind,sort_order,id)。阶段、前后节点分别用(project_id,引用ID)复合 FK；来源 ID 非正式 PK。 | 合并原项目节点和客户节点；kind 保留差异，固定 x/y 替代无契约 position_json；不再另建连线/子节点实体。 |
+| project_nodes | `id:I`、`project_id:I`、`kind:V16`、`stage_id:I?`、`title:V255`、`target_date:D?`、`completed_on:D?`、`output:X`、`note:X`、`previous_node_id:I?`、`next_node_id:I?`、`x:DEC?`、`y:DEC?`、`sort_order:N`、`source_key:V128?` | PK(id)；UK(project_id,id)；IDX(project_id,kind,sort_order,id)。阶段、前后节点分别用(project_id,引用ID)复合 FK；来源 ID 非正式 PK。 | 此行是0001/0002既有列；合并两种节点，保留不同业务字段和布局，节点恢复新增列只定义于5.8，不另建连线/子节点实体。 |
 | project_people | `project_id:I`、`engineer_id:I`、`role:V32`、`sort_order:N` | 联合 PK(project_id,engineer_id,role)；IDX(engineer_id,project_id)。pm/hardware_owner/software_owner 每角色最多一人由项目事务校验；participant 可多行。 | 业务人员的角色与排序；同一人员可任多角色，不能把参与人员写成逗号字符串或授予登录权限。 |
 | customers | `id:I`、`name:V255`、`contact:X`、`background:X`、`enabled:B`、`version:R`、`created_at:T`、`updated_at:T` | PK(id)；IDX(enabled,name,id)；名称不设未经确认的唯一约束，不按归一化名称自动合并。 | 客户背景/联系方式与 ODM 引用；不是账号或标签。 |
 | engineers | `id:I`、`name:V255`、`role:V64`、`enabled:B`、`version:R`、`created_at:T`、`updated_at:T` | PK(id)；IDX(enabled,name,id)；名称不设未经确认的唯一约束，不按归一化名称自动合并。 | 业务工程师可多于五个账号且未必登录，不能并入 users。 |
@@ -491,7 +491,7 @@ erDiagram
 - **T 工程字段**：主键、排序、版本、来源键、哈希、提交回执和迁移校验，分别为稳定关联、保留原数组顺序、阻止覆盖、导入对账、防重复和可恢复升级服务。每个新增工程字段必须能指向这里的一条真实用途；没有消费者不建。
 - 普通保存不传原始来源、actor、created_at 或 version 新值；后端生成并限制可写列。app_version 是原 APP 资料的业务版本，apps.version 才是资料并发版本。
 - sessions.last_seen_at 用于空闲期限，仅由服务器接受的有效活动推进；期限归 SPEC-001/DEC-054。旧每 5 分钟更新建议已在 F03 讨论中重新收敛，活动分类、精度和实现方式引用 SPEC-001/执行文档，不在 ERD 独立规定。SQL 字段存在不代表期限校验已实现。
-- check_rule_revisions 不再同时保存 id 与相同含义的 version；以 version 为主键。project_checks.week_start、projects.first_check_week/first_check_rule_version 是可复核的业务周期及原始规则依据，不能每次按新截止反推首次义务；首次正式启动事务固定应检周与当时规则版本，之后修改本周截止不改写首次义务，历史不明可空并待审。
+- check_rule_revisions 不再同时保存 id 与相同含义的 version；以 version 为主键。project_checks.week_start、projects.first_check_week/first_check_rule_version 是可复核的业务周期及原始规则依据。首次正式启动事务依据服务器该次保存时间固定应检周与当时规则版本，与业务started_on分别保存；之后不能按最新截止反推，历史不明可空并待审。准确建立与生效行为只归SPEC-005/019、DEC-093。
 - audit_log 保存变化所需的旧值/新值及涉及子记录快照，不在每次保存中复制未变的整项目；敏感凭据不进审计。来源旧历史独立分页，不混成可信审计。
 - import_batches 只保存来源/权属/映射；批次状态与成功数由逐项结果汇总。import_items.source_payload_json 不可变，corrected_payload_json 只保存待审修正；原文件保留原始字节与哈希，涵盖未知字段和浏览器配置。
 
@@ -544,12 +544,12 @@ erDiagram
 | projects.source_key | 原项目 ID；与来源库共同绑定正式项目 |
 | projects.status | 提案/进行/暂缓/结案生命周期；限制允许动作 |
 | projects.version | 聚合并发修订；旧页面不能覆盖新提交 |
-| projects.proposed_on | 提案日期；保留旧字段与详情展示 |
-| projects.filed_on | 立项日期；保留旧字段与详情展示 |
-| projects.started_on | 实际开始日；供阶段/项目行为及日期顺序校验 |
-| projects.original_due_date | 原始计划事实；与当前计划/改期次数分开 |
-| projects.current_due_date | 当前有效计划；全页面一致计算当前超期 |
-| projects.manual_delayed | 人工延期标记；不能替代按日期计算超期 |
+| projects.proposed_on | 提案日期；DEC-108明确日期未知纠错复用NULL，规则归SPEC-003 |
+| projects.filed_on | 立项日期；DEC-108明确日期未知纠错复用NULL，规则归SPEC-003 |
+| projects.started_on | 实际启动日；日期未知用NULL，启动事实仍由status/原审计表达，校验归SPEC-003 |
+| projects.original_due_date | 原始计划事实；与当前计划/改期次数分开。DEC-097明确误录纠正可置空，原值留审计；导入原始未知不能被新当前计划填成已知 |
+| projects.current_due_date | 当前有效计划；全页面一致计算当前超期。DEC-097明确纠正为未定时置空，遗漏/补说明不清空；查询不从历史最后一条重算该列 |
+| projects.manual_delayed | 0001既有旧人工延期列；DEC-098取消其目标业务用途，当前实际列尚在，退出次序见5.7；不再补新写入口或参与超期 |
 | projects.priority | 人工紧急程度；排序与重点项目消费 |
 | projects.signal | 人工红黄绿；展示与筛选，不由日期自动重写 |
 | projects.signal_note | 人工灯色说明；解释选色 |
@@ -559,13 +559,13 @@ erDiagram
 | projects.detail_note | 项目详情备注；保留原版独立说明 |
 | projects.summary_note | 状态纪要中的项目共享备注；受同一项目版本保护 |
 | projects.chipstat_note | 芯片统计中的项目共享备注；不覆盖纪要备注 |
-| projects.closure_due_date | 结案时计划快照；后续调整不能改变历史结案判断 |
+| projects.closure_due_date | 当前有效结案的计划快照；普通改期不重写。按PROP-011建议重开后置空，旧结果从追加结案/更正审计读取；导入缺失快照保持未知，不能取今日计划补造 |
 | projects.resume_status | 暂缓前状态；恢复时不能猜成进行中 |
-| projects.pre_close_status | 结案前状态；重开恢复正确状态 |
-| projects.closure_type | 人工正常/终止结案类别；进度不代替结案类型 |
-| projects.closed_on | 实际结案日；历史超期与结案展示 |
-| projects.closure_note | 结案说明；解释人工结案结果 |
-| projects.remaining_work_note | 结案遗留事项；未满七阶段时保留处置 |
+| projects.pre_close_status | 当前有效结案前状态；本次重开消费后按PROP-011建议置空。来源暂缓时保留resume_status供后续恢复；旧来源未知不根据进度推断 |
+| projects.closure_type | 当前有效的人工正常/终止类别；重开后建议置空，旧类别及更正留审计；导入无依据可未知，进度不代替类型 |
+| projects.closed_on | 当前有效实际结案日；DEC-108明确未知纠错用NULL且保留结案事实，SPEC-004消费待核对结果；重开清空与未知纠错意图由审计区分。DEC-096保留原历史日期，入库时间不替代 |
+| projects.closure_note | 当前有效结案说明；重开后建议空字符串（现有列NOT NULL），原文及更正保留审计，不覆盖普通项目备注 |
+| projects.remaining_work_note | 当前结案遗留处置说明；重开后建议空字符串并保留历史，节点/风险等原记录继续存在，不因清除结案投影删除 |
 | projects.maintenance_enabled | 量产维护开关；不误重启研发阶段 |
 | projects.first_check_week | 首次应检自然周；改截止不反推新义务 |
 | projects.first_check_rule_version | 首次义务所用规则；可解释为何从本周或下周开始 |
@@ -580,8 +580,8 @@ erDiagram
 | project_stages.state | locked/ready/active/completed；串行推进真实依据 |
 | project_stages.planned_days | 该阶段计划工期；计划展示与原版计划计算 |
 | project_stages.note | 该对象的业务说明；供详情/检查阅读与明确保存 |
-| project_stages.started_on | 实际开始日；供阶段/项目行为及日期顺序校验 |
-| project_stages.completed_on | 实际完成日；供完成事实及日期顺序校验 |
+| project_stages.started_on | 实际开始日；DEC-108明确未知纠错用NULL，真实开始由state/审计保持，校验归SPEC-003 |
+| project_stages.completed_on | 实际完成日；DEC-108明确未知纠错用NULL，完成事实/进度仍取state，不从日期非空推断阶段已完成 |
 | project_stages.expected_end_on | 阶段预计结束日；保留计划值，区别实际完成 |
 | project_nodes.id | 稳定对象标识；供关联、定位及游标使用 |
 | project_nodes.project_id | 所属正式项目；供项目聚合读取、授权与外键隔离 |
@@ -589,15 +589,15 @@ erDiagram
 | project_nodes.stage_id | 可选阶段归属；复合外键阻止跨项目引用 |
 | project_nodes.title | 节点名称；详情流程图与输出 |
 | project_nodes.target_date | 节点计划日；区别实际完成日 |
-| project_nodes.completed_on | 实际完成日；供完成事实及日期顺序校验 |
+| project_nodes.completed_on | 当前实际完成日；NULL表示未完成，完成前置及明确依赖纠错规则引用SPEC-005/DEC-103/105，原完成由追加审计保留 |
 | project_nodes.output | 节点成果原文；返工不丢既有成果 |
 | project_nodes.note | 该对象的业务说明；供详情/检查阅读与明确保存 |
-| project_nodes.previous_node_id | 上一节点引用；保留原双向链路 |
+| project_nodes.previous_node_id | 直接前置节点引用；保留原双向链路，按SPEC-005参与完成前置校验，不由阶段或显示顺序代填 |
 | project_nodes.next_node_id | 下一节点引用；渲染连线及双向校验 |
 | project_nodes.x | 人工节点横坐标；刷新后布局不丢 |
 | project_nodes.y | 人工节点纵坐标；与横坐标组成位置 |
 | project_nodes.sort_order | 来源或人工排列顺序；读取不能依赖数据库返回顺序 |
-| project_nodes.source_key | 旧对象 ID 原值；用于迁移定位及对子记录核对 |
+| project_nodes.source_key | 旧数组类别/对象ID的来源定位，原始值在受控来源保持；项目/客户数组同为1不能合并为正式ID1，按项目+kind+来源映射，正式ID由MySQL分配 |
 | project_people.project_id | 所属正式项目；供项目聚合读取、授权与外键隔离 |
 | project_people.engineer_id | 业务人员资料引用；支撑分工及改名影响 |
 | project_people.role | PM/软硬件负责/参与分工；单人角色与多人参与分别校验 |
@@ -674,7 +674,7 @@ erDiagram
 | project_risks.resolved | 人工解除状态；不由灯色自动关闭 |
 | project_risks.resolution | 人工解除/处理说明；保留可纠正结果 |
 | project_risks.resolved_at | 可信解除时刻；旧未知为空而不补造 |
-| project_risks.actor_id | 可信操作身份；历史未知保持空，不从业务姓名推断 |
+| project_risks.actor_id | 新风险最初正式录入的可信账号，后续解除/纠错不覆盖；旧未知保持空。解除/撤销及更正实际人按PROP-017沿目标审计读取，不从业务姓名推断 |
 | project_risks.created_at | 服务器入库时间；区分来源旧日期并支撑查询排序 |
 | project_risks.source_key | 旧对象 ID 原值；用于迁移定位及对子记录核对 |
 | project_risks.sort_order | 来源或人工排列顺序；读取不能依赖数据库返回顺序 |
@@ -684,13 +684,13 @@ erDiagram
 | project_changes.content | 业务内容原文；供对应页面编辑与报告消费 |
 | project_changes.decision | 原版接受/拒绝决定；不扩展审批状态 |
 | project_changes.reason | 人工原因；供变更或计划历史的解释及纠错 |
-| project_changes.actor_id | 可信操作身份；历史未知保持空，不从业务姓名推断 |
+| project_changes.actor_id | 最初正式录入变更的可信账号，纠正决定/文字不覆盖；旧未知保持空，更正实际人留目标审计 |
 | project_changes.created_at | 服务器入库时间；区分来源旧日期并支撑查询排序 |
 | project_changes.source_key | 旧对象 ID 原值；用于迁移定位及对子记录核对 |
 | project_changes.sort_order | 来源或人工排列顺序；读取不能依赖数据库返回顺序 |
 | schedule_changes.id | 稳定对象标识；供关联、定位及游标使用 |
 | schedule_changes.project_id | 所属正式项目；供项目聚合读取、授权与外键隔离 |
-| schedule_changes.kind | 调整日期或补充说明；补说明不能清空当前计划 |
+| schedule_changes.kind | 调整日期或补充说明；补说明不能清空当前计划。沿PROP-012保留原业务类型，有效纠正/撤销从关联审计读取，不能按原行数统计实际改期 |
 | schedule_changes.old_date | 调整前有效日期；历史对账 |
 | schedule_changes.new_date | 调整后日期；解释提前/延期且允许未知 |
 | schedule_changes.reason | 人工原因；供变更或计划历史的解释及纠错 |
@@ -700,14 +700,14 @@ erDiagram
 | schedule_changes.source_key | 旧对象 ID 原值；用于迁移定位及对子记录核对 |
 | project_checks.id | 稳定对象标识；供关联、定位及游标使用 |
 | project_checks.project_id | 所属正式项目；供项目聚合读取、授权与外键隔离 |
-| project_checks.actor_id | 可信操作身份；历史未知保持空，不从业务姓名推断 |
-| project_checks.checked_at | 服务器记录的检查时间；作为是否按时的事实 |
+| project_checks.actor_id | 实际保存检查的可信账号，现有列NOT NULL；旧检查人未知不生成本表记录，只保留来源，不从业务姓名推断 |
+| project_checks.checked_at | 服务器记录的检查时间；DEC-099当前周首次记录判断按时，各次记录仍保存自己的时间，不由客户端补录 |
 | project_checks.week_start | 检查归属自然周；当前/历史周查询 |
 | project_checks.conclusion | 显式检查结论；不是普通保存自动生成 |
 | project_checks.note | 该对象的业务说明；供详情/检查阅读与明确保存 |
 | project_checks.rule_version | 当时检查规则引用；后改设置仍可追溯原依据 |
 | project_checks.observed_version | 检查核对的项目版本；并发时拒绝过期事实 |
-| project_checks.result_version | 检查保存后的版本；判断后来是否又有更新 |
+| project_checks.result_version | 检查保存后的版本；DEC-099当前周最新记录判断后来是否又有更新，避免首次版本误报 |
 | audit_log.id | 稳定对象标识；供关联、定位及游标使用 |
 | audit_log.actor_id | 可信操作身份；历史未知保持空，不从业务姓名推断 |
 | audit_log.actor_display_name | 操作人姓名快照；改名后历史称谓保留 |
@@ -846,8 +846,8 @@ erDiagram
 ### 5.1 SQL 与业务模块各自负责
 
 - MySQL 负责 PK、联合唯一、真实 FK、类型范围、可确定的本行枚举/布尔 CHECK。外键默认阻止破坏引用，账号/资料不物理删除。FK 的父键必须是明确主键/唯一键，特别是同项目节点与阶段的复合键。
-- 项目事务负责七行阶段完整性、前阶段完成、启用负责人数、来源映射正确、节点连线双向一致、资料类型与启用状态、实际日期不在未来及权限。以上跨行、身份或当前时间约束不能假装是普通 CHECK。
-- 节点跨项目关系通过复合 FK 阻止；自连/双向修正由模块校验；客户节点不强加阶段和链路。不新增节点驱动阶段或自动消除风险。
+- 项目事务负责七行阶段完整性、前阶段完成、启用负责人数、来源映射正确、节点连线双向一致及完成前置/明确影响集合（SPEC-005）、资料类型与启用状态、实际日期不在未来及权限。以上跨行、身份或当前时间约束不能假装是普通 CHECK。
+- 节点跨项目关系通过复合FK阻止；自连/双向修正及DEC-106循环检验由模块校验；客户节点不强加阶段和链路。DEC-107恢复目标表达见5.8，删除状态不是普通FK能检验的有效引用，模块须拒绝指向已删除节点；当前实际结构未改变。不新增节点驱动阶段或自动消除风险。
 - 项目状态 code：proposal/ongoing/paused/closed；priority 与风险 level：high/mid/low；灯色 green/yellow/red；阶段 locked/ready/active/completed；结案 normal/terminated；计划记录 reschedule/note；检查 checked/follow_up；草稿 active/committed/discarded。显示文案与旧值映射由已确认 SPEC/旧源码决定；不能把旧非法值静默当合法默认。
 - 原版 changes 接受/拒绝、会议 running/paused/finished、feedback bug/suggestion 已由源码核查；首版不增审批队列。历史导入允许已完成阶段缺实际日期、旧创建身份未知；新动作的必填限制按 SPEC，不写一条会拒绝真实遗留数据的全表 CHECK。
 - 项目软删除/回收站恢复列已从首版移除，会议修改权限、草稿清理等未确认体验不能由字段存在推定获准；开通前按规格标明候选并确认。首版不开物理删除项目/账号/被引用资料的入口。
@@ -969,6 +969,29 @@ erDiagram
 ```
 
 图中 command_receipts 与 projects 没有直接外键，项目 ID/提交版本仍在既有结果 JSON；不能为画图补一条不存在的关系。当前正式图及派生图仍对应原 0001，本节未实际创建或渲染验收。
+
+### 5.7 旧人工延期能力退出（2026-10-09，DEC-098，未迁移）
+
+目标正式业务不再需要projects.manual_delayed，超期由SPEC-004日期事实派生。第3节0001字段清单及既有默认/CHECK仍描述实际基线，不能因取消功能修改已经登记的0001或声称当前少了一列。
+
+- 先改查询、共享类型、看板及其他已接入消费者，移除人工延期标签/筛选/输出和后续写白名单计划；所有超期消费者使用F07-G日期结果。未经处理的旧客户端字段不得悄悄参与新判断。
+- 旧文件isDelayed留在受控原文件和不可变import_items来源JSON；正式导入不把它映射为超期、风险或信号灯。现有列若有需要保留的值，移除前以受控完整备份核对，不能静默丢弃来源。
+- 实际代码不再依赖旧列后，用后续独立兼容迁移退出列及对应CHECK；先验证旧构建的回退依赖，按运维流程保留兼容窗口，不直接改0001/0002。该迁移尚未编写或执行，当前仍按34表/314列/55外键事实记录。
+- 不新增replacement延期布尔列、超期状态表或人工预警实体。结构缩减后的最终计数须以真实迁移及新连接查询报告为准。
+
+### 5.8 节点可恢复删除与实际日期未知（2026-10-09，已确认、未迁移）
+
+业务范围由DEC-107/108确认，规则正文归SPEC-003/004/005；本节只定义目标字段、约束和迁移边界。原节点保留稳定ID及原字段，按PROP-019增加以下一列，不另建节点回收表：
+
+| 新增目标列 | 类型/默认 | 唯一用途及已有行处理 |
+|---|---|---|
+| project_nodes.deleted_at | T?，DATETIME(3)可空，默认NULL | NULL表示有效节点，非空表示服务器正式保存删除时刻；支撑有效读取/可恢复记录列表/端点资格。已有行全部NULL，未保存占位不产生删除行；删除/恢复实际人、原因及原关系复用追加审计，不加重复操作者/恢复时刻列 |
+
+同项目FK及原ID保持；删除时清空有效邻居引用和目标自身前/后引用，原关系留审计。恢复将删除标记置NULL，旧线不从历史自动回填；明确选择的新线按SPEC-005复核。所有节点读取/统计/端点选择必须区分有效行；已删除列表按项目请求，复用现有项目前缀索引，是否追加过滤索引依据实际SQL/延迟，不预置全局扫描和清理任务。
+
+仅此增量接在0002后、其他增量未采用时，独立目标为**34表/315列/55外键**；现有实际仍为34/314/55。新建独立兼容迁移及目标清单，禁止修改0001/0002原始字节；既有行默认有效。先安装可空列，再接有效过滤及删除/恢复能力；旧构建不能正确区分已删除节点，首次使用删除后不得直接回退到缺该过滤的构建。应用回退须保留过滤兼容性，不能为回退清卷、物理删节点或覆盖发布后数据。迁移/含数据升级/恢复/查询性能均尚未执行；5.5邀请码及5.7旧列退出不混算为此单元。
+
+DEC-108复用projects.proposed_on/filed_on/started_on/closed_on及project_stages.started_on/completed_on现有可空DATE列。日期未知、字段省略、动作撤销分别由有限业务意图和审计区分，状态字段表达真实动作；不增加每日期未知标记，不用特殊日期。project_nodes.completed_on的NULL仍表示未完成，本列语义不改变。现有迁移文件已观察到上述日期可空，但目标保存/查询/派生消费仍未实施或验收。
 
 ## 6. 来源映射与迁移次序
 

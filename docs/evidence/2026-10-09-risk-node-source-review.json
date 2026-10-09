@@ -1,0 +1,237 @@
+{
+  "reviewedOn": "2026-10-09",
+  "scope": "V1.050源码只读核查及孤立函数复现；未执行页面保存、真实数据库写入或业务验收",
+  "sources": [
+    {
+      "path": "source-review/AIGeekDashCX/geekdash-system-builder/releases/GeekDash1050/project-detail.html",
+      "sha256": "9f777a6f0224a1f6288f3d162780f15536b1acada8f36e21262383b01490fb6e"
+    },
+    {
+      "path": "source-review/AIGeekDashCX/geekdash-system-builder/releases/GeekDash1050/projects-data.js",
+      "sha256": "a0465a0cd2aac1fad73030fd80d90c06e4196cf9916e0c2990a17fa90453c52f"
+    }
+  ],
+  "sourceObservations": [
+    {
+      "function": "addRisk/resolveRisk/renderRiskList",
+      "lines": [
+        1853,
+        1885,
+        1904
+      ],
+      "finding": "人工新增风险、选择高中低、填写方法解除并保留展示；未发现编辑风险或撤销解除入口"
+    },
+    {
+      "function": "addChange/renderChangeList",
+      "lines": [
+        1925,
+        1947,
+        3747
+      ],
+      "finding": "新增客户/业务来源及接受/拒绝，内容和理由必填；列表只读，未发现原决定纠错入口"
+    },
+    {
+      "function": "saveNode/saveCustomerNode",
+      "lines": [
+        1661,
+        1804
+      ],
+      "finding": "项目节点名称/阶段/输出必填，客户节点名称必填；完成由doneDate非空表示，未在这两个函数发现节点前置完成门槛或未来实际日期拒绝"
+    },
+    {
+      "function": "deleteNode/deletePfNode",
+      "lines": [
+        1710,
+        2812
+      ],
+      "finding": "列表删除只过滤目标，流程图删除会清空其他节点对目标的引用，处理不一致"
+    },
+    {
+      "function": "addFlowNode/mouseup/endFlowLink",
+      "lines": [
+        2846,
+        2891,
+        2936
+      ],
+      "finding": "流程图新增占位节点、移动、连线直接调用PROJECT_DB.save，正式保存前可能已有空成果占位；拖拽清理使用数值引用与字符串dataset的严格比较"
+    },
+    {
+      "function": "PROJECT_DB.save",
+      "file": "projects-data.js",
+      "line": 491,
+      "finding": "浏览器localStorage写入异常被捕获忽略，调用方随后仍显示成功；此为静态观察，没有执行存储故障页面测试"
+    },
+    {
+      "function": "applyNodeLink/endFlowLink",
+      "lines": [
+        2801,
+        2936
+      ],
+      "finding": "所核查连线函数没有多节点循环校验；孤立函数可把合成A→B→C闭合为A→B→C→A，目标禁止新循环由DEC-106确认"
+    },
+    {
+      "function": "savePfStage",
+      "lines": [
+        2719,
+        2726,
+        2728
+      ],
+      "finding": "阶段日期编辑直接写表单startDate/doneDate，可空字符串；该函数不同时撤销done标记。目标明确日期未知范围另按DEC-108/SPEC-003，本记录仅来源观察"
+    }
+  ],
+  "isolatedChecks": [
+    {
+      "name": "replace-neighbor-link",
+      "method": "读取已检查的applyNodeLink函数体，在Node进程内只执行该函数，使用合成节点",
+      "input": [
+        {
+          "id": 1,
+          "prevId": null,
+          "nextId": 2
+        },
+        {
+          "id": 2,
+          "prevId": 1,
+          "nextId": null
+        },
+        {
+          "id": 3,
+          "prevId": null,
+          "nextId": null
+        }
+      ],
+      "call": {
+        "selfId": 3,
+        "prevId": 1,
+        "nextId": null
+      },
+      "output": [
+        {
+          "id": 1,
+          "prevId": null,
+          "nextId": 3
+        },
+        {
+          "id": 2,
+          "prevId": 1,
+          "nextId": null
+        },
+        {
+          "id": 3,
+          "prevId": 1,
+          "nextId": null
+        }
+      ],
+      "reciprocal": false,
+      "status": "已复现旧节点2的prevId残留；未修正源码"
+    },
+    {
+      "name": "legacy-id-type-comparison",
+      "method": "对原拖拽清理条件中的JavaScript严格比较执行表达式验证，没有运行完整DOM事件",
+      "storedReference": 1,
+      "datasetReference": "1",
+      "strictEquality": false,
+      "status": "已确认字符串/数值不能命中原清理条件；未执行浏览器验收"
+    },
+    {
+      "name": "legacy-multi-node-cycle",
+      "method": "读取同一已检查applyNodeLink函数，在Node进程内只执行合成节点；非页面或业务数据库测试",
+      "input": [
+        {
+          "id": 1,
+          "prevId": null,
+          "nextId": 2
+        },
+        {
+          "id": 2,
+          "prevId": 1,
+          "nextId": 3
+        },
+        {
+          "id": 3,
+          "prevId": 2,
+          "nextId": null
+        }
+      ],
+      "call": {
+        "selfId": 3,
+        "prevId": 2,
+        "nextId": 1
+      },
+      "output": [
+        {
+          "id": 1,
+          "prevId": 3,
+          "nextId": 2
+        },
+        {
+          "id": 2,
+          "prevId": 1,
+          "nextId": 3
+        },
+        {
+          "id": 3,
+          "prevId": 2,
+          "nextId": 1
+        }
+      ],
+      "cycleAccepted": true,
+      "status": "已复现旧函数接受多节点循环；未修改原源码，目标门槛尚未实现"
+    }
+  ],
+  "serverObservation": {
+    "files": [
+      "src/server/modules/projects.ts",
+      "src/server/modules/project-save.ts",
+      "src/web/detail.ts"
+    ],
+    "finding": "服务器详情读取project_nodes/project_risks/project_changes，页面以只读表格消费；普通保存白名单尚无这些子记录写入",
+    "verification": "源码只读，不作为当前公网运行回读"
+  },
+  "privacy": "仅函数定位、源码摘要和合成节点；无凭据、会话、原始备份或真实业务原文",
+  "manifestObservation": {
+    "path": "migrations/0001-foundation.json",
+    "sha256": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+    "scope": "仅既有迁移清单静态读取，不是实时数据库结构查询或目标迁移验收",
+    "actualDateColumns": [
+      {
+        "table": "projects",
+        "column": "proposed_on",
+        "type": "date",
+        "nullable": true
+      },
+      {
+        "table": "projects",
+        "column": "filed_on",
+        "type": "date",
+        "nullable": true
+      },
+      {
+        "table": "projects",
+        "column": "started_on",
+        "type": "date",
+        "nullable": true
+      },
+      {
+        "table": "projects",
+        "column": "closed_on",
+        "type": "date",
+        "nullable": true
+      },
+      {
+        "table": "project_stages",
+        "column": "started_on",
+        "type": "date",
+        "nullable": true
+      },
+      {
+        "table": "project_stages",
+        "column": "completed_on",
+        "type": "date",
+        "nullable": true
+      }
+    ],
+    "nodeDeletionMarkerPresent": false,
+    "finding": "日期未知可复用已声明的NULL类型；DEC-107节点删除标记只在ERD5.8目标设计，未修改迁移文件"
+  }
+}
