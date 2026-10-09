@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-09T12:12:54.816015+00:00",
+  "localBuild": {
+    "revision": "5aae00f07428151df57d098eba873ddb2feaa067",
+    "dirty": false,
+    "builtAt": "2026-10-09T11:46:13.928Z",
+    "stage": "project-start",
+    "schemaVersion": "0002-trial-save"
+  },
+  "localReady": true,
+  "localMarkdownLinksChecked": 180,
+  "localMarkdownAnchorsChecked": 31,
+  "changedTextFilesScanned": 17,
+  "credentialHits": 0,
+  "migrationDigestsPreserved": true
+}

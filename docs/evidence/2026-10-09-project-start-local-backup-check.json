@@ -1,0 +1,7 @@
+{
+  "status": "passed",
+  "path": "D:\\geekwon\\geekdash-data\\secrets\\pre-project-start-5aae00f07428.sql.gz",
+  "bytes": 12710,
+  "sha256": "f41db0770ac8de31433389d3159098deab68c09fa5366f63aa5ac1f82494e58d",
+  "scope": "两库完整事务逻辑备份，凭据目录继承受控ACL，恢复演练未执行"
+}

@@ -1,0 +1,44 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-09T12:01:25.995447+00:00",
+  "build": {
+    "revision": "5aae00f07428151df57d098eba873ddb2feaa067",
+    "dirty": false,
+    "builtAt": "2026-10-09T11:46:13.928Z",
+    "stage": "project-start",
+    "schemaVersion": "0002-trial-save"
+  },
+  "projectId": "9",
+  "savedVersion": "6",
+  "checks": [
+    "公网实际维护身份改密与规则明确初始化/原结果，初次链路实际执行",
+    "新建/S1开始完成/第二账号加入，初次链路实际执行",
+    "启动日期错误422与旧版本409，初次链路实际执行",
+    "启动/原始与当前计划/首次应检同次保存，S2单独开始，新请求回读",
+    "后来版本确认/重放原启动v5，其他账号回执隔离，初次链路已执行并本次对账",
+    "新请求历史/列表及公共规则消费",
+    "HTML及静态资源字节与固定dist一致"
+  ],
+  "syntheticOnly": true,
+  "assets": {
+    "index.html": "ee0aa7429066117e8aa51df03506c178d21065e6f3fb980ff371371f5e8028f5",
+    "/assets/index-CkA4_Ai-.js": "62fe4da5f7a3f6f4b96fc423d90eb62eb36f371f86adab8ccf99fce5b3416fa3",
+    "/assets/api-B2QLBiqL.js": "6d09fcf876bc1f28e6649c7803dab02bb0fd6caf48a76299505531dc7579419b",
+    "/assets/api-CEMtlmAC.css": "f81b99ccd3ef21d4ce6a436d1c1b2a13dae22b52308ed681a5f614d0227e2fa0",
+    "/assets/index-D8NXthWN.css": "5cdef17e18b287780e8197cec16e9d4628b2b7da8036bf90b4c8fbe2a375e3c1",
+    "GeekDash.html": "ee0aa7429066117e8aa51df03506c178d21065e6f3fb980ff371371f5e8028f5",
+    "project-detail.html": "40ea8a70003763ea3df4e01d5a379afe8baed88b9acf4182e662b0cfe0b73db8",
+    "/assets/project-detail-cH4DZb0F.js": "86a8545538b52e53c6b3088be7482698321e9c71fc01c92ab238dcbbb81e6cb8",
+    "/assets/detail-DYDiBCqo.css": "01e982097fd0e8a5d14ad60181e442a24634e630afae7e91b7148fee651d9ba1",
+    "project-new.html": "b2e13c8e3ad4c94511e6fa2ee150ff36af54690d0656d713112ceaa00dd672f0",
+    "/assets/project-new-DUXeX42w.js": "3f2d372f9810fa66d2e30a3d8444ed31851dc9b4677510c6b2fac644ccc51d70",
+    "/assets/forms-D9KYl3tU.css": "e179bf8998912737851b88af0bc94aeff622a19313ac40fe5dd626fb3206ece0",
+    "login.html": "c532c36ffdc908e4e0f433fe4a28fd6b323eaaf75479927aafbd6e96a8ee9f9a",
+    "/assets/login-FlLmbMmj.js": "42f44340c9d04cf339f8a4bb367da567fc01cf85ae5982cd144a85e1a747fb69",
+    "settings.html": "d8d1fc991e51c46942f3c5a38da4cef9bd80d789a1feae34308903f1dce7e21f",
+    "/assets/settings-DyFxDjZC.js": "c2499ac150595b9ffe354322f3a6560c00cc634b8299dab8dc411395c5000fa7"
+  },
+  "assetCount": 16,
+  "maintenanceCurrentPasswordInControlledFile": true,
+  "recovery": "初次已完成业务断言，校验脚本缺少GeekDash.html别名文件及后续读受重启/TLS中断；串行新读和资源断点续验，无新业务操作"
+}

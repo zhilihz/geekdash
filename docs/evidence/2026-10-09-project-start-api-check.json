@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "checkedAt": "2026-10-09T11:35:28.646Z",
+  "checkedAt": "2026-10-09T11:46:17.847Z",
   "checks": [
     "维护资格、真实初始化及新GET消费；规则/审计/回执SQL失败全回滚，原编号不重复初始化",
     "身份/版本/日期/规则及跨周预览拒绝，未保存状态/计划/义务保持",
@@ -11,9 +11,9 @@
   ],
   "requests": 76,
   "build": {
-    "revision": "5c8cdd193179b96574439a99f86c40c11c43a5d4",
-    "dirty": true,
-    "builtAt": "2026-10-09T11:29:49.149Z",
+    "revision": "5aae00f07428151df57d098eba873ddb2feaa067",
+    "dirty": false,
+    "builtAt": "2026-10-09T11:46:13.928Z",
     "stage": "project-start",
     "schemaVersion": "0002-trial-save"
   }

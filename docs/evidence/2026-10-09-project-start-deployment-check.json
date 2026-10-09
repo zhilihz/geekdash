@@ -1,0 +1,252 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-09T11:51:55.749308+00:00",
+  "revision": "5aae00f07428151df57d098eba873ddb2feaa067",
+  "build": {
+    "revision": "5aae00f07428151df57d098eba873ddb2feaa067",
+    "dirty": false,
+    "builtAt": "2026-10-09T11:46:13.928Z",
+    "stage": "project-start",
+    "schemaVersion": "0002-trial-save"
+  },
+  "imageId": "sha256:88476868ca1fd4ead9186a9c970b9e6ef00518679f81a5b6d710d1c35d9415d6",
+  "backup": {
+    "path": "/var/backups/geekdash/pre-project-start-5aae00f07428.sql.gz",
+    "bytes": 17775,
+    "sha256": "ddf1327f78f3cc55ccce62fb4ca6d1f3202af8152171b248adb65879a7347d4f",
+    "scope": "两库完整逻辑备份；尚未隔离恢复演练"
+  },
+  "schemaMigrationCount": 2,
+  "schemaChanged": false,
+  "existingDevDataFingerprintPreserved": true,
+  "catalogRowsAdded": {
+    "apps": 0,
+    "chips": 0,
+    "customers": 0,
+    "engineers": 0,
+    "product_lines": 0,
+    "project_groups": 0,
+    "tags": 0
+  },
+  "cloudOrdinary": {
+    "status": "passed",
+    "checkedAt": "2026-10-09T11:50:50.234Z",
+    "source": "真实 test MySQL 与 HTTP；合成输入",
+    "checks": [
+      {
+        "check": "ordinary-fields-relations-single-version-fresh-sql-http-filter-stats-audit",
+        "passed": true
+      },
+      {
+        "check": "existing-disabled-kept-new-disabled-rejected-receipt-replay-and-no-change",
+        "passed": true
+      },
+      {
+        "check": "whitelist-reference-validation-relation-and-audit-failure-all-rollback",
+        "passed": true
+      },
+      {
+        "check": "explicit-clear-and-omitted-relations-preserved",
+        "passed": true
+      },
+      {
+        "check": "same-version-conflict-real-commit-lost-ack-reopen-and-exact-replay",
+        "passed": true
+      },
+      {
+        "check": "reference-row-lock-observes-concurrent-disabled-before-new-link",
+        "passed": true
+      },
+      {
+        "check": "four-workers-same-project-five-rounds-one-winner",
+        "passed": true,
+        "requests": 20,
+        "p95Ms": 73,
+        "maxMs": 81
+      }
+    ]
+  },
+  "cloudCapacity": {
+    "status": "passed",
+    "startedAt": "2026-10-09T11:50:51.258Z",
+    "checkedAt": "2026-10-09T11:51:11.512Z",
+    "projectCount": 500,
+    "stageCount": 3500,
+    "initialAuditCount": 500,
+    "workers": 4,
+    "authenticated": true,
+    "rounds": 20,
+    "errorCount": 0,
+    "measurements": {
+      "list": {
+        "requests": 80,
+        "p50Ms": 95,
+        "p95Ms": 165,
+        "maxMs": 418
+      },
+      "detail": {
+        "requests": 80,
+        "p50Ms": 43,
+        "p95Ms": 76,
+        "maxMs": 128
+      },
+      "save": {
+        "requests": 80,
+        "p50Ms": 51,
+        "p95Ms": 103,
+        "maxMs": 115
+      },
+      "audit": {
+        "requests": 80,
+        "p50Ms": 22,
+        "p95Ms": 41,
+        "maxMs": 59
+      }
+    },
+    "noHardProjectLimit": true,
+    "source": "专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时"
+  },
+  "cloudSave": {
+    "checkedAt": "2026-10-09T11:51:22.271Z",
+    "status": "passed",
+    "source": "专用 MySQL 测试库及真实 HTTP，新连接回读；仅合成输入",
+    "checks": [
+      {
+        "check": "four-fields-atomic-save-bigint-fresh-connection-http-board-and-audit",
+        "passed": true
+      },
+      {
+        "check": "concurrent-idempotent-replay-canonical-field-order-and-key-reuse",
+        "passed": true
+      },
+      {
+        "check": "same-version-winner-only-stale-rejected-no-change-receipt-and-old-result",
+        "passed": true
+      },
+      {
+        "check": "whitelist-scope-null-type-unicode-byte-capacity-and-no-partial-write",
+        "passed": true
+      },
+      {
+        "check": "real-audit-receipt-sql-failure-rolls-back-and-real-commit-lost-ack-confirmed-once",
+        "passed": true
+      },
+      {
+        "check": "inflight-not-found-read-only-process-restart-replay-pool-failure-and-recovery",
+        "passed": true
+      },
+      {
+        "check": "four-concurrent-actual-writes-five-rounds-and-fresh-readback",
+        "passed": true,
+        "requests": 20,
+        "p95Ms": 37
+      },
+      {
+        "check": "audit-default20-max100-unbounded-total-stable-cursor-legacy-separated-index",
+        "passed": true,
+        "totalRead": 515,
+        "selectedIndex": "PRIMARY",
+        "accessType": "range"
+      }
+    ]
+  },
+  "cloudRead": {
+    "checkedAt": "2026-10-09T11:51:26.229Z",
+    "scope": "专用测试库、真实 HTTP/MySQL；不包含业务保存或公网性能",
+    "checks": [
+      {
+        "check": "actual-http-list-views-filters-pagination-literal-search-id-validation-no-write",
+        "passed": true
+      },
+      {
+        "check": "complete-project-snapshot-with-all-read-collections-and-bigint-precision",
+        "passed": true
+      },
+      {
+        "check": "real-concurrent-commit-does-not-mix-detail-versions-fresh-request-sees-new-version",
+        "passed": true
+      },
+      {
+        "check": "four-concurrent-real-list-reads-and-pool-exhaustion-recovery",
+        "passed": true,
+        "requests": 20,
+        "p95Ms": 154
+      }
+    ]
+  },
+  "cloudStages": {
+    "status": "passed",
+    "checkedAt": "2026-10-09T11:50:41.974Z",
+    "checks": [
+      "白名单、身份/负责范围、前置、未开始直接完成及非法/未来日期拒绝，持久数据保持",
+      "负责人S1开始→新连接/另一账号详情与阶段状态；进度0、总体不变、原编号只执行一次及账号回执隔离",
+      "阶段更新、审计及回执实际SQL故障，阶段/解锁/项目版本/历史/回执全部回滚",
+      "S1同日完成/说明原文→只解锁S2、不启动项目/阶段；新GET/看板/历史一致，旧版本拒绝",
+      "独立进行中夹具：仅相邻日期校验；普通保存/动作同版本竞争、真实COMMIT丢回执、应用重建后会话与原结果恢复",
+      "暂缓/结案禁止推进、事务内拒绝已停用身份、未知前置日期及非法序列明确核对，不自动修复",
+      "通用七阶段与原版累计进度，全部完成仍不自动结案/检查，不改灯色/优先级/阶段评述"
+    ],
+    "requestCount": 57,
+    "build": {
+      "revision": "5aae00f07428151df57d098eba873ddb2feaa067",
+      "dirty": false,
+      "builtAt": "2026-10-09T11:46:13.928Z",
+      "stage": "project-start",
+      "schemaVersion": "0002-trial-save"
+    },
+    "isolatedTestDatabase": true
+  },
+  "cloudCore": {
+    "status": "passed",
+    "checks": [
+      "真实临时登录、强制改密、CSRF、改密后重新登录和旧会话撤销",
+      "创建项目及七阶段、真实创建者、自动负责、重复创建对账、非负责人只读和最后退出拒绝",
+      "本人加入、实名普通保存及新连接回读、回执账号隔离、统一版本冲突及实名历史",
+      "保存及创建审计故障：项目、七阶段、关系、版本和回执整体回滚",
+      "同时退出仅一个成功，提交后丢失响应、应用重建后原责任回执与持久会话接续",
+      "四个真实账号同版本并发保存仅一个成功，其他冲突可恢复",
+      "事务内拒绝已停用身份快照；旧匿名历史保留且只读确认，不伪造实名",
+      "后台请求不续期、真实前台活动续期、到期不可复活、明确退出撤销当前会话"
+    ],
+    "requests": 66,
+    "maxRequestMs": 308.96984900000007,
+    "build": {
+      "revision": "5aae00f07428151df57d098eba873ddb2feaa067",
+      "dirty": false,
+      "builtAt": "2026-10-09T11:46:13.928Z",
+      "stage": "project-start",
+      "schemaVersion": "0002-trial-save"
+    }
+  },
+  "anonymousBusinessRejected": true,
+  "testRowCountsRestored": true,
+  "mysqlIdAndStartedAtPreserved": true,
+  "otherContainerStartedAtPreserved": 17,
+  "mysqlMemoryLimitBytes": 805306368,
+  "availableMiB": 679,
+  "swapUsedMiB": 1987,
+  "stats": "geekdash-app-1 34.17MiB / 256MiB\ngeekdash-mysql-1 542.1MiB / 768MiB\n",
+  "appRestartCount": 0,
+  "appOomKilled": false,
+  "freeDiskBytes": 16621965312,
+  "cloudStart": {
+    "status": "passed",
+    "checkedAt": "2026-10-09T11:50:37.441Z",
+    "checks": [
+      "维护资格、真实初始化及新GET消费；规则/审计/回执SQL失败全回滚，原编号不重复初始化",
+      "身份/版本/日期/规则及跨周预览拒绝，未保存状态/计划/义务保持",
+      "真实创建→S1→明确启动→新连接/看板/首次义务→S2补录早于启动且符合相邻顺序；启动不自动检查或开始阶段",
+      "首次计划、保留既有计划、未知原始保持未知；明确同次改期及计划写失败全回滚",
+      "双负责人同版启动只提交一次，后来版本重放原结果；真实COMMIT丢确认/应用重建后会话与原启动结果保持",
+      "业务周五全天/次日/周日到下一周的边界、补录过去启动仍按保存周建立义务，真实库受控时钟验证"
+    ],
+    "requests": 76,
+    "build": {
+      "revision": "5aae00f07428151df57d098eba873ddb2feaa067",
+      "dirty": false,
+      "builtAt": "2026-10-09T11:46:13.928Z",
+      "stage": "project-start",
+      "schemaVersion": "0002-trial-save"
+    }
+  }
+}

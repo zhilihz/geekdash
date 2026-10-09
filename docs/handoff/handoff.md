@@ -2,27 +2,27 @@
 
 更新时间：2026-10-09。E03-W00～W12项目主干与最小身份已完成代码、真实MySQL/API、公网及实际app进程恢复并部署；浏览器完整联验仍有工具缺口。[系统真相31](../status/current-system-truth.md#31-e03-完整项目主干与最小身份2026-10-09)是当前事实入口，[报告](../testing/reports/2026-10-09-project-core.md)是准确验证入口。本轮不接真实备份。E04-B01代码、页面/真实MySQL、公网与实际恢复已交付，见[系统真相34](../status/current-system-truth.md#34-e04-b01-阶段开始与完成2026-10-09固定部署)。
 
-## 0. 当前活动 E04-B02～B09
+## 0. 当前活动：继续E04，再逐阶段完整规划/实施/提交
 
-本轮目标是完成整个E04，已有用户授权直接实施。当前分支codex/e04-b02-project-start，基线5c8cdd1；B02代码/真实MySQL六组76请求与原生浏览器主链已验证，固定构建/合并/部署尚待，准确范围见[人工启动报告](../testing/reports/2026-10-09-project-start.md)。新文件project-dates/public-settings/settings页面、verify-project-start；project-actions扩startProject并保持旧指纹，无迁移。未提交文件以git status实时核验，不覆盖。
+用户DEC-109授权离开期间持续施工，范围不限E04：当前完成B03～B09，随后先规划下一阶段全部步骤，再实施/验收/合并远端main，循环直到用户返回。目标方法归[GD-GOAL-001](../implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)，新代决归[autonomous-decisions](../decisions/autonomous-decisions.md)；疑问先核对1051和已确认SPEC，推荐选择记录选项/理由/影响。工具活动目标仍为E04，未完成不关闭，完成后按总目标接续。
 
-本机Docker在验收收尾期间停止，已通过已安装Docker Desktop启动，接手先docker info确认，再停止/移除本轮geekdash-start-browser让其SIGTERM清理自己夹具；若进程已被外部强停则按脚本本轮start_751766c5来源及私有夹具ID逐项核对，不能清空共享测试库。不要动旧orphan容器。测试阶段回归在浏览器夹具前已通过。
+B02实现9185d67集成为固定5aae00f，已合并回读main并更新本机/新加坡；云内七类回归、公网项目9与真实app恢复通过，准确范围见[人工启动报告](../testing/reports/2026-10-09-project-start.md)。本机Docker已健康，强停浏览器夹具按自有ID清理完成，旧orphan未动。当前codex/e04-b02-project-start收尾文档，未提交文件以git status实时核验。
 
-B02接续：完成固定构建/main推送与两端app更新、维护规则实际保存、公网新合成项目启动/历史/原结果和真实app重启，更新报告/系统真相。随后B03～B09按已确认执行计划逐批继续，目标保持active；不导入真实备份，不恢复邀请码/私人稿/SSE等范围。新加坡当前运行3ec251d已TAT新读确认19容器；部署前再次核对。
+下一B03按F03/F04施工阶段事实纠错/撤销误开始完成及真实回退，工期评述接统一普通保存。然后B04计划、B05暂缓恢复、B06结案、B07检查、B08子记录、B09联验。E04完成后进入E05/E06及后续阶段，补齐详细计划再实施。真实备份保持受控，每批部署前新读运行事实。
 
 ## 1. 位置、基线与授权
 
-- D:/geekwon/geekdash；当前施工codex/e04-b01-stage-actions，基线f5bf84d，固定实现3ec251d已合并回读远端main；E03基线与旧发布见系统真相31。文档收尾同分支合并main，接手须重新fetch/status核验最终refs及未提交文件。
+- D:/geekwon/geekdash；B02分支codex/e04-b02-project-start，基线5c8cdd1，固定5aae00f已合并回读远端main；本批文档收尾仍需核对最终refs。后续文档SHA不是运行镜像，E03/B01历史归系统真相31/34。
 - 用户DEC-090明确恢复最小登录/首次改密/会话完成E03，邀请码与完整账号后台后置；CLI/Git/test部署授权有效。不是重新开发替换原系统，也没有批准导入真实备份。
 - 500为整体性能规模、不设创建硬上限；推荐方案取舍只归[决策](../decisions/decisions.md)。阶段提交、main合并与发布分别按[代码管理](../operations/release-maintenance.md#2-代码管理)。代码用ponytail full，纯文档/讨论不延续。
 
 ## 2. 运行与恢复入口
 
-本机41860/新加坡https://geekdash.zhiluan.cool 同3ec251d / stage-actions /0002；两库34表/314列/55外键，无本轮迁移。MySQL本机D盘、云/var/lib/geekdash/mysql；凭据仓库外，本机和云测试账号独立。五账号交付归[E03部署](../operations/deployments/2026-10-09-project-core.md)，本批镜像、备份、恢复及容器保持事实归[阶段部署](../operations/deployments/2026-10-09-stage-actions.md)。前两云账号已由验收改密，分发必须用currentPassword；后三仍首次改密。不能打印凭据或覆盖生成。
+本机41860/新加坡https://geekdash.zhiluan.cool 同5aae00f / project-start /0002；两库34表/314列/55外键，无本轮迁移。MySQL本机D盘、云/var/lib/geekdash/mysql；凭据仓库外，两端账号独立。本批镜像/备份/恢复事实归[启动部署](../operations/deployments/2026-10-09-project-start.md)。云business01/02及maint01已改密，分发须用currentPassword；business03/04仍需首次改密，不能重置或打印凭据。
 
 深模块：identity.ts校验可信actor，project-core.ts创建/本人责任，project-save.ts普通保存，project-actions.ts阶段命令，projects.ts一致快照。事务、结果恢复方法只归执行计划；实际协议归api/project-core.md与api/project-actions.md。
 
-新加坡原3trial及E03验收项目7保持；另有本批合成项目8，S1完成/S2待开始、提案5%、当前v4、开始原回执v2，business01/02共同负责。不要重置既有或本批验收项目，它们也可能被人工试用修改。MySQL及其他17容器未重启。最新发布没有未完成服务器写操作。忽略test-results保留私有TAT/日志，长期证据已脱敏归evidence；浏览器夹具停止、其自有项目清理。
+新加坡原trial及项目7/8保持；B02新合成项目9当前v6/S1完成/S2进行中、business01/02负责，启动原回执v5，周五规则已初始化。不要重置试用项目，复核先新读。云MySQL及其他17容器未重启，无未完成服务器写操作。忽略test-results保留私有TAT/日志，长期证据归evidence。
 
 ## 3. E04-B01本轮施工与接手
 
