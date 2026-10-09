@@ -157,7 +157,7 @@ try {
 } finally {
   if (app) await app.close();
   if (serve && users.length) { const additional = (await c.query('SELECT CAST(id AS CHAR) id FROM projects WHERE source_namespace=? AND created_by IN (' + users.map(() => '?').join(',') + ')', ['geekdash-manual-v1', ...users.map(user => user.id)]))[0]; for (const item of additional) if (!projects.includes(item.id)) projects.push(item.id); }
-  for (const id of projects) { await c.execute('DELETE FROM command_receipts WHERE command_scope LIKE ?', ['user:%:project:' + id + ':%']); await c.execute('DELETE FROM audit_log WHERE project_id=?', [id]); await c.execute('DELETE FROM project_responsibilities WHERE project_id=?', [id]); await c.execute('DELETE FROM project_stages WHERE project_id=?', [id]); await c.execute('DELETE FROM projects WHERE id=?', [id]); }
+  for (const id of projects) { await c.execute('DELETE FROM command_receipts WHERE command_scope IN (?,?)', ['anonymous:project:' + id + ':text', 'anonymous:project:' + id + ':ordinary']); await c.execute('DELETE FROM command_receipts WHERE command_scope LIKE ?', ['user:%:project:' + id + ':%']); await c.execute('DELETE FROM audit_log WHERE project_id=?', [id]); await c.execute('DELETE FROM project_responsibilities WHERE project_id=?', [id]); await c.execute('DELETE FROM project_stages WHERE project_id=?', [id]); await c.execute('DELETE FROM projects WHERE id=?', [id]); }
   for (const user of users) { await c.execute('DELETE FROM command_receipts WHERE actor_id=?', [user.id]); await c.execute('DELETE FROM audit_log WHERE actor_id=?', [user.id]); await c.execute('DELETE FROM sessions WHERE user_id=?', [user.id]); await c.execute('DELETE FROM users WHERE id=?', [user.id]); }
   await c.end();
 }
