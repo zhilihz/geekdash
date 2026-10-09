@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-09T10:56:58.741433+00:00",
+  "projectId": "8",
+  "currentVersion": "4",
+  "originalStartVersion": "2",
+  "originalCompleteVersion": "4",
+  "sessionSurvivedRealProcessRestart": true,
+  "originalResultsConfirmed": true,
+  "freshDetailAndAuditPreserved": true,
+  "auditCount": 4,
+  "credentialOrCookieValuesIncluded": false
+}

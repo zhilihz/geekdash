@@ -1,7 +1,24 @@
 {
-  "source": "本轮已验证施工树；Git提交后源码应逐项保持一致",
+  "source": "本轮本地验证源码及固定3ec251d Git源码；切换分支后的工作文件转LF与固定源码逐字一致，静态STAGES与原定义一致",
   "baseline": "f5bf84d456998b3309e9bb8c8db66b345bb96daa",
   "files": {
+    "src/server/modules/project-actions.ts": "e4cefd4eefec344d14c317c55e9950d8186834557ccf8af6bf184205ce8c29df",
+    "src/server/modules/projects.ts": "ced47f58b81bb62632e0ed51a4ec091beda07917a8c6cc15e9d5443dd9b23f87",
+    "src/server/routes/projects.ts": "29dd9ef38d96d410dc9ea57aae33390adfd75bcab8e5a03c4be17f3fe1a48db9",
+    "src/web/detail.ts": "e0367447748b3b8feb5e8fe5ee1e20be9da624d207d8be956d5473837286a3b2",
+    "src/web/shared/api.ts": "2a639f29342504b3393667001b4c483c180b020e9045e10f5d915409290f9a94",
+    "src/web/shared/detail.css": "e281731870821cb40b221478f175cf280dd9b6a76b65b5c5b3a2e8e14b0fadb6",
+    "src/web/board.ts": "c7f33f1225bda68be3633e09040ac211ea52cd477b8bf5b7589ebe5c6e7cad07",
+    "vite.config.ts": "43df0c26501a6bf61d875e020ed26230460576183f21782e9bd63feecce751e9",
+    "scripts/verify-stage-actions.mjs": "ee8a15df5a0ca7c4cfac0f37dbb1f92c91d85199c048f493c839c66b9456958f",
+    "scripts/build.mjs": "2d9d15709abe510dbfaabe150957f9899988756afdb3eddcba1f444d7b988f67",
+    "package.json": "f53f1c54d6218735f146a1ced7bb419002910be5ba25e2b5308d3bd1874894b3"
+  },
+  "stageDefinitionSource": "geekdashdesktop/projects-data.js",
+  "stageDefinitionSourceSha256": "0a1080f8655d08ad4ba6b6b1dccd0654c5139caf46c51b48a22de109d064f5a5",
+  "stageDefinitionArraySha256": "1c18b6e2b731aad187f26be9791195a14edb244d80fb06824a28cd62455eb43c",
+  "integration": "整合远端1cc77a1本地1051追加；七阶段静态定义逐字一致，服务器源码摘要保持",
+  "validatedWorkingTreeSha256": {
     "src/server/modules/project-actions.ts": "e4cefd4eefec344d14c317c55e9950d8186834557ccf8af6bf184205ce8c29df",
     "src/server/modules/projects.ts": "405529370d0916aec84000e82bd7bb853c1297946ae99e22aa0cfe9ecb9967dc",
     "src/server/routes/projects.ts": "0e655c75dd53fedab3b7b59b569d84e0627afe6a1735d79dd9a0ff2278f8b606",
@@ -14,8 +31,6 @@
     "scripts/build.mjs": "f0e6cf8c884932c6d3a8253d0230c733bc982fc0ed4c870a1d7c764d3986cc3e",
     "package.json": "f53f1c54d6218735f146a1ced7bb419002910be5ba25e2b5308d3bd1874894b3"
   },
-  "stageDefinitionSource": "geekdashdesktop/projects-data.js",
-  "stageDefinitionSourceSha256": "0a1080f8655d08ad4ba6b6b1dccd0654c5139caf46c51b48a22de109d064f5a5",
-  "stageDefinitionArraySha256": "1c18b6e2b731aad187f26be9791195a14edb244d80fb06824a28cd62455eb43c",
-  "integration": "整合远端1cc77a1本地1051追加；七阶段静态定义逐字一致，服务器源码摘要保持"
+  "digestConvention": "files为固定Git源码转LF后SHA256；validatedWorkingTreeSha256保留本地验证时原字节摘要。checkout的CRLF转换不算代码变更。",
+  "fixedRevision": "3ec251d79076ed9a64640e5068c98e11439e373a"
 }

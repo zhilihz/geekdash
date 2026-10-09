@@ -1,0 +1,9 @@
+{
+  "status": "backed-up",
+  "checkedAt": "2026-10-09T10:43:30.977191+00:00",
+  "revision": "3ec251d79076ed9a64640e5068c98e11439e373a",
+  "backupPath": "D:\\geekwon\\geekdash-data\\secrets\\pre-stage-actions-3ec251d79076.sql.gz",
+  "bytes": 12702,
+  "sha256": "a2e739346fc96e1a12aa9f603d8efc6b4f296060dac8f5638977bc2ac0765936",
+  "scope": "两库完整单事务逻辑快照；复用现有受控目录，未修改权限，未隔离恢复"
+}

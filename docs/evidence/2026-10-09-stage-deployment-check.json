@@ -1,0 +1,140 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-09T10:53:31.893805+00:00",
+  "revision": "3ec251d79076ed9a64640e5068c98e11439e373a",
+  "build": {
+    "revision": "3ec251d79076ed9a64640e5068c98e11439e373a",
+    "dirty": false,
+    "builtAt": "2026-10-09T10:38:12.241Z",
+    "stage": "stage-actions",
+    "schemaVersion": "0002-trial-save"
+  },
+  "imageId": "sha256:186ffc93e48e711f7eaaffc72a7cb3c15cec172ed03cb817fde53c6896d04f40",
+  "backup": {
+    "path": "/var/backups/geekdash/pre-stage-actions-3ec251d79076.sql.gz",
+    "bytes": 16435,
+    "sha256": "59a1b28e68b9a9693e8f40acb6a04b73ea7f17377614a0ba130827ec5aa4abed",
+    "scope": "两库完整逻辑备份；尚未隔离恢复演练"
+  },
+  "schemaMigrationCount": 2,
+  "schemaChanged": false,
+  "existingDevDataFingerprintPreserved": true,
+  "catalogRowsAdded": {
+    "apps": 0,
+    "chips": 0,
+    "customers": 0,
+    "engineers": 0,
+    "product_lines": 0,
+    "project_groups": 0,
+    "tags": 0
+  },
+  "anonymousBusinessRejected": true,
+  "testRowCountsRestored": true,
+  "mysqlIdAndStartedAtPreserved": true,
+  "otherContainerStartedAtPreserved": 17,
+  "mysqlMemoryLimitBytes": 805306368,
+  "availableMiB": 689,
+  "swapUsedMiB": 1987,
+  "stats": "geekdash-app-1 32.76MiB / 256MiB\ngeekdash-mysql-1 542.5MiB / 768MiB\n",
+  "appRestartCount": 0,
+  "appOomKilled": false,
+  "freeDiskBytes": 16763031552,
+  "cloudVerification": {
+    "cloudOrdinary": {
+      "status": "passed",
+      "groups": 7,
+      "requests": null,
+      "build": null,
+      "measurements": null,
+      "projectCount": null,
+      "errorCount": null,
+      "beyond500CreatedAndRead": null
+    },
+    "cloudCapacity": {
+      "status": "passed",
+      "groups": 0,
+      "requests": null,
+      "build": null,
+      "measurements": {
+        "list": {
+          "requests": 80,
+          "p50Ms": 1197,
+          "p95Ms": 1862,
+          "maxMs": 2172
+        },
+        "detail": {
+          "requests": 80,
+          "p50Ms": 32,
+          "p95Ms": 66,
+          "maxMs": 94
+        },
+        "save": {
+          "requests": 80,
+          "p50Ms": 43,
+          "p95Ms": 83,
+          "maxMs": 126
+        },
+        "audit": {
+          "requests": 80,
+          "p50Ms": 17,
+          "p95Ms": 36,
+          "maxMs": 52
+        }
+      },
+      "projectCount": 500,
+      "errorCount": 0,
+      "beyond500CreatedAndRead": null
+    },
+    "cloudSave": {
+      "status": "passed",
+      "groups": 8,
+      "requests": null,
+      "build": null,
+      "measurements": null,
+      "projectCount": null,
+      "errorCount": null,
+      "beyond500CreatedAndRead": null
+    },
+    "cloudRead": {
+      "status": "passed",
+      "groups": 4,
+      "requests": null,
+      "build": null,
+      "measurements": null,
+      "projectCount": null,
+      "errorCount": null,
+      "beyond500CreatedAndRead": null
+    },
+    "cloudStages": {
+      "status": "passed",
+      "groups": 7,
+      "requests": 57,
+      "build": {
+        "revision": "3ec251d79076ed9a64640e5068c98e11439e373a",
+        "dirty": false,
+        "builtAt": "2026-10-09T10:38:12.241Z",
+        "stage": "stage-actions",
+        "schemaVersion": "0002-trial-save"
+      },
+      "projectCount": null,
+      "errorCount": null,
+      "beyond500CreatedAndRead": null
+    },
+    "cloudCore": {
+      "status": "passed",
+      "groups": 8,
+      "requests": 66,
+      "build": {
+        "revision": "3ec251d79076ed9a64640e5068c98e11439e373a",
+        "dirty": false,
+        "builtAt": "2026-10-09T10:38:12.241Z",
+        "stage": "stage-actions",
+        "schemaVersion": "0002-trial-save"
+      },
+      "measurements": null,
+      "projectCount": null,
+      "errorCount": null,
+      "beyond500CreatedAndRead": null
+    }
+  }
+}

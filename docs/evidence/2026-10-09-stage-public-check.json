@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-09T10:55:13.369986+00:00",
+  "build": {
+    "revision": "3ec251d79076ed9a64640e5068c98e11439e373a",
+    "dirty": false,
+    "builtAt": "2026-10-09T10:38:12.241Z",
+    "stage": "stage-actions",
+    "schemaVersion": "0002-trial-save"
+  },
+  "projectId": "8",
+  "savedVersion": "4",
+  "checks": [
+    "公网真实已有身份，匿名拒绝及非负责人拒绝",
+    "新建提案→开始S1→另一账号新GET",
+    "第二账号加入→旧版本完成409→新版明确完成",
+    "完成只解锁S2，总体提案、5%与原评述保持",
+    "S2要求人工启动、历史/提案看板新请求消费",
+    "原开始正文在v4重试返回原v2，另一账号回执隔离"
+  ],
+  "syntheticOnly": true,
+  "newCredentialsCreated": false
+}
