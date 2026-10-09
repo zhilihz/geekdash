@@ -1,6 +1,6 @@
 # 测试项目普通保存 API
 
-日期：2026-10-09；实际代码 src/server/routes/projects.ts 与 modules/project-save.ts，结构0002-trial-save。行为唯一归 [SPEC-002](../specification.md#spec-002-保存事务并发与审计)；本文件只说明协议。全部响应 Cache-Control: no-store；大整数均为十进制字符串，当前没有登录身份。
+日期：2026-10-09；代码版本31012c8，实际代码 src/server/routes/projects.ts 与 modules/project-save.ts，结构0002-trial-save；[固定构建](../../operations/deployments/2026-10-09-project-ordinary.md)。行为唯一归 [SPEC-002](../specification.md#spec-002-保存事务并发与审计)；本文件只说明协议。全部响应 Cache-Control: no-store；大整数均为十进制字符串，当前没有登录身份。
 
 ## PATCH /api/projects/:id
 

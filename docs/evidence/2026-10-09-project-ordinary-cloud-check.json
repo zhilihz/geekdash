@@ -1,0 +1,187 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-09T03:38:01.677075+00:00",
+  "revision": "31012c8cc1b52d9848e010b815ba55321c4ba935",
+  "build": {
+    "revision": "31012c8cc1b52d9848e010b815ba55321c4ba935",
+    "dirty": false,
+    "builtAt": "2026-10-09T03:29:32.235Z",
+    "stage": "project-ordinary",
+    "schemaVersion": "0002-trial-save"
+  },
+  "imageId": "sha256:d18c857870820a2c76d5e658465a95fdaf8c78813623a57b8a67dbfb4a0d3097",
+  "backup": {
+    "path": "/var/backups/geekdash/pre-project-ordinary-31012c8cc1b5.sql.gz",
+    "bytes": 12512,
+    "sha256": "7620ea99d46a2df9c5c21d79e039e3924822ad7ab425147ed06ec51cac181256",
+    "scope": "两库完整逻辑备份；尚未隔离恢复演练"
+  },
+  "schemaMigrationCount": 2,
+  "schemaChanged": false,
+  "existingDevDataFingerprintPreserved": true,
+  "catalogRowsAdded": {
+    "apps": 2,
+    "chips": 2,
+    "customers": 2,
+    "engineers": 2,
+    "product_lines": 2,
+    "project_groups": 2,
+    "tags": 2
+  },
+  "cloudOrdinary": {
+    "status": "passed",
+    "checkedAt": "2026-10-09T03:34:31.610Z",
+    "source": "真实 test MySQL 与 HTTP；合成输入",
+    "checks": [
+      {
+        "check": "ordinary-fields-relations-single-version-fresh-sql-http-filter-stats-audit",
+        "passed": true
+      },
+      {
+        "check": "existing-disabled-kept-new-disabled-rejected-receipt-replay-and-no-change",
+        "passed": true
+      },
+      {
+        "check": "whitelist-reference-validation-relation-and-audit-failure-all-rollback",
+        "passed": true
+      },
+      {
+        "check": "explicit-clear-and-omitted-relations-preserved",
+        "passed": true
+      },
+      {
+        "check": "same-version-conflict-real-commit-lost-ack-reopen-and-exact-replay",
+        "passed": true
+      },
+      {
+        "check": "reference-row-lock-observes-concurrent-disabled-before-new-link",
+        "passed": true
+      },
+      {
+        "check": "four-workers-same-project-five-rounds-one-winner",
+        "passed": true,
+        "requests": 20,
+        "p95Ms": 54,
+        "maxMs": 57
+      }
+    ]
+  },
+  "cloudCapacity": {
+    "status": "passed",
+    "startedAt": "2026-10-09T03:34:32.872Z",
+    "checkedAt": "2026-10-09T03:35:07.008Z",
+    "projectCount": 500,
+    "stageCount": 3500,
+    "initialAuditCount": 500,
+    "workers": 4,
+    "rounds": 20,
+    "errorCount": 0,
+    "measurements": {
+      "list": {
+        "requests": 80,
+        "p50Ms": 841,
+        "p95Ms": 2116,
+        "maxMs": 2379
+      },
+      "detail": {
+        "requests": 80,
+        "p50Ms": 19,
+        "p95Ms": 47,
+        "maxMs": 79
+      },
+      "save": {
+        "requests": 80,
+        "p50Ms": 32,
+        "p95Ms": 70,
+        "maxMs": 160
+      },
+      "audit": {
+        "requests": 80,
+        "p50Ms": 8,
+        "p95Ms": 17,
+        "maxMs": 26
+      }
+    },
+    "noHardProjectLimit": true,
+    "source": "专用测试库/合成数据/真实 HTTP；本地或云内环回延时，不代表公司公网浏览器延时"
+  },
+  "cloudSave": {
+    "checkedAt": "2026-10-09T03:35:15.967Z",
+    "status": "passed",
+    "source": "专用 MySQL 测试库及真实 HTTP，新连接回读；仅合成输入",
+    "checks": [
+      {
+        "check": "four-fields-atomic-save-bigint-fresh-connection-http-board-and-audit",
+        "passed": true
+      },
+      {
+        "check": "concurrent-idempotent-replay-canonical-field-order-and-key-reuse",
+        "passed": true
+      },
+      {
+        "check": "same-version-winner-only-stale-rejected-no-change-receipt-and-old-result",
+        "passed": true
+      },
+      {
+        "check": "whitelist-scope-null-type-unicode-byte-capacity-and-no-partial-write",
+        "passed": true
+      },
+      {
+        "check": "real-audit-receipt-sql-failure-rolls-back-and-real-commit-lost-ack-confirmed-once",
+        "passed": true
+      },
+      {
+        "check": "inflight-not-found-read-only-process-restart-replay-pool-failure-and-recovery",
+        "passed": true
+      },
+      {
+        "check": "four-concurrent-actual-writes-five-rounds-and-fresh-readback",
+        "passed": true,
+        "requests": 20,
+        "p95Ms": 46
+      },
+      {
+        "check": "audit-default20-max100-unbounded-total-stable-cursor-legacy-separated-index",
+        "passed": true,
+        "totalRead": 515,
+        "selectedIndex": "PRIMARY",
+        "accessType": "range"
+      }
+    ]
+  },
+  "cloudRead": {
+    "checkedAt": "2026-10-09T03:35:19.811Z",
+    "scope": "专用测试库、真实 HTTP/MySQL；不包含业务保存或公网性能",
+    "checks": [
+      {
+        "check": "actual-http-list-views-filters-pagination-literal-search-id-validation-no-write",
+        "passed": true
+      },
+      {
+        "check": "complete-project-snapshot-with-all-read-collections-and-bigint-precision",
+        "passed": true
+      },
+      {
+        "check": "real-concurrent-commit-does-not-mix-detail-versions-fresh-request-sees-new-version",
+        "passed": true
+      },
+      {
+        "check": "four-concurrent-real-list-reads-and-pool-exhaustion-recovery",
+        "passed": true,
+        "requests": 20,
+        "p95Ms": 123
+      }
+    ]
+  },
+  "publicTrialCount": 3,
+  "testRowCountsRestored": true,
+  "mysqlIdAndStartedAtPreserved": true,
+  "otherContainerStartedAtPreserved": 17,
+  "mysqlMemoryLimitBytes": 805306368,
+  "availableMiB": 710,
+  "swapUsedMiB": 1987,
+  "stats": "geekdash-app-1 33.65MiB / 256MiB\ngeekdash-mysql-1 500.1MiB / 768MiB\n",
+  "appRestartCount": 0,
+  "appOomKilled": false,
+  "freeDiskBytes": 17195978752
+}

@@ -1,0 +1,55 @@
+{
+  "status": "passed",
+  "revision": "31012c8cc1b52d9848e010b815ba55321c4ba935",
+  "checks": [
+    {
+      "path": "/project-detail.html",
+      "sha256": "73d9173108baa6831b6ffb7d275bcacad9a7400d8c495725dd90d225a4be3f69",
+      "cacheControl": "public, max-age=0",
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "path": "/",
+      "sha256": "44333c3ae4ab0d9611cf5bf71dbfd5b97573d177bd7fb89415bc26291c0eb9ce",
+      "cacheControl": "public, max-age=0",
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "path": "/assets/project-detail-BnF53GE0.js",
+      "sha256": "799a45caaa6887de4f094c952635afc5974922413edf5dba1b21c364ce0b9d87",
+      "cacheControl": "public, max-age=0",
+      "contentType": "application/javascript; charset=utf-8"
+    },
+    {
+      "path": "/assets/api-crzmSzbB.js",
+      "sha256": "b6438df72da13d7c117025f8dfba34febf921a28b73cf6925cccb61464f91b78",
+      "cacheControl": "public, max-age=0",
+      "contentType": "application/javascript; charset=utf-8"
+    },
+    {
+      "path": "/assets/api-CEMtlmAC.css",
+      "sha256": "f81b99ccd3ef21d4ce6a436d1c1b2a13dae22b52308ed681a5f614d0227e2fa0",
+      "cacheControl": "public, max-age=0",
+      "contentType": "text/css; charset=utf-8"
+    },
+    {
+      "path": "/assets/project-detail-vW_N4vCs.css",
+      "sha256": "b7f15e2a913fc54618335747942d0bc2be8558fcb7edd4bec00f962ae439204f",
+      "cacheControl": "public, max-age=0",
+      "contentType": "text/css; charset=utf-8"
+    },
+    {
+      "path": "/assets/index-DwMmUcop.js",
+      "sha256": "e26c905574ac9312baf98ddec426c6144c1971a52cb5fd87e9fc20445eecc8ba",
+      "cacheControl": "public, max-age=0",
+      "contentType": "application/javascript; charset=utf-8"
+    },
+    {
+      "path": "/assets/index-D8NXthWN.css",
+      "sha256": "5cdef17e18b287780e8197cec16e9d4628b2b7da8036bf90b4c8fbe2a375e3c1",
+      "cacheControl": "public, max-age=0",
+      "contentType": "text/css; charset=utf-8"
+    }
+  ],
+  "source": "公网 HTTPS 新请求读取 HTML/JS/CSS，与已构建产物逐字节摘要对比；不代替浏览器交互验收"
+}

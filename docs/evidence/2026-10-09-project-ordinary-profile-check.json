@@ -1,0 +1,120 @@
+{
+  "capacity": {
+    "status": "passed",
+    "startedAt": "2026-10-09T03:40:41.263Z",
+    "checkedAt": "2026-10-09T03:40:55.121Z",
+    "projectCount": 500,
+    "stageCount": 3500,
+    "initialAuditCount": 500,
+    "workers": 4,
+    "rounds": 20,
+    "errorCount": 0,
+    "measurements": {
+      "list": {
+        "requests": 80,
+        "p50Ms": 88,
+        "p95Ms": 218,
+        "maxMs": 257
+      },
+      "detail": {
+        "requests": 80,
+        "p50Ms": 24,
+        "p95Ms": 53,
+        "maxMs": 60
+      },
+      "save": {
+        "requests": 80,
+        "p50Ms": 39,
+        "p95Ms": 70,
+        "maxMs": 83
+      },
+      "audit": {
+        "requests": 80,
+        "p50Ms": 7,
+        "p95Ms": 18,
+        "maxMs": 19
+      }
+    },
+    "noHardProjectLimit": true,
+    "source": "专用测试库/合成数据/真实 HTTP；本地或云内环回延时，不代表公司公网浏览器延时"
+  },
+  "profile": {
+    "checkedAt": "2026-10-09T03:40:55.119Z",
+    "queries": [
+      {
+        "sql": "SELECT CAST(p.id AS CHAR) id, CAST(p.version AS CHAR) version, p.data_kind dataKind, p.name, p.status, p.priority, p.signal, c.name customer, odm.name odmFactory, pl.name productLine, a.name app, g.name projectGroup, DATE_FORMAT(p.proposed_on,'%Y-%m-%d') proposalDate, DATE_FORMAT(p.current_due_date,'%Y-%m-%d') dueDate, p.market_expectation marketExpectation, p.status_description statusDesc, p.manual_delayed manualDelayed, p.maintenance_enabled maintenanceEnabled, p.updated_at updatedAt,COALESCE((SELECT MIN(s.stage_code) FROM project_stages s WHERE s.project_id=p.id AND s.state<>'completed'), IF((SELECT COUNT(*) FROM project_stages s WHERE s.project_id=p.id)=7,'completed','unconfigured')) stage,ELT(1+(SELECT COUNT(*) FROM project_stages s WHERE s.project_id=p.id AND s.state='completed'),0,5,10,20,60,80,90,100) progress FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id WHERE c.name=? ORDER BY p.id DESC LIMIT ? OFFSET ?",
+        "count": 81,
+        "totalMs": 1256,
+        "maxMs": 50
+      },
+      {
+        "sql": "SELECT DISTINCT r.name value FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id JOIN project_tags l ON l.project_id=p.id JOIN tags r ON r.id=l.tag_id ORDER BY value",
+        "count": 85,
+        "totalMs": 656,
+        "maxMs": 50
+      },
+      {
+        "sql": "SELECT COALESCE((SELECT MIN(s.stage_code) FROM project_stages s WHERE s.project_id=p.id AND s.state<>'completed'), IF((SELECT COUNT(*) FROM project_stages s WHERE s.project_id=p.id)=7,'completed','unconfigured')) value,COUNT(*) count FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id WHERE c.name=? GROUP BY value",
+        "count": 81,
+        "totalMs": 627,
+        "maxMs": 26
+      },
+      {
+        "sql": "SELECT DISTINCT r.name value FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id JOIN project_chips l ON l.project_id=p.id JOIN chips r ON r.id=l.chip_id ORDER BY value",
+        "count": 85,
+        "totalMs": 586,
+        "maxMs": 18
+      },
+      {
+        "sql": "SELECT DISTINCT r.name value FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id JOIN project_people l ON l.project_id=p.id JOIN engineers r ON r.id=l.engineer_id ORDER BY value",
+        "count": 85,
+        "totalMs": 555,
+        "maxMs": 19
+      },
+      {
+        "sql": "SELECT CAST(id AS CHAR) id,CAST(version AS CHAR) version,data_kind, `name` `name`,`market_expectation` `marketExpectation`,`detail_note` `detailNote`,`summary_note` `summaryNote`,`signal_note` `signalNote`,`chipstat_note` `chipstatNote`,`status_description` `statusDesc`,`signal` `signal`,`priority` `priority`,CAST(`customer_id` AS CHAR) `customerId`,CAST(`odm_customer_id` AS CHAR) `odmCustomerId`,CAST(`product_line_id` AS CHAR) `productLineId`,CAST(`app_id` AS CHAR) `appId`,CAST(`group_id` AS CHAR) `groupId` FROM projects WHERE id=? FOR UPDATE",
+        "count": 580,
+        "totalMs": 533,
+        "maxMs": 9
+      },
+      {
+        "sql": "SELECT DISTINCT c.name value FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id WHERE c.name IS NOT NULL ORDER BY value",
+        "count": 85,
+        "totalMs": 490,
+        "maxMs": 39
+      },
+      {
+        "sql": "SELECT request_hash,response_json FROM command_receipts WHERE command_scope=? AND idempotency_key=? FOR UPDATE",
+        "count": 580,
+        "totalMs": 430,
+        "maxMs": 11
+      }
+    ],
+    "plans": [
+      {
+        "sql": "SELECT CAST(p.id AS CHAR) id, CAST(p.version AS CHAR) version, p.data_kind dataKind, p.name, p.status, p.priority, p.signal, c.name customer, odm.name odmFactory, pl.name productLine, a.name app, g.name projectGroup, DATE_FORMAT(p.proposed_on,'%Y-%m-%d') proposalDate, DATE_FORMAT(p.current_due_date,'%Y-%m-%d') dueDate, p.market_expectation marketExpectation, p.status_description statusDesc, p.manual_delayed manualDelayed, p.maintenance_enabled maintenanceEnabled, p.updated_at updatedAt,COALESCE((SELECT MIN(s.stage_code) FROM project_stages s WHERE s.project_id=p.id AND s.state<>'completed'), IF((SELECT COUNT(*) FROM project_stages s WHERE s.project_id=p.id)=7,'completed','unconfigured')) stage,ELT(1+(SELECT COUNT(*) FROM project_stages s WHERE s.project_id=p.id AND s.state='completed'),0,5,10,20,60,80,90,100) progress FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id WHERE c.name=? ORDER BY p.id DESC LIMIT ? OFFSET ?",
+        "plan": [
+          {
+            "EXPLAIN": "-> Limit: 24 row(s)  (actual time=54.4..54.4 rows=24 loops=1)\n    -> Sort: p.id DESC, limit input to 24 row(s) per chunk  (actual time=54.4..54.4 rows=24 loops=1)\n        -> Stream results  (cost=2.4 rows=1) (actual time=50.2..54.3 rows=125 loops=1)\n            -> Nested loop left join  (cost=2.4 rows=1) (actual time=23.8..24.5 rows=125 loops=1)\n                -> Nested loop left join  (cost=2.05 rows=1) (actual time=23.8..24.4 rows=125 loops=1)\n                    -> Nested loop left join  (cost=1.7 rows=1) (actual time=23.8..24.4 rows=125 loops=1)\n                        -> Nested loop left join  (cost=1.35 rows=1) (actual time=23.8..24.3 rows=125 loops=1)\n                            -> Nested loop inner join  (cost=1 rows=1) (actual time=23.8..24.3 rows=125 loops=1)\n                                -> Filter: (c.`name` = '规模夹具-customers-0')  (cost=0.65 rows=1) (actual time=1.02..1.03 rows=1 loops=1)\n                                    -> Covering index scan on c using idx_enabled_name_id  (cost=0.65 rows=4) (actual time=0.0346..0.0413 rows=4 loops=1)\n                                -> Index lookup on p using idx_customer_id_status_id (customer_id=c.id)  (cost=0.35 rows=1) (actual time=0.0288..0.488 rows=125 loops=1)\n                            -> Single-row index lookup on odm using PRIMARY (id=p.odm_customer_id)  (cost=0.35 rows=1) (actual time=202e-6..202e-6 rows=0 loops=125)\n                        -> Single-row index lookup on pl using PRIMARY (id=p.product_line_id)  (cost=0.35 rows=1) (actual time=172e-6..172e-6 rows=0 loops=125)\n                    -> Single-row index lookup on a using PRIMARY (id=p.app_id)  (cost=0.35 rows=1) (actual time=183e-6..183e-6 rows=0 loops=125)\n                -> Single-row index lookup on g using PRIMARY (id=p.group_id)  (cost=0.35 rows=1) (actual time=142e-6..142e-6 rows=0 loops=125)\n"
+          }
+        ]
+      },
+      {
+        "sql": "SELECT DISTINCT r.name value FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id JOIN project_tags l ON l.project_id=p.id JOIN tags r ON r.id=l.tag_id ORDER BY value",
+        "plan": [
+          {
+            "EXPLAIN": "-> Sort: r.`name`  (actual time=2.09..2.09 rows=4 loops=1)\n    -> Table scan on <temporary>  (cost=20.4..22.7 rows=8) (actual time=2.07..2.08 rows=4 loops=1)\n        -> Temporary table with deduplication  (cost=20.1..20.1 rows=8) (actual time=2.07..2.07 rows=4 loops=1)\n            -> Nested loop left join  (cost=19.3 rows=8) (actual time=0.0835..1.88 rows=500 loops=1)\n                -> Nested loop left join  (cost=16.5 rows=8) (actual time=0.0815..1.73 rows=500 loops=1)\n                    -> Nested loop left join  (cost=13.7 rows=8) (actual time=0.0794..1.62 rows=500 loops=1)\n                        -> Nested loop left join  (cost=10.9 rows=8) (actual time=0.0768..1.5 rows=500 loops=1)\n                            -> Nested loop left join  (cost=8.05 rows=8) (actual time=0.0707..1.38 rows=500 loops=1)\n                                -> Nested loop inner join  (cost=5.25 rows=8) (actual time=0.0644..1.16 rows=500 loops=1)\n                                    -> Nested loop inner join  (cost=2.45 rows=8) (actual time=0.0504..0.232 rows=500 loops=1)\n                                        -> Covering index scan on r using idx_enabled_name_id  (cost=0.65 rows=4) (actual time=0.0188..0.023 rows=4 loops=1)\n                                        -> Covering index lookup on l using idx_tag_id_project_id (tag_id=r.id)  (cost=0.301 rows=2) (actual time=0.00891..0.0427 rows=125 loops=4)\n                                    -> Single-row index lookup on p using PRIMARY (id=l.project_id)  (cost=0.263 rows=1) (actual time=0.00164..0.00168 rows=1 loops=500)\n                                -> Single-row covering index lookup on c using PRIMARY (id=p.customer_id)  (cost=0.263 rows=1) (actual time=134e-6..168e-6 rows=1 loops=500)\n                            -> Single-row covering index lookup on odm using PRIMARY (id=p.odm_customer_id)  (cost=0.263 rows=1) (actual time=98.8e-6..98.8e-6 rows=0 loops=500)\n                        -> Single-row covering index lookup on pl using PRIMARY (id=p.product_line_id)  (cost=0.263 rows=1) (actual time=92.7e-6..92.7e-6 rows=0 loops=500)\n                    -> Single-row covering index lookup on a using PRIMARY (id=p.app_id)  (cost=0.263 rows=1) (actual time=87.6e-6..87.6e-6 rows=0 loops=500)\n                -> Single-row covering index lookup on g using PRIMARY (id=p.group_id)  (cost=0.263 rows=1) (actual time=87.5e-6..87.5e-6 rows=0 loops=500)\n"
+          }
+        ]
+      },
+      {
+        "sql": "SELECT COALESCE((SELECT MIN(s.stage_code) FROM project_stages s WHERE s.project_id=p.id AND s.state<>'completed'), IF((SELECT COUNT(*) FROM project_stages s WHERE s.project_id=p.id)=7,'completed','unconfigured')) value,COUNT(*) count FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id WHERE c.name=? GROUP BY value",
+        "plan": [
+          {
+            "EXPLAIN": "-> Table scan on <temporary>  (actual time=1.57..1.57 rows=1 loops=1)\n    -> Aggregate using temporary table  (actual time=1.57..1.57 rows=1 loops=1)\n        -> Nested loop left join  (cost=2.4 rows=1) (actual time=0.0573..0.347 rows=125 loops=1)\n            -> Nested loop left join  (cost=2.05 rows=1) (actual time=0.0562..0.317 rows=125 loops=1)\n                -> Nested loop left join  (cost=1.7 rows=1) (actual time=0.0545..0.287 rows=125 loops=1)\n                    -> Nested loop left join  (cost=1.35 rows=1) (actual time=0.0529..0.256 rows=125 loops=1)\n                        -> Nested loop inner join  (cost=1 rows=1) (actual time=0.0507..0.223 rows=125 loops=1)\n                            -> Filter: ((c.`name` = '规模夹具-customers-0') and (c.id is not null))  (cost=0.65 rows=1) (actual time=0.0211..0.027 rows=1 loops=1)\n                                -> Covering index scan on c using idx_enabled_name_id  (cost=0.65 rows=4) (actual time=0.0158..0.0184 rows=4 loops=1)\n                            -> Index lookup on p using idx_customer_id_status_id (customer_id=c.id)  (cost=0.35 rows=1) (actual time=0.0284..0.186 rows=125 loops=1)\n                        -> Single-row covering index lookup on odm using PRIMARY (id=p.odm_customer_id)  (cost=0.35 rows=1) (actual time=124e-6..124e-6 rows=0 loops=125)\n                    -> Single-row covering index lookup on pl using PRIMARY (id=p.product_line_id)  (cost=0.35 rows=1) (actual time=99.2e-6..99.2e-6 rows=0 loops=125)\n                -> Single-row covering index lookup on a using PRIMARY (id=p.app_id)  (cost=0.35 rows=1) (actual time=98.8e-6..98.8e-6 rows=0 loops=125)\n            -> Single-row covering index lookup on g using PRIMARY (id=p.group_id)  (cost=0.35 rows=1) (actual time=88.3e-6..88.3e-6 rows=0 loops=125)\n"
+          }
+        ]
+      }
+    ]
+  }
+}

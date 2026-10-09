@@ -1,0 +1,31 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-09T03:39:32Z",
+  "revision": "31012c8cc1b52d9848e010b815ba55321c4ba935",
+  "tlsVerified": true,
+  "projectId": "3",
+  "savedVersion": "3",
+  "catalogSyntheticCandidates": {
+    "apps": 2,
+    "chips": 2,
+    "customers": 2,
+    "engineers": 2,
+    "product_lines": 2,
+    "project_groups": 2,
+    "tags": 2
+  },
+  "saveMs": 2260,
+  "freshReadbackMs": 3856,
+  "ordinaryFieldsAndAssociationsPersisted": true,
+  "originalFourTextsPreserved": true,
+  "sameOperationReplayAndReadOnlyConfirm": true,
+  "staleSaveRejected": true,
+  "auditNamesAndBoardFiltersConsumeSavedResult": true,
+  "fourConcurrentPublicReads": {
+    "requests": 20,
+    "p50Ms": 2268,
+    "p95Ms": 2753,
+    "maxMs": 2939
+  },
+  "source": "本机到新加坡公网 HTTPS，每次 urllib 新 TLS 连接；仅合成 trial，不是公司网络实名验收"
+}

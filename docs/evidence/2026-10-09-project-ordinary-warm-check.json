@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-09T03:43:08.654Z",
+  "revision": "31012c8cc1b52d9848e010b815ba55321c4ba935",
+  "source": "本机 Node 常驻进程、系统代理、预热 HTTPS；原已提交操作重放不新增写入；不是公司网络验收",
+  "coldLiveMs": 2264,
+  "warmOriginalOperationReplayMs": 475,
+  "warmDetailReadbackMs": 514,
+  "fourConcurrentPublicReads": {
+    "requests": 20,
+    "p50Ms": 551,
+    "p95Ms": 2211,
+    "maxMs": 2963
+  }
+}

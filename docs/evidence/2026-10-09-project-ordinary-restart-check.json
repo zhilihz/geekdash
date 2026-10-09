@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-09T03:41:34.253985+00:00",
+  "revision": "31012c8cc1b52d9848e010b815ba55321c4ba935",
+  "actualAppProcessRestarted": true,
+  "newProcessFreshFullDetailReadback": true,
+  "ordinaryFieldsAndAssociationsPreserved": true,
+  "receiptConfirmedAndReplayedWithoutExtraAudit": true,
+  "publicReadyAndFullDetailReadback": true,
+  "mysqlIdAndStartedAtPreserved": true,
+  "otherContainerStartedAtPreserved": 17,
+  "appOomKilled": false,
+  "appRestartCount": 0,
+  "projectId": "3",
+  "savedVersion": "3"
+}
