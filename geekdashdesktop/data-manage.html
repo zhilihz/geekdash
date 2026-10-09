@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>基础信息管理 · 客户与工程师</title>
+<style>
+/* ==========================================================================
+   主题变量（与列表页 / 详情页保持一致）：深色（默认）/ 浅色 / 暖色护眼
+   ========================================================================== */
+:root, [data-theme="dark"] {
+  --bg: #0d1117;
+  --bg-soft: #0f141a;
+  --card: #161b22;
+  --card-hover: #1b222c;
+  --border: #30363d;
+  --border-soft: #21262d;
+  --text: #e6edf3;
+  --text-dim: #8b949e;
+  --text-faint: #6e7681;
+  --accent: #58a6ff;
+  --accent-dim: #1f6feb;
+  --danger: #f85149;
+}
+
+[data-theme="light"] {
+  --bg: #f6f8fa;
+  --bg-soft: #ffffff;
+  --card: #ffffff;
+  --card-hover: #f0f3f6;
+  --border: #d0d7de;
+  --border-soft: #eaeef2;
+  --text: #1f2328;
+  --text-dim: #57606a;
+  --text-faint: #8c959f;
+  --accent: #0969da;
+  --accent-dim: #1f6feb;
+  --danger: #d1242f;
+}
+
+[data-theme="warm"] {
+  --bg: #faf5ec;
+  --bg-soft: #f5eee0;
+  --card: #fffaf0;
+  --card-hover: #f3e9d7;
+  --border: #e3d5bd;
+  --border-soft: #efe5d0;
+  --text: #3d3428;
+  --text-dim: #7a6a52;
+  --text-faint: #a08d70;
+  --accent: #b45309;
+  --accent-dim: #c2701d;
+  --danger: #c0392b;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+               "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page { max-width: 880px; margin: 0 auto; padding: 32px 20px 60px; }
+
+/* 顶部栏 */
+.topbar { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+.back-btn {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.back-btn:hover { color: var(--text); background: var(--card-hover); }
+.topbar .crumb { color: var(--text-faint); font-size: 13px; }
+
+/* 主题切换 */
+.theme-switch {
+  margin-left: auto;
+  display: inline-flex;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 3px;
+  gap: 2px;
+}
+.theme-switch button {
+  background: transparent;
+  color: var(--text-dim);
+  border: none;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.theme-switch button:hover { color: var(--text); }
+.theme-switch button.active { background: #8250df; color: #fff; font-weight: 600; }
+
+/* ==========================================================================
+   顶部固定区（滚动时保持不动）+ 日期专区
+   ========================================================================== */
+.top-sticky { position: sticky; top: 0; z-index: 100; background: var(--bg); margin-bottom: 20px; }
+.top-sticky .topbar { margin-bottom: 12px; }
+.date-zone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 14px 22px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 12px;
+  background: var(--card);
+}
+.date-zone .dz-left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.dz-date { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: .5px; }
+.dz-week { font-size: 14px; font-weight: 600; color: var(--text-dim); padding: 2px 10px; background: var(--bg-soft); border-radius: 6px; }
+.dz-time { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent); letter-spacing: 1.5px; }
+.dz-countdown { display: flex; align-items: baseline; gap: 8px; background: var(--accent-dim); border-radius: 10px; padding: 10px 18px; }
+.dz-cd-label { font-size: 13px; color: rgba(255,255,255,0.9); }
+.dz-cd-num { font-size: 30px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; line-height: 1; }
+.dz-cd-unit { font-size: 14px; color: rgba(255,255,255,0.9); }
+
+/* 管理面板 */
+.manage-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+  overflow: hidden;
+}
+.manage-head { padding: 20px 24px 0; }
+.manage-head h1 { font-size: 20px; font-weight: 700; }
+.manage-head p { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+
+/* tab 切换 */
+.tabs { display: flex; gap: 4px; padding: 16px 24px 0; border-bottom: 1px solid var(--border); margin-top: 14px; }
+.tab {
+  background: transparent;
+  color: var(--text-dim);
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 18px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+.pane-body { padding: 20px 24px 26px; }
+
+/* 工具行 */
+.pane-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.pane-hint { color: var(--text-faint); font-size: 12.5px; }
+.add-btn {
+  background: var(--accent-dim);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.add-btn:hover { background: var(--accent); }
+
+/* 数据条目卡片 */
+.item-card {
+  background: var(--bg-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+.item-card.editing { border-color: var(--accent); }
+.item-head { display: flex; align-items: center; gap: 10px; }
+.item-name { font-size: 15px; font-weight: 600; flex: 1; min-width: 0; word-break: break-word; display: inline-flex; align-items: center; gap: 8px; }
+.item-sub { color: var(--text-dim); font-size: 12.5px; }
+.type-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--accent);
+  background: rgba(88,166,255,0.13);
+  border: 1px solid rgba(88,166,255,0.35);
+  border-radius: 10px;
+  padding: 1px 8px;
+  vertical-align: 1px;
+  white-space: nowrap;
+}
+
+/* 客户标签选择器 */
+.tag-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  min-height: 42px;
+}
+.tag-btn {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 3px 12px;
+  font-size: 12.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tag-btn:hover { color: var(--text); border-color: var(--text-faint); }
+.tag-btn.active {
+  color: #fff;
+  background: var(--accent-dim);
+  border-color: var(--accent-dim);
+}
+.tag-input {
+  background: transparent;
+  color: var(--text);
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  padding: 3px 12px;
+  font-size: 12.5px;
+  outline: none;
+  min-width: 160px;
+  flex: 1;
+}
+.tag-input:focus { border-color: var(--accent); }
+
+/* 标签删除小按钮（tag-btn 内嵌 ×） */
+.tag-btn .tag-del {
+  display: inline-block;
+  margin-left: 6px;
+  margin-right: -4px;
+  color: var(--text-faint);
+  font-size: 13px;
+  line-height: 1;
+  border-radius: 50%;
+  padding: 0 3px;
+}
+.tag-btn .tag-del:hover { color: var(--danger); }
+
+/* 客户标签筛选 chip 行 */
+.tag-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.tf-chip {
+  background: var(--bg-soft);
+  color: var(--text-dim);
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  padding: 4px 12px;
+  font-size: 12.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tf-chip:hover { color: var(--text); border-color: var(--text-faint); }
+.tf-chip.active {
+  color: #fff;
+  background: var(--accent-dim);
+  border-color: var(--accent-dim);
+}
+.tf-cnt {
+  display: inline-block;
+  margin-left: 5px;
+  font-size: 11px;
+  opacity: 0.75;
+}
+.item-actions { display: flex; gap: 8px; flex: 0 0 auto; }
+.item-btn {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.item-btn:hover { color: var(--text); border-color: var(--text-faint); }
+.item-btn.danger { color: var(--danger); border-color: rgba(248,81,73,0.45); }
+.item-btn.danger:hover { background: rgba(248,81,73,0.12); border-color: var(--danger); }
+.item-body { margin-top: 8px; color: var(--text-dim); font-size: 13px; }
+.item-field { display: flex; gap: 8px; }
+.item-field .k { color: var(--text-faint); flex: 0 0 76px; }
+.item-field .v { flex: 1; word-break: break-word; white-space: pre-wrap; }
+.empty-tip { color: var(--text-faint); text-align: center; padding: 36px 0; font-size: 13.5px; }
+
+/* 行内编辑表单 */
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+.field-full { grid-column: 1 / -1; }
+.field label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; font-weight: 600; }
+.field input, .field select, .field textarea {
+  width: 100%;
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+.field select { color-scheme: dark; cursor: pointer; }
+.field textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
+.form-actions { display: flex; gap: 10px; margin-top: 4px; }
+.save-btn {
+  background: var(--accent-dim);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.save-btn:hover { background: var(--accent); }
+.cancel-btn {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.cancel-btn:hover { color: var(--text); }
+
+/* toast */
+.toast {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent-dim);
+  color: #fff;
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-size: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s, transform .25s;
+  z-index: 200;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(6px); }
+
+/* 响应式 */
+@media (max-width: 640px) {
+  .page { padding: 14px 10px 40px; }
+  .pane-body { padding: 16px 14px 20px; }
+  .field-grid { grid-template-columns: 1fr; }
+  .item-head { flex-wrap: wrap; }
+}
+
+::-webkit-scrollbar { height: 10px; width: 10px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="top-sticky">
+  <div class="topbar">
+    <button class="back-btn" id="back-btn">← 返回列表</button>
+    <span class="crumb">智能硬件方案项目 · 基础信息管理</span>
+    <div class="theme-switch" id="theme-switch">
+      <button data-theme="dark">深色</button>
+      <button data-theme="light">浅色</button>
+      <button data-theme="warm">暖色</button>
+    </div>
+  </div>
+
+  <!-- 日期专区（当前日期 / 星期 / 时刻 / 年底倒计时） -->
+  <div class="date-zone" id="date-zone">
+    <div class="dz-left">
+      <span class="dz-date" id="dz-date">--</span>
+      <span class="dz-week" id="dz-week">--</span>
+    </div>
+    <span class="dz-time" id="dz-time">--:--:--</span>
+    <div class="dz-countdown">
+      <span class="dz-cd-label">距今年 12月31日 还有</span>
+      <span class="dz-cd-num" id="dz-cd-num">--</span>
+      <span class="dz-cd-unit">天</span>
+    </div>
+  </div>
+  </div>
+
+  <div class="manage-panel">
+    <div class="manage-head">
+      <h1>基础信息管理</h1>
+      <p>客户与工程师主数据作为项目录入建议；核心芯片是受控选项，项目只能从芯片库选择</p>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="customers">客户信息（<span id="cnt-customers">0</span>）</button>
+      <button class="tab" data-tab="engineers">工程师信息（<span id="cnt-engineers">0</span>）</button>
+      <button class="tab" data-tab="productlines">产品线（<span id="cnt-productlines">0</span>）</button>
+      <button class="tab" data-tab="apps">配套 APP（<span id="cnt-apps">0</span>）</button>
+      <button class="tab" data-tab="tags">标签库（<span id="cnt-tags">0</span>）</button>
+      <button class="tab" data-tab="company">企业信息</button>
+      <button class="tab" data-tab="groups">项目分组（<span id="cnt-groups">0</span>）</button>
+      <button class="tab" data-tab="chips">核心芯片（<span id="cnt-chips">0</span>）</button>
+    </div>
+
+    <div class="tab-pane active" id="pane-customers">
+      <div class="pane-body">
+        <div class="pane-toolbar">
+          <span class="pane-hint">主要联系人与背景信息，供项目合作参考</span>
+          <button class="add-btn" id="add-customer">＋ 新增客户</button>
+        </div>
+        <div class="tag-filter" id="customer-tag-filter"><!-- 标签筛选 chip 由 JS 生成 --></div>
+        <div id="customer-list"></div>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="pane-engineers">
+      <div class="pane-body">
+        <div class="pane-toolbar">
+          <span class="pane-hint">工程师名册与角色，供项目负责人选择参考</span>
+          <button class="add-btn" id="add-engineer">＋ 新增工程师</button>
+        </div>
+        <div id="engineer-list"></div>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="pane-productlines">
+      <div class="pane-body">
+        <div class="pane-toolbar">
+          <span class="pane-hint">产品线分类，作为项目录入与筛选的建议来源</span>
+          <button class="add-btn" id="add-productline">＋ 新增产品线</button>
+        </div>
+        <div id="productline-list"></div>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="pane-apps">
+      <div class="pane-body">
+        <div class="pane-toolbar">
+          <span class="pane-hint">配套 APP 档案（描述 + 版本信息），作为项目「配套 APP」下拉选项来源</span>
+          <button class="add-btn" id="add-app">＋ 新增 APP</button>
+        </div>
+        <div id="app-list"></div>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="pane-tags">
+      <div class="pane-body">
+        <div class="pane-toolbar">
+          <span class="pane-hint">项目标签库，作为项目「项目标签」选择的建议来源（项目仍可自由输入）</span>
+          <button class="add-btn" id="add-tag">＋ 新增标签</button>
+        </div>
+        <div id="tag-list"></div>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="pane-company">
+      <div class="pane-body">
+        <div class="pane-toolbar">
+          <span class="pane-hint">企业信息将显示在看板标题下方与会议纪要中</span>
+        </div>
+        <div class="item-card">
+          <div class="field-grid" style="margin-top:0">
+            <div class="field">
+              <label>企业全称</label>
+              <input type="text" id="co-fullname" placeholder="如：深圳市智玩创新科技有限公司">
+            </div>
+            <div class="field">
+              <label>企业简称</label>
+              <input type="text" id="co-shortname" placeholder="如：智玩创新">
+            </div>
+            <div class="field">
+              <label>当前项目管理人</label>
+              <input type="text" id="co-manager" placeholder="如：李建宏">
+            </div>
+            <div class="field field-full">
+              <label>看板系统名称前缀（后固定「项目看板系统」）</label>
+              <input type="text" id="co-nameprefix" placeholder="如：智能硬件">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="save-btn" id="co-save">保存企业信息</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="pane-groups">
+      <div class="pane-body">
+        <div class="pane-toolbar">
+          <span class="pane-hint">项目分组，作为项目「分组」下拉选择的来源（默认一组 / 二组 / 三组）</span>
+          <button class="add-btn" id="add-group">＋ 新增分组</button>
+        </div>
+        <div id="group-list"></div>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="pane-chips">
+      <div class="pane-body">
+        <div class="pane-toolbar">
+          <span class="pane-hint">核心芯片台账：记录芯片型号、原始型号、原厂、固件版本（后三项选填）</span>
+          <button class="add-btn" id="add-chip">＋ 新增芯片</button>
+        </div>
+        <div id="chip-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">已保存</div>
+
+<!-- 工程师角色建议 -->
+<datalist id="dl-roles"></datalist>
+
+<script src="projects-data.js"></script>
+<script>
+/* ==========================================================================
+   基础数据管理页：客户 / 工程师 CRUD（即时保存到 localStorage）
+   ========================================================================== */
+function $(sel) { return document.querySelector(sel); }
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+function display(v) { return (v === "" || v === null || v === undefined) ? "-" : v; }
+
+let customers = PROJECT_DB.loadCustomers();
+let engineers = PROJECT_DB.loadEngineers();
+let productLines = PROJECT_DB.loadProductLines();
+let apps = PROJECT_DB.loadApps();
+let tags = PROJECT_DB.loadTags();
+let groups = PROJECT_DB.loadGroups();
+let chips = PROJECT_DB.loadChips();
+let company = PROJECT_DB.loadCompany();
+
+// 正在编辑的条目：{ type: "customers"|"engineers", id: 数字 | "new" }
+let editing = null;
+
+/* ---- tab 切换（支持项目详情页新窗口直达 ?tab=chips） ---- */
+function activateDataTab(t) {
+  if (!t) return;
+  document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x === t));
+  document.querySelectorAll(".tab-pane").forEach(p => p.classList.toggle("active", p.id === "pane-" + t.dataset.tab));
+  // 切 tab 时放弃未保存的编辑
+  if (editing) { editing = null; renderAll(); }
+}
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => activateDataTab(t)));
+
+/* ---- 客户渲染（支持按标签筛选） ---- */
+let customerTagFilter = ""; // 当前筛选的标签（空 = 全部）
+
+function renderCustomerTagFilter() {
+  const tags = new Set();
+  customers.forEach(c => (c.tags || []).forEach(t => tags.add(t)));
+  const list = [...tags];
+  const chip = (tag, label, cnt, active) =>
+    `<button class="tf-chip ${active ? "active" : ""}" data-tf="${esc(tag)}">${esc(label)}<span class="tf-cnt">${cnt}</span></button>`;
+  let html = chip("", "全部客户", customers.length, customerTagFilter === "");
+  html += list.map(t =>
+    chip(t, t, customers.filter(c => (c.tags || []).includes(t)).length, customerTagFilter === t)
+  ).join("");
+  $("#customer-tag-filter").innerHTML = html;
+}
+
+function renderCustomers() {
+  $("#cnt-customers").textContent = customers.length;
+  renderCustomerTagFilter();
+  const shown = customerTagFilter
+    ? customers.filter(c => (c.tags || []).includes(customerTagFilter))
+    : customers;
+  if (!shown.length) {
+    $("#customer-list").innerHTML = `<div class="empty-tip">${customerTagFilter ? "没有带「" + customerTagFilter + "」标签的客户" : "暂无客户，点击右上角「＋ 新增客户」录入"}</div>`;
+    return;
+  }
+  $("#customer-list").innerHTML = shown.map(c => {
+    if (editing && editing.type === "customers" && editing.id === c.id) {
+      return customerForm(c, "编辑客户");
+    }
+    const refCount = projectsReferring(c.name);
+    const badges = (c.tags || []).map(t => `<span class="type-badge">${esc(t)}</span>`).join("");
+    return `<div class="item-card">
+      <div class="item-head">
+        <span class="item-name">${esc(c.name)}${badges}</span>
+        <span class="item-sub">${refCount ? refCount + " 个在管项目" : "暂无在管项目"}</span>
+        <div class="item-actions">
+          <button class="item-btn" data-act="edit" data-type="customers" data-id="${c.id}">编辑</button>
+          <button class="item-btn danger" data-act="del" data-type="customers" data-id="${c.id}">删除</button>
+        </div>
+      </div>
+      <div class="item-body">
+        <div class="item-field"><span class="k">主要联系人</span><span class="v">${esc(display(c.contact))}</span></div>
+        <div class="item-field"><span class="k">客户背景</span><span class="v">${esc(display(c.background))}</span></div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// 客户标签草稿（编辑期间的已选标签）
+let customerTagDraft = [];
+
+function customerForm(c, title) {
+  customerTagDraft = (c.tags || []).slice();
+  return `<div class="item-card editing">
+    <div class="item-head"><span class="item-name">${esc(title)}</span></div>
+    <div class="field-grid" style="margin-top:12px">
+      <div class="field">
+        <label>客户名称 *</label>
+        <input type="text" id="ec-name" value="${esc(c.name)}" placeholder="客户 / 公司名">
+      </div>
+      <div class="field">
+        <label>主要联系人</label>
+        <input type="text" id="ec-contact" value="${esc(c.contact || "")}" placeholder="姓名（可含职位 / 电话）">
+      </div>
+      <div class="field field-full">
+        <label>客户标签（可多选，点击切换；下方输入框回车添加自定义标签）</label>
+        <div class="tag-picker" id="ec-tag-picker">${renderTagPicker()}</div>
+      </div>
+      <div class="field field-full">
+        <label>客户背景信息</label>
+        <textarea id="ec-background" placeholder="业务背景、合作历史、关注点等">${esc(c.background || "")}</textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="save-btn" data-act="save" data-type="customers" data-id="${c.id}">保存</button>
+      <button class="cancel-btn" data-act="cancel">取消</button>
+    </div>
+  </div>`;
+}
+
+// 标签选择器：候选 = 预设 + 库中已有标签（去重）；已选高亮；自定义输入回车添加
+function tagCandidates() {
+  const set = new Set(PROJECT_DB.CUSTOMER_TAG_SUGGESTIONS);
+  customers.forEach(c => (c.tags || []).forEach(t => set.add(t)));
+  customerTagDraft.forEach(t => set.add(t));
+  return [...set];
+}
+
+function renderTagPicker() {
+  const btns = tagCandidates().map(t =>
+    `<button type="button" class="tag-btn ${customerTagDraft.includes(t) ? "active" : ""}" data-tag="${esc(t)}">${esc(t)}<span class="tag-del" data-deltag="${esc(t)}" title="删除该标签（从所有客户移除）">×</span></button>`
+  ).join("");
+  return `${btns}<input type="text" class="tag-input" id="ec-tag-input" placeholder="自定义标签，回车添加">`;
+}
+
+// 删除标签：从标签候选与所有客户中移除
+function deleteTag(tag) {
+  const used = customers.filter(c => (c.tags || []).includes(tag)).length;
+  const tip = used ? `\n该标签正在被 ${used} 个客户使用，将一并移除。` : "";
+  if (!confirm(`确定删除标签「${tag}」？${tip}`)) return;
+  customers.forEach(c => { c.tags = (c.tags || []).filter(t => t !== tag); });
+  customerTagDraft = customerTagDraft.filter(t => t !== tag);
+  PROJECT_DB.saveCustomers(customers);
+  $("#ec-tag-picker").innerHTML = renderTagPicker();
+  renderCustomers();
+  showToast("标签已删除");
+}
+
+/* ---- 工程师渲染 ---- */
+function renderEngineers() {
+  $("#cnt-engineers").textContent = engineers.length;
+  if (!engineers.length) {
+    $("#engineer-list").innerHTML = `<div class="empty-tip">暂无工程师，点击右上角「＋ 新增工程师」录入</div>`;
+    return;
+  }
+  $("#engineer-list").innerHTML = engineers.map(e => {
+    if (editing && editing.type === "engineers" && editing.id === e.id) {
+      return engineerForm(e, "编辑工程师");
+    }
+    const refCount = projectsReferringEngineer(e.name);
+    return `<div class="item-card">
+      <div class="item-head">
+        <span class="item-name">${esc(e.name)}</span>
+        <span class="item-sub">${refCount ? "负责 " + refCount + " 个项目" : "暂未负责项目"}</span>
+        <div class="item-actions">
+          <button class="item-btn" data-act="edit" data-type="engineers" data-id="${e.id}">编辑</button>
+          <button class="item-btn danger" data-act="del" data-type="engineers" data-id="${e.id}">删除</button>
+        </div>
+      </div>
+      <div class="item-body">
+        <div class="item-field"><span class="k">角色</span><span class="v">${esc(display(e.role))}</span></div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function engineerForm(e, title) {
+  return `<div class="item-card editing">
+    <div class="item-head"><span class="item-name">${esc(title)}</span></div>
+    <div class="field-grid" style="margin-top:12px">
+      <div class="field">
+        <label>姓名 *</label>
+        <input type="text" id="ee-name" value="${esc(e.name)}" placeholder="工程师姓名">
+      </div>
+      <div class="field">
+        <label>角色</label>
+        <input type="text" id="ee-role" list="dl-roles" value="${esc(e.role || "")}" placeholder="如：硬件负责人 / 测试工程师">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="save-btn" data-act="save" data-type="engineers" data-id="${e.id}">保存</button>
+      <button class="cancel-btn" data-act="cancel">取消</button>
+    </div>
+  </div>`;
+}
+
+/* ---- 产品线渲染 ---- */
+function renderProductLines() {
+  $("#cnt-productlines").textContent = productLines.length;
+  if (!productLines.length) {
+    $("#productline-list").innerHTML = `<div class="empty-tip">暂无产品线，点击右上角「＋ 新增产品线」录入</div>`;
+    return;
+  }
+  $("#productline-list").innerHTML = productLines.map(pl => {
+    if (editing && editing.type === "productlines" && editing.id === pl.id) {
+      return productLineForm(pl, "编辑产品线");
+    }
+    const refCount = projectsReferringProductLine(pl.name);
+    return `<div class="item-card">
+      <div class="item-head">
+        <span class="item-name">${esc(pl.name)}</span>
+        <span class="item-sub">${refCount ? refCount + " 个在管项目" : "暂无在管项目"}</span>
+        <div class="item-actions">
+          <button class="item-btn" data-act="edit" data-type="productlines" data-id="${pl.id}">编辑</button>
+          <button class="item-btn danger" data-act="del" data-type="productlines" data-id="${pl.id}">删除</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function productLineForm(pl, title) {
+  return `<div class="item-card editing">
+    <div class="item-head"><span class="item-name">${esc(title)}</span></div>
+    <div class="field-grid" style="margin-top:12px">
+      <div class="field">
+        <label>产品线名称 *</label>
+        <input type="text" id="ep-name" value="${esc(pl.name)}" placeholder="如：PC 大手柄 / 手柄转换器">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="save-btn" data-act="save" data-type="productlines" data-id="${pl.id}">保存</button>
+      <button class="cancel-btn" data-act="cancel">取消</button>
+    </div>
+  </div>`;
+}
+
+/* ---- 配套 APP 渲染 ---- */
+function renderApps() {
+  $("#cnt-apps").textContent = apps.length;
+  if (!apps.length) {
+    $("#app-list").innerHTML = `<div class="empty-tip">暂无配套 APP，点击右上角「＋ 新增 APP」录入</div>`;
+    return;
+  }
+  $("#app-list").innerHTML = apps.map(a => {
+    if (editing && editing.type === "apps" && editing.id === a.id) {
+      return appForm(a, "编辑 APP");
+    }
+    const refCount = projectsReferringApp(a.name);
+    return `<div class="item-card">
+      <div class="item-head">
+        <span class="item-name">${esc(a.name)}<span class="type-badge">${esc(a.version || "未填版本")}</span></span>
+        <span class="item-sub">${refCount ? refCount + " 个项目配套" : "暂无项目配套"}</span>
+        <div class="item-actions">
+          <button class="item-btn" data-act="edit" data-type="apps" data-id="${a.id}">编辑</button>
+          <button class="item-btn danger" data-act="del" data-type="apps" data-id="${a.id}">删除</button>
+        </div>
+      </div>
+      <div class="item-body">
+        <div class="item-field"><span class="k">描述</span><span class="v">${esc(display(a.desc))}</span></div>
+        <div class="item-field"><span class="k">版本信息</span><span class="v">${esc(display(a.version))}</span></div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function appForm(a, title) {
+  return `<div class="item-card editing">
+    <div class="item-head"><span class="item-name">${esc(title)}</span></div>
+    <div class="field-grid" style="margin-top:12px">
+      <div class="field">
+        <label>APP 名称 *</label>
+        <input type="text" id="ea-name" value="${esc(a.name)}" placeholder="如：智玩玩家助手">
+      </div>
+      <div class="field">
+        <label>版本信息</label>
+        <input type="text" id="ea-version" value="${esc(a.version || "")}" placeholder="如：v2.3.1 / 双周迭代">
+      </div>
+      <div class="field field-full">
+        <label>APP 描述</label>
+        <textarea id="ea-desc" placeholder="功能定位、目标用户、平台（iOS / Android）等">${esc(a.desc || "")}</textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="save-btn" data-act="save" data-type="apps" data-id="${a.id}">保存</button>
+      <button class="cancel-btn" data-act="cancel">取消</button>
+    </div>
+  </div>`;
+}
+
+/* ---- 引用统计 ---- */
+function projectsReferring(customerName) {
+  return PROJECT_DB.load().filter(p => p.customer === customerName).length;
+}
+function projectsReferringEngineer(name) {
+  return PROJECT_DB.load().filter(p => p.hwOwner === name || p.swOwner === name).length;
+}
+function projectsReferringProductLine(name) {
+  return PROJECT_DB.load().filter(p => p.productLine === name).length;
+}
+function projectsReferringApp(name) {
+  return PROJECT_DB.load().filter(p => p.app === name).length;
+}
+function projectsReferringTag(name) {
+  return PROJECT_DB.load().filter(p => (p.tags || []).includes(name)).length;
+}
+function projectsReferringGroup(name) {
+  return PROJECT_DB.load().filter(p => (p.group || "") === name).length;
+}
+function projectsReferringChip(name) {
+  const key = PROJECT_DB.chipNameKey(name);
+  return PROJECT_DB.load().filter(p => PROJECT_DB.normalizeChips(p.chips).some(value => PROJECT_DB.chipNameKey(value) === key)).length;
+}
+
+/* ---- 项目标签库渲染 ---- */
+function renderTags() {
+  $("#cnt-tags").textContent = tags.length;
+  if (!tags.length) {
+    $("#tag-list").innerHTML = `<div class="empty-tip">暂无标签，点击右上角「＋ 新增标签」录入</div>`;
+    return;
+  }
+  $("#tag-list").innerHTML = tags.map(t => {
+    if (editing && editing.type === "tags" && editing.id === t.id) {
+      return tagForm(t, "编辑标签");
+    }
+    const refCount = projectsReferringTag(t.name);
+    return `<div class="item-card">
+      <div class="item-head">
+        <span class="item-name">${esc(t.name)}</span>
+        <span class="item-sub">${refCount ? refCount + " 个项目使用" : "暂无项目使用"}</span>
+        <div class="item-actions">
+          <button class="item-btn" data-act="edit" data-type="tags" data-id="${t.id}">编辑</button>
+          <button class="item-btn danger" data-act="del" data-type="tags" data-id="${t.id}">删除</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function tagForm(t, title) {
+  return `<div class="item-card editing">
+    <div class="item-head"><span class="item-name">${esc(title)}</span></div>
+    <div class="field-grid" style="margin-top:12px">
+      <div class="field">
+        <label>标签名称 *</label>
+        <input type="text" id="et-name" value="${esc(t.name)}" placeholder="如：重点项目、战略客户">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="save-btn" data-act="save" data-type="tags" data-id="${t.id}">保存</button>
+      <button class="cancel-btn" data-act="cancel">取消</button>
+    </div>
+  </div>`;
+}
+
+function saveTag(id) {
+  const name = $("#et-name").value.trim();
+  if (!name) { showToast("请填写标签名称", 2000); $("#et-name").focus(); return; }
+  const dup = tags.find(t => t.name === name && t.id !== (id === "new" ? -1 : parseInt(id, 10)));
+  if (dup) { showToast("已存在同名标签：「" + name + "」", 2200); return; }
+  if (id === "new") {
+    tags.push({ id: PROJECT_DB.nextId(tags), name });
+  } else {
+    const t = tags.find(t => t.id === parseInt(id, 10));
+    Object.assign(t, { name });
+  }
+  PROJECT_DB.saveTags(tags);
+  editing = null;
+  renderAll();
+  showToast("标签已保存");
+}
+
+function deleteTagLib(id) {
+  const t = tags.find(t => t.id === id);
+  if (!t) return;
+  const refCount = projectsReferringTag(t.name);
+  const refTip = refCount ? `\n注意：仍有 ${refCount} 个项目使用该标签，删除后项目中的标签不受影响。` : "";
+  if (!confirm(`确定删除标签「${t.name}」？${refTip}`)) return;
+  tags = tags.filter(t => t.id !== id);
+  PROJECT_DB.saveTags(tags);
+  renderAll();
+  showToast("标签已删除");
+}
+
+/* ---- 项目分组库渲染 ---- */
+function renderGroups() {
+  $("#cnt-groups").textContent = groups.length;
+  if (!groups.length) {
+    $("#group-list").innerHTML = `<div class="empty-tip">暂无分组，点击右上角「＋ 新增分组」录入</div>`;
+    return;
+  }
+  $("#group-list").innerHTML = groups.map(g => {
+    if (editing && editing.type === "groups" && editing.id === g.id) {
+      return groupForm(g, "编辑分组");
+    }
+    const refCount = projectsReferringGroup(g.name);
+    return `<div class="item-card">
+      <div class="item-head">
+        <span class="item-name">${esc(g.name)}</span>
+        <span class="item-sub">${refCount ? refCount + " 个项目使用" : "暂无项目使用"}</span>
+        <div class="item-actions">
+          <button class="item-btn" data-act="edit" data-type="groups" data-id="${g.id}">编辑</button>
+          <button class="item-btn danger" data-act="del" data-type="groups" data-id="${g.id}">删除</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function groupForm(g, title) {
+  return `<div class="item-card editing">
+    <div class="item-head"><span class="item-name">${esc(title)}</span></div>
+    <div class="field-grid" style="margin-top:12px">
+      <div class="field">
+        <label>分组名称 *</label>
+        <input type="text" id="eg-name" value="${esc(g.name)}" placeholder="如：一组、二组、专项组">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="save-btn" data-act="save" data-type="groups" data-id="${g.id}">保存</button>
+      <button class="cancel-btn" data-act="cancel">取消</button>
+    </div>
+  </div>`;
+}
+
+function saveGroup(id) {
+  const name = $("#eg-name").value.trim();
+  if (!name) { showToast("请填写分组名称", 2000); $("#eg-name").focus(); return; }
+  const dup = groups.find(g => g.name === name && g.id !== (id === "new" ? -1 : parseInt(id, 10)));
+  if (dup) { showToast("已存在同名分组：「" + name + "」", 2200); return; }
+  if (id === "new") {
+    groups.push({ id: PROJECT_DB.nextId(groups), name });
+  } else {
+    const g = groups.find(g => g.id === parseInt(id, 10));
+    Object.assign(g, { name });
+  }
+  PROJECT_DB.saveGroups(groups);
+  editing = null;
+  renderAll();
+  showToast("分组已保存");
+}
+
+function deleteGroupLib(id) {
+  const g = groups.find(g => g.id === id);
+  if (!g) return;
+  const refCount = projectsReferringGroup(g.name);
+  const refTip = refCount ? `\n注意：仍有 ${refCount} 个项目使用该分组，删除后项目中的分组不受影响。` : "";
+  if (!confirm(`确定删除分组「${g.name}」？${refTip}`)) return;
+  groups = groups.filter(g => g.id !== id);
+  PROJECT_DB.saveGroups(groups);
+  renderAll();
+  showToast("分组已删除");
+}
+
+/* ---- 核心芯片台账渲染 ---- */
+function renderChips() {
+  $("#cnt-chips").textContent = chips.length;
+  if (!chips.length) {
+    $("#chip-list").innerHTML = `<div class="empty-tip">暂无芯片，点击右上角「＋ 新增芯片」录入</div>`;
+    return;
+  }
+  $("#chip-list").innerHTML = chips.map(c => {
+    if (editing && editing.type === "chips" && editing.id === c.id) {
+      return chipForm(c, "编辑芯片");
+    }
+    const refCount = projectsReferringChip(c.name);
+    return `<div class="item-card">
+      <div class="item-head">
+        <span class="item-name">${esc(c.name)}</span>
+        <span class="item-sub">${refCount ? refCount + " 个项目使用" : "暂无项目使用"}</span>
+        <div class="item-actions">
+          <button class="item-btn" data-act="edit" data-type="chips" data-id="${c.id}">编辑</button>
+          <button class="item-btn danger" data-act="del" data-type="chips" data-id="${c.id}">删除</button>
+        </div>
+      </div>
+      <div class="item-body">
+        <div class="item-field"><span class="k">原始型号</span><span class="v">${esc(display(c.originalModel))}</span></div>
+        <div class="item-field"><span class="k">原厂</span><span class="v">${esc(display(c.manufacturer))}</span></div>
+        <div class="item-field"><span class="k">固件版本</span><span class="v">${esc(display(c.firmwareVersion))}</span></div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function chipForm(c, title) {
+  return `<div class="item-card editing">
+    <div class="item-head"><span class="item-name">${esc(title)}</span></div>
+    <div class="field-grid" style="margin-top:12px">
+      <div class="field">
+        <label>芯片型号 *</label>
+        <input type="text" id="ech-name" value="${esc(c.name)}" placeholder="如：杰理 AC6966B">
+      </div>
+      <div class="field">
+        <label>芯片原始型号（选填）</label>
+        <input type="text" id="ech-original" value="${esc(c.originalModel || "")}" placeholder="如：AC6966B">
+      </div>
+      <div class="field">
+        <label>原厂信息（选填）</label>
+        <input type="text" id="ech-manufacturer" value="${esc(c.manufacturer || "")}" placeholder="如：珠海杰理科技">
+      </div>
+      <div class="field">
+        <label>固件版本名称（选填）</label>
+        <input type="text" id="ech-firmware" value="${esc(c.firmwareVersion || "")}" placeholder="如：V2.1.0">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="save-btn" data-act="save" data-type="chips" data-id="${c.id}">保存</button>
+      <button class="cancel-btn" data-act="cancel">取消</button>
+    </div>
+  </div>`;
+}
+
+function saveChip(id) {
+  const name = $("#ech-name").value.trim();
+  if (!name) { showToast("请填写芯片型号", 2000); $("#ech-name").focus(); return; }
+  const parsedId = id === "new" ? -1 : parseInt(id, 10);
+  const nameKey = PROJECT_DB.chipNameKey(name);
+  const dup = chips.find(c => PROJECT_DB.chipNameKey(c.name) === nameKey && c.id !== parsedId);
+  if (dup) { showToast("已存在同名芯片：「" + name + "」", 2200); return; }
+
+  const data = {
+    name,
+    originalModel: $("#ech-original").value.trim(),
+    manufacturer: $("#ech-manufacturer").value.trim(),
+    firmwareVersion: $("#ech-firmware").value.trim()
+  };
+  if (id === "new") {
+    chips.push({ id: PROJECT_DB.nextId(chips), ...data });
+  } else {
+    const c = chips.find(c => c.id === parsedId);
+    if (!c) { showToast("未找到要编辑的芯片", 2200); return; }
+    const oldName = c.name;
+    const oldKey = PROJECT_DB.chipNameKey(oldName);
+    const projects = PROJECT_DB.load();
+    const refCount = projects.filter(p => PROJECT_DB.normalizeChips(p.chips).some(value => PROJECT_DB.chipNameKey(value) === oldKey)).length;
+    if (oldName !== name && refCount && !confirm(`芯片「${oldName}」正被 ${refCount} 个项目使用。\n改名后将同步更新这些项目中的核心芯片，是否继续？`)) return;
+    Object.assign(c, data);
+    if (oldName !== name && refCount) {
+      projects.forEach(p => {
+        p.chips = PROJECT_DB.normalizeChips(p.chips).map(value => PROJECT_DB.chipNameKey(value) === oldKey ? name : value);
+      });
+      try { PROJECT_DB.saveBusinessDataAtomic({ projects, chips }); }
+      catch (error) {
+        chips = PROJECT_DB.loadChips();
+        showToast("芯片改名失败，原数据已恢复：" + (error.message || error), 3200);
+        return;
+      }
+      editing = null;
+      renderAll();
+      showToast(`芯片已保存，并同步更新 ${refCount} 个项目`, 2600);
+      return;
+    }
+  }
+  try { PROJECT_DB.saveBusinessDataAtomic({ chips }); }
+  catch (error) {
+    chips = PROJECT_DB.loadChips();
+    showToast("芯片保存失败：" + (error.message || error), 3000);
+    return;
+  }
+  editing = null;
+  renderAll();
+  showToast("芯片已保存");
+}
+
+function deleteChipLib(id) {
+  const c = chips.find(c => c.id === id);
+  if (!c) return;
+  const refCount = projectsReferringChip(c.name);
+  if (refCount) {
+    showToast(`无法删除：仍有 ${refCount} 个项目使用「${c.name}」。请先在这些项目中替换芯片。`, 3600);
+    return;
+  }
+  if (!confirm(`确定删除芯片「${c.name}」？`)) return;
+  chips = chips.filter(c => c.id !== id);
+  try { PROJECT_DB.saveBusinessDataAtomic({ chips }); }
+  catch (error) {
+    chips = PROJECT_DB.loadChips();
+    showToast("芯片删除失败：" + (error.message || error), 3000);
+    return;
+  }
+  renderAll();
+  showToast("芯片已删除");
+}
+
+/* ---- 总渲染 ---- */
+function renderAll() { renderCustomers(); renderEngineers(); renderProductLines(); renderApps(); renderTags(); renderGroups(); renderChips(); }
+
+/* ---- 事件（委托） ---- */
+$("#customer-list").addEventListener("click", handleListAction);
+$("#engineer-list").addEventListener("click", handleListAction);
+$("#productline-list").addEventListener("click", handleListAction);
+$("#app-list").addEventListener("click", handleListAction);
+$("#tag-list").addEventListener("click", handleListAction);
+$("#group-list").addEventListener("click", handleListAction);
+$("#chip-list").addEventListener("click", handleListAction);
+
+// 客户标签交互：点选切换 / 自定义回车添加 / 点 × 删除标签
+$("#customer-tag-filter").addEventListener("click", e => {
+  const tf = e.target.closest(".tf-chip");
+  if (tf) {
+    customerTagFilter = tf.dataset.tf || "";
+    if (editing && editing.type === "customers") editing = null;
+    renderCustomers();
+  }
+});
+$("#customer-list").addEventListener("click", e => {
+  // 删除标签（× 按钮，阻止触发选中切换）
+  const del = e.target.closest(".tag-del");
+  if (del) {
+    e.stopPropagation();
+    deleteTag(del.dataset.deltag);
+    return;
+  }
+  const tagBtn = e.target.closest(".tag-btn");
+  if (tagBtn) {
+    const t = tagBtn.dataset.tag;
+    const i = customerTagDraft.indexOf(t);
+    if (i >= 0) customerTagDraft.splice(i, 1);
+    else customerTagDraft.push(t);
+    $("#ec-tag-picker").innerHTML = renderTagPicker();
+    return;
+  }
+});
+$("#customer-list").addEventListener("keydown", e => {
+  if (e.target.id === "ec-tag-input" && e.key === "Enter") {
+    e.preventDefault();
+    const t = e.target.value.trim();
+    if (t && !customerTagDraft.includes(t)) customerTagDraft.push(t);
+    $("#ec-tag-picker").innerHTML = renderTagPicker();
+    $("#ec-tag-input").focus();
+  }
+});
+
+function handleListAction(e) {
+  const btn = e.target.closest("[data-act]");
+  if (!btn) return;
+  const act = btn.dataset.act;
+  const type = btn.dataset.type;
+  const id = btn.dataset.id;
+
+  if (act === "edit") {
+    editing = { type, id: parseInt(id, 10) };
+    renderAll();
+    focusForm();
+    return;
+  }
+  if (act === "cancel") {
+    editing = null;
+    renderAll();
+    return;
+  }
+  if (act === "save") {
+    if (type === "customers") saveCustomer(id);
+    else if (type === "engineers") saveEngineer(id);
+    else if (type === "productlines") saveProductLine(id);
+    else if (type === "apps") saveApp(id);
+    else if (type === "tags") saveTag(id);
+    else if (type === "groups") saveGroup(id);
+    else saveChip(id);
+    return;
+  }
+  if (act === "del") {
+    if (type === "customers") deleteCustomer(parseInt(id, 10));
+    else if (type === "engineers") deleteEngineer(parseInt(id, 10));
+    else if (type === "productlines") deleteProductLine(parseInt(id, 10));
+    else if (type === "apps") deleteApp(parseInt(id, 10));
+    else if (type === "tags") deleteTagLib(parseInt(id, 10));
+    else if (type === "groups") deleteGroupLib(parseInt(id, 10));
+    else deleteChipLib(parseInt(id, 10));
+    return;
+  }
+}
+
+function focusForm() {
+  const first = $(".item-card.editing input");
+  if (first) first.focus();
+}
+
+/* ---- 保存 ---- */
+function saveCustomer(id) {
+  const name = $("#ec-name").value.trim();
+  if (!name) { showToast("请填写客户名称", 2000); $("#ec-name").focus(); return; }
+  const dup = customers.find(c => c.name === name && c.id !== (id === "new" ? -1 : parseInt(id, 10)));
+  if (dup) { showToast("已存在同名客户：「" + name + "」", 2200); return; }
+
+  const data = {
+    name,
+    tags: customerTagDraft.slice(),
+    contact: $("#ec-contact").value.trim(),
+    background: $("#ec-background").value.trim()
+  };
+  if (id === "new") {
+    customers.push({ id: PROJECT_DB.nextId(customers), ...data });
+  } else {
+    const c = customers.find(c => c.id === parseInt(id, 10));
+    Object.assign(c, data);
+  }
+  PROJECT_DB.saveCustomers(customers);
+  editing = null;
+  renderAll();
+  showToast("客户已保存");
+}
+
+function saveEngineer(id) {
+  const name = $("#ee-name").value.trim();
+  if (!name) { showToast("请填写姓名", 2000); $("#ee-name").focus(); return; }
+  const dup = engineers.find(e => e.name === name && e.id !== (id === "new" ? -1 : parseInt(id, 10)));
+  if (dup) { showToast("已存在同名工程师：「" + name + "」", 2200); return; }
+
+  const data = { name, role: $("#ee-role").value.trim() };
+  if (id === "new") {
+    engineers.push({ id: PROJECT_DB.nextId(engineers), ...data });
+  } else {
+    const en = engineers.find(e => e.id === parseInt(id, 10));
+    Object.assign(en, data);
+  }
+  PROJECT_DB.saveEngineers(engineers);
+  editing = null;
+  renderAll();
+  showToast("工程师已保存");
+}
+
+/* ---- 删除 ---- */
+function deleteCustomer(id) {
+  const c = customers.find(c => c.id === id);
+  if (!c) return;
+  const refCount = projectsReferring(c.name);
+  const refTip = refCount ? `\n注意：仍有 ${refCount} 个项目引用该客户，删除后项目中的客户名称不受影响。` : "";
+  if (!confirm(`确定删除客户「${c.name}」？${refTip}`)) return;
+  customers = customers.filter(c => c.id !== id);
+  PROJECT_DB.saveCustomers(customers);
+  renderAll();
+  showToast("客户已删除");
+}
+
+function deleteEngineer(id) {
+  const en = engineers.find(e => e.id === id);
+  if (!en) return;
+  const refCount = projectsReferringEngineer(en.name);
+  const refTip = refCount ? `\n注意：仍有 ${refCount} 个项目由其负责，删除后项目中的负责人名称不受影响。` : "";
+  if (!confirm(`确定删除工程师「${en.name}」？${refTip}`)) return;
+  engineers = engineers.filter(e => e.id !== id);
+  PROJECT_DB.saveEngineers(engineers);
+  renderAll();
+  showToast("工程师已删除");
+}
+
+/* ---- 产品线保存 / 删除 ---- */
+function saveProductLine(id) {
+  const name = $("#ep-name").value.trim();
+  if (!name) { showToast("请填写产品线名称", 2000); $("#ep-name").focus(); return; }
+  const dup = productLines.find(pl => pl.name === name && pl.id !== (id === "new" ? -1 : parseInt(id, 10)));
+  if (dup) { showToast("已存在同名产品线：「" + name + "」", 2200); return; }
+
+  if (id === "new") {
+    productLines.push({ id: PROJECT_DB.nextId(productLines), name });
+  } else {
+    const pl = productLines.find(pl => pl.id === parseInt(id, 10));
+    pl.name = name;
+  }
+  PROJECT_DB.saveProductLines(productLines);
+  editing = null;
+  renderAll();
+  showToast("产品线已保存");
+}
+
+function deleteProductLine(id) {
+  const pl = productLines.find(pl => pl.id === id);
+  if (!pl) return;
+  const refCount = projectsReferringProductLine(pl.name);
+  const refTip = refCount ? `\n注意：仍有 ${refCount} 个项目归属该产品线，删除后项目中的产品线名称不受影响。` : "";
+  if (!confirm(`确定删除产品线「${pl.name}」？${refTip}`)) return;
+  productLines = productLines.filter(pl => pl.id !== id);
+  PROJECT_DB.saveProductLines(productLines);
+  renderAll();
+  showToast("产品线已删除");
+}
+
+/* ---- 配套 APP 保存 / 删除 ---- */
+function saveApp(id) {
+  const name = $("#ea-name").value.trim();
+  if (!name) { showToast("请填写 APP 名称", 2000); $("#ea-name").focus(); return; }
+  const dup = apps.find(a => a.name === name && a.id !== (id === "new" ? -1 : parseInt(id, 10)));
+  if (dup) { showToast("已存在同名 APP：「" + name + "」", 2200); return; }
+
+  const data = {
+    name,
+    version: $("#ea-version").value.trim(),
+    desc: $("#ea-desc").value.trim()
+  };
+  if (id === "new") {
+    apps.push({ id: PROJECT_DB.nextId(apps), ...data });
+  } else {
+    const a = apps.find(a => a.id === parseInt(id, 10));
+    Object.assign(a, data);
+  }
+  PROJECT_DB.saveApps(apps);
+  editing = null;
+  renderAll();
+  showToast("APP 已保存");
+}
+
+function deleteApp(id) {
+  const a = apps.find(a => a.id === id);
+  if (!a) return;
+  const refCount = projectsReferringApp(a.name);
+  const refTip = refCount ? `\n注意：仍有 ${refCount} 个项目配套该 APP，删除后项目中的 APP 名称不受影响。` : "";
+  if (!confirm(`确定删除 APP「${a.name}」？${refTip}`)) return;
+  apps = apps.filter(a => a.id !== id);
+  PROJECT_DB.saveApps(apps);
+  renderAll();
+  showToast("APP 已删除");
+}
+
+/* ---- 新增按钮 ---- */
+$("#add-customer").addEventListener("click", () => {
+  editing = { type: "customers", id: "new" };
+  renderAll();
+  // 新增表单插入列表顶部
+  const formHtml = customerForm({ id: "new", name: "", tags: [], contact: "", background: "" }, "新增客户");
+  const list = $("#customer-list");
+  const empty = list.querySelector(".empty-tip");
+  if (empty) empty.remove();
+  list.insertAdjacentHTML("afterbegin", formHtml);
+  focusForm();
+});
+
+$("#add-engineer").addEventListener("click", () => {
+  editing = { type: "engineers", id: "new" };
+  renderAll();
+  const formHtml = engineerForm({ id: "new", name: "", role: "" }, "新增工程师");
+  const list = $("#engineer-list");
+  const empty = list.querySelector(".empty-tip");
+  if (empty) empty.remove();
+  list.insertAdjacentHTML("afterbegin", formHtml);
+  focusForm();
+});
+
+$("#add-productline").addEventListener("click", () => {
+  editing = { type: "productlines", id: "new" };
+  renderAll();
+  const formHtml = productLineForm({ id: "new", name: "" }, "新增产品线");
+  const list = $("#productline-list");
+  const empty = list.querySelector(".empty-tip");
+  if (empty) empty.remove();
+  list.insertAdjacentHTML("afterbegin", formHtml);
+  focusForm();
+});
+
+$("#add-app").addEventListener("click", () => {
+  editing = { type: "apps", id: "new" };
+  renderAll();
+  const formHtml = appForm({ id: "new", name: "", version: "", desc: "" }, "新增 APP");
+  const list = $("#app-list");
+  const empty = list.querySelector(".empty-tip");
+  if (empty) empty.remove();
+  list.insertAdjacentHTML("afterbegin", formHtml);
+  focusForm();
+});
+
+$("#add-tag").addEventListener("click", () => {
+  editing = { type: "tags", id: "new" };
+  renderAll();
+  const formHtml = tagForm({ id: "new", name: "" }, "新增标签");
+  const list = $("#tag-list");
+  const empty = list.querySelector(".empty-tip");
+  if (empty) empty.remove();
+  list.insertAdjacentHTML("afterbegin", formHtml);
+  focusForm();
+});
+
+$("#add-group").addEventListener("click", () => {
+  editing = { type: "groups", id: "new" };
+  renderAll();
+  const formHtml = groupForm({ id: "new", name: "" }, "新增分组");
+  const list = $("#group-list");
+  const empty = list.querySelector(".empty-tip");
+  if (empty) empty.remove();
+  list.insertAdjacentHTML("afterbegin", formHtml);
+  focusForm();
+});
+
+$("#add-chip").addEventListener("click", () => {
+  editing = { type: "chips", id: "new" };
+  renderAll();
+  const formHtml = chipForm({ id: "new", name: "", originalModel: "", manufacturer: "", firmwareVersion: "" }, "新增芯片");
+  const list = $("#chip-list");
+  const empty = list.querySelector(".empty-tip");
+  if (empty) empty.remove();
+  list.insertAdjacentHTML("afterbegin", formHtml);
+  focusForm();
+});
+
+/* ---- 返回列表 ---- */
+$("#back-btn").addEventListener("click", () => {
+  if (editing && !confirm("编辑尚未保存，确定返回？")) return;
+  window.location.href = "GeekDash.html";
+});
+
+/* ---- toast ---- */
+function showToast(msg, duration) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("show"), duration || 1600);
+}
+
+/* ---- 企业信息 ---- */
+function renderCompany() {
+  $("#co-fullname").value = company.fullName || "";
+  $("#co-shortname").value = company.shortName || "";
+  $("#co-manager").value = company.manager || "";
+  $("#co-nameprefix").value = company.namePrefix || "智能硬件";
+}
+$("#co-save").addEventListener("click", () => {
+  company = {
+    fullName: $("#co-fullname").value.trim(),
+    shortName: $("#co-shortname").value.trim(),
+    manager: $("#co-manager").value.trim(),
+    namePrefix: $("#co-nameprefix").value.trim() || "智能硬件"
+  };
+  PROJECT_DB.saveCompany(company);
+  showToast("企业信息已保存");
+});
+
+/* ---- 初始化 ---- */
+$("#dl-roles").innerHTML = PROJECT_DB.ENGINEER_ROLE_SUGGESTIONS
+  .map(r => `<option value="${esc(r)}">`).join("");
+/* ---- 主题切换（与列表页 / 详情页共享同一 localStorage key） ---- */
+const THEME_KEY = "hw_project_board_theme";
+function applyTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* 忽略 */ }
+  document.querySelectorAll("#theme-switch button").forEach(b => b.classList.toggle("active", b.dataset.theme === t));
+}
+let theme;
+try { theme = localStorage.getItem(THEME_KEY) || "dark"; } catch (e) { theme = "dark"; }
+$("#theme-switch").addEventListener("click", e => {
+  const b = e.target.closest("button[data-theme]");
+  if (b) applyTheme(b.dataset.theme);
+});
+applyTheme(theme);
+
+renderAll();
+renderCompany();
+const requestedTab = new URLSearchParams(location.search).get("tab");
+if (requestedTab) activateDataTab([...document.querySelectorAll(".tab")].find(tab => tab.dataset.tab === requestedTab));
+
+/* ---- 日期专区：当前日期 / 星期 / 时刻 / 距年底倒计时 ---- */
+const WEEK_CN = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+function updateDateZone() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const dateEl = $("#dz-date"), weekEl = $("#dz-week"), timeEl = $("#dz-time"), cdEl = $("#dz-cd-num");
+  if (dateEl) dateEl.textContent = y + "年" + (now.getMonth() + 1) + "月" + now.getDate() + "日";
+  if (weekEl) weekEl.textContent = WEEK_CN[now.getDay()];
+  if (timeEl) timeEl.textContent = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0") + ":" + String(now.getSeconds()).padStart(2, "0");
+  if (cdEl) {
+    const endOfYear = new Date(y, 11, 31);
+    const todayStart = new Date(y, now.getMonth(), now.getDate());
+    cdEl.textContent = String(Math.max(0, Math.round((endOfYear - todayStart) / 86400000)));
+  }
+}
+updateDateZone();
+setInterval(updateDateZone, 1000);
+</script>
+</body>
+</html>
