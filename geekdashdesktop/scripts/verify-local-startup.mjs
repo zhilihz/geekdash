@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 const require = createRequire(import.meta.url);
 const { chromium } = require(path.join(process.env.USERPROFILE, ".cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright"));
 const root = process.argv[2] ? path.resolve(process.argv[2]) : path.resolve(import.meta.dirname, "..");
-const output = path.resolve(import.meta.dirname, "../../test-results/local-v1051-startup");
+const output = process.argv[3] ? path.resolve(process.argv[3]) : path.resolve(import.meta.dirname, "../../test-results/local-v1051-startup");
 await fs.mkdir(output, { recursive: true });
 const profile = await fs.mkdtemp(path.join(output, "edge-profile-"));
 await fs.mkdir(path.join(profile, "Default"));

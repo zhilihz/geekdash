@@ -1,0 +1,97 @@
+{
+  "version": "V1.052",
+  "revision": "2026-10-10-v1052",
+  "files": [
+    {
+      "file": "GeekDash.html",
+      "sha256": "822998ccebbd91f5a046dd687d01bcc0ded1bb299b74aa2d6ba4f1382b4f75f5"
+    },
+    {
+      "file": "project-detail.html",
+      "sha256": "8e85c5453d604e7110d0cb6a5c9669f757a374d315a24b1d19921cbe90673d59"
+    },
+    {
+      "file": "project-status-summary.html",
+      "sha256": "396dcac56bc86964d5bf51b15172c14f4ae823f187cb169c59ad0f9a4bef0d34"
+    },
+    {
+      "file": "chip-statistics.html",
+      "sha256": "d841d02d18b899960e1a39dad52497e478dc21e907b0504563a1808d9a25e066"
+    },
+    {
+      "file": "data-manage.html",
+      "sha256": "a3d15c1caa6a3294c650e0971eb4338ccac1e9a1365a143ea56cc5dec1b3333a"
+    },
+    {
+      "file": "settings.html",
+      "sha256": "1c4feeb3960bc4e60a67321177651979e6d9d55531e96005feffe4d7ae5ef17d"
+    },
+    {
+      "file": "projects-data.js",
+      "sha256": "186c5ff5c896e06f5b15f79e6e04b8dd8b4ae635e94142b83400174a00e5b05a"
+    },
+    {
+      "file": "README版本_V1.052.txt",
+      "sha256": "8e420370aed1f46b5a856e2e1291be0646fd42693e280355e7239495c43da7d7"
+    }
+  ],
+  "archiveSha256": "3839947f63ac38f177ff4f9aa9be930c64122f24730cb41f89ad31476a30a66e",
+  "archiveBytes": 204407,
+  "whitelistVerified": true,
+  "sourceDeliveryZipByteEqual": true,
+  "normalEntry": "GeekDash.html",
+  "launchScriptIncluded": false,
+  "old1051Preserved": true,
+  "old1051Files": [
+    {
+      "file": "GeekDash1051.zip",
+      "location": "zip",
+      "sha256": "3c8bc91974a137b82e3b96df5020e479339c3bd4ecd2e01e931afb6d3cd5c8c8"
+    },
+    {
+      "file": "chip-statistics.html",
+      "location": "directory",
+      "sha256": "d841d02d18b899960e1a39dad52497e478dc21e907b0504563a1808d9a25e066"
+    },
+    {
+      "file": "data-manage.html",
+      "location": "directory",
+      "sha256": "a3d15c1caa6a3294c650e0971eb4338ccac1e9a1365a143ea56cc5dec1b3333a"
+    },
+    {
+      "file": "GeekDash.html",
+      "location": "directory",
+      "sha256": "822998ccebbd91f5a046dd687d01bcc0ded1bb299b74aa2d6ba4f1382b4f75f5"
+    },
+    {
+      "file": "project-detail.html",
+      "location": "directory",
+      "sha256": "8e85c5453d604e7110d0cb6a5c9669f757a374d315a24b1d19921cbe90673d59"
+    },
+    {
+      "file": "project-status-summary.html",
+      "location": "directory",
+      "sha256": "396dcac56bc86964d5bf51b15172c14f4ae823f187cb169c59ad0f9a4bef0d34"
+    },
+    {
+      "file": "projects-data.js",
+      "location": "directory",
+      "sha256": "7085d01efde9b78b337a0f1f75fb76b40742a4553e158f633bdfa9d86d7b3297"
+    },
+    {
+      "file": "README版本_V1.051.txt",
+      "location": "directory",
+      "sha256": "a482f55ec6163e5ec740a406e6ef423e7d50e6a5954fe8827e11de8ed5861120"
+    },
+    {
+      "file": "settings.html",
+      "location": "directory",
+      "sha256": "1c4feeb3960bc4e60a67321177651979e6d9d55531e96005feffe4d7ae5ef17d"
+    },
+    {
+      "file": "SHA256.json",
+      "location": "directory",
+      "sha256": "0060c31b9d11f0c2e979933c75a9d889d4037645a35913e33d48ad0b0dc234fc"
+    }
+  ]
+}

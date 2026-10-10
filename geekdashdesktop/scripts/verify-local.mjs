@@ -23,7 +23,7 @@ context.window = context;
 vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(root, "projects-data.js"), "utf8"), context);
 const db = context.PROJECT_DB;
-assert.equal(db.APP_VERSION, "V1.051");
+assert.equal(db.APP_VERSION, "V1.052");
 const template = fs.readFileSync(path.join(root, "src/standalone-template.html"), "utf8")
   .replace("__GD_PROJECT_RULES__", ["isEarlyClosure", "setProjectStatus", "currentStage", "projectProgress", "projectStageName", "projectDelayState", "normalizeStatusDescriptionHistory", "statusDescriptionHistory", "updateStatusDescription"].map(name => db[name].toString()).join("\n"))
   .replaceAll("__GD_STAGES_JSON__", "[]").replaceAll("__GD_CHIPS_JSON__", "[]")
@@ -72,4 +72,4 @@ assert.equal(db.normalizeRisks([{ id: 1, content: "风险", updatedAt: "今天" 
 assert.equal(db.normalizeChanges([{ id: 1, content: "变更", updatedAt: "今天" }])[0].updatedAt, "今天");
 const build = spawnSync(process.execPath, [path.join(root, "scripts/build-standalone.mjs"), "--check", root], { encoding: "utf8" });
 assert.equal(build.status, 0, build.stderr || build.stdout);
-console.log("V1.051：六页语法、延期边界、状态历史、旧数据兼容和导出构建检查通过。");
+console.log(`${db.APP_VERSION}：六页语法、延期边界、状态历史、旧数据兼容和导出构建检查通过。`);
