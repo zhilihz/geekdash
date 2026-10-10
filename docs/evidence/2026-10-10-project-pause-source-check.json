@@ -1,0 +1,69 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T03:00:31.519287+00:00",
+  "revision": "8b08e9c18759090462b177a86429395b061cdd21",
+  "dirty": true,
+  "scope": "E04-B05候选源码、真实隔离库测试；不代表部署或浏览器实点",
+  "files": {
+    "src/server/modules/project-lifecycle.ts": "92036e60f9bb45bd5552b6f049a02f69c3897834b174a9931a72b3b1edb6a0d0",
+    "src/server/modules/project-checks.ts": "d48d10fed93f91f9c2b27c4b21171f9ae7a88e8144dfa5bf99a35f6224307361",
+    "src/server/modules/project-actions.ts": "928b42a93eb6deb1ebe1e608d8f8310b27b9850196312d4eb2aef6ac52ad9299",
+    "src/server/modules/projects.ts": "165cb3eca7dede8c07884f295271e4822a5673c606935a8370a3988d05444ed8",
+    "src/web/detail.ts": "5dbf0bfb34d965340630dcd8951d29015d836f3d91054479480ad078ad2012e3",
+    "src/web/board.ts": "418557b0cd715c13161af5c14b617654f24f58096d1914bb356a4cc98a933da2",
+    "src/web/shared/api.ts": "ffb8281bd68fb24bc326c1d887145e79841b2ea7b2f9bae49aa0faa0ed62099f",
+    "scripts/verify-project-pause.mjs": "963d130317394e7fc9c613d21bfe4810a6b8fce1af894b2ac63559f7360a25b2",
+    "scripts/build.mjs": "8129bedaa5bd788d2ec5323e9d8ab454c5015ce3a41792f63fbbe1506a73199c"
+  },
+  "regressions": [
+    {
+      "checkedAt": "2026-10-10T02:56:43.9309961Z",
+      "status": "passed",
+      "test": "dates"
+    },
+    {
+      "checkedAt": "2026-10-10T02:56:48.5287211Z",
+      "status": "passed",
+      "test": "corrections"
+    },
+    {
+      "checkedAt": "2026-10-10T02:56:52.7428378Z",
+      "status": "passed",
+      "test": "start"
+    },
+    {
+      "checkedAt": "2026-10-10T02:56:56.8439433Z",
+      "status": "passed",
+      "test": "stages"
+    },
+    {
+      "checkedAt": "2026-10-10T02:57:00.9814146Z",
+      "status": "passed",
+      "test": "core"
+    },
+    {
+      "checkedAt": "2026-10-10T02:57:04.8776547Z",
+      "status": "passed",
+      "test": "ordinary"
+    },
+    {
+      "checkedAt": "2026-10-10T02:57:13.2538210Z",
+      "status": "passed",
+      "test": "saves"
+    },
+    {
+      "checkedAt": "2026-10-10T02:57:17.7564043Z",
+      "status": "passed",
+      "test": "projects"
+    },
+    {
+      "checkedAt": "2026-10-10T02:57:34.4041354Z",
+      "status": "passed",
+      "test": "capacity"
+    }
+  ],
+  "foundation": "passed",
+  "typeCheck": "passed",
+  "migrationModified": false,
+  "nativeBrowser": "未执行成功；既有URL策略拒绝，AD-007保留B09"
+}

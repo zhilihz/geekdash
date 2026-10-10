@@ -1,6 +1,6 @@
 # E04 项目动作 API
 
-来源：`src/server/routes/projects.ts`、`modules/project-actions.ts`、`modules/project-plans.ts`；2026-10-10，E04-B04。行为正文引用SPEC-002/003/004/014；实际部署版本归系统真相及部署记录。身份、CSRF及可信账号头沿[项目主干](project-core.md)，所有ID/版本使用十进制字符串。
+来源：`src/server/routes/projects.ts`、`modules/project-actions.ts`、`modules/project-plans.ts`、`modules/project-lifecycle.ts`；2026-10-10，E04-B05。行为正文引用SPEC-002/003/004/014；实际部署版本归系统真相及部署记录。身份、CSRF及可信账号头沿[项目主干](project-core.md)，所有ID/版本使用十进制字符串。
 
 ## E04-B04 日期与计划命令
 
@@ -27,7 +27,7 @@
 |---|---|
 | `POST /api/projects/:id/actions` | 当前负责人明确保存项目动作 |
 | `POST /api/projects/:id/action-results/query` | 当前账号用完整原正文与编号查询原结果；查不到不代表未提交 |
-| `POST /api/projects/:id/actions/preview` | 阶段纠错/回退及日期/计划的服务器影响预览，不写业务事实或动作回执 |
+| `POST /api/projects/:id/actions/preview` | 阶段纠错/回退、日期/计划及暂缓/恢复的服务器影响预览，不写业务事实或动作回执 |
 
 两入口使用同一正文：
 
@@ -136,3 +136,19 @@ action为undoStageStart/undoStageComplete/rollbackStage；undoStart仅undoStageC
 保存HTTP200沿outcome=committed/result，result含projectId/operationId/action/savedVersion及上述影响字段。实际无变化时changed=false，版本/updated_at/审计保持，仍保存确定回执。新动作作用域沿账号/项目/actions，旧startStage/completeStage/startProject指纹不改。
 
 补充错误：422 CORRECTION_REASON_REQUIRED填写原因；INVALID_PROJECT_DATE校验日期格式；INVALID_STAGE_DATE指明最终状态/日期冲突；PROJECT_REOPEN_REQUIRED先重开；PROJECT_RESUME_REQUIRED先恢复。既有阶段顺序矛盾返回STAGE_SEQUENCE_REVIEW_REQUIRED，未知开始不可直接撤销完成后假造开始事实。403/409/503恢复沿第2节，旧副本及未知提交沿原编号保留。
+
+## 6. E04-B05 暂缓、恢复与说明纠错
+
+复用同组三个接口；统一必填expectedVersion、idempotencyKey（UUIDv4），仅可信负责人写入。输入白名单如下，文字UTF-8最多65535字节；行为正文归SPEC-003/005，查询协议见[读取API](projects-read.md)。
+
+| action | 额外输入 |
+|---|---|
+| pauseProject | reason必填且非空 |
+| resumeProject | note选填，省略为空；dueDate可明确提供有效日期，planReason只可随dueDate提供 |
+| correctLifecycleNote | auditId、note、reason必填；note为更正后完整文字，reason非空 |
+
+恢复按服务端resume_status，客户端不能提供目标状态。未提供dueDate时计划保持；同时改已有计划需planReason非空，日期与计划历史复用B04深模块，在同事务保存。未知暂缓前状态拒绝，不猜测、不还原暂停前整份数据。correctLifecycleNote只关联本项目原project.pause/project.resume审计，恢复说明可明确清空，暂缓原因仍须非空；原行、人、时间保持，新增更正表达有效文字。
+
+预览HTTP200直接返回projectId/expectedVersion/changed/beforeValues/afterValues/beforeCheck/afterCheck；恢复同时改计划另有plan（B04预览形状）。检查提示使用同次服务器时钟和当前规则；不要求恢复命令携带旧截止，保存后再新GET。预览不写项目/审计/回执/检查。保存沿committed/result，包含上述影响、action/operationId/savedVersion；无实际变化只写原结果回执。project.pause/project.resume/project.lifecycle.note.correct是新增审计动作名。失败后原编号/正文恢复沿第2节，阶段/启动及B04旧指纹保持。
+
+补充错误：400 INVALID_LIFECYCLE_COMMAND；422 LIFECYCLE_REASON_REQUIRED / LIFECYCLE_NOTE_REQUIRED / PROJECT_PAUSE_BLOCKED / PROJECT_RESUME_BLOCKED / PROJECT_RESUME_BASIS_UNKNOWN；404 LIFECYCLE_NOTE_NOT_FOUND（含跨项目、其他审计类型）。同次计划错误沿B04，fields.reason/note/planReason/dueDate指向需要纠正的输入。身份/权限/409/503沿共同协议，禁止通过换编号覆盖旧视图。

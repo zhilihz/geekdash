@@ -28,6 +28,7 @@
     "test:start": "node scripts/verify-project-start.mjs",
     "test:corrections": "node scripts/verify-stage-corrections.mjs",
     "test:dates": "node scripts/verify-project-dates.mjs",
+    "test:pause": "node scripts/verify-project-pause.mjs",
     "db:test-accounts": "node dist/server/commands/test-accounts.js"
   },
   "dependencies": {

@@ -3,6 +3,8 @@ import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 import { stageBlock, startProjectBlock, type StageFact } from './project-actions.js';
 import { businessToday, checkContext, dayDifference, deadlineCondition, deadlineKinds, deadlineResult, type DateFacts, type DeadlineKind } from './project-dates.js';
 import { scheduleRecords } from './project-plans.js';
+import { lifecycleNotes } from './project-lifecycle.js';
+import { checkConditions, enrichChecks } from './project-checks.js';
 
 // V1.050 的阶段名称、完成权重和里程碑；查询不自动改变业务状态。
 export const stages = [
@@ -28,7 +30,7 @@ const columns = `CAST(p.id AS CHAR) id, CAST(p.version AS CHAR) version, p.data_
  DATE_FORMAT(p.proposed_on,'%Y-%m-%d') proposalDate, DATE_FORMAT(p.current_due_date,'%Y-%m-%d') dueDate,
  DATE_FORMAT(p.closed_on,'%Y-%m-%d') closedOn,DATE_FORMAT(p.closure_due_date,'%Y-%m-%d') closureDueDate,p.closure_type closureType,
  p.market_expectation marketExpectation, p.status_description statusDesc,
- p.maintenance_enabled maintenanceEnabled, p.updated_at updatedAt`;
+ p.maintenance_enabled maintenanceEnabled, p.updated_at updatedAt,p.resume_status resumeStatus,DATE_FORMAT(p.first_check_week,'%Y-%m-%d') firstCheckWeek`;
 const dimensionColumns: Record<string, string> = { customer: 'c.name', productLine: 'pl.name', odmFactory: 'odm.name', app: 'a.name', group: 'g.name', status: 'p.status', priority: 'p.priority', signal: 'p.signal' };
 const collectionFilters: Record<string, string> = {
   chip: 'SELECT 1 FROM project_chips pc JOIN chips r ON r.id=pc.chip_id WHERE pc.project_id=p.id AND r.name=?',
@@ -90,18 +92,21 @@ async function enrich(connection: PoolConnection, projects: RowDataPacket[]) {
 export function projectReads(database: RuntimeDatabase, clock = () => new Date()) {
   return {
     list(query: ProjectQuery) {
-      const today = businessToday(clock());
+      const now = clock(), today = businessToday(now);
       return database.readSnapshot(async connection => {
+        const checkRule = await checkContext(connection, undefined, now);
+        const checkStats = checkConditions(checkRule);
         const base = conditions(query, false, today);
         const filtered = conditions(query, true, today);
         const deadlines = deadlineKinds.map(kind => ({ kind, ...deadlineCondition(kind, today) }));
-        const stats = (await rows(connection, `SELECT COUNT(*) total,COALESCE(SUM(p.priority='high'),0) high,COALESCE(SUM(p.signal='green'),0) green,COALESCE(SUM(p.signal='yellow'),0) yellow,COALESCE(SUM(p.signal='red'),0) red,${deadlines.map(condition => `COALESCE(SUM(${condition.sql}),0) \`${condition.kind}\``).join(',')} ${joins} ${filtered.sql}`, [...deadlines.flatMap(condition => condition.values), ...filtered.values]))[0];
+        const stats = (await rows(connection, `SELECT COUNT(*) total,COALESCE(SUM(p.priority='high'),0) high,COALESCE(SUM(p.signal='green'),0) green,COALESCE(SUM(p.signal='yellow'),0) yellow,COALESCE(SUM(p.signal='red'),0) red,${[...deadlines.map(condition => ({ ...condition, key: condition.kind })), ...checkStats].map(condition => `COALESCE(SUM(${condition.sql}),0) \`${condition.key}\``).join(',')} ${joins} ${filtered.sql}`, [...deadlines.flatMap(condition => condition.values), ...checkStats.flatMap(condition => condition.values), ...filtered.values]))[0];
         const total = Number(stats.total);
         const pageSize = query.pageSize ?? 24;
         const pageCount = Math.max(1, Math.ceil(total / pageSize));
         const page = Math.min(query.page ?? 1, pageCount);
         const items = await enrich(connection, await rows(connection, `SELECT ${columns},${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress ${joins} ${filtered.sql} ORDER BY p.id DESC LIMIT ? OFFSET ?`, [...filtered.values, pageSize, (page - 1) * pageSize]));
         for (const project of items) project.deadline = deadlineResult(project as RowDataPacket & DateFacts, today);
+        await enrichChecks(connection, items, checkRule);
         const options: Record<string, string[]> = {};
         for (const [key, column] of Object.entries(dimensionColumns)) {
           options[key] = (await rows(connection, `SELECT DISTINCT ${column} value ${joins} ${base.sql}${base.sql ? ' AND ' : ' WHERE '}${column} IS NOT NULL ORDER BY value`, base.values)).map(row => row.value);
@@ -118,7 +123,7 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
       return database.readSnapshot(async connection => {
         const project = (await enrich(connection, await rows(connection, `SELECT ${columns},${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress,
           DATE_FORMAT(p.filed_on,'%Y-%m-%d') filingDate,DATE_FORMAT(p.started_on,'%Y-%m-%d') startDate,
-          DATE_FORMAT(p.original_due_date,'%Y-%m-%d') originalDueDate,DATE_FORMAT(p.first_check_week,'%Y-%m-%d') firstCheckWeek,CAST(p.first_check_rule_version AS CHAR) firstCheckRuleVersion,
+          DATE_FORMAT(p.original_due_date,'%Y-%m-%d') originalDueDate,CAST(p.first_check_rule_version AS CHAR) firstCheckRuleVersion,
           p.signal_note signalNote,p.detail_note detailNote,p.summary_note summaryNote,p.chipstat_note chipstatNote,
           CAST(p.customer_id AS CHAR) customerId,CAST(p.odm_customer_id AS CHAR) odmCustomerId,
           CAST(p.product_line_id AS CHAR) productLineId,CAST(p.app_id AS CHAR) appId,CAST(p.group_id AS CHAR) groupId,
@@ -139,9 +144,11 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
           startBlocked: !accountId || !editable ? 'PROJECT_READ_ONLY' : stageBlock(project.status, projectStages as (RowDataPacket & StageFact)[], stage.code, 'startStage'),
           completeBlocked: !accountId || !editable ? 'PROJECT_READ_ONLY' : stageBlock(project.status, projectStages as (RowDataPacket & StageFact)[], stage.code, 'completeStage') }));
         const checkRule = await checkContext(connection, accountId, now);
+        await enrichChecks(connection, [project], checkRule);
+        const lifecycleHistory = await lifecycleNotes(connection, id);
         project.deadline = deadlineResult(project as RowDataPacket & DateFacts, checkRule.businessDate);
         const startBlocked = !accountId || !editable ? 'PROJECT_READ_ONLY' : startProjectBlock(project as RowDataPacket & { status: string; startDate: string | null; firstCheckWeek: unknown }, projectStages as (RowDataPacket & StageFact)[], checkRule.businessDate) ?? (!checkRule.rule ? 'CHECK_RULE_REQUIRED' : null);
-        return { project, stages: projectStages, stageActions, startBlocked, checkRule, businessDate: checkRule.businessDate, nodes, risks, changes, delays, planSummary, history, responsible, readOnly: !editable, capabilities: { editText: editable, editOrdinary: editable, join: !!accountId && !editable, leave: !!accountId && editable } };
+        return { project, stages: projectStages, stageActions, startBlocked, checkRule, lifecycleNotes: lifecycleHistory, businessDate: checkRule.businessDate, nodes, risks, changes, delays, planSummary, history, responsible, readOnly: !editable, capabilities: { editText: editable, editOrdinary: editable, join: !!accountId && !editable, leave: !!accountId && editable } };
       });
     },
   };

@@ -44,3 +44,11 @@ delays包含kind、有效oldDate/newDate/reason/measures/voided、原actorId/cre
 GET不创建账号、责任、检查、业务历史或草稿，不触发阶段/灯色变化。写入协议分别归项目主干/普通保存/项目动作；服务器个人状态与SSE仍后续。页面同版本聚焦/跨日只刷新派生日期提示，不覆盖未保存输入；不同版本冻结原编辑，需重新进入。
 
 验证方法归 TEST-036，执行结果归 [报告](../../testing/reports/2026-10-08-project-reads.md)。
+
+## E04-B05 周检查查询及暂缓说明
+
+project增加resumeStatus（暂缓前proposal/ongoing或null）、firstCheckWeek与checkStatus；详情另返回lifecycleNotes。firstCheckWeek为YYYY-MM-DD或null。lifecycleNotes为原暂缓/恢复审计ID、action、originalNote/有效note、原人/UTC时间/版本及corrections（更正ID/人/时间/原因），不改写原历史。
+
+checkStatus包含kind/label/required/weekStart/deadlineDate/onTime/updatedAfterCheck/latest。kind为excluded/not_due/basis_unknown/rule_unknown/pending/overdue/checked/checked_late；required只表示默认当周必查，已有主动检查可以required=false。onTime为首次检查对本周当前有效截止的判定，未知为null；updatedAfterCheck比较最新resultVersion。latest为本周最新id/actorId/actorName/checkedAt/conclusion/note/observedVersion/resultVersion，没有则null。时间为UTC，自然周/截止按服务器Asia/Shanghai；结论原值checked/follow_up。
+
+stats增加checkRequired/checkPending/checkOverdue/checkDone/checkUpdated，沿完整筛选范围再应用默认必查范围；checkPending+checkOverdue+checkDone等于checkRequired，checkUpdated可以与已查计数重叠。暂缓移出必查不表示已查；恢复沿原首次义务立即查询。列表一次按当页项目批量读取周事实，详情相同投影；无定时业务写入或检查创建。B05只接读取，明确检查/纠错写入口仍属B07；规则正文归SPEC-005/019，不据现有表或夹具称写入口已交付。
