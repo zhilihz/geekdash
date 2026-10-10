@@ -1,28 +1,28 @@
 # 未完成任务交接
 
-更新时间：2026-10-09。E03-W00～W12项目主干与最小身份已完成代码、真实MySQL/API、公网及实际app进程恢复并部署；浏览器完整联验仍有工具缺口。[系统真相31](../status/current-system-truth.md#31-e03-完整项目主干与最小身份2026-10-09)是当前事实入口，[报告](../testing/reports/2026-10-09-project-core.md)是准确验证入口。本轮不接真实备份。E04-B01代码、页面/真实MySQL、公网与实际恢复已交付，见[系统真相34](../status/current-system-truth.md#34-e04-b01-阶段开始与完成2026-10-09固定部署)。
+更新时间：2026-10-10。E03项目主干与最小身份、E04-B01～B03已固定部署；完整公网浏览器与公司实际使用仍未验收。[系统真相](../status/current-system-truth.md#36-e04-b03阶段纠错与回退2026-10-10固定部署)为当前能力入口，详细验证归各批报告。本轮不接真实备份。
 
 ## 0. 当前活动：继续E04，再逐阶段完整规划/实施/提交
 
-用户DEC-109授权离开期间持续施工，范围不限E04：当前完成B03～B09，随后先规划下一阶段全部步骤，再实施/验收/合并远端main，循环直到用户返回。目标方法归[GD-GOAL-001](../implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)，新代决归[autonomous-decisions](../decisions/autonomous-decisions.md)；疑问先核对1051和已确认SPEC，推荐选择记录选项/理由/影响。工具活动目标仍为E04，未完成不关闭，完成后按总目标接续。
+用户DEC-109授权离开期间持续施工，范围不限E04：当前完成B04～B09，随后先规划下一阶段全部步骤，再实施/验收/合并远端main，循环直到用户返回。目标方法归[GD-GOAL-001](../implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)，新代决归[autonomous-decisions](../decisions/autonomous-decisions.md)；疑问先核对1051和已确认SPEC，推荐选择记录选项/理由/影响。工具活动目标仍为E04，未完成不关闭，完成后按总目标接续。
 
-B02固定5aae00f及文档f9394ef已合并main；B03当前codex/e04-b03-stage-corrections从f9394ef施工。候选代码、真实MySQL/API与原卡片纠错/回退页面已验证，准确范围见[报告](../testing/reports/2026-10-10-stage-corrections.md)及[系统真相36](../status/current-system-truth.md#36-e04-b03阶段纠错与回退2026-10-10候选核验)。两个自有测试项目/三个账号已确切清理；旧orphan未动，未提交文件以git status实时核验。
+B03实现af5de71从f9394ef施工，已合并回读远端main；当前分支codex/e04-b03-stage-corrections收尾验证/部署文档，未提交文件以git status实时核验。固定代码、真实MySQL/API、原卡片纠错/回退页面及公网/进程恢复已验证，准确范围见[报告](../testing/reports/2026-10-10-stage-corrections.md)及[系统真相36](../status/current-system-truth.md#36-e04-b03阶段纠错与回退2026-10-10固定部署)。两轮各两个自有项目/三个账号已确切清理；旧orphan未动。
 
-先补B03工期错误实点/固定检查，核对diff/文档/未变迁移，提交合并远端main，干净构建和授权新加坡测试更新；随后B04计划、B05暂缓恢复、B06结案、B07检查、B08子记录、B09联验。E04完成后进入E05/E06及后续阶段，补齐详细计划再实施。真实备份保持受控，每批部署前新读运行事实。
+核对B03收尾文档/证据与链接，提交合并远端main；随后从最新main施工B04计划、B05暂缓恢复、B06结案、B07检查、B08子记录、B09联验。F07-A～H详细链路已有计划，施工前补协议/代码落位缺口及代决，不把讨论稿当已实现。E04完成后进入E05/E06及后续阶段，补齐全部步骤再实施。真实备份保持受控，每批部署前新读运行事实。
 
 ## 1. 位置、基线与授权
 
-- D:/geekwon/geekdash；当前B03分支/基线见第0节；常驻仍B02固定5aae00f，文档main=f9394ef。后续文档SHA不是运行镜像，E03/B01历史归系统真相31/34。
+- D:/geekwon/geekdash；当前分支/基线见第0节；常驻B03固定af5de71。后续文档SHA不是运行镜像，E03/B01/B02历史归系统真相31/34/35。
 - 用户DEC-090明确恢复最小登录/首次改密/会话完成E03，邀请码与完整账号后台后置；CLI/Git/test部署授权有效。不是重新开发替换原系统，也没有批准导入真实备份。
 - 500为整体性能规模、不设创建硬上限；推荐方案取舍只归[决策](../decisions/decisions.md)。阶段提交、main合并与发布分别按[代码管理](../operations/release-maintenance.md#2-代码管理)。代码用ponytail full，纯文档/讨论不延续。
 
 ## 2. 运行与恢复入口
 
-本机41860/新加坡https://geekdash.zhiluan.cool 同5aae00f / project-start /0002；两库34表/314列/55外键，无本轮迁移。MySQL本机D盘、云/var/lib/geekdash/mysql；凭据仓库外，两端账号独立。本批镜像/备份/恢复事实归[启动部署](../operations/deployments/2026-10-09-project-start.md)。云business01/02及maint01已改密，分发须用currentPassword；business03/04仍需首次改密，不能重置或打印凭据。
+本机41860/新加坡https://geekdash.zhiluan.cool 同af5de71 / stage-corrections /0002；两库34表/314列/55外键，无本轮迁移。MySQL本机D盘、云/var/lib/geekdash/mysql；凭据仓库外，两端账号独立。本批镜像/备份/恢复事实归[纠错部署](../operations/deployments/2026-10-10-stage-corrections.md)。云business01/02及maint01已改密，分发须用currentPassword；business03/04仍需首次改密，不能重置或打印凭据。
 
 深模块：identity.ts校验可信actor，project-core.ts创建/本人责任，project-save.ts普通保存，project-actions.ts阶段命令，projects.ts一致快照。事务、结果恢复方法只归执行计划；实际协议归api/project-core.md与api/project-actions.md。
 
-新加坡原trial及项目7/8保持；B02新合成项目9当前v6/S1完成/S2进行中、business01/02负责，启动原回执v5，周五规则已初始化。不要重置试用项目，复核先新读。云MySQL及其他17容器未重启，无未完成服务器写操作。忽略test-results保留私有TAT/日志，长期证据归evidence。
+新加坡原trial及项目7/8/9保持，周五规则已初始化；B03新合成项目10当前v15/进行中/S1待开始/进度0%、business01/02负责，工期评述/计划/首次义务保持。真实app重启后原会话/详情/15条历史/11个动作原回执新读保持。不要重置试用项目，复核先新读。云MySQL及其他17容器未重启，无未完成服务器写操作。忽略test-results保留私有TAT/日志，长期证据归evidence。
 
 ## 3. E04-B01历史上下文
 

@@ -15,6 +15,13 @@
 
 补验期间本机Docker所有容器停止，app退出0/MySQL137、OOMKilled均false；仅恢复本项目app/MySQL，既有D盘数据保持。第二组自有浏览器两个项目/三个账号另行确切清理，见[补验清理](../../evidence/2026-10-10-stage-corrections-final-cleanup-check.json)。不能据容器退出推断Node溢出；当时Windows Node共3进程约184MiB。
 
-## 当前发布边界
+## 固定版本及运行验证
 
-本报告初记时为f9394ef基线未提交候选stage-corrections/0002；本机常驻41860和公网仍project-start/5aae00f，B03尚未固定部署或main交付。固定验证、服务器回归/公网新请求及实际进程恢复结果须实际执行后补记。
+固定实现af5de712beccdb0da2726a400b7063c5a90d8393已合并并回读远端main；干净构建再次通过六组87请求，[固定验证](../../evidence/2026-10-10-stage-corrections-fixed-api-check.json)。本机41860及新加坡均运行该stage-corrections/0002，产物/备份/回退入口归[部署](../../operations/deployments/2026-10-10-stage-corrections.md)。
+
+- 云内阶段纠错6组87请求、启动6组76、阶段7组57、核心8组66及普通/容量/旧保存/查询共八类通过；500项目四个真实会话零错误，第501可创建，测试库行数恢复，既有dev数据指纹保持。[云内结果](../../evidence/2026-10-10-stage-corrections-deployment-check.json)。不将云内环回结果当公司浏览器延时。
+- 公网两名真实负责人操作新合成项目10：普通工期评述保存、误开始撤销后重新开始、预览后他人修改导致409、完成日期明确未知仍完成5%、误完成撤销保留开始、人工启动/S2后真实返工到S1待开始。当前v15/进行中/进度0%，原计划/首次义务/普通内容保持；新请求详情/历史/看板与原回执隔离通过。[公网验证](../../evidence/2026-10-10-stage-corrections-public-check.json)。
+- 实际app停止/启动后，原会话、完整详情/公共规则、15条历史和11个原动作结果保持；MySQL ID/启动时间及其他17容器保持，app无OOM。[进程证据](../../evidence/2026-10-10-stage-corrections-restart-check.json)、[公网回读](../../evidence/2026-10-10-stage-corrections-restart-public-check.json)。
+- 公网16项HTML/JS/CSS与固定产物逐字节一致；两端完整逻辑备份核对完成，未隔离恢复。没有重跑初始化、改密或接真实备份。
+
+本批浏览器主链为本地原生页面，公网通过实际HTTP及资源核对，完整公网浏览器联验仍待B09。B03未知提交通过真实API故障/重建及复用原页面恢复入口验证，没有另做本批页面丢响应实点。稳定200ms、公司四人实际体验与完整备份恢复仍未验收；B04～B09尚未交付，完整E04保持进行中。

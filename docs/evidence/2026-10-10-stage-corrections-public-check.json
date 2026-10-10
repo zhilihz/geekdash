@@ -1,0 +1,42 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T01:36:53.180240+00:00",
+  "build": {
+    "revision": "af5de712beccdb0da2726a400b7063c5a90d8393",
+    "dirty": false,
+    "builtAt": "2026-10-10T01:23:16.831Z",
+    "stage": "stage-corrections",
+    "schemaVersion": "0002-trial-save"
+  },
+  "projectId": "10",
+  "savedVersion": "15",
+  "syntheticOnly": true,
+  "checks": [
+    "两名真实负责人/普通工期评述同次保存及新GET",
+    "误开始撤销可重新开始",
+    "预览后他人保存，旧版409",
+    "完成日期明确未知仍完成5%，误完成撤销保持开始",
+    "明确启动/S2后真实回退S1待开始、总体/计划/首次义务保持",
+    "新请求历史/看板消费，原回执隔离和确定重放",
+    "公网HTML/JS/CSS与固定产物逐字节一致"
+  ],
+  "assets": {
+    "index.html": "7effdf58f393f26be18341f390e9612e4338b9b1cfe57bec5fbb5b6cb4915189",
+    "/assets/index-BNyYjBnV.js": "c931cc14065d61ea39facc51baafbb31ba2cc43508e88850412f67fe279b476b",
+    "/assets/api-CFEYf93l.js": "a79a7792eecc03f6a4b572a622c99469723d1a0e846a6a8326e679770b82a2a5",
+    "/assets/api-CEMtlmAC.css": "f81b99ccd3ef21d4ce6a436d1c1b2a13dae22b52308ed681a5f614d0227e2fa0",
+    "/assets/index-D8NXthWN.css": "5cdef17e18b287780e8197cec16e9d4628b2b7da8036bf90b4c8fbe2a375e3c1",
+    "GeekDash.html": "7effdf58f393f26be18341f390e9612e4338b9b1cfe57bec5fbb5b6cb4915189",
+    "project-detail.html": "687c7634cbba1cbe9e6de0a70cdc243b08dd94b6437df4e7b4b2cf85b522a6ed",
+    "/assets/project-detail-Dp2MHfUb.js": "9452a368ffee19af312c0a5667e919424a745fd303d96db1aef87fd1d2e4cc40",
+    "/assets/detail-DYDiBCqo.css": "01e982097fd0e8a5d14ad60181e442a24634e630afae7e91b7148fee651d9ba1",
+    "project-new.html": "d8b4d6a1b57553e9f6ae17de68f92ee9b52428ecc2ae5ed6f328284ab76a3eff",
+    "/assets/project-new-BoRPMX_g.js": "9f8665172bc1ddd3993c718700186804da3784232f6666fd120a5dc9cebcaedf",
+    "/assets/forms-D9KYl3tU.css": "e179bf8998912737851b88af0bc94aeff622a19313ac40fe5dd626fb3206ece0",
+    "login.html": "455cd4fad6fedc59528c9993b9b2727059854cc4d20e81fc3d2dacca23b80fa6",
+    "/assets/login-JaqraKBA.js": "11ebcb5a3c680f585cd2e8e03cd0256a67743c62253375ac3fc179218709c72f",
+    "settings.html": "811fe2a1237d2b64142d5c8667a6d34edb0f960b61f23a5910f604d5074a0673",
+    "/assets/settings-BI-qFnto.js": "d9751fd8c3d18c248a17e580ef5065b56dff17ceab0a20d1d0ec483a4496edb8"
+  },
+  "assetCount": 16
+}
