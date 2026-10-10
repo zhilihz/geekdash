@@ -6,7 +6,7 @@
 
 用户DEC-109授权离开期间持续施工，范围不限E04：规划完整阶段→实施/验收→提交合并远端main→下一阶段，当前E04仍未完成。方法归[GD-GOAL-001](../implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)，代决只归[autonomous-decisions](../decisions/autonomous-decisions.md)；先核对1051及已确认SPEC，缺口推荐选择记录理由/选项/影响。工具目标保持E04 active，不能将B07完成称整个E04完成。
 
-当前分支codex/e04-b08-node-migration；源码2dfb17c已合并推送回读远端main，0003兼容固定部署完成。两端运行2dfb17c/project-nodes-compatible/0003，34表315列55FK/三迁移历史；旧业务字节、两旧摘要/时刻及来源/ID/原回执保持。候选及固定实际范围归[系统真相44](../status/current-system-truth.md#44-e04-b08节点0003兼容固定部署2026-10-10)、[报告](../testing/reports/2026-10-10-node-migration.md)和[部署](../operations/deployments/2026-10-10-node-compatible.md)。后续文档SHA不替代运行镜像。
+当前施工codex/e04-b08-node-recovery，从main/adb6422开始；14.9.17/AD-017/018先细化再编码，源码2dfb17c已合并推送回读远端main，0003兼容固定部署完成。两端运行2dfb17c/project-nodes-compatible/0003，34表315列55FK/三迁移历史；旧业务字节、两旧摘要/时刻及来源/ID/原回执保持。候选及固定实际范围归[系统真相44](../status/current-system-truth.md#44-e04-b08节点0003兼容固定部署2026-10-10)、[报告](../testing/reports/2026-10-10-node-migration.md)和[部署](../operations/deployments/2026-10-10-node-compatible.md)。后续文档SHA不替代运行镜像。
 
 下一步从最新main开节点D/E施工分支，读取14.9.14步骤6的八项粒度、SPEC-005/ERD5.8及1051原节点入口，必要细化后记录AD再编码。删除/恢复复用普通保存与预览：保持ID/来源，明确旧线断开、恢复默认无旧线，多个恢复+新线同事务；已删列表单独按项目20/100分页。正式删除后必须实际回退固定兼容2dfb17c→新请求无已删行→再升级恢复原ID/历史，不能回退旧0002。D/E后继续需求变更及B09，不将本批称完整E04。
 
