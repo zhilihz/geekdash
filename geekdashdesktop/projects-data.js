@@ -1294,12 +1294,15 @@
   }
 
   // 应用版本（每次改动 +0.001）与版本生成时间
-  const APP_VERSION = "V1.051";
-  const APP_VERSION_TIME = "2026-10-10 09:52:57";
+  const APP_VERSION = "V1.052";
+  const APP_VERSION_TIME = "2026-10-10 10:14:26";
   // 历史版本更改日志（简要总结；新改动可在此追加新条目并 +0.001 版本号）
   const VERSION_LOG = [
-    { version: "V1.051", date: APP_VERSION_TIME, items: [
-      "双击GeekDash.html直接运行，无需启动脚本；首次选择数据库后记住原文件，后续恢复读取与自动保存",
+    { version: "V1.052", date: APP_VERSION_TIME, items: [
+      "启动时恢复上次连接的数据库，授权有效时直接读取原文件，不必每次重新选择备份",
+      "用Edge直接打开GeekDash.html运行，无需Python或启动脚本"
+    ] },
+    { version: "V1.051", date: "2026-10-10 09:52:57", items: [
       "详情滚动时项目标题保持可见，日期时钟正常滚动",
       "风险预警与需求变更支持编辑，保留创建时间并记录修改前后内容",
       "首页移除风险预警与需求变更独立专区，修改仍在项目最新状态和详情历史查看",
