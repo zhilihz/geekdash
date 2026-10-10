@@ -1,0 +1,40 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T10:15:11.221019+00:00",
+  "mode": "finish",
+  "build": {
+    "revision": "2a342d66bee15248ad382d2c0050ebe01730a6e7",
+    "dirty": false,
+    "builtAt": "2026-10-10T09:49:08.536Z",
+    "stage": "project-nodes-recovery",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "projectId": "17",
+  "savedVersion": "11",
+  "activeNodes": 4,
+  "deletedNodes": 0,
+  "auditCount": 25,
+  "originalResults": 11,
+  "originalSessions": 2,
+  "syntheticOnly": true,
+  "assets": {
+    "index.html": "43c542bc05ea9bced4fed3eced3e71b46819761ca218d719cf52237cdee17e87",
+    "/assets/index-BvBTp0qL.js": "e4de3a6dae773274aaa1737f9f18346d461269f72dc53612295ea53c9eaa1f4d",
+    "/assets/api-88KWTtH9.js": "bb0b4354d45c9e1c719c8a16e4d0023a6f5e9aebb6b5b78b576f5a134f8456df",
+    "/assets/api-CEMtlmAC.css": "f81b99ccd3ef21d4ce6a436d1c1b2a13dae22b52308ed681a5f614d0227e2fa0",
+    "/assets/index-D8NXthWN.css": "5cdef17e18b287780e8197cec16e9d4628b2b7da8036bf90b4c8fbe2a375e3c1",
+    "GeekDash.html": "43c542bc05ea9bced4fed3eced3e71b46819761ca218d719cf52237cdee17e87",
+    "project-detail.html": "b9fcc1813894987aef0c4df03ceabd300d1b785a99b4d56d17ab4765afea4439",
+    "/assets/project-detail-CMJl9mdG.js": "d63a5249c4b87cdead791427c779428510de7f4fe4b5a472b9e97d92c179d4ed",
+    "/assets/detail-DYDiBCqo.css": "01e982097fd0e8a5d14ad60181e442a24634e630afae7e91b7148fee651d9ba1",
+    "project-new.html": "870d93992123adbadd2e9627ed9a9dc43f25f88ab34127d5e5861037a158d5cc",
+    "/assets/project-new-C_eYyjg0.js": "0031678a58f6fec0cb7014348186460070306007b6d3f34d9918d21a82021558",
+    "/assets/forms-D9KYl3tU.css": "e179bf8998912737851b88af0bc94aeff622a19313ac40fe5dd626fb3206ece0",
+    "login.html": "a804fe84a7686ccf7ffd3b8ed468b8f89dba4bc78962dcab6b7ea1b18cb6b8c8",
+    "/assets/login-BgJl1nbt.js": "2f60bfdfa13921cf2317e1741059449e56ef8cbcf586b3dcf369fe2a853ed7ff",
+    "settings.html": "d97436eed2acfe5fa9b69c9974ca98d873f2ae49f3df3886a6a59b0d27e41a1f",
+    "/assets/settings-C5f9mg0A.js": "42b0f07f69ef778142f4632c4153817a59bcebd72b0df6b657e2d1f3da149417"
+  },
+  "assetCount": 16,
+  "nativeBrowserAcceptance": false
+}

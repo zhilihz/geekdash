@@ -6,13 +6,17 @@
 
 用户DEC-109授权离开期间持续施工，范围不限E04：规划完整阶段→实施/验收→提交合并远端main→下一阶段，当前E04仍未完成。方法归[GD-GOAL-001](../implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)，代决只归[autonomous-decisions](../decisions/autonomous-decisions.md)；先核对1051及已确认SPEC，缺口推荐选择记录理由/选项/影响。工具目标保持E04 active，不能将B07完成称整个E04完成。
 
-当前codex/e04-b08-node-recovery，main基线adb6422；计划e4b075a已提交，新增八个源码文件的未提交修改及D/E报告/API/证据文档均为本任务。14.9.17/AD-017/018先规划再编码；候选六组217真实HTTP/SQL、14类回归/工程及500四会话1200测量已验，原卡片逐字保持，无迁移。事实归[真相45](../status/current-system-truth.md#45-e04-b08节点de删除恢复候选2026-10-10)和[恢复报告](../testing/reports/2026-10-10-project-node-recovery.md)。本机/公网仍干净2dfb17c兼容/0003，34/315/55，当前固定/备份入口归[兼容部署](../operations/deployments/2026-10-10-node-compatible.md)。
+当前codex/e04-b08-node-recovery，main已固定2a342d6；D/E源码/候选与固定验证已完成并部署，当前未提交为本批收尾文档/脱敏证据/PE-011。两端干净2a342d6 / project-nodes-recovery /0003，34/315/55及三历史，原dev/test指纹保持。准确事实归[真相45](../status/current-system-truth.md#45-e04-b08节点de删除恢复固定部署2026-10-10)、[恢复报告](../testing/reports/2026-10-10-project-node-recovery.md)和[部署](../operations/deployments/2026-10-10-project-node-recovery.md)。收尾具名提交合并远端main后，再从最新main开需求变更A/B分支。
 
-下一步核对Git/新构建与文档链接，具名提交合并远端main后干净固定构建重验；导出实际旧2dfb17c镜像dist已在忽略test-results/node-recovery-fallback，test:node-recovery必须显式GEEKDASH_NODE_RECOVERY_FALLBACK_DIR=/workspace/test-results/node-recovery-fallback。私有recovery-source-resume.py仅从已实际通过的前11类接剩三类，全部完成；源driver曾核心报告名错，实际报告project-core-report.json，不得重复跑前11类冒充新进度。
+下一入口14.9.14步骤7/14.9.11～12：原1051 addChange已支持四字段编辑，renderChangeList有编辑按钮，现有14.9.12“原版没有纠错入口”应修正；继续复用原来源客户/业务、内容、人工accept/reject/理由，有限changeOps及同普通事务/目标历史，补纠错原因/副本。不新增审批/删除/自动计划或阶段。私有test-results/change-next-plan-private.md仅准备材料，先归权威计划八项粒度/AD-019，再编码；之后B09及后续阶段按完整规划→实施验收→main循环，E04仍active。
 
-D/E固定部署需完整两库备份/现有指纹与三迁移历史保持，常驻服务正式删除后实际回退2dfb17c读取隐藏→再升级同ID恢复/原结果；不能回退0002。旧2df不识别新D/E正文，确认400按未知保留原编号，重新升级后恢复结果，不能伪判失败/换编号。只操作自身app，MySQL及其他17容器保留，不导入真实备份；安装未知先核对停点，不盲重跑初始化/改密/DDL。
+公网新合成项目17/v11/四有效节点/0已删/25历史，两原会话/11原结果受控在D:/geekwon/geekdash-data/secrets/recovery-public-sessions.json；原项目16/两会话/14结果保持。正式删除后实际旧2dfb17c回退过滤/旧结果、新D/E未知→再升级恢复同ID→真实app stop/up新结果保持，current最终2a342d6。初次回退辅助后半指纹1045/NO，应用已旧且ready、链接仍新；先实际核对并同步链接再升级，不能盲重跑原fallback/install。
 
-本机容量已删读/恢复存/删除存P95=34/82/68ms，云旧普通1929ms/混合196ms差异仍B09；原生工具URL策略拒绝沿AD-007保持，不能换表面/脚本绕过，HTTP不是页面验收。Node常驻约38MiB、工具约227MiB未见溢出，临时容器正常退出，未全局kill/prune/删卷。需求变更及B09仍须完成，后续阶段按完整规划→实施验收→main循环，工具E04目标保持active。
+后续长云指纹读取/run/secrets/mysql_health稳定640，禁与健康cp共享/tmp临时目标；原竞态推断/独立机制复现及续验归PE-011。切换前受控incoming存自身完整checkpoint；recovery-reupgrade已成功结束，不再重放。cloudinstall任务SUCCESS/exit0但输出截断，完整36851字节原事实只读压缩取回，PE-002；辅助/私有日志不纳Git，不重迁移/初始化/改密。
+
+固定回归含test:node-recovery，显式fallbackDir从实际2dfb17c镜像dist导出；本机test-results/node-recovery-fallback，云/app/test-results/node-recovery-fallback均受控，GEEKDASH_NODE_RECOVERY_FALLBACK_DIR必填。0003保持过滤；以后回退到D/E版不认识新changeOps时仍保留原编号/正文，再升级确认，不能误判失败或造替代记录。
+
+云列表混合283ms/普通227ms及旧1929/196ms波动仍B09，原生URL策略拒绝沿AD-007不能换表面/脚本绕过。Node未见溢出，仅自身工具/夹具正常清理，无全局kill/prune/删卷；真实备份未接、隔离恢复/外部副本未验。所有TAT写任务已结束，MySQL及其他17容器不重启，接手须重核Git/实际运行及剩余单元。
 
 B08风险私有install已成功结束，目标5ae7ecc目录已存在、旧预期4974e0f，不盲重跑。公网合成项目15/v11、3风险/13历史及2原会话/12原结果受控保存，原项目7～14保持；准确产物/备份/恢复归[风险部署](../operations/deployments/2026-10-10-project-risks.md)。没有迁移；云13项验证/混合容量及实际app恢复通过，云列表2843ms仍需B09实际SQL定位。验证工具256MiB/旧堆96MiB结束正常，本项目未发现Node溢出，未全局杀进程/删卷。
 

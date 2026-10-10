@@ -1,0 +1,47 @@
+{
+  "status": "passed",
+  "startedAt": "2026-10-10T09:59:12.388Z",
+  "checkedAt": "2026-10-10T09:59:32.644Z",
+  "projectCount": 500,
+  "stageCount": 3500,
+  "initialAuditCount": 500,
+  "processMemory": {
+    "rss": 226942976,
+    "heapTotal": 37425152,
+    "heapUsed": 29070304,
+    "external": 6010542,
+    "arrayBuffers": 1953344
+  },
+  "workers": 4,
+  "authenticated": true,
+  "rounds": 20,
+  "errorCount": 0,
+  "measurements": {
+    "list": {
+      "requests": 80,
+      "p50Ms": 138,
+      "p95Ms": 227,
+      "maxMs": 248
+    },
+    "detail": {
+      "requests": 80,
+      "p50Ms": 61,
+      "p95Ms": 98,
+      "maxMs": 111
+    },
+    "save": {
+      "requests": 80,
+      "p50Ms": 63,
+      "p95Ms": 97,
+      "maxMs": 145
+    },
+    "audit": {
+      "requests": 80,
+      "p50Ms": 20,
+      "p95Ms": 36,
+      "maxMs": 59
+    }
+  },
+  "noHardProjectLimit": true,
+  "source": "专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时"
+}

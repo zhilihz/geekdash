@@ -117,7 +117,7 @@ nodeOps不进入result.values；结果另附nodes和nodeIdMap，新ID先全部�
 
 ## E04-B08 节点D/E删除恢复统一保存
 
-2026-10-10实际候选协议；运行版本与验收分别归系统真相、报告。复用原nodeOps、save-preview及PATCH普通保存，不另加写路由，未保存副本不更改正式数据。
+2026-10-10实际固定协议；运行版本与验收分别归系统真相、报告。复用原nodeOps、save-preview及PATCH普通保存，不另加写路由，未保存副本不更改正式数据。
 
 | op | 精确输入 |
 |---|---|

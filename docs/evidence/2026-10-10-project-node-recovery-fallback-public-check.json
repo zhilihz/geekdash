@@ -1,0 +1,18 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T10:09:54.402009+00:00",
+  "build": {
+    "revision": "2dfb17c463972def4f8aaea6a9d1c4079bd9effa",
+    "dirty": false,
+    "builtAt": "2026-10-10T08:30:47.475Z",
+    "stage": "project-nodes-compatible",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "projectId": "17",
+  "currentVersion": "8",
+  "originalSessionsSurvived": 2,
+  "oldResultsConfirmed": 6,
+  "newDEConfirmationExplicitUnknown": 2,
+  "deletedNodesHiddenAndAuditPreserved": true,
+  "syntheticOnly": true
+}

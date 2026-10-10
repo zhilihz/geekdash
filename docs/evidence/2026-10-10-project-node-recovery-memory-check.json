@@ -1,0 +1,11 @@
+{
+  "checkedAt": "2026-10-10T10:01:04.808132+00:00",
+  "nodeProcessCount": 23,
+  "nodeTotalWorkingSetMiB": 305.2,
+  "largestNodeWorkingSetMiB": 45.2,
+  "dockerStats": "geekdash-dev-app-1|34.49MiB / 6.664GiB\ngeekdash-dev-mysql-1|641.5MiB / 6.664GiB",
+  "nodeProcessesKilled": 0,
+  "unrelatedContainersRemoved": 0,
+  "volumesDeleted": 0,
+  "scope": "Windows只读采样；测试工具--rm正常退出；没有全局进程清理"
+}

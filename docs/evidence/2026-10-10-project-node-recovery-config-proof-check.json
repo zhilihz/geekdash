@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T10:11:33.338738+00:00",
+  "source": "只截断本轮独立临时验证文件，不修改实际健康检查文件",
+  "privateProbeEmptyConfigReproducedPasswordNo": true,
+  "stableReadOnlySecretMode": "640",
+  "stableReadOnlySecretSelectPassed": true,
+  "sqlWrites": false,
+  "actualHealthConfigOrCredentialsChanged": false,
+  "originalProductionRaceInferredFromComposeCopyAndTransientFailure": true,
+  "failedFirstFallbackPostFingerprintCompleted": false,
+  "oldAppAlreadyReadyConfirmed": true,
+  "currentLinkReconciledBeforeReupgrade": true
+}

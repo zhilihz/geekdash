@@ -1,0 +1,55 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T10:02:49.827238+00:00",
+  "revision": "2a342d66bee15248ad382d2c0050ebe01730a6e7",
+  "build": {
+    "revision": "2a342d66bee15248ad382d2c0050ebe01730a6e7",
+    "dirty": false,
+    "builtAt": "2026-10-10T09:49:08.536Z",
+    "stage": "project-nodes-recovery",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "imageId": "sha256:24c5c9704a61d0349ff2f1859001a2478e469daa9079790b02adea099e73102a",
+  "schemaChanged": false,
+  "fallbackBuild": {
+    "revision": "2dfb17c463972def4f8aaea6a9d1c4079bd9effa",
+    "dirty": false,
+    "builtAt": "2026-10-10T08:30:47.475Z",
+    "stage": "project-nodes-compatible",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "structure": {
+    "tables": 34,
+    "columns": 315,
+    "foreignKeys": 55
+  },
+  "backup": [
+    {
+      "path": "/var/backups/geekdash/pre-node-recovery-2a342d66bee1.sql.gz",
+      "bytes": 55246,
+      "sha256": "d9e3c9b9ab9c40bc672e85867becd83b305bd49312e712d52df9198a82ce8a8d",
+      "scope": "two complete logical databases; isolated restore pending"
+    },
+    {
+      "path": "/var/backups/geekdash/pre-dev-node-recovery-2a342d66bee1.sql.gz",
+      "bytes": 55251,
+      "sha256": "0a81ac333e99e7b39d0d3b09aae7a3810ba70d3969a2c0337208ad5b4ff68ba7",
+      "scope": "two complete logical databases; isolated restore pending"
+    }
+  ],
+  "oldHistoryPreserved": true,
+  "oldBusinessByteFingerprintsPreserved": true,
+  "testFixturesRestored": true,
+  "mysqlIdStartedAtPreserved": true,
+  "otherContainersPreserved": 17,
+  "appOomKilled": false,
+  "appRestartCount": 0,
+  "stats": "geekdash-app-1 34.48MiB / 256MiB\ngeekdash-mysql-1 605MiB / 768MiB\n",
+  "release": {
+    "revision": "2a342d66bee15248ad382d2c0050ebe01730a6e7",
+    "imageId": "sha256:24c5c9704a61d0349ff2f1859001a2478e469daa9079790b02adea099e73102a",
+    "archiveSha256": "ce09a8dbb723aabfef5a5b0aa22099a417afc8abf2c628dc2d2b7775b36e95f1",
+    "releaseSha256": "e96c30bbeac5cb19920a292b453788d0143f3fbb14dadd92e9d93c809416285d",
+    "tag": "project-nodes-recovery-2a342d66bee1"
+  }
+}
