@@ -1,0 +1,22 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T03:50:10.923400+00:00",
+  "markdownFiles": 11,
+  "localLinks": 201,
+  "anchors": 43,
+  "unchangedMigrations": {
+    "migrations/0001-foundation.json": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+    "migrations/0002-trial-save.json": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695"
+  },
+  "sourceHashes": {
+    "package.json": "c5ecd427aaa5c9f6080d99f69afeef88b60600b16c0acce9cf8a88c16eb0a62e",
+    "scripts/build.mjs": "e171bdfa2218fae85135c79bd05dc8ce9ab2d7f46884c48cbaa3dd2a0fea0b0d",
+    "src/server/modules/project-actions.ts": "500448e95fb85045bbe00a92e085ce05c2314859f9d788fed83a550559e3fd10",
+    "src/server/modules/project-dates.ts": "9a4a65a83535faa5894bb035008e14f8b3100804aabd0cffb4e87c4007971d8f",
+    "src/server/modules/projects.ts": "8c0ffca6f4c7ee3c7c1ac5c01ea894bf1bc05be9d9f9b2d23a084fcc73a04163",
+    "src/web/detail.ts": "52d678e63e4f07af22ad7f1ee146d21dcb1a09debee3fd38bf1f14ddd1376e53",
+    "src/web/shared/api.ts": "899b3f7a4206df038049f004dd8f48d3820ee6e7725004464003644cf976ad31",
+    "scripts/verify-project-close.mjs": "cfa09bbd0557387a3eb64db241b3a98fbf0e12e08b1298c0f4afab6d46db6d93",
+    "src/server/modules/project-closures.ts": "fe297ec84ea1d0934210ad55dd467c2d92139c601567cc70669778c3d4eee862"
+  }
+}

@@ -1,8 +1,9 @@
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 import { stageBlock, startProjectBlock, type StageFact } from './project-actions.js';
-import { businessToday, checkContext, dayDifference, deadlineCondition, deadlineKinds, deadlineResult, type DateFacts, type DeadlineKind } from './project-dates.js';
+import { businessToday, checkContext, closurePlanKnownExpression, dayDifference, deadlineCondition, deadlineKinds, deadlineResult, type DateFacts, type DeadlineKind } from './project-dates.js';
 import { scheduleRecords } from './project-plans.js';
+import { currentClosure } from './project-closures.js';
 import { lifecycleNotes } from './project-lifecycle.js';
 import { checkConditions, enrichChecks } from './project-checks.js';
 
@@ -28,7 +29,7 @@ const joins = `FROM projects p
 const columns = `CAST(p.id AS CHAR) id, CAST(p.version AS CHAR) version, p.data_kind dataKind, p.name, p.status, p.priority, p.signal,
  c.name customer, odm.name odmFactory, pl.name productLine, a.name app, g.name projectGroup,
  DATE_FORMAT(p.proposed_on,'%Y-%m-%d') proposalDate, DATE_FORMAT(p.current_due_date,'%Y-%m-%d') dueDate,
- DATE_FORMAT(p.closed_on,'%Y-%m-%d') closedOn,DATE_FORMAT(p.closure_due_date,'%Y-%m-%d') closureDueDate,p.closure_type closureType,
+ DATE_FORMAT(p.closed_on,'%Y-%m-%d') closedOn,DATE_FORMAT(p.closure_due_date,'%Y-%m-%d') closureDueDate,p.closure_type closureType,${closurePlanKnownExpression} closurePlanKnown,
  p.market_expectation marketExpectation, p.status_description statusDesc,
  p.maintenance_enabled maintenanceEnabled, p.updated_at updatedAt,p.resume_status resumeStatus,DATE_FORMAT(p.first_check_week,'%Y-%m-%d') firstCheckWeek`;
 const dimensionColumns: Record<string, string> = { customer: 'c.name', productLine: 'pl.name', odmFactory: 'odm.name', app: 'a.name', group: 'g.name', status: 'p.status', priority: 'p.priority', signal: 'p.signal' };
@@ -127,7 +128,7 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
           p.signal_note signalNote,p.detail_note detailNote,p.summary_note summaryNote,p.chipstat_note chipstatNote,
           CAST(p.customer_id AS CHAR) customerId,CAST(p.odm_customer_id AS CHAR) odmCustomerId,
           CAST(p.product_line_id AS CHAR) productLineId,CAST(p.app_id AS CHAR) appId,CAST(p.group_id AS CHAR) groupId,
-          p.closure_note closureNote,p.remaining_work_note remainingWorkNote,CAST(p.created_by AS CHAR) createdBy
+          p.pre_close_status preCloseStatus,CAST(p.source_import_item_id AS CHAR) sourceImportItemId,p.closure_note closureNote,p.remaining_work_note remainingWorkNote,CAST(p.created_by AS CHAR) createdBy
           ${joins} WHERE p.id=?`, [id])))[0];
         if (!project) return null;
         const projectStages = await rows(connection, "SELECT CAST(id AS CHAR) id,stage_code code,state,planned_days plannedDays,note,DATE_FORMAT(started_on,'%Y-%m-%d') startedOn,DATE_FORMAT(completed_on,'%Y-%m-%d') completedOn,DATE_FORMAT(expected_end_on,'%Y-%m-%d') expectedEndOn FROM project_stages WHERE project_id=? ORDER BY stage_code", [id]);
@@ -148,7 +149,7 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
         const lifecycleHistory = await lifecycleNotes(connection, id);
         project.deadline = deadlineResult(project as RowDataPacket & DateFacts, checkRule.businessDate);
         const startBlocked = !accountId || !editable ? 'PROJECT_READ_ONLY' : startProjectBlock(project as RowDataPacket & { status: string; startDate: string | null; firstCheckWeek: unknown }, projectStages as (RowDataPacket & StageFact)[], checkRule.businessDate) ?? (!checkRule.rule ? 'CHECK_RULE_REQUIRED' : null);
-        return { project, stages: projectStages, stageActions, startBlocked, checkRule, lifecycleNotes: lifecycleHistory, businessDate: checkRule.businessDate, nodes, risks, changes, delays, planSummary, history, responsible, readOnly: !editable, capabilities: { editText: editable, editOrdinary: editable, join: !!accountId && !editable, leave: !!accountId && editable } };
+        return { currentClosure: await currentClosure(connection, id, project as RowDataPacket & { status: string; sourceImportItemId: unknown }), project, stages: projectStages, stageActions, startBlocked, checkRule, lifecycleNotes: lifecycleHistory, businessDate: checkRule.businessDate, nodes, risks, changes, delays, planSummary, history, responsible, readOnly: !editable, capabilities: { editText: editable, editOrdinary: editable, join: !!accountId && !editable, leave: !!accountId && editable } };
       });
     },
   };

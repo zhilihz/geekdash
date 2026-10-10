@@ -1,6 +1,6 @@
 # E04 项目动作 API
 
-来源：`src/server/routes/projects.ts`、`modules/project-actions.ts`、`modules/project-plans.ts`、`modules/project-lifecycle.ts`；2026-10-10，E04-B05。行为正文引用SPEC-002/003/004/014；实际部署版本归系统真相及部署记录。身份、CSRF及可信账号头沿[项目主干](project-core.md)，所有ID/版本使用十进制字符串。
+来源：`src/server/routes/projects.ts`、`modules/project-actions.ts`、`modules/project-plans.ts`、`modules/project-lifecycle.ts`、`modules/project-closures.ts`；2026-10-10，E04-B06。行为正文引用SPEC-002/003/004/014；实际部署版本归系统真相及部署记录。身份、CSRF及可信账号头沿[项目主干](project-core.md)，所有ID/版本使用十进制字符串。
 
 ## E04-B04 日期与计划命令
 
@@ -152,3 +152,22 @@ action为undoStageStart/undoStageComplete/rollbackStage；undoStart仅undoStageC
 预览HTTP200直接返回projectId/expectedVersion/changed/beforeValues/afterValues/beforeCheck/afterCheck；恢复同时改计划另有plan（B04预览形状）。检查提示使用同次服务器时钟和当前规则；不要求恢复命令携带旧截止，保存后再新GET。预览不写项目/审计/回执/检查。保存沿committed/result，包含上述影响、action/operationId/savedVersion；无实际变化只写原结果回执。project.pause/project.resume/project.lifecycle.note.correct是新增审计动作名。失败后原编号/正文恢复沿第2节，阶段/启动及B04旧指纹保持。
 
 补充错误：400 INVALID_LIFECYCLE_COMMAND；422 LIFECYCLE_REASON_REQUIRED / LIFECYCLE_NOTE_REQUIRED / PROJECT_PAUSE_BLOCKED / PROJECT_RESUME_BLOCKED / PROJECT_RESUME_BASIS_UNKNOWN；404 LIFECYCLE_NOTE_NOT_FOUND（含跨项目、其他审计类型）。同次计划错误沿B04，fields.reason/note/planReason/dueDate指向需要纠正的输入。身份/权限/409/503沿共同协议，禁止通过换编号覆盖旧视图。
+
+## 7. E04-B06 结案、重开、维护及当前结案纠错
+
+沿同组三个动作/预览/原结果接口，统一expectedVersion和UUIDv4 idempotencyKey；可信负责人才能写。规则正文归SPEC-003/004，来源绑定方法归AD-009，源为project-closures.ts。
+
+| action | 额外输入 |
+|---|---|
+| closeProject | closureType为normal/terminated；closedOn为有效日期；closureNote非空；remainingWorkNote省略为空，有遗留时非空 |
+| reopenProject | closureAuditId必填为详情currentClosure.auditId（旧来源明确null）；reason非空 |
+| setMaintenance | enabled为boolean；reason非空 |
+| correctClosure | closureAuditId同上；reason非空；changes为非空选定补丁 |
+
+changes只接受closedOn、closureDueDate、closureType、closureNote、remainingWorkNote；前两项日期可明确null，closedOn表示实际日未知、closureDueDate表示当时计划未定。closureType只能normal/terminated，closureNote仍非空；省略不修改。文字按UTF-8最多65535字节；拒绝额外status/actor/阶段数组等字段。只检查本次日期纠错涉及的关系，无关旧日期问题不阻止文字纠错。旧来源没有可信结案事件时不补造原人/时间。
+
+预览直接HTTP200返回projectId/expectedVersion/changed/beforeValues/afterValues/remaining/progress/beforeDeadline/afterDeadline/beforeCheck/afterCheck。beforeValues.closure和afterValues.closure为当前结案投影（总体状态、结案前状态、日期、类型、两项说明、维护开关）；remaining含未完成/未配置阶段、未完成节点和未解除风险。进度始终来自真实有效阶段，服务端保存时重新计算遗留和资格，不信客户端“无遗留”断言。预览不写业务，输入变化或项目版本变化须重新核对。
+
+保存返回committed/result及上述影响、action/operationId/savedVersion。结案捕获当前计划和原总体状态；重开清空已消费结案投影、关闭维护，保留当前计划/阶段/普通修改/暂停来源/首次义务。维护同值和纠错同值changed=false，只保存原结果回执；不增加历史。project.close/project.reopen/project.maintenance/project.closure.correct为新审计名，原结案事件及原回执不可改写；历史通过已有audit分页读取。
+
+补充错误：400 INVALID_CLOSURE_COMMAND；422 CLOSURE_NOTE_REQUIRED/CLOSURE_REASON_REQUIRED/CLOSURE_REMAINING_REQUIRED/INVALID_CLOSURE_DATE/PROJECT_CLOSE_BLOCKED/PROJECT_CLOSED_REQUIRED/PROJECT_REOPEN_BASIS_UNKNOWN；409 CLOSURE_CHANGED（旧或跨项目结案ID不能纠正/重开当前周期）。日期格式错误沿INVALID_PROJECT_DATE；身份/只读/版本/503及原编号恢复沿共同协议。数据库已回滚返回not_committed；COMMIT未知返回unknown，不能因后续GET失败再发新结案。

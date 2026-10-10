@@ -1,0 +1,226 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T03:48:50.065386+00:00",
+  "scope": "B06候选源码、十类既有回归及工程；未部署，原生页面未验收",
+  "build": {
+    "revision": "a5898a02a1c3875614c1279969edb1fffd97f768",
+    "dirty": true,
+    "builtAt": "2026-10-10T03:43:51.112Z",
+    "stage": "project-close",
+    "schemaVersion": "0002-trial-save"
+  },
+  "sourceHashes": {
+    "src/server/modules/project-closures.ts": "fe297ec84ea1d0934210ad55dd467c2d92139c601567cc70669778c3d4eee862",
+    "src/server/modules/project-actions.ts": "500448e95fb85045bbe00a92e085ce05c2314859f9d788fed83a550559e3fd10",
+    "src/server/modules/project-dates.ts": "9a4a65a83535faa5894bb035008e14f8b3100804aabd0cffb4e87c4007971d8f",
+    "src/server/modules/projects.ts": "8c0ffca6f4c7ee3c7c1ac5c01ea894bf1bc05be9d9f9b2d23a084fcc73a04163",
+    "src/web/detail.ts": "52d678e63e4f07af22ad7f1ee146d21dcb1a09debee3fd38bf1f14ddd1376e53",
+    "src/web/shared/api.ts": "899b3f7a4206df038049f004dd8f48d3820ee6e7725004464003644cf976ad31",
+    "scripts/verify-project-close.mjs": "cfa09bbd0557387a3eb64db241b3a98fbf0e12e08b1298c0f4afab6d46db6d93",
+    "scripts/build.mjs": "e171bdfa2218fae85135c79bd05dc8ce9ab2d7f46884c48cbaa3dd2a0fea0b0d",
+    "package.json": "c5ecd427aaa5c9f6080d99f69afeef88b60600b16c0acce9cf8a88c16eb0a62e"
+  },
+  "regressions": {
+    "dates": {
+      "status": "passed",
+      "groups": 5,
+      "requestCount": 287
+    },
+    "pause": {
+      "status": "passed",
+      "groups": 5,
+      "requestCount": 124
+    },
+    "corrections": {
+      "status": "passed",
+      "groups": 6,
+      "requestCount": 87,
+      "output": "test-results/stage-corrections-check.json"
+    },
+    "start": {
+      "status": "passed",
+      "groups": 6,
+      "requests": 76
+    },
+    "stages": {
+      "status": "passed",
+      "groups": 7,
+      "requestCount": 57,
+      "output": "test-results/stage-actions-check.json"
+    },
+    "core": {
+      "status": "passed",
+      "checks": 8,
+      "requests": 66
+    },
+    "ordinary": {
+      "status": "passed",
+      "checkedAt": "2026-10-10T03:44:55.062Z",
+      "source": "真实 test MySQL 与 HTTP；合成输入",
+      "checks": [
+        {
+          "check": "ordinary-fields-relations-single-version-fresh-sql-http-filter-stats-audit",
+          "passed": true
+        },
+        {
+          "check": "existing-disabled-kept-new-disabled-rejected-receipt-replay-and-no-change",
+          "passed": true
+        },
+        {
+          "check": "whitelist-reference-validation-relation-and-audit-failure-all-rollback",
+          "passed": true
+        },
+        {
+          "check": "explicit-clear-and-omitted-relations-preserved",
+          "passed": true
+        },
+        {
+          "check": "same-version-conflict-real-commit-lost-ack-reopen-and-exact-replay",
+          "passed": true
+        },
+        {
+          "check": "reference-row-lock-observes-concurrent-disabled-before-new-link",
+          "passed": true
+        },
+        {
+          "check": "four-workers-same-project-five-rounds-one-winner",
+          "passed": true,
+          "requests": 20,
+          "p95Ms": 24,
+          "maxMs": 25
+        }
+      ]
+    },
+    "saves": {
+      "status": "passed",
+      "checks": [
+        {
+          "check": "four-fields-atomic-save-bigint-fresh-connection-http-board-and-audit",
+          "passed": true
+        },
+        {
+          "check": "concurrent-idempotent-replay-canonical-field-order-and-key-reuse",
+          "passed": true
+        },
+        {
+          "check": "same-version-winner-only-stale-rejected-no-change-receipt-and-old-result",
+          "passed": true
+        },
+        {
+          "check": "whitelist-scope-null-type-unicode-byte-capacity-and-no-partial-write",
+          "passed": true
+        },
+        {
+          "check": "real-audit-receipt-sql-failure-rolls-back-and-real-commit-lost-ack-confirmed-once",
+          "passed": true
+        },
+        {
+          "check": "inflight-not-found-read-only-process-restart-replay-pool-failure-and-recovery",
+          "passed": true
+        },
+        {
+          "check": "four-concurrent-actual-writes-five-rounds-and-fresh-readback",
+          "passed": true,
+          "requests": 20,
+          "p95Ms": 25
+        },
+        {
+          "check": "audit-default20-max100-unbounded-total-stable-cursor-legacy-separated-index",
+          "passed": true,
+          "totalRead": 515,
+          "selectedIndex": "PRIMARY",
+          "accessType": "range"
+        }
+      ]
+    },
+    "projects": {
+      "status": "passed",
+      "origin": "http://127.0.0.1:42287",
+      "checks": [
+        {
+          "check": "actual-http-list-views-filters-pagination-literal-search-id-validation-no-write",
+          "passed": true
+        },
+        {
+          "check": "complete-project-snapshot-with-all-read-collections-and-bigint-precision",
+          "passed": true
+        },
+        {
+          "check": "real-concurrent-commit-does-not-mix-detail-versions-fresh-request-sees-new-version",
+          "passed": true
+        },
+        {
+          "check": "four-concurrent-real-list-reads-and-pool-exhaustion-recovery",
+          "passed": true,
+          "requests": 20,
+          "p95Ms": 35
+        }
+      ]
+    },
+    "capacity": {
+      "status": "passed",
+      "startedAt": "2026-10-10T03:45:13.172Z",
+      "checkedAt": "2026-10-10T03:45:33.005Z",
+      "projectCount": 500,
+      "stageCount": 3500,
+      "initialAuditCount": 500,
+      "workers": 4,
+      "authenticated": true,
+      "rounds": 20,
+      "errorCount": 0,
+      "measurements": {
+        "list": {
+          "requests": 80,
+          "p50Ms": 57,
+          "p95Ms": 111,
+          "maxMs": 127
+        },
+        "detail": {
+          "requests": 80,
+          "p50Ms": 37,
+          "p95Ms": 67,
+          "maxMs": 79
+        },
+        "save": {
+          "requests": 80,
+          "p50Ms": 47,
+          "p95Ms": 76,
+          "maxMs": 105
+        },
+        "audit": {
+          "requests": 80,
+          "p50Ms": 20,
+          "p95Ms": 55,
+          "maxMs": 147
+        }
+      },
+      "noHardProjectLimit": true,
+      "source": "专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时"
+    }
+  },
+  "foundation": "通过：真实 HTTP、构建资源、未就绪反馈、源码隔离、无效配置与失败构建保留旧产物。",
+  "migrationsUnchanged": {
+    "migrations/0001-foundation.json": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+    "migrations/0002-trial-save.json": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695"
+  },
+  "schema_dev": {
+    "status": "verified",
+    "database": "geekdash_dev",
+    "version": "0002-trial-save",
+    "checksum": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695",
+    "tables": 34,
+    "columns": 314,
+    "foreignKeys": 55,
+    "differences": 0
+  },
+  "schema_test": {
+    "status": "verified",
+    "database": "geekdash_test",
+    "version": "0002-trial-save",
+    "checksum": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695",
+    "tables": 34,
+    "columns": 314,
+    "foreignKeys": 55,
+    "differences": 0
+  }
+}

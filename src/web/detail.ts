@@ -1,6 +1,6 @@
 import './shared/detail.css';
 import './shared/read.css';
-import { get, send, SaveError, esc, label, projectTags, setupTheme, requireIdentity, account, stageMessages, actionLabels, dateTitles, isPlanCommand, isLifecycleCommand, type LifecycleCommand, type LifecyclePreview, type PlanCommand, type PlanPreview, type ScheduleRecord, type CorrectionCommand, type CorrectionPreview, type StageCommand, type StartCommand, type ProjectCommand, type CheckRuleContext, type Detail, type Entry, type EditValues, type Catalog, type SaveRequest, type SaveResult, type AuditPage } from './shared/api';
+import { get, send, SaveError, esc, label, projectTags, setupTheme, requireIdentity, account, stageMessages, actionLabels, dateTitles, isPlanCommand, isLifecycleCommand, isClosureCommand, closureTitles, type ClosureCommand, type ClosurePreview, type LifecycleCommand, type LifecyclePreview, type PlanCommand, type PlanPreview, type ScheduleRecord, type CorrectionCommand, type CorrectionPreview, type StageCommand, type StartCommand, type ProjectCommand, type CheckRuleContext, type Detail, type Entry, type EditValues, type Catalog, type SaveRequest, type SaveResult, type AuditPage } from './shared/api';
 
 const element = (id: string) => document.getElementById(id)!;
 const id = new URLSearchParams(location.search).get('id') ?? '';
@@ -35,11 +35,12 @@ let stageDraft: Omit<StageCommand, 'idempotencyKey'> | Omit<StartCommand, 'idemp
 let correctionDraft: CorrectionCommand | undefined;
 let planDraft: PlanCommand | undefined;
 let lifecycleDraft: LifecycleCommand | undefined;
+let closureDraft: ClosureCommand | undefined;
 declare const __GEEKDASH_STAGES__: { id: number; name: string; standard: string; progress: number; mid: number; milestone: string; hw: string; sw: string; biz: string }[];
 const stageKey = () => `geekdash_stage_action:${account!.id}:${id}`;
 function persistStage() {
   try {
-    if (stagePending || stageDraft || correctionDraft || planDraft || lifecycleDraft) sessionStorage.setItem(stageKey(), JSON.stringify({ pending: stagePending, draft: stageDraft, correction: correctionDraft, plan: planDraft, lifecycle: lifecycleDraft }));
+    if (stagePending || stageDraft || correctionDraft || planDraft || lifecycleDraft || closureDraft) sessionStorage.setItem(stageKey(), JSON.stringify({ pending: stagePending, draft: stageDraft, correction: correctionDraft, plan: planDraft, lifecycle: lifecycleDraft, closure: closureDraft }));
     else sessionStorage.removeItem(stageKey());
   } catch { storageFailed = true; }
 }
@@ -64,7 +65,7 @@ function stagePanel() {
       <div class="stage-days">预期天数 <input data-edit data-stage-plan="${stage.code}" type="number" min="0" max="65535" step="1" class="stage-days-input" aria-label="${esc(s.name)}预期天数" value="${esc(stage.plannedDays ?? '')}" placeholder="建议 ${s.mid} 天"${snapshot!.capabilities.editText ? '' : ' readonly'}>（标准 ${esc(s.standard)} / 建议 ${s.mid} 天）</div>
       <div class="stage-note-view">实际开始：${esc(stage.startedOn ?? '—')} · 实际完成：${esc(stage.completedOn ?? '—')} · 预期完成：${esc(stage.expectedEndOn ?? '—')}</div>
       <label class="stage-note-view">评述<textarea data-edit data-stage-note="${stage.code}" class="choice-note" aria-label="${esc(s.name)}评述"${snapshot!.capabilities.editText ? '' : ' readonly'}>${esc(stage.note ?? '')}</textarea></label>
-      ${stage.state === 'completed' ? `<div class="stage-done-tag">✅ 里程碑已完成${stage.completedOn ? ' · ' + esc(stage.completedOn) : ''}</div><button type="button" class="choice-btn stage-rollback" data-correction="rollbackStage" data-stage="${stage.code}"${['proposal', 'ongoing'].includes(p.status) ? '' : ' disabled'}>回退到此阶段</button>` : p.status === 'closed' ? '<div class="stage-locked">⏹ 项目已结案</div>' : stage.state === 'locked' ? `<div class="stage-locked">🔒 ${esc(stageMessages[blocked ?? 'STAGE_PREDECESSOR_INCOMPLETE'])}</div>` : `<div class="stage-choice">${button}<button type="button" class="choice-btn choice-close" disabled title="结案功能暂不可用">⏹ 中途结案</button></div>${blocked ? `<div class="stage-locked">${esc(stageMessages[blocked] ?? blocked)}</div>` : ''}`}
+      ${stage.state === 'completed' ? `<div class="stage-done-tag">✅ 里程碑已完成${stage.completedOn ? ' · ' + esc(stage.completedOn) : ''}</div><button type="button" class="choice-btn stage-rollback" data-correction="rollbackStage" data-stage="${stage.code}"${['proposal', 'ongoing'].includes(p.status) ? '' : ' disabled'}>回退到此阶段</button>` : p.status === 'closed' ? '<div class="stage-locked">⏹ 项目已结案</div>' : stage.state === 'locked' ? `<div class="stage-locked">🔒 ${esc(stageMessages[blocked ?? 'STAGE_PREDECESSOR_INCOMPLETE'])}</div>` : `<div class="stage-choice">${button}<button type="button" class="choice-btn choice-close" data-closure="closeProject" data-closure-type="terminated">⏹ 中途结案</button></div>${blocked ? `<div class="stage-locked">${esc(stageMessages[blocked] ?? blocked)}</div>` : ''}`}
       ${p.status !== 'closed' && ['active', 'completed'].includes(String(stage.state)) ? `<button type="button" class="choice-btn" data-correction="${stage.state === 'active' ? 'undoStageStart' : 'undoStageComplete'}" data-stage="${stage.code}">${stage.state === 'active' ? '撤销误开始' : '撤销误完成'}</button>` : ''}
       <div class="stage-choice-form" id="stage-form-${stage.code}"></div></div>`;
   }).join('');
@@ -98,7 +99,64 @@ async function prepareAction(action: ProjectCommand['action'], code?: string) {
     if (await choose('已有暂缓/恢复副本，是否放弃后继续？可先复制输入。', [['cancel', '保留副本'], ['discard', '放弃副本后继续']]) !== 'discard') return false;
     lifecycleDraft = undefined; persistStage();
   }
+  if (closureDraft && (closureDraft.expectedVersion !== snapshot.project.version || closureDraft.action !== action)) {
+    if (await choose('已有结案操作副本，是否放弃后继续？可先复制输入。', [['cancel', '保留副本'], ['discard', '放弃副本后继续']]) !== 'discard') return false;
+    closureDraft = undefined; persistStage();
+  }
   return true;
+}
+async function openClosure(action: ClosureCommand['action'], initialType: 'normal' | 'terminated' = 'normal') {
+  if (!await prepareAction(action) || !snapshot?.capabilities.editText) return;
+  if (!closureDraft) {
+    const base = { expectedVersion: snapshot.project.version, idempotencyKey: crypto.randomUUID() }, closureAuditId = snapshot.currentClosure?.auditId ?? null;
+    closureDraft = action === 'closeProject' ? { ...base, action, closureType: initialType, closedOn: snapshot.businessDate, closureNote: '', remainingWorkNote: '' }
+      : action === 'setMaintenance' ? { ...base, action, enabled: !snapshot.project.maintenanceEnabled, reason: '' }
+      : action === 'reopenProject' ? { ...base, action, closureAuditId, reason: '' } : { ...base, action, closureAuditId, changes: {}, reason: '' };
+  }
+  const draft = closureDraft; tab = 'info'; render();
+  let preview: ClosurePreview | undefined;
+  const input = (key: keyof typeof closureTitles, value: unknown) => key === 'closureType' ? `<select id="closure-${key}"><option value="normal"${value === 'normal' ? ' selected' : ''}>正常完成</option><option value="terminated"${value === 'terminated' ? ' selected' : ''}>中途终止</option></select>`
+    : key === 'closedOn' || key === 'closureDueDate' ? `<input type="date" id="closure-${key}" value="${esc(value)}">` : `<textarea class="choice-note" id="closure-${key}">${esc(value)}</textarea>`;
+  const selected = draft.action === 'correctClosure' ? Object.keys(closureTitles) as (keyof typeof closureTitles)[] : draft.action === 'closeProject' ? ['closureType', 'closedOn', 'closureNote', 'remainingWorkNote'] as const : [];
+  const fields = selected.map(key => `<div class="field"><label for="closure-${key}">${esc(closureTitles[key])}</label>${draft.action === 'correctClosure' ? `<label><input type="checkbox" id="closure-select-${key}"${Object.hasOwn(draft.changes, key) ? ' checked' : ''}>明确纠正此项</label>` : ''}${input(key, draft.action === 'correctClosure' ? Object.hasOwn(draft.changes, key) ? draft.changes[key] : snapshot!.project[key] : draft.action === 'closeProject' && key !== 'closureDueDate' ? draft[key] : '')}${draft.action === 'correctClosure' && ['closedOn', 'closureDueDate'].includes(key) ? `<label><input type="checkbox" id="closure-unknown-${key}"${draft.changes[key] === null ? ' checked' : ''}>明确纠正为${key === 'closedOn' ? '日期未知' : '计划未定'}</label>` : ''}</div>`).join('');
+  element('closure-form').innerHTML = `<form id="closure-edit" class="stage-card"><h2>${esc(actionLabels[action])}</h2><p>进入版本 ${esc(draft.expectedVersion)}。${draft.action === 'reopenProject' ? '恢复到 ' + esc(label(snapshot.project.preCloseStatus)) + '，保留闭案期间最新修改，关闭维护；不自动开工。' : draft.action === 'setMaintenance' ? '将' + (draft.enabled ? '开启' : '结束') + '结案后维护。项目仍已结案，S7保持。' : '阶段真实进度保持；保存前核对日期及遗留事项。纠正结案时计划不会修改当前计划。'}</p>${fields}${'reason' in draft ? `<label for="closure-reason">本次操作原因（必填）</label><textarea class="choice-note" id="closure-reason" required>${esc(draft.reason)}</textarea>` : ''}<p id="closure-error" class="field-error" role="alert"></p><div id="closure-preview" aria-live="polite"></div><button type="submit" class="choice-btn">预览影响</button><button type="button" class="choice-btn" id="closure-save" disabled>保存${esc(actionLabels[action])}</button><button type="button" class="choice-btn" id="closure-cancel">取消</button></form>`;
+  const capture = () => {
+    const before = JSON.stringify(draft);
+    if ('reason' in draft) draft.reason = (element('closure-reason') as HTMLTextAreaElement).value;
+    for (const key of selected) {
+      const value = (element('closure-' + key) as HTMLInputElement).value;
+      if (draft.action === 'correctClosure') {
+        if ((element('closure-select-' + key) as HTMLInputElement).checked) draft.changes[key] = (document.getElementById('closure-unknown-' + key) as HTMLInputElement | null)?.checked ? null : value;
+        else delete draft.changes[key];
+      } else if (draft.action === 'closeProject') Object.assign(draft, { [key]: value });
+    }
+    if (before !== JSON.stringify(draft)) draft.idempotencyKey = crypto.randomUUID();
+    preview = undefined; (element('closure-save') as HTMLButtonElement).disabled = true; element('closure-preview').textContent = '输入已变化，请重新预览。'; persistStage();
+  };
+  element('closure-edit').oninput = capture;
+  element('closure-cancel').onclick = () => { capture(); render(); };
+  element('closure-edit').onsubmit = async event => {
+    event.preventDefault(); capture();
+    if (dirty() || inFlight || loading || stale || authFrozen || pending || stagePending || responsibilityPending) return;
+    const exact = JSON.stringify(draft); inFlight = true; controls();
+    try {
+      const result = await send<ClosurePreview>(`/api/projects/${id}/actions/preview`, 'POST', draft);
+      if (exact !== JSON.stringify(draft)) { element('closure-error').textContent = '输入已变化，请重新预览。'; return; }
+      preview = result;
+      element('closure-preview').innerHTML = `<h3>保存影响</h3>${Object.entries({ status: '总体状态', ...closureTitles, maintenanceEnabled: '维护标识' }).map(([key, title]) => `<p>${esc(title)}：${esc(label(result.beforeValues.closure[key]))} → ${esc(label(result.afterValues.closure[key]))}</p>`).join('')}<p>阶段实际进度保持 ${result.progress}%；日期结果 ${esc(result.beforeDeadline.label)} → ${esc(result.afterDeadline.label)}；本周检查 ${esc(result.beforeCheck.label)} → ${esc(result.afterCheck.label)}。</p><h3>当前遗留</h3><p>阶段：${esc(result.remaining.stages.map(item => label(item.code) + '：' + label(item.state)).join(' / ') || '无')}；节点：${esc(result.remaining.nodes.map(item => item.title).join(' / ') || '无')}；风险：${esc(result.remaining.risks.map(item => item.content).join(' / ') || '无')}。</p><p>${result.changed ? '明确保存后生效。' : '内容一致，不新增版本或修改历史。'}</p>`;
+      element('closure-error').textContent = ''; (element('closure-save') as HTMLButtonElement).disabled = false;
+    } catch (error) {
+      const failure = error as SaveError;
+      if (['PROJECT_VERSION_CONFLICT', 'CLOSURE_CHANGED'].includes(failure.code)) stale = true;
+      if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID'].includes(failure.code)) authFrozen = true;
+      element('closure-error').textContent = Object.values(failure.fields ?? {})[0] ?? failure.message;
+    } finally { inFlight = false; controls(); }
+  };
+  element('closure-save').onclick = async () => {
+    if (!preview || inFlight || loading || stale || authFrozen || dirty() || draft.expectedVersion !== snapshot!.project.version) return;
+    stagePending = structuredClone(draft); persistStage(); await executeStage(false);
+  };
+  persistStage(); controls();
 }
 async function openLifecycle(action: LifecycleCommand['action'], auditId?: string) {
   if (!await prepareAction(action, auditId) || !snapshot?.capabilities.editText) return;
@@ -318,7 +376,7 @@ async function executeStage(confirm: boolean) {
     const response = await send<{ outcome: string; result?: typeof result }>(`/api/projects/${id}/${confirm ? 'action-results/query' : 'actions'}`, 'POST', original, !confirm);
     if (response.outcome === 'committed' && response.result) {
       if (response.result.projectId !== id || response.result.operationId !== original.idempotencyKey) throw new SaveError('RESPONSE_UNKNOWN', 'unknown');
-      result = response.result; stagePending = undefined; stageDraft = undefined; correctionDraft = undefined; planDraft = isPlanCommand(original) && !result.changed ? original : undefined; lifecycleDraft = isLifecycleCommand(original) && !result.changed ? original : undefined; persistStage();
+      result = response.result; stagePending = undefined; stageDraft = undefined; correctionDraft = undefined; planDraft = isPlanCommand(original) && !result.changed ? original : undefined; lifecycleDraft = isLifecycleCommand(original) && !result.changed ? original : undefined; closureDraft = isClosureCommand(original) && !result.changed ? original : undefined; persistStage();
     } else note('暂未查到阶段回执，结果仍待确认。请重试原操作，不要另造编号。', true);
   } catch (error) {
     const failure = error instanceof SaveError ? error : new SaveError('TRANSPORT_UNKNOWN', 'unknown');
@@ -389,7 +447,7 @@ function dirty() { return !!values && !!snapshot && Object.keys(changes()).lengt
 function controls() {
   responsibilityControls();
   const frozen = inFlight || !!pending || !!responsibilityPending || !!stagePending || loading;
-  const actionOpen = !!document.querySelector('#stage-form, #start-form, #correction-edit, #plan-edit, #lifecycle-edit');
+  const actionOpen = !!document.querySelector('#stage-form, #start-form, #correction-edit, #plan-edit, #lifecycle-edit, #closure-edit');
   document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('[data-edit]').forEach(input => { input.disabled = frozen || actionOpen || stale || authFrozen || input.dataset.reference === 'true' && !catalog; });
   const save = document.getElementById('save') as HTMLButtonElement | null;
   if (save) save.disabled = frozen || stale || authFrozen || !dirty();
@@ -403,8 +461,10 @@ function controls() {
   const correctionSave = document.getElementById('correction-save') as HTMLButtonElement | null; if (correctionSave && (frozen || stale || authFrozen)) correctionSave.disabled = true;
   document.querySelectorAll<HTMLButtonElement>('[data-lifecycle]').forEach(button => { button.disabled = frozen || stale || authFrozen || !snapshot?.capabilities.editText || button.dataset.lifecycle === 'resumeProject' && !['proposal', 'ongoing'].includes(snapshot!.project.resumeStatus ?? ''); });
   const lifecycleSave = document.getElementById('lifecycle-save') as HTMLButtonElement | null; if (lifecycleSave && (frozen || stale || authFrozen)) lifecycleSave.disabled = true;
+  document.querySelectorAll<HTMLButtonElement>('[data-closure]').forEach(button => { button.disabled = frozen || stale || authFrozen || !snapshot?.capabilities.editText; });
+  const closureSave = document.getElementById('closure-save') as HTMLButtonElement | null; if (closureSave && (frozen || stale || authFrozen)) closureSave.disabled = true;
   for (const name of ['stage-confirm', 'stage-retry']) { const button = document.getElementById(name) as HTMLButtonElement | null; if (button) button.disabled = inFlight || loading || authFrozen; }
-  element('copy').hidden = !dirty() && !candidate && !legacyCopy && !pending && !stageDraft && !stagePending && !correctionDraft && !planDraft && !lifecycleDraft;
+  element('copy').hidden = !dirty() && !candidate && !legacyCopy && !pending && !stageDraft && !stagePending && !correctionDraft && !planDraft && !lifecycleDraft && !closureDraft;
   const state = document.getElementById('edit-state');
   if (state) state.textContent = stagePending ? '阶段操作结果待确认，请打开项目阶段确认原结果。' : pending ? inFlight ? '正在处理原操作，请等待…' : '原操作结果尚未确认，请确认结果或重试原操作。' : stale ? '项目已被他人更新，请重新进入项目。旧文字已保留供复制。' : dirty() ? '项目尚未保存' : '与进入版本一致';
   const warning = document.getElementById('storage-warning');
@@ -449,8 +509,8 @@ function choose(text: string, options: [string, string][], extra = ''): Promise<
   });
 }
 async function copyText() {
-  const stageCopy = stagePending ?? stageDraft ?? correctionDraft ?? planDraft ?? lifecycleDraft;
-  const text = (stageCopy ? (isPlanCommand(stageCopy) || isLifecycleCommand(stageCopy)) ? `${actionLabels[stageCopy.action]}副本\n${JSON.stringify(stageCopy, null, 2)}\n\n` : 'reason' in stageCopy ? `${actionLabels[stageCopy.action]}副本\n原因：${stageCopy.reason}\n进入版本：${stageCopy.expectedVersion}\n${stageCopy.action === 'correctStageFacts' ? JSON.stringify(stageCopy.changes) : label(stageCopy.stageCode) + (stageCopy.undoStart ? '（开始也误记）' : '')}\n\n` : stageCopy.action === 'startProject' ? `启动项目副本\n实际启动：${stageCopy.actualDate}\n预计结案：${stageCopy.dueDate}\n调整原因：${stageCopy.planReason ?? ''}\n首次应检周：${stageCopy.previewFirstCheckWeek}\n进入版本：${stageCopy.expectedVersion}\n\n` : `阶段操作副本\n${label(stageCopy.stageCode)} · ${stageCopy.action === 'startStage' ? '开始' : '完成'}\n实际日期：${stageCopy.actualDate}\n说明：${stageCopy.completionNote ?? ''}\n进入版本：${stageCopy.expectedVersion}\n\n` : '') + keys.map(key => `${titles[key]}\n${showValue(key, values?.[key])}`).join('\n\n') + (candidate ? '\n\n——恢复候选副本——\n' + keys.map(key => `${titles[key]}\n${showValue(key, candidate!.values[key])}`).join('\n\n') : '') + (legacyCopy ? '\n\n——旧匿名试用副本（仅供核对）——\n' + keys.map(key => `${titles[key]}\n${showValue(key, legacyCopy!.values[key])}`).join('\n\n') : '');
+  const stageCopy = stagePending ?? stageDraft ?? correctionDraft ?? planDraft ?? lifecycleDraft ?? closureDraft;
+  const text = (stageCopy ? (isPlanCommand(stageCopy) || isLifecycleCommand(stageCopy) || isClosureCommand(stageCopy)) ? `${actionLabels[stageCopy.action]}副本\n${JSON.stringify(stageCopy, null, 2)}\n\n` : 'reason' in stageCopy ? `${actionLabels[stageCopy.action]}副本\n原因：${stageCopy.reason}\n进入版本：${stageCopy.expectedVersion}\n${stageCopy.action === 'correctStageFacts' ? JSON.stringify(stageCopy.changes) : label(stageCopy.stageCode) + (stageCopy.undoStart ? '（开始也误记）' : '')}\n\n` : stageCopy.action === 'startProject' ? `启动项目副本\n实际启动：${stageCopy.actualDate}\n预计结案：${stageCopy.dueDate}\n调整原因：${stageCopy.planReason ?? ''}\n首次应检周：${stageCopy.previewFirstCheckWeek}\n进入版本：${stageCopy.expectedVersion}\n\n` : `阶段操作副本\n${label(stageCopy.stageCode)} · ${stageCopy.action === 'startStage' ? '开始' : '完成'}\n实际日期：${stageCopy.actualDate}\n说明：${stageCopy.completionNote ?? ''}\n进入版本：${stageCopy.expectedVersion}\n\n` : '') + keys.map(key => `${titles[key]}\n${showValue(key, values?.[key])}`).join('\n\n') + (candidate ? '\n\n——恢复候选副本——\n' + keys.map(key => `${titles[key]}\n${showValue(key, candidate!.values[key])}`).join('\n\n') : '') + (legacyCopy ? '\n\n——旧匿名试用副本（仅供核对）——\n' + keys.map(key => `${titles[key]}\n${showValue(key, legacyCopy!.values[key])}`).join('\n\n') : '');
   await choose('以下文字可选择后复制；复制不会保存项目。', [['cancel', '关闭']], `<textarea class="copy-text" readonly aria-label="未保存文字">${esc(text)}</textarea>`);
 }
 function editor() {
@@ -475,6 +535,10 @@ function selectReference(key: string, table: string, role?: string) {
 }
 function showValue(key: string, value: unknown): string {
   if (value == null || value === '' || Array.isArray(value) && !value.length) return '（空）';
+  if (key === 'closure' && typeof value === 'object') return Object.entries(value).map(([field, item]) => `${({ status: '总体状态', preCloseStatus: '结案前状态', maintenanceEnabled: '维护标识', ...closureTitles } as Record<string, string>)[field] ?? field}：${item == null || item === '' ? '未知/空' : field === 'maintenanceEnabled' ? item ? '开启' : '关闭' : label(item)}`).join('\n');
+  if (key === 'closureSource' && typeof value === 'object') { const item = value as { auditId: string | null; sourceImportItemId: string | null; actorDisplayName: string | null; createdAt: string | null }; return item.auditId ? `原结案 #${item.auditId} · ${item.actorDisplayName} · ${item.createdAt}（UTC）` : `旧来源事实，审查来源 ${item.sourceImportItemId ?? '未知'}；不补造原操作人/时间`; }
+  if (key === 'remaining' && typeof value === 'object') { const item = value as { stages: Entry[]; nodes: Entry[]; risks: Entry[] }; return `未完成阶段：${item.stages.map(stage => label(stage.code)).join(' / ') || '无'}\n节点：${item.nodes.map(node => node.title + ' #' + node.id).join(' / ') || '无'}\n未解除风险：${item.risks.map(risk => '#' + risk.id + ' ' + label(risk.level)).join(' / ') || '无'}`; }
+  if (key === 'stageFacts' && Array.isArray(value)) return showValue('stageChanges', value);
   if (key === 'stageChanges' && Array.isArray(value)) return value.map(item => `${label(item.code)}：${label(item.state)}；开始 ${item.startedOn ?? '未知'}；完成 ${item.completedOn ?? '未知'}`).join('\n');
   if (key === 'stagePlans' && Array.isArray(value)) return value.map(item => `${label(item.code)}：工期 ${item.plannedDays ?? '未定'}；评述 ${item.note ?? ''}`).join('\n');
   if (key === 'scheduleRecord' && typeof value === 'object') { const record = value as ScheduleRecord; return `记录 #${record.id ?? '新记录'}：${record.kind === 'note' ? '补充说明' : '真实改期'}；${record.oldDate ?? '未定'} → ${record.newDate ?? '未定'}\n原因：${record.reason}\n措施：${record.measures}${record.voided ? '\n误录已撤销' : ''}`; }
@@ -646,7 +710,7 @@ function render() {
   } else if (tab === 'stages') content = stagePanel();
   else if (tab === 'nodes' || tab === 'custnodes') content = table(snapshot.nodes.filter(node => node.kind === (tab === 'nodes' ? 'project' : 'customer')), [['title', '节点'], ['stage', '阶段'], ['targetDate', '目标日期'], ['completedOn', '完成日期'], ['output', '成果'], ['note', '说明']]);
   else if (tab === 'history') content = '<h2>服务器修改历史</h2><p class="read-message">时间为 UTC，每页 20 条。只有实际变化才产生修改历史。</p>'
-    + (audit?.items.length ? audit.items.map(item => `<article class="audit-entry"><h3>${esc(actionLabels[item.action] ?? item.action)} · ${esc(item.actorDisplayName)} · ${esc(item.createdAt)} · 版本 ${esc(item.versionBefore)} → ${esc(item.versionAfter)}</h3>${Object.keys(item.afterValues).map(key => `<div><strong>${esc(titles[key as keyof EditValues] ?? ({ stageChanges: '阶段状态与实际日期', completionNote: '完成说明', reason: '操作原因', progress: '有效阶段进度', status: '项目状态', startDate: '实际启动日期', dueDate: '当前计划结案日期', originalDueDate: '原计划结案日期', firstCheckWeek: '首次应检周', firstCheckRuleVersion: '首次应检规则版本', resumeStatus: '暂缓前项目状态', lifecycleNote: '有效说明', note: '操作说明' } as Record<string, string>)[key] ?? key)}</strong><div class="audit-diff"><div><span class="read-label">修改前</span><div class="read-value">${esc(showValue(key, item.beforeValues?.[key]))}</div></div><div><span class="read-label">修改后</span><div class="read-value">${esc(showValue(key, item.afterValues[key]))}</div></div></div></div>`).join('')}</article>`).join('') : '<p>暂无服务器修改历史。</p>')
+    + (audit?.items.length ? audit.items.map(item => `<article class="audit-entry"><h3>${esc(actionLabels[item.action] ?? item.action)} · ${esc(item.actorDisplayName)} · ${esc(item.createdAt)} · 版本 ${esc(item.versionBefore)} → ${esc(item.versionAfter)}</h3>${Object.keys(item.afterValues).map(key => `<div><strong>${esc(titles[key as keyof EditValues] ?? ({ stageChanges: '阶段状态与实际日期', completionNote: '完成说明', reason: '操作原因', progress: '有效阶段进度', status: '项目状态', startDate: '实际启动日期', dueDate: '当前计划结案日期', originalDueDate: '原计划结案日期', firstCheckWeek: '首次应检周', firstCheckRuleVersion: '首次应检规则版本', resumeStatus: '暂缓前项目状态', closure: '当前结案事实', closureSource: '原结案来源', remaining: '当时遗留', stageFacts: '当时有效阶段事实', lifecycleNote: '有效说明', note: '操作说明' } as Record<string, string>)[key] ?? key)}</strong><div class="audit-diff"><div><span class="read-label">修改前</span><div class="read-value">${esc(showValue(key, item.beforeValues?.[key]))}</div></div><div><span class="read-label">修改后</span><div class="read-value">${esc(showValue(key, item.afterValues[key]))}</div></div></div></div>`).join('')}</article>`).join('') : '<p>暂无服务器修改历史。</p>')
     + `<p class="read-message">${esc(auditMessage)}</p><button class="back-btn" id="audit-refresh">重新读取历史</button>${audit?.nextCursor ? '<button class="back-btn" id="audit-more">读取更早记录</button>' : ''}`
     + '<h2>旧来源历史</h2><p class="read-message">保留原来源时间文本，与服务器修改历史分开。</p>' + table(snapshot.history.slice().reverse(), [['date', '来源时间'], ['text', '更新内容']]);
   else if (tab === 'risk') content = '<h2>风险</h2>' + table(snapshot.risks.map(risk => ({ ...risk, resolved: risk.resolved ? '已解决' : '未解决' })), [['content', '风险内容'], ['level', '级别'], ['resolved', '状态'], ['resolution', '解决说明']]) + '<h2>需求变更</h2>' + table(snapshot.changes, [['source', '来源'], ['content', '内容'], ['decision', '结论'], ['reason', '原因']]) + '<h2>改期与说明</h2>' + (snapshot.delays.map(scheduleHistory).join('') || '<p>没有计划历史。</p>');
@@ -660,11 +724,18 @@ function render() {
     content += snapshot.lifecycleNotes.map(item => `<article class="audit-entry"><h3>${esc(actionLabels[item.action])} #${esc(item.id)} · ${esc(item.actorDisplayName)} · ${esc(item.createdAt)}（UTC）</h3><p>有效说明：${esc(item.note || '（空）')}</p><details><summary>原文及纠错来源</summary><p>${esc(item.originalNote || '（空）')}</p>${item.corrections.map(change => `<p>${esc(change.actorDisplayName)} · ${esc(change.createdAt)} · ${esc(change.reason)}</p>`).join('')}</details>${snapshot!.capabilities.editText ? `<button class="back-btn" data-lifecycle="correctLifecycleNote" data-audit="${esc(item.id)}">纠正说明</button>` : ''}</article>`).join('');
   }
   if (lifecycleDraft && !stagePending) content = `<p>本标签页保留${esc(actionLabels[lifecycleDraft.action])}副本。</p><button class="back-btn" id="lifecycle-restore">恢复暂缓/恢复表单</button><button class="back-btn" id="lifecycle-discard">放弃该副本</button>` + content;
-  if (stagePending && (isPlanCommand(stagePending) || isLifecycleCommand(stagePending)) && tab !== 'stages') content = '<p role="status">原动作结果待确认。</p><button class="back-btn" id="stage-confirm">确认原动作结果</button><button class="back-btn" id="stage-retry">重试原动作</button>' + content;
-  content += '<div id="plan-form"></div><div id="lifecycle-form"></div>';
+  if (stagePending && (isPlanCommand(stagePending) || isLifecycleCommand(stagePending) || isClosureCommand(stagePending)) && tab !== 'stages') content = '<p role="status">原动作结果待确认。</p><button class="back-btn" id="stage-confirm">确认原动作结果</button><button class="back-btn" id="stage-retry">重试原动作</button>' + content;
+  if (tab === 'info') {
+    content = `<div class="stage-card"><h2>结案与维护</h2>${p.status === 'closed' ? `<p>本次结案：${esc(snapshot.currentClosure?.auditId ? '#' + snapshot.currentClosure.auditId + ' · ' + snapshot.currentClosure.actorDisplayName + ' · ' + snapshot.currentClosure.createdAt + '（UTC）' : '旧来源事实，原操作人/时间未知')}；结案时计划 ${esc(p.closureDueDate ?? (snapshot.currentClosure?.auditId ? '未定' : '未知，需核对'))}。阶段实际进度 ${esc(p.progress)}%，维护${p.maintenanceEnabled ? '开启' : '关闭'}，与S7分别记录。</p><p>重开将恢复：${esc(p.preCloseStatus ? label(p.preCloseStatus) : '依据未知，需核对来源')}。原结案及每次更正从修改历史查看。</p>${snapshot.capabilities.editText ? '<button class="back-btn" data-closure="reopenProject">重新打开项目</button><button class="back-btn" data-closure="setMaintenance">' + (p.maintenanceEnabled ? '结束维护' : '开启维护') + '</button><button class="back-btn" data-closure="correctClosure">纠正当前结案</button>' : ''}` : `<p>人工确认结案，保留真实阶段/节点/风险及首次检查依据，不自动完成七阶段。</p>${snapshot.capabilities.editText ? '<button class="back-btn" data-closure="closeProject">结案项目</button>' : ''}`}</div>` + content;
+  }
+  if (closureDraft && !stagePending) content = '<p>本标签页保留结案操作副本。</p><button class="back-btn" id="closure-restore">恢复结案操作表单</button><button class="back-btn" id="closure-discard">放弃该副本</button>' + content;
+  content += '<div id="plan-form"></div><div id="lifecycle-form"></div><div id="closure-form"></div>';
   element('detail-body').innerHTML = content;
   document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => button.classList.toggle('active', button.dataset.tab === tab));
   bindEditor();
+  document.querySelectorAll<HTMLButtonElement>('[data-closure]').forEach(button => button.onclick = () => { void openClosure(button.dataset.closure as ClosureCommand['action'], button.dataset.closureType === 'terminated' ? 'terminated' : 'normal'); });
+  const closureRestore = document.getElementById('closure-restore'); if (closureRestore) closureRestore.onclick = () => { if (closureDraft) void openClosure(closureDraft.action); };
+  const closureDiscard = document.getElementById('closure-discard'); if (closureDiscard) closureDiscard.onclick = () => { closureDraft = undefined; persistStage(); render(); };
   document.querySelectorAll<HTMLButtonElement>('[data-lifecycle]').forEach(button => button.onclick = () => { void openLifecycle(button.dataset.lifecycle as LifecycleCommand['action'], button.dataset.audit); });
   const lifecycleRestore = document.getElementById('lifecycle-restore'); if (lifecycleRestore) lifecycleRestore.onclick = () => { if (lifecycleDraft) void openLifecycle(lifecycleDraft.action, 'auditId' in lifecycleDraft ? lifecycleDraft.auditId : undefined); };
   const lifecycleDiscard = document.getElementById('lifecycle-discard'); if (lifecycleDiscard) lifecycleDiscard.onclick = () => { lifecycleDraft = undefined; persistStage(); render(); };
@@ -700,7 +771,7 @@ async function load(initial = false) {
     render();
     element('message').textContent = '';
     if (initial) {
-      if (stagePending) { tab = isPlanCommand(stagePending) ? 'info' : 'stages'; render(); await executeStage(true); }
+      if (stagePending) { tab = isPlanCommand(stagePending) || isLifecycleCommand(stagePending) || isClosureCommand(stagePending) ? 'info' : 'stages'; render(); await executeStage(true); }
       candidate = readBuffer();
       if (candidate?.pending && data.capabilities.editText) {
         values = { ...candidate.values }; editBaseVersion = candidate.baseVersion; pending = candidate.pending; candidate = undefined; render(); await execute(true);
@@ -729,11 +800,11 @@ element('reload').onclick = async () => {
   await load();
 };
 element('back').onclick = async event => {
-  if (!dirty() && !pending && !stagePending && !stageDraft && !correctionDraft && !planDraft && !lifecycleDraft) return;
+  if (!dirty() && !pending && !stagePending && !stageDraft && !correctionDraft && !planDraft && !lifecycleDraft && !closureDraft) return;
   event.preventDefault(); persist();
   const choice = await choose(pending || stagePending ? '原保存结果尚未确认，离开会保留原操作恢复信息。' : '项目尚未保存，如何返回列表？', [['cancel', '继续编辑'], ['keep', '保留本标签页副本并离开'], ...(!pending && !stagePending ? [['discard', '放弃编辑并离开'] as [string, string]] : [])]);
   if (choice === 'cancel') return;
-  if (choice === 'discard') { candidate = undefined; stageDraft = undefined; correctionDraft = undefined; planDraft = undefined; lifecycleDraft = undefined; persistStage(); try { sessionStorage.removeItem(bufferKey); } catch { storageFailed = true; } }
+  if (choice === 'discard') { candidate = undefined; stageDraft = undefined; correctionDraft = undefined; planDraft = undefined; lifecycleDraft = undefined; closureDraft = undefined; persistStage(); try { sessionStorage.removeItem(bufferKey); } catch { storageFailed = true; } }
   leaving = true;
   location.href = (element('back') as HTMLAnchorElement).href;
 };
@@ -741,7 +812,7 @@ element('copy').onclick = () => { void copyText(); };
 window.addEventListener('focus', () => { void observe(); });
 function detailMeta(p: Detail['project']) { return `客户：${p.customer ?? '—'} · 产品线：${p.productLine ?? '—'} · 核心芯片：${p.chips.map(chip => chip.name).join(' / ') || '—'} · 项目版本：${p.version} · 日期结果截至 ${p.deadline.asOfDate}`; }
 setInterval(() => { if (snapshot && !inFlight && !loading && document.visibilityState === 'visible' && snapshot.businessDate !== new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date())) void observe(false, false); }, 60000);
-window.addEventListener('beforeunload', event => { if (!leaving && (dirty() || pending || stagePending || stageDraft || correctionDraft || planDraft || lifecycleDraft)) { persist(); persistStage(); event.preventDefault(); } });
+window.addEventListener('beforeunload', event => { if (!leaving && (dirty() || pending || stagePending || stageDraft || correctionDraft || planDraft || lifecycleDraft || closureDraft)) { persist(); persistStage(); event.preventDefault(); } });
 document.addEventListener('geekdash-identity-changed', () => { persist(); authFrozen = true; note('账号已变化。请复制未保存内容，重新登录原账号后再进入。', true); controls(); });
 void requireIdentity().then(async () => {
   bufferKey = `geekdash_project_buffer:${account!.id}:${id}`;
@@ -750,7 +821,7 @@ void requireIdentity().then(async () => {
   try { responsibilityPending = JSON.parse(sessionStorage.getItem(responsibilityKey()) ?? 'null') ?? undefined; } catch { note('责任变更恢复信息损坏，请先核对当前负责人。', true); }
   try {
     const saved = JSON.parse(sessionStorage.getItem(stageKey()) ?? 'null');
-    for (const part of ['pending', 'draft', 'correction', 'plan', 'lifecycle'] as const) {
+    for (const part of ['pending', 'draft', 'correction', 'plan', 'lifecycle', 'closure'] as const) {
       const v = saved?.[part];
       const validCorrection = v && typeof v.reason === 'string' && (v.action === 'correctStageFacts' ? Array.isArray(v.changes) && v.changes.every((item: { code: string }) => /^S[1-7]$/.test(item.code)) : ['undoStageStart', 'undoStageComplete', 'rollbackStage'].includes(v.action) && /^S[1-7]$/.test(v.stageCode));
       const patch = v?.changes;
@@ -763,8 +834,9 @@ void requireIdentity().then(async () => {
         && (!(v.action === 'correctScheduleRecord' || v.action === 'voidScheduleRecord') || /^[1-9][0-9]{0,19}$/.test(v.recordId))
         && (!('currentDueDate' in v) || v.currentDueDate === null || typeof v.currentDueDate === 'string');
       const validLifecycle = v && isLifecycleCommand(v) && (v.action === 'pauseProject' ? typeof v.reason === 'string' : v.action === 'resumeProject' ? typeof v.note === 'string' && (v.dueDate === undefined || typeof v.dueDate === 'string') && (v.planReason === undefined || typeof v.planReason === 'string') : /^[1-9][0-9]{0,19}$/.test(v.auditId) && typeof v.note === 'string' && typeof v.reason === 'string');
-      const validAction = validLifecycle || validPlan || validCorrection || v && typeof v.actualDate === 'string' && (v.action === 'startProject' ? ['dueDate', 'configVersion', 'ruleVersion', 'previewWeek', 'previewFirstCheckWeek'].every(key => typeof v[key] === 'string') : /^S[1-7]$/.test(v.stageCode) && ['startStage', 'completeStage'].includes(v.action) && (v.completionNote === undefined || typeof v.completionNote === 'string'));
-      if (validAction && /^[1-9][0-9]{0,19}$/.test(v.expectedVersion) && (part === 'draft' || typeof v.idempotencyKey === 'string')) { if (part === 'pending') stagePending = v; else if (part === 'correction' && validCorrection) correctionDraft = v; else if (part === 'plan' && validPlan) planDraft = v; else if (part === 'lifecycle' && validLifecycle) lifecycleDraft = v; else if (part === 'draft' && !validPlan && !validLifecycle && !validCorrection) stageDraft = v; }
+      const validClosure = v && isClosureCommand(v) && (v.action === 'closeProject' ? (['closureType', 'closedOn', 'closureNote', 'remainingWorkNote'] as const).every(key => typeof v[key] === 'string') : typeof v.reason === 'string' && (v.action === 'setMaintenance' ? typeof v.enabled === 'boolean' : (v.closureAuditId === null || /^[1-9][0-9]{0,19}$/.test(v.closureAuditId)) && (v.action === 'reopenProject' || validPatch && Object.keys(patch).every(key => Object.hasOwn(closureTitles, key)))));
+      const validAction = validClosure || validLifecycle || validPlan || validCorrection || v && typeof v.actualDate === 'string' && (v.action === 'startProject' ? ['dueDate', 'configVersion', 'ruleVersion', 'previewWeek', 'previewFirstCheckWeek'].every(key => typeof v[key] === 'string') : /^S[1-7]$/.test(v.stageCode) && ['startStage', 'completeStage'].includes(v.action) && (v.completionNote === undefined || typeof v.completionNote === 'string'));
+      if (validAction && /^[1-9][0-9]{0,19}$/.test(v.expectedVersion) && (part === 'draft' || typeof v.idempotencyKey === 'string')) { if (part === 'pending') stagePending = v; else if (part === 'correction' && validCorrection) correctionDraft = v; else if (part === 'plan' && validPlan) planDraft = v; else if (part === 'lifecycle' && validLifecycle) lifecycleDraft = v; else if (part === 'closure' && validClosure) closureDraft = v; else if (part === 'draft' && !validClosure && !validPlan && !validLifecycle && !validCorrection) stageDraft = v; }
     }
   } catch { note('动作恢复信息无法读取，请核对当前项目。', true); }
   await load(true); legacyCopy = readBuffer(`geekdash_trial_text_v1:${id}`); await loadCatalog(); if (responsibilityPending) await changeResponsibility(true);

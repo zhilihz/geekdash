@@ -25,13 +25,15 @@ export function requireDate(value: unknown, field: string) {
 
 export const deadlineKinds = ['upcoming', 'due', 'overdue', 'unset', 'closed_on_time', 'closed_late', 'closed_unplanned', 'closed_unknown', 'terminated'] as const;
 export type DeadlineKind = typeof deadlineKinds[number];
-export type DateFacts = { status: string; dueDate: string | null; closedOn: string | null; closureDueDate: string | null; closureType: string | null };
+export type DateFacts = { status: string; dueDate: string | null; closedOn: string | null; closureDueDate: string | null; closureType: string | null; closurePlanKnown?: boolean | number | string };
 export type Deadline = { kind: DeadlineKind; asOfDate: string; days: number | null; label: string };
+export const closurePlanKnownExpression = "(p.created_by IS NOT NULL AND p.source_import_item_id IS NULL OR EXISTS (SELECT 1 FROM audit_log ac WHERE ac.project_id=p.id AND ac.action='project.close'))";
 export const dayDifference = (from: string, to: string) => (Date.parse(to) - Date.parse(from)) / 86400000;
 export function deadlineResult(project: DateFacts, today: string): Deadline {
   if (project.status === 'closed') {
     if (project.closureType === 'terminated') return { kind: 'terminated', asOfDate: today, days: null, label: '终止结案' };
     if (project.closureType !== 'normal' || !project.closedOn) return { kind: 'closed_unknown', asOfDate: today, days: null, label: '结案事实待核对' };
+    if (!project.closureDueDate && project.closurePlanKnown !== undefined && Number(project.closurePlanKnown) === 0) return { kind: 'closed_unknown', asOfDate: today, days: null, label: '结案时历史计划待核对' };
     if (!project.closureDueDate) return { kind: 'closed_unplanned', asOfDate: today, days: null, label: '结案时计划未定' };
     const days = Math.max(0, dayDifference(project.closureDueDate, project.closedOn));
     return { kind: days ? 'closed_late' : 'closed_on_time', asOfDate: today, days, label: days ? `超期完成 ${days} 天` : '按期完成' };
@@ -48,8 +50,8 @@ export function deadlineCondition(kind: DeadlineKind, today: string) {
     case 'overdue': return { sql: "p.status<>'closed' AND p.current_due_date<?", values: [today] };
     case 'unset': return { sql: "p.status<>'closed' AND p.current_due_date IS NULL", values: [] };
     case 'terminated': return { sql: "p.status='closed' AND p.closure_type='terminated'", values: [] };
-    case 'closed_unknown': return { sql: "p.status='closed' AND (p.closure_type IS NULL OR p.closure_type<>'terminated' AND (p.closure_type<>'normal' OR p.closed_on IS NULL))", values: [] };
-    case 'closed_unplanned': return { sql: "p.status='closed' AND p.closure_type='normal' AND p.closed_on IS NOT NULL AND p.closure_due_date IS NULL", values: [] };
+    case 'closed_unknown': return { sql: `p.status='closed' AND (p.closure_type IS NULL OR p.closure_type<>'terminated' AND (p.closure_type<>'normal' OR p.closed_on IS NULL OR p.closure_due_date IS NULL AND NOT ${closurePlanKnownExpression}))`, values: [] };
+    case 'closed_unplanned': return { sql: `p.status='closed' AND p.closure_type='normal' AND p.closed_on IS NOT NULL AND p.closure_due_date IS NULL AND ${closurePlanKnownExpression}`, values: [] };
     case 'closed_on_time': return { sql: "p.status='closed' AND p.closure_type='normal' AND p.closed_on<=p.closure_due_date", values: [] };
     case 'closed_late': return { sql: "p.status='closed' AND p.closure_type='normal' AND p.closed_on>p.closure_due_date", values: [] };
   }
