@@ -1,0 +1,44 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T08:00:04.322871+00:00",
+  "build": {
+    "revision": "196405e1a6d6cf1bbeaaa99367289ee4fed01c02",
+    "dirty": false,
+    "builtAt": "2026-10-10T07:39:46.777Z",
+    "stage": "project-nodes",
+    "schemaVersion": "0002-trial-save"
+  },
+  "projectId": "16",
+  "savedVersion": "13",
+  "nodeCount": 5,
+  "riskCount": 1,
+  "auditCount": 30,
+  "originalResults": 14,
+  "syntheticOnly": true,
+  "checks": [
+    "两负责人原项目/客户字段及混合文字风险四节点同次保存",
+    "前置完成拒绝；同次完成链；实际日期无多余顺序；名称成果纠错与位置",
+    "明确下游清空集合；前置替换清双向旧引用；同值无版本历史",
+    "预览不写；旧版本409；重新进入；新详情/审计/提案看板及原结果账号隔离",
+    "无阶段/计划/灯色自动联动；固定资源一致，原生页面待B09"
+  ],
+  "assets": {
+    "index.html": "aad1d595b06298caca0f50ee650e2bc477c836ac9b0defc81872a18c7abb62c6",
+    "/assets/index-CQ-C5uAe.js": "d97a0637a1fb2a7fc04e11e7b4d05beb28829f612971b68d74d86a69469b3986",
+    "/assets/api-BCWnN62K.js": "83bbd81264c0ef1ca4b709ff801e73d832dd4dd7fa1587e217ebd8aee2637c4d",
+    "/assets/api-CEMtlmAC.css": "f81b99ccd3ef21d4ce6a436d1c1b2a13dae22b52308ed681a5f614d0227e2fa0",
+    "/assets/index-D8NXthWN.css": "5cdef17e18b287780e8197cec16e9d4628b2b7da8036bf90b4c8fbe2a375e3c1",
+    "GeekDash.html": "aad1d595b06298caca0f50ee650e2bc477c836ac9b0defc81872a18c7abb62c6",
+    "project-detail.html": "9c0353c65126307d4dd38e6afd657eb21a88d45479fb619a29f22fad6e61ab77",
+    "/assets/project-detail-BYYBQTbI.js": "8995c9ed25777c256df8fc7b11f4700f361883d97414f054ed7630f54d005c48",
+    "/assets/detail-DYDiBCqo.css": "01e982097fd0e8a5d14ad60181e442a24634e630afae7e91b7148fee651d9ba1",
+    "project-new.html": "13abbcb773f37f8d56eba0a9d04415664b22239005c067c74de1b0da5ea16e68",
+    "/assets/project-new-O3hGNUu8.js": "b66e03c9de52124548f04c2275b0f70f4eae86a9b55c1e420bbd0dd9bc344421",
+    "/assets/forms-D9KYl3tU.css": "e179bf8998912737851b88af0bc94aeff622a19313ac40fe5dd626fb3206ece0",
+    "login.html": "ffaf61403b85ae4daf3812d83ffed1cf72803bff1f3bf344455a4396b8553b0c",
+    "/assets/login-9ndOPPHM.js": "9ad607f4bb54c1fd7bbb03b362b98f5c5a6b15894aacc93538aee28c72418e87",
+    "settings.html": "3ca40b3056d5467190ea6acbf0c92754b34d1c4dea7aaf61fb6d2cabdbe4ebcb",
+    "/assets/settings-CpNH0Ess.js": "b960b5ef36f349a85102251b14ccb1b3167c02ae8cfeb10234d6119404817d50"
+  },
+  "assetCount": 16
+}

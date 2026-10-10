@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T07:51:36.836364+00:00",
+  "build": {
+    "revision": "196405e1a6d6cf1bbeaaa99367289ee4fed01c02",
+    "dirty": false,
+    "builtAt": "2026-10-10T07:39:46.777Z",
+    "stage": "project-nodes",
+    "schemaVersion": "0002-trial-save"
+  },
+  "ready": {
+    "status": "ready"
+  },
+  "imageId": "sha256:e611bd5b63363023753a4d2cd6b487ef53042042cb5c512b0f05e8e641809cff",
+  "appOomKilled": false,
+  "appRestartCount": 0
+}

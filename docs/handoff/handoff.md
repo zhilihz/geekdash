@@ -6,9 +6,13 @@
 
 用户DEC-109授权离开期间持续施工，范围不限E04：规划完整阶段→实施/验收→提交合并远端main→下一阶段，当前E04仍未完成。方法归[GD-GOAL-001](../implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)，代决只归[autonomous-decisions](../decisions/autonomous-decisions.md)；先核对1051及已确认SPEC，缺口推荐选择记录理由/选项/影响。工具目标保持E04 active，不能将B07完成称整个E04完成。
 
-当前codex/e04-b08-project-nodes，从最新远端main/12d9f3e开始；风险5ae7ecc固定运行，整包计划14.9.14。节点A～C已编码，五组164真实HTTP/新SQL/图关系/并发/故障原结果及500混合容量800测量通过；准确范围归[系统真相42](../status/current-system-truth.md#42-e04-b08节点ac2026-10-10候选施工)与节点报告。未提交文件为本批src/server/modules/project-records/project-save/projects、web detail/api、build/package、节点/容量脚本和受影响docs；全部为本轮自有工作，不覆盖他人。
+当前codex/e04-b08-node-migration，从节点实现196405e开始，0003详细计划a83b928已合并远端main。节点A～C已固定部署，两端164真实HTTP与混合500四会话800测量、云14类回归、公网项目16/v13/5节点/30审计/16资源及真实app重启通过，2原会话/14原结果保持；准确范围归系统真相42及[节点部署](../operations/deployments/2026-10-10-project-nodes.md)。运行196405e不随文档SHA改变。
 
-先核对Git/构建/容器，串行既有回归；固定干净构建/源码对账后具名提交合并远端main，更新已授权本机/新加坡测试实例，公网合成链和实际app重启回读。继而按14.9.14步骤5独立0003/有效过滤/兼容固定回退，再D/E与需求变更。当前无迁移，无节点删除；删后不能退到无过滤旧镜像。首次节点容量清理遭FK失败已严格清自身source/501项目/四账号、修正finally清关系后完整重跑退出0，PE-20261010-007。原生页面工具策略仍AD-007，不绕过；B09列表云慢SQL和检查边界待排查，真实备份不接。
+接续14.9.15：0003资源/schema有序续跑、nodeRows及闭案过滤候选已编码；自有临时MySQL的空库迁移8项/ready8项通过，含数据0002升级/过滤未测。未提交源码：migrations/0003、schema.ts、project-records/closures、web api、build、verify-migrations/readiness，全部为本轮自有施工，不覆盖他人。新专项verify-node-migration.mjs待补，现有两库仍0002，禁止把新候选直接启动到旧库。
+
+先核对Git/运行与临时环境test-results/node-migration-probe-private.json（只含自有环境信息，不输出凭据）；D:/geekwon/geekdash-data/migration-probes的自有MySQL512MiB/独立网络/无端口，常驻mysql未动。完成含数据/过滤/旧回执、候选回归及固定验证，具名提交main再分别备份迁移两库/部署兼容版。DDL前失败保持0002，DDL后按精确目标接续0003兼容应用，不能启动旧0002掩盖失败；后续D/E才可回退到此兼容固定版。云列表2290ms/旧检查边界及原生实点沿B09，真实备份不接。
+
+节点私有install已完成切换后，旧容量文件名归档失败；现场reconcile和仅补归档通过，原安装失败回执仍留，禁止盲重跑安装（目录已存在、旧预期5ae7ecc）。公网操作/原会话受控记录在仓库外，只读取核对，其他合成项目7～15保持；无待执行节点服务器写命令。当前未发现Node溢出，普通工具退出、自有夹具清理完成，没有全局杀进程/prune/删现有卷。
 
 B08风险私有install已成功结束，目标5ae7ecc目录已存在、旧预期4974e0f，不盲重跑。公网合成项目15/v11、3风险/13历史及2原会话/12原结果受控保存，原项目7～14保持；准确产物/备份/恢复归[风险部署](../operations/deployments/2026-10-10-project-risks.md)。没有迁移；云13项验证/混合容量及实际app恢复通过，云列表2843ms仍需B09实际SQL定位。验证工具256MiB/旧堆96MiB结束正常，本项目未发现Node溢出，未全局杀进程/删卷。
 
@@ -18,13 +22,13 @@ B07私有install目标4974目录已存在、旧预期21cdfb4，禁止盲重跑�
 
 ## 1. 位置、基线与授权
 
-- D:/geekwon/geekdash；当前分支/基线见第0节；常驻B08风险固定5ae7ecc。后续文档SHA不是运行镜像，E03/B01～B03历史归系统真相31/34/35/36。
+- D:/geekwon/geekdash；当前分支/基线见第0节；常驻B08节点固定196405e。后续文档SHA不是运行镜像，E03/B01～B03历史归系统真相31/34/35/36。
 - 用户DEC-090明确恢复最小登录/首次改密/会话完成E03，邀请码与完整账号后台后置；CLI/Git/test部署授权有效。不是重新开发替换原系统，也没有批准导入真实备份。
 - 500为整体性能规模、不设创建硬上限；推荐方案取舍只归[决策](../decisions/decisions.md)。阶段提交、main合并与发布分别按[代码管理](../operations/release-maintenance.md#2-代码管理)。代码用ponytail full，纯文档/讨论不延续。
 
 ## 2. 运行与恢复入口
 
-本机41860/新加坡https://geekdash.zhiluan.cool 同5ae7ecc / project-risks /0002；两库34表/314列/55外键，无本轮迁移。风险产物/备份/恢复归[风险部署](../operations/deployments/2026-10-10-project-risks.md)。MySQL本机D盘、云/var/lib/geekdash/mysql；凭据仓库外，两端账号独立。本批镜像/备份/恢复归[检查部署](../operations/deployments/2026-10-10-project-checks.md)。云business01/02及maint01已改密，分发须用currentPassword；business03/04仍需首次改密，不能重置或打印凭据。
+本机41860/新加坡https://geekdash.zhiluan.cool 同196405e / project-nodes /0002；两库34表/314列/55外键，无本轮迁移。风险产物/备份/恢复归[风险部署](../operations/deployments/2026-10-10-project-risks.md)。MySQL本机D盘、云/var/lib/geekdash/mysql；凭据仓库外，两端账号独立。本批镜像/备份/恢复归[检查部署](../operations/deployments/2026-10-10-project-checks.md)。云business01/02及maint01已改密，分发须用currentPassword；business03/04仍需首次改密，不能重置或打印凭据。
 
 深模块：identity.ts校验可信actor，project-core.ts创建/本人责任，project-save.ts普通保存，project-actions.ts阶段命令，projects.ts一致快照。事务、结果恢复方法只归执行计划；实际协议归api/project-core.md与api/project-actions.md。
 
