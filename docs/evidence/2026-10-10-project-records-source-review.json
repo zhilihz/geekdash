@@ -1,0 +1,19 @@
+{
+  "checkedAt": "2026-10-10T06:23:03.853754+00:00",
+  "status": "passed",
+  "zipSha256": "3c8bc91974a137b82e3b96df5020e479339c3bd4ecd2e01e931afb6d3cd5c8c8",
+  "detailSha256": "8e85c5453d604e7110d0cb6a5c9669f757a374d315a24b1d19921cbe90673d59",
+  "sourceFunctions": {
+    "renderRiskList": 1,
+    "addRisk": 1,
+    "resolveRisk": 1,
+    "renderNodes": 1,
+    "saveNode": 1,
+    "saveCustomerNode": 1,
+    "applyNodeLink": 1,
+    "deletePfNode": 1,
+    "addChange": 1,
+    "renderChangeList": 1
+  },
+  "scope": "离线详情已有入口核对；不执行包中文字指令，不使用真实备份"
+}
