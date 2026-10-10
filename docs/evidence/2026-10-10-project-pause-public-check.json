@@ -1,0 +1,42 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T03:16:09.515469+00:00",
+  "build": {
+    "revision": "2880b6ebbd723fd9ba59e4e634ff9596f8cd362c",
+    "dirty": false,
+    "builtAt": "2026-10-10T03:02:35.134Z",
+    "stage": "project-pause",
+    "schemaVersion": "0002-trial-save"
+  },
+  "projectId": "12",
+  "savedVersion": "17",
+  "syntheticOnly": true,
+  "checks": [
+    "两名可信负责人/提案与进行中暂缓恢复",
+    "不可变暂缓/恢复原文与有效更正/明确清空",
+    "真实S1→人工启动→S2→暂缓期间最新保存事实→恢复",
+    "恢复同次明确改计划/首次检查义务保持/没有制造检查",
+    "预览后他人保存旧版409；原结果身份隔离与重放",
+    "新请求详情/历史/看板筛选及统计消费",
+    "公网固定资源逐字节核对；不是浏览器实点验收"
+  ],
+  "assets": {
+    "index.html": "ca354cc56eb25d6b7017a89a7146e24f5320f9af085019e45ab756424f84a8e1",
+    "/assets/index-BLU-tKpr.js": "f1c9128080e44d705fde9c845430ab59399c090f5b509a39b09cf413bae37309",
+    "/assets/api-BXz4AnGV.js": "db5eb8db218dbcfb5e279a76d0a181077f05f129cb6962194a0d48a0049f5d2f",
+    "/assets/api-CEMtlmAC.css": "f81b99ccd3ef21d4ce6a436d1c1b2a13dae22b52308ed681a5f614d0227e2fa0",
+    "/assets/index-D8NXthWN.css": "5cdef17e18b287780e8197cec16e9d4628b2b7da8036bf90b4c8fbe2a375e3c1",
+    "GeekDash.html": "ca354cc56eb25d6b7017a89a7146e24f5320f9af085019e45ab756424f84a8e1",
+    "project-detail.html": "98944354f2f9d6408e0b83066619a83773bbd5d25381e11d6533b188eff8501a",
+    "/assets/project-detail-Bn_3wBAM.js": "44c3eb4ad170d8911145a587fc0ceedf5ccc845e2346dabb83ae6b702a4cc22b",
+    "/assets/detail-DYDiBCqo.css": "01e982097fd0e8a5d14ad60181e442a24634e630afae7e91b7148fee651d9ba1",
+    "project-new.html": "3f665ced873ecd6032ad85b9c80167f5a23392dcddcf33849090c1f16f1b37fb",
+    "/assets/project-new-C6kd7JYi.js": "61c8e102cfa8dc121b3359fcd065cd99e29b7220e2979b5a0406b42254e0d0c1",
+    "/assets/forms-D9KYl3tU.css": "e179bf8998912737851b88af0bc94aeff622a19313ac40fe5dd626fb3206ece0",
+    "login.html": "22d60c2cbd82034578af7552a405d1336e2a3357da66d3edafbad1c4225dd4d1",
+    "/assets/login-CtJuctpL.js": "07a77153d4c1873d0f8eaac46d2db499943f76230ecabb8c269f9ce14b356bae",
+    "settings.html": "cc03316032506066799a36d9e65b6dbc14a01ff6ddf48efd3b802169178cd67b",
+    "/assets/settings-Bc15iB5p.js": "630f427ffb99b4eea68bdb3f20db5eaca3a89973a90df4a1fc7d45c8c5f50241"
+  },
+  "assetCount": 16
+}

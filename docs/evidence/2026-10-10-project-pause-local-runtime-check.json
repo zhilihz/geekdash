@@ -1,0 +1,103 @@
+{
+  "mysqlRunning": true,
+  "ready": "ready",
+  "hostNodeProcesses": [
+    {
+      "pid": 484,
+      "workingMiB": 50.3
+    },
+    {
+      "pid": 5200,
+      "workingMiB": 65.0
+    },
+    {
+      "pid": 5780,
+      "workingMiB": 9.68
+    },
+    {
+      "pid": 6708,
+      "workingMiB": 13.46
+    },
+    {
+      "pid": 8088,
+      "workingMiB": 38.16
+    },
+    {
+      "pid": 8708,
+      "workingMiB": 84.32
+    },
+    {
+      "pid": 9084,
+      "workingMiB": 3.96
+    },
+    {
+      "pid": 11412,
+      "workingMiB": 103.06
+    },
+    {
+      "pid": 11928,
+      "workingMiB": 7.79
+    },
+    {
+      "pid": 12520,
+      "workingMiB": 6.91
+    },
+    {
+      "pid": 18928,
+      "workingMiB": 45.15
+    },
+    {
+      "pid": 21684,
+      "workingMiB": 33.4
+    },
+    {
+      "pid": 22628,
+      "workingMiB": 13.89
+    },
+    {
+      "pid": 22636,
+      "workingMiB": 39.24
+    },
+    {
+      "pid": 24072,
+      "workingMiB": 67.35
+    },
+    {
+      "pid": 24540,
+      "workingMiB": 42.65
+    },
+    {
+      "pid": 27472,
+      "workingMiB": 91.38
+    },
+    {
+      "pid": 28376,
+      "workingMiB": 57.7
+    },
+    {
+      "pid": 28448,
+      "workingMiB": 24.64
+    },
+    {
+      "pid": 28896,
+      "workingMiB": 44.47
+    },
+    {
+      "pid": 30580,
+      "workingMiB": 65.04
+    }
+  ],
+  "scope": "本项目运行和当时Windows Node工作集采样；未全局终止，未据内存大小声称溢出",
+  "mysqlStartedAt": "2026-10-10T01:20:39.731622918Z",
+  "appRestartCount": 0,
+  "status": "passed",
+  "build": {
+    "revision": "2880b6ebbd723fd9ba59e4e634ff9596f8cd362c",
+    "dirty": false,
+    "builtAt": "2026-10-10T03:02:35.134Z",
+    "stage": "project-pause",
+    "schemaVersion": "0002-trial-save"
+  },
+  "appOomKilled": false,
+  "checkedAt": "2026-10-10T03:09:36.6933980Z"
+}
