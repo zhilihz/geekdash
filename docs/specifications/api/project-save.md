@@ -21,6 +21,7 @@ id/expectedVersion 范围为1至UINT64_MAX；操作编号为小写 UUID v4。同
 | chipIds/tagIds | 有序、无重复的 ID 字符串数组，[] 清除 |
 | people | 有序 {id,role} 数组；role 为 pm/hardware_owner/software_owner/participant，同 ID/role 不重复 |
 | stagePlans | E04-B03：1～7个不同阶段的 {code,plannedDays?,note?} 精确补丁 |
+| nodeOps | E04-B08节点：有限操作数组，见节点协议；不是全量节点覆盖 |
 | riskOps | E04-B08风险：非空的有限操作数组，详见下节；不是风险全量替换 |
 
 遗漏字段/集合不修改。资料不存在或新增已停用引用返回 422，fields 指出对应字段；原停用引用可保留或移除。人员字段不产生账号权限。
@@ -86,6 +87,30 @@ risks在详情和保存结果包含id/content/level/resolved/resolution/resolved
 
 ### POST /api/projects/:id/save-preview
 
-使用同一SaveRequest输入，当前必须含riskOps；只读一致快照，检查启用身份/负责资格/进入版本，复用实际保存的风险候选。返回projectId/expectedVersion/events/risks，events含op/id/before/after/reason，新增id仍为tempId。当前预览只展示风险候选，普通关联等在正式保存中独立统一核验；不写项目、正式ID、历史或回执，预览时刻不是正式事件时间。
+使用同一SaveRequest输入，当前必须含riskOps或nodeOps；只读一致快照，检查启用身份/负责资格/进入版本，复用实际保存的风险候选。返回projectId/expectedVersion/events/risks及nodeEvents/nodes/requiredUncompleteIds/confirmed；risk events含op/id/before/after/reason，新增id仍为tempId。当前预览只展示风险候选，普通关联等在正式保存中独立统一核验；不写项目、正式ID、历史或回执，预览时刻不是正式事件时间。
 
 页面预览后“确认加入未保存修改”只改变普通副本；最终点击“保存项目”重算候选、事务校验并正式保存。修改任何输入使预览失效。原生页面验收范围另归报告，不据接口存在称通过。
+
+## E04-B08 节点A～C统一保存
+
+2026-10-10候选实现；行为归SPEC-005，结构沿ERD5.8。nodeOps对象仅接受下列字段，操作按顺序应用，最后校验整份候选。原单前/后引用、项目节点阶段/成果、客户节点日期/备注保持；不加子节点或连线表。
+
+| op | 精确输入 |
+|---|---|
+| add | op/tempId/kind/fields；kind为project或customer，小写UUIDv4临时ID不重复 |
+| correct | op/id/changes/reason |
+| complete | op/id/completedOn及可选reason；已有实际日纠正必须有reason |
+| uncomplete | op/id/reason/affectedIds；明确撤销实际完成 |
+| move | op/id/x/y；仅项目节点，DECIMAL(12,3)范围/精度 |
+| link | op/from/to/replaceEdges/affectedIds/reason；明确替换旧线和受影响完成 |
+| unlink | op/from/to；拆除现有线 |
+
+项目add fields必须title/stage/output，可带targetDate；客户必须title，可带targetDate/note。correct changes非空，仅该类型对应字段；实际完成不能通过普通字段null清空。title非空/最多255码点，output非空，文字完整Unicode/UTF-8不超过65535字节；targetDate为有效日期或null。stage仅本项目S1～S7。正式ID为十进制字符串，或数组此前新增临时ID；关系只允许同项目的两个不同项目节点，客户节点不参与连线。
+
+complete的实际日不能晚于中国业务今天；前置完成按最终候选判断，同次完成整条链可行，不额外要求日期按连线顺序递增，也不推进研发阶段。uncomplete/新前置导致已完成依赖不成立时，save-preview给出requiredUncompleteIds及confirmed=false；用户逐项核对后提供完全相同affectedIds和原因，重新预览为true后加入副本。遗漏/额外影响对象使正式保存422 NODE_IMPACT_CHANGED；系统不静默清下游完成。replaceEdges精确表示当前占用的旧线，不一致返回NODE_REPLACEMENT_CHANGED；双方和旧邻居同事务解除/设置，删除未开通。
+
+涉及完成/关系的候选检查双向一致及循环；NODE_CYCLE的fields.nodeOps显示具体循环。旧循环不妨碍无关文字/移动，可明确unlink纠正；不通过旧历史重复制造循环。移动/纠错同值不推进版本。节点操作不自动改变灯色、计划、阶段、检查或项目状态。
+
+nodeOps不进入result.values；结果另附nodes和nodeIdMap，新ID先全部分配再设置关系。目标审计entity_type=project_node，action=project.node.add或project.node.save，before/after保存node及有限operations/reason；每个实际变更对象一条，统一项目版本、可信actor/时间和requestId，旧来源不改。save-preview不写正式ID/项目/历史/回执；正式保存仍在项目锁下重算。SQL任一写点失败整份回滚；原结果恢复包括稳定节点映射及当时投影，后来的变化不改旧回执。
+
+其他失败：400 INVALID_NODE_OPERATIONS；404 NODE_NOT_FOUND；422 NODE_RELATION_INVALID/NODE_LINK_NOT_FOUND/NODE_STAGE_INVALID/NODE_PREDECESSOR_INCOMPLETE/NODE_CORRECTION_REASON_REQUIRED/NODE_NOT_COMPLETED/NODE_ORDER_EXHAUSTED及字段错误。版本/权限/停用/未知结果沿原普通保存协议。节点D/E软删除恢复及0003尚未在此批实现。

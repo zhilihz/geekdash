@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T07:35:30.716Z",
+  "checks": [
+    "两类原字段、四节点/风险/文字同事务；直接前置与同次完成、日期无额外顺序；明确下游集合、完成纠错与移动同值",
+    "明确旧线替换与双向残留清除、未完成前置下游纠错；新循环拒绝路径、旧循环保留后明确拆除",
+    "项目/客户字段白名单、同项目ID/阶段/临时引用与日期位置边界；旧来源保持，非法混合整份不提交",
+    "四会话同版本只一成功；旧版本/退出负责拒绝；事务内停用复核和本人原结果恢复",
+    "信息/位置/清线/置线/多节点/审计/回执写点全回滚；真实COMMIT丢确认后原会话/映射/关系/历史恢复，无业务自动联动"
+  ],
+  "requestCount": 164,
+  "build": {
+    "revision": "12d9f3ea8d0708e5a58a914282898daf48eca48d",
+    "dirty": true,
+    "builtAt": "2026-10-10T07:35:21.737Z",
+    "stage": "project-nodes",
+    "schemaVersion": "0002-trial-save"
+  },
+  "isolatedTestDatabase": true,
+  "nodeMigrationDelivered": false
+}

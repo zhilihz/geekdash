@@ -10,14 +10,16 @@ import { hashPassword } from '../dist/server/modules/identity.js';
 
 const checkMode = process.argv.includes('--checks');
 const riskMode = process.argv.includes('--risks');
+const nodeMode = process.argv.includes('--nodes'), nodeIds = [];
+
 const riskIds = [];
 let riskQueryPlan;
-const namespace = riskMode ? '__capacity_500_risks_test__' : checkMode ? '__capacity_500_checks_test__' : '__capacity_500_test__';
+const namespace = nodeMode ? '__capacity_500_nodes_test__' : riskMode ? '__capacity_500_risks_test__' : checkMode ? '__capacity_500_checks_test__' : '__capacity_500_test__';
 const ids = Array.from({length: 501}, (_, i) => String(9007199254780000n + BigInt(i)));
 const {connection} = await connectDatabase('test_migrator');
 let app, runtime, origin, owned = false, ownConfig = false, checkRule;
 const references = {customers: [], chips: [], engineers: [], tags: []};
-const measurements = {list: [], detail: [], save: [], audit: [], ...(checkMode ? {checkSave: [], checkHistory: []} : {}), ...(riskMode ? {riskPreview: [], riskSave: []} : {})};
+const measurements = {list: [], detail: [], save: [], audit: [], ...(checkMode ? {checkSave: [], checkHistory: []} : {}), ...(riskMode ? {riskPreview: [], riskSave: []} : {}), ...(nodeMode ? {nodePreview: [], nodeSave: []} : {})};
 const began = new Date().toISOString();
 const accounts = [];
 const password = '四人容量验证 password 2026';
@@ -98,6 +100,13 @@ try {
     try { await riskRows(connection,ids[0]); } finally { connection.query=originalQuery; }
     const keyed=riskQueryPlan.query_block.nested_loop.find(item=>item.table.table_name==='a').table;assert.equal(keyed.key,'PRIMARY');assert.equal(keyed.access_type,'eq_ref');assert.equal(keyed.rows_examined_per_scan,1);
   }
+  if(nodeMode) for(let index=0;index<500;index++) {
+    const nodes=Array.from({length:3},(_,n)=>({op:'add',tempId:randomUUID(),kind:'project',fields:{title:'真实容量节点'+n,stage:'S4',output:'明确成果'}}));
+    const links=nodes.slice(1).map((node,n)=>({op:'link',from:nodes[n].tempId,to:node.tempId,replaceEdges:[],affectedIds:[],reason:''}));
+    const completed=nodes.map(node=>({op:'complete',id:node.tempId,completedOn:'2020-01-01'}));
+    const saved=(await api('/api/projects/'+ids[index],'PATCH',{expectedVersion:(await api('/api/projects/'+ids[index])).project.version,idempotencyKey:randomUUID(),changes:{nodeOps:[...nodes,...links,...completed]}})).result;
+    nodeIds.push(saved.nodeIdMap[nodes[0].tempId]);assert.equal(saved.nodes.length,4);
+  }
   const initial = await api('/api/projects?view=all&search='+encodeURIComponent('规模测试项目'));
   assert.equal(initial.pagination.total,500); assert.equal(initial.stats.total,500); assert.equal(initial.items.length,24);
   const filtered = await api('/api/projects?view=all&customer='+encodeURIComponent('规模夹具-customers-0'));
@@ -109,7 +118,7 @@ try {
   for (let round=0;round<20;round++) await Promise.all(Array.from({length:4},async(_,worker)=>{
     const target=ids[worker];
     const list=await measured('list','/api/projects?view=all&customer='+encodeURIComponent('规模夹具-customers-'+worker)); assert.equal(list.pagination.total,125);
-    const detail=await measured('detail','/api/projects/'+target); assert.equal(detail.stages.length,7); assert.equal(detail.nodes.length,1); assert.equal(detail.risks.length,riskMode?2:1);
+    const detail=await measured('detail','/api/projects/'+target); assert.equal(detail.stages.length,7); assert.equal(detail.nodes.length,nodeMode?4:1); assert.equal(detail.risks.length,riskMode?2:1);
     if(checkMode){assert.equal(detail.project.checkStatus.latest.note,round===0?'有效文字更正 '+worker:`四人检查${worker}轮次${round-1}`);assert.equal(detail.project.checkStatus.required,true);}
     const result=await measured('save','/api/projects/'+target,'PATCH',{expectedVersion:detail.project.version,idempotencyKey:randomUUID(),changes:{summaryNote:`四人容量验证${worker}轮次${round}`,signal:round%2?'red':'yellow',priority:round%2?'high':'low',chipIds:[references.chips[(worker+round)%4]],people:[{id:references.engineers[worker],role:'hardware_owner'}]}});
     const fresh=await api('/api/projects/'+target); assert.equal(fresh.project.summaryNote,result.result.values.summaryNote); assert.equal(fresh.project.version,result.result.savedVersion); assert.deepEqual(fresh.project.chips.map(chip=>chip.id),result.result.values.chipIds); assert.equal(fresh.project.priority,result.result.values.priority);
@@ -126,6 +135,12 @@ try {
       const savedRisk=await measured('riskSave','/api/projects/'+target,'PATCH',body);finalVersion=savedRisk.result.savedVersion;
       const afterRisk=await api('/api/projects/'+target);assert.equal(afterRisk.project.version,finalVersion);assert.equal(afterRisk.risks.find(row=>row.id===riskIds[worker]).content,body.changes.riskOps[0].changes.content);assert.equal(afterRisk.risks.find(row=>row.id===riskIds[worker]).createdByName,'合成容量账号'+worker);
     }
+    if(nodeMode){
+      const body={expectedVersion:finalVersion,idempotencyKey:randomUUID(),changes:{nodeOps:[{op:'move',id:nodeIds[worker],x:600+round,y:40+worker}]}};
+      const preview=await measured('nodePreview','/api/projects/'+target+'/save-preview','POST',body);assert.equal(preview.confirmed,true);
+      const saved=await measured('nodeSave','/api/projects/'+target,'PATCH',body);finalVersion=saved.result.savedVersion;
+      const after=await api('/api/projects/'+target);assert.equal(after.project.version,finalVersion);assert.equal(after.nodes.find(node=>node.id===nodeIds[worker]).x,600+round);assert.equal(after.nodes.find(node=>node.id===nodeIds[worker]).completedOn,'2020-01-01');
+    }
     const audit=await measured('audit','/api/projects/'+target+'/audit'); assert.equal(audit.items[0].versionAfter,finalVersion);
   }));
   // 第 501 个项目可入库和查询，500 是验收规模，不是结构或读取总量上限。
@@ -134,12 +149,13 @@ try {
   assert.equal((await api('/api/projects?view=all&search='+encodeURIComponent('规模测试项目'))).pagination.total,501);
   const summary=Object.fromEntries(Object.entries(measurements).map(([kind,values])=>{values.sort((a,b)=>a-b);return [kind,{requests:values.length,p50Ms:Math.round(values[Math.ceil(values.length*.5)-1]),p95Ms:Math.round(values[Math.ceil(values.length*.95)-1]),maxMs:Math.round(values.at(-1))}];}));
   await mkdir('test-results',{recursive:true});
-  const result={status:'passed',startedAt:began,checkedAt:new Date().toISOString(),projectCount:500,stageCount:3500,initialAuditCount:(checkMode?1500:500)+(riskMode?1000:0),...(checkMode?{checkCount:1580,initialCorrectionCount:500,weekHistoryCount:1000}:{}),...(riskMode?{riskCount:1000,realRiskAdditions:500,riskCorrections:580,riskQueryPlan}:{}),processMemory:process.memoryUsage(),workers:4,authenticated:true,rounds:20,errorCount:0,measurements:summary,noHardProjectLimit:true,source:'专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时'};
-  await writeFile(riskMode?'test-results/project-risks-capacity-check.json':checkMode?'test-results/project-checks-capacity-check.json':'test-results/project-capacity-check.json',JSON.stringify(result,null,2)+'\n'); console.log(JSON.stringify(result));
+  const result={status:'passed',startedAt:began,checkedAt:new Date().toISOString(),projectCount:500,stageCount:3500,initialAuditCount:(checkMode?1500:500)+(riskMode?1000:0)+(nodeMode?1500:0),...(checkMode?{checkCount:1580,initialCorrectionCount:500,weekHistoryCount:1000}:{}),...(riskMode?{riskCount:1000,realRiskAdditions:500,riskCorrections:580,riskQueryPlan}:{}),...(nodeMode?{nodeCount:2000,realNodeAdditions:1500,nodeMoveCount:80}:{}),processMemory:process.memoryUsage(),workers:4,authenticated:true,rounds:20,errorCount:0,measurements:summary,noHardProjectLimit:true,source:'专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时'};
+  await writeFile(nodeMode?'test-results/project-nodes-capacity-check.json':riskMode?'test-results/project-risks-capacity-check.json':checkMode?'test-results/project-checks-capacity-check.json':'test-results/project-capacity-check.json',JSON.stringify(result,null,2)+'\n'); console.log(JSON.stringify(result));
 } finally {
   await connection.rollback(); await app?.close();
   if (!app) await runtime?.close();
   if (owned) {
+    await connection.execute('UPDATE project_nodes SET previous_node_id=NULL,next_node_id=NULL WHERE project_id IN (SELECT id FROM projects WHERE source_namespace=?)',[namespace]);
     for (const table of ['audit_log','project_checks','project_risks','project_nodes','project_chips','project_people','project_tags','project_stages','project_responsibilities']) await connection.execute(`DELETE FROM ${table} WHERE project_id IN (SELECT id FROM projects WHERE source_namespace=?)`,[namespace]);
     const scopes=ids.flatMap(id=>['text','ordinary'].map(mode=>'anonymous:project:'+id+':'+mode));
     await connection.execute('DELETE FROM command_receipts WHERE command_scope IN ('+scopes.map(()=>'?').join(',')+')',scopes);
