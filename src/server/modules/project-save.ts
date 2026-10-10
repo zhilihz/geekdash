@@ -9,10 +9,11 @@ const referenceFields = { customerId: 'customers', odmCustomerId: 'customers', p
 const collections = ['chipIds', 'tagIds', 'people'] as const;
 const roles = ['pm', 'hardware_owner', 'software_owner', 'participant'];
 type Person = { id: string; role: string };
+type StagePlan = { code: string; plannedDays?: number | null; note?: string };
 export type TextValues = Record<keyof typeof textColumns, string>;
-type Values = TextValues & { signalNote: string; chipstatNote: string; statusDesc: string; signal: string; priority: string; customerId: string | null; odmCustomerId: string | null; productLineId: string | null; appId: string | null; groupId: string | null; chipIds: string[]; tagIds: string[]; people: Person[] };
+type Values = TextValues & { signalNote: string; chipstatNote: string; statusDesc: string; signal: string; priority: string; customerId: string | null; odmCustomerId: string | null; productLineId: string | null; appId: string | null; groupId: string | null; chipIds: string[]; tagIds: string[]; people: Person[]; stagePlans?: StagePlan[] };
 type Field = keyof Values;
-const keys = [...Object.keys(columns), ...collections] as Field[];
+const keys = [...Object.keys(columns), ...collections, 'stagePlans'] as Field[];
 export type SaveRequest = { expectedVersion: string; idempotencyKey: string; changes: Partial<Values> };
 export type SaveResult = { projectId: string; operationId: string; changed: boolean; savedVersion: string; values: TextValues | Values; savedAt: string | null; display?: Record<string, unknown> };
 
@@ -30,6 +31,16 @@ export function validateSave(value: unknown): SaveRequest {
   const fields: Record<string, string> = {};
   for (const [key, text] of Object.entries(value.changes)) {
     if (!keys.includes(key as Field)) failure('INVALID_SAVE_REQUEST', 400);
+    if (key === 'stagePlans') {
+      if (!Array.isArray(text) || !text.length || text.length > 7) failure('INVALID_SAVE_REQUEST', 400);
+      for (const item of text) {
+        if (!object(item) || typeof item.code !== 'string' || !/^S[1-7]$/.test(item.code) || Object.keys(item).length < 2 || Object.keys(item).some(key => !['code', 'plannedDays', 'note'].includes(key))) failure('INVALID_SAVE_REQUEST', 400);
+        if (Object.hasOwn(item, 'plannedDays') && item.plannedDays !== null && (!Number.isInteger(item.plannedDays) || (item.plannedDays as number) < 0 || (item.plannedDays as number) > 65535)) fields.stagePlans = '工期须为空或0～65535的整数天';
+        if (Object.hasOwn(item, 'note') && (typeof item.note !== 'string' || !item.note.isWellFormed() || Buffer.byteLength(item.note, 'utf8') > 65535)) fields.stagePlans = '阶段评述须为有效文字，最多65535字节';
+      }
+      if (new Set(text.map(item => item.code)).size !== text.length) failure('INVALID_SAVE_REQUEST', 400);
+      continue;
+    }
     if (Object.hasOwn(referenceFields, key)) {
       if (collections.includes(key as typeof collections[number])) {
         if (!Array.isArray(text)) failure('INVALID_SAVE_REQUEST', 400);
@@ -56,7 +67,7 @@ export function validateSave(value: unknown): SaveRequest {
   }
   if (Object.keys(fields).length) failure('INVALID_PROJECT_FIELDS', 422, { fields });
   const request = value as SaveRequest;
-  return request.changes.people ? { ...request, changes: { ...request.changes, people: request.changes.people.map(({ id, role }) => ({ id, role })) } } : request;
+  return { ...request, changes: { ...request.changes, ...(request.changes.people ? { people: request.changes.people.map(({ id, role }) => ({ id, role })) } : {}), ...(request.changes.stagePlans ? { stagePlans: [...request.changes.stagePlans].sort((a, b) => a.code.localeCompare(b.code)).map(item => ({ code: item.code, ...Object.hasOwn(item, 'plannedDays') ? { plannedDays: item.plannedDays } : {}, ...Object.hasOwn(item, 'note') ? { note: item.note } : {} })) } : {}) } };
 }
 async function query(connection: PoolConnection, sql: string, values: unknown[] = []) {
   return (await connection.query<RowDataPacket[]>({ sql, timeout: 3000 }, values))[0];
@@ -134,6 +145,12 @@ export function projectSaves(database: RuntimeDatabase) {
         if (actor && !(await query(connection, 'SELECT user_id FROM project_responsibilities WHERE project_id=? AND user_id=?', [id, actor.id])).length) failure('PROJECT_READ_ONLY', 403);
         if (current.version !== request.expectedVersion) failure('PROJECT_VERSION_CONFLICT', 409, { currentVersion: current.version });
         if (extended) Object.assign(current, await linkedValues(connection, id));
+        let effective = request.changes;
+        if (request.changes.stagePlans) {
+          current.stagePlans = await query(connection, 'SELECT stage_code code,planned_days plannedDays,note FROM project_stages WHERE project_id=? ORDER BY stage_code', [id]);
+          if (current.stagePlans.length !== 7) failure('STAGE_SEQUENCE_REVIEW_REQUIRED', 422);
+          effective = { ...request.changes, stagePlans: current.stagePlans.map((item: StagePlan) => ({ ...item, ...request.changes.stagePlans!.find(change => change.code === item.code) })) };
+        }
         const errors: Record<string, string> = {};
         for (const [key, table] of Object.entries(referenceFields)) if (Object.hasOwn(request.changes, key)) {
           const previous = new Set(key === 'people' ? (current.people as Person[]).map(person => person.id + ':' + person.role) : idsOf(key, current[key]));
@@ -144,9 +161,9 @@ export function projectSaves(database: RuntimeDatabase) {
           }
         }
         if (Object.keys(errors).length) failure('INVALID_PROJECT_FIELDS', 422, { fields: errors });
-        const fields = keys.filter(key => Object.hasOwn(request.changes, key) && JSON.stringify(request.changes[key]) !== JSON.stringify(current[key]));
+        const fields = keys.filter(key => Object.hasOwn(effective, key) && JSON.stringify(effective[key]) !== JSON.stringify(current[key]));
         if (fields.length && current.version === '18446744073709551615') failure('PROJECT_VERSION_EXHAUSTED', 422);
-        const values = Object.fromEntries((extended ? keys : Object.keys(textColumns) as Field[]).map(key => [key, Object.hasOwn(request.changes, key) ? request.changes[key] : current[key]])) as Values;
+        const values = Object.fromEntries((extended ? keys : Object.keys(textColumns) as Field[]).filter(key => key !== 'stagePlans' || request.changes.stagePlans).map(key => [key, Object.hasOwn(effective, key) ? effective[key] : current[key]])) as Values;
         const result: SaveResult = { projectId: id, operationId: request.idempotencyKey, changed: fields.length > 0,
           savedVersion: fields.length ? String(BigInt(current.version) + 1n) : current.version, values, savedAt: fields.length ? new Date().toISOString() : null };
         if (fields.length) {
@@ -154,6 +171,9 @@ export function projectSaves(database: RuntimeDatabase) {
           const timestamp = result.savedAt!.slice(0, 23).replace('T', ' ');
           const [updated] = await connection.execute<ResultSetHeader>(`UPDATE projects SET ${plain.map(key => `\`${columns[key]}\`=?,`).join('')}${fields.includes('statusDesc') ? 'status_description_updated_at=?,' : ''}version=version+1,updated_at=? WHERE id=? AND version=?`, [...plain.map(key => values[key]), ...(fields.includes('statusDesc') ? [timestamp] : []), timestamp, id, current.version]);
           if (updated.affectedRows !== 1) failure('PROJECT_VERSION_CONFLICT', 409);
+          if (fields.includes('stagePlans')) for (const plan of values.stagePlans!) {
+            if (JSON.stringify(plan) !== JSON.stringify(current.stagePlans.find((item: StagePlan) => item.code === plan.code))) await connection.execute('UPDATE project_stages SET planned_days=?,note=? WHERE project_id=? AND stage_code=?', [plan.plannedDays ?? null, plan.note ?? '', id, plan.code]);
+          }
           for (const key of collections) if (fields.includes(key)) {
             const table = key === 'chipIds' ? 'project_chips' : key === 'tagIds' ? 'project_tags' : 'project_people';
             await connection.execute(`DELETE FROM ${table} WHERE project_id=?`, [id]);

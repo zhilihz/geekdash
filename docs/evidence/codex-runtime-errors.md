@@ -49,6 +49,7 @@
 - 处理：先docker inspect核对HostConfig.PortBindings和NetworkSettings.Ports；具备端口声明却无实际映射/宿主连接拒绝时，只将自建验收容器连接既有本项目default网络，保持数据库的内部网络。
 - 本次：docker network connect geekdash-dev_default geekdash-stage-browser后，docker port显示127.0.0.1:41863:3000，原生浏览器实际登录页与保存链可达。没有把MySQL连接到宿主网络、开放SQL端口或重启其他服务。
 - 收尾：docker stop/rm本轮自建geekdash-stage-browser，脚本清理自己的合成账号/项目；要求空库的回归在此后运行。不要全局prune或删除共享库。
+- 2026-10-10复用：geekdash-correction-browser仅连接本项目default网络后41866可达。停止后不能假定finally清理成功；只读回归实际发现两个残留项目，核对确切ID及创建账号前缀后单独事务清理、再回读0项目并重跑通过，见[清理证据](2026-10-10-stage-corrections-cleanup-check.json)。进程句柄已缺失、容器已终止时依据数据库确认，不能清空共享库。
 - [完整复盘](#pe-20261009-004-复盘)
 
 ### PE-20261009-005 二进制数据指纹与升级接续

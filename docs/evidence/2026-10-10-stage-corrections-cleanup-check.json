@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T01:06:24.666Z",
+  "projectIds": [
+    "9007199254780576",
+    "9007199254780577"
+  ],
+  "prefix": "correction_54820b3f",
+  "removedProjects": 2,
+  "removedUsers": 3,
+  "remainingProjects": 0,
+  "scope": "仅本次合成浏览器夹具；未清库"
+}

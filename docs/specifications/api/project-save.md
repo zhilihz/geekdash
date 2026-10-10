@@ -1,4 +1,4 @@
-# 测试项目普通保存 API
+# 项目普通保存 API
 
 日期：2026-10-09；原普通编辑版本31012c8，本轮 E03-W09～W12 在相同协议上接入实名授权，结构仍0002-trial-save。身份请求头与新增入口见[项目主干 API](project-core.md)，实际构建版本见系统真相。行为唯一归 [SPEC-002](../specification.md#spec-002-保存事务并发与审计)；全部响应 Cache-Control: no-store，大整数均为十进制字符串。新写入要求已改密的真实账号及本人负责关系；匿名历史和旧 trial 回执只保留原来源及只读确认。
 
@@ -20,16 +20,17 @@ id/expectedVersion 范围为1至UINT64_MAX；操作编号为小写 UUID v4。同
 | customerId/odmCustomerId/productLineId/appId/groupId | 十进制 ID 字符串或 null |
 | chipIds/tagIds | 有序、无重复的 ID 字符串数组，[] 清除 |
 | people | 有序 {id,role} 数组；role 为 pm/hardware_owner/software_owner/participant，同 ID/role 不重复 |
+| stagePlans | E04-B03：1～7个不同阶段的 {code,plannedDays?,note?} 精确补丁 |
 
 遗漏字段/集合不修改。资料不存在或新增已停用引用返回 422，fields 指出对应字段；原停用引用可保留或移除。人员字段不产生账号权限。
 
-200：outcome=committed，result 包含 projectId/operationId/changed/savedVersion/values/savedAt。仅原四项字段的请求保持旧协议，values 为四项固定值；含扩展字段的请求 values 为全部普通字段及关联，实际变更时 display 附当时关联名称/角色/ID，供页面和历史消费。savedAt 为UTC或无变化时 null；另有本次 requestId。同编号回放 result 保持原值，本次 requestId 可不同。原文字请求的作用域/指纹保留兼容，扩展请求作用域为 anonymous:project:<id>:ordinary。
+200：outcome=committed，result 包含 projectId/operationId/changed/savedVersion/values/savedAt。仅原四项字段的请求保持旧协议，values 为四项固定值；含扩展字段的请求 values 为全部普通字段及关联，实际变更时 display 附当时关联名称/角色/ID，供页面和历史消费。savedAt 为UTC或无变化时 null；另有本次 requestId。同编号回放 result 保持原值，本次 requestId 可不同。实名作用域为user:<账号ID>:project:<项目ID>:text或ordinary；匿名历史回执保留原作用域，只读确认不伪造实名。
 
 | HTTP/代码 | 处理 |
 |---|---|
 | 400 INVALID_SAVE_REQUEST / INVALID_PROJECT_ID | 修正请求，未提交 |
 | 422 INVALID_PROJECT_FIELDS | fields 给对应字段错误，原输入保留 |
-| 403 PROJECT_READ_ONLY | 当前仅 trial 可改 |
+| 403 PROJECT_READ_ONLY | 本人尚未负责，先明确加入 |
 | 404 PROJECT_NOT_FOUND | 项目不存在 |
 | 409 PROJECT_VERSION_CONFLICT | currentVersion 提示新版，旧文字保留，重新进入 |
 | 409 OPERATION_KEY_REUSED | 编号与原内容不一致，停止覆盖 |
@@ -45,7 +46,7 @@ id/expectedVersion 范围为1至UINT64_MAX；操作编号为小写 UUID v4。同
 
 ## GET /api/projects/:id/audit
 
-pageSize 默认20，范围1～100；before 为上一页 nextCursor，采用严格小于该数字 ID 的逆序读取。返回 items/nextCursor/pageSize；nextCursor=null 表示本次没有更早页。items 含 id/actorDisplayName/actorKind/action/versionBefore/versionAfter/beforeValues/afterValues/createdAt。当前 actorKind=anonymous、显示“未认证操作”。历史总量无限制，与整个面板500项目规模独立。未知 query 拒绝，非法参数400；缺项目404、读取不可用503。
+pageSize 默认20，范围1～100；before 为上一页 nextCursor，采用严格小于该数字 ID 的逆序读取。返回 items/nextCursor/pageSize；nextCursor=null 表示本次没有更早页。items 含 id/actorDisplayName/actorKind/action/versionBefore/versionAfter/beforeValues/afterValues/createdAt。新实名动作actorKind=user；旧anonymous显示“未认证操作”，来源不改。历史总量无限制，与整个面板500项目规模独立。未知 query 拒绝，非法参数400；缺项目404、读取不可用503。
 
 文字动作 action=project.text.save，扩展动作 action=project.ordinary.save。beforeValues/afterValues 为实际变化项；关联值保留当时 {id,name} 或人员 {id,name,role}，清除为 null/[]。
 
@@ -53,4 +54,12 @@ pageSize 默认20，范围1～100；before 为上一页 nextCursor，采用严�
 
 只读候选入口，返回 apps/chips/customers/engineers/product_lines/project_groups/tags 分类数组。项目 ID 与资料 ID 均为字符串，每项含 id/name/enabled；芯片另含 originalModel/manufacturer/firmwareVersion。包括停用项供原引用识别，服务器保存时独立核验新增引用资格。读取失败503，不把失败返回为空数组。此入口没有资料新增/改名/停用能力。
 
-项目详情增加 customerId/odmCustomerId/productLineId/appId/groupId；已有关联集合的稳定 ID 保持。trial 的 capabilities.editOrdinary=true；business 为 false。协议实现对应 project-ordinary，实际固定构建见部署记录。
+项目详情增加 customerId/odmCustomerId/productLineId/appId/groupId；已有关联集合的稳定 ID 保持。当前能力依据可信账号及本人负责范围，协议实际固定构建见部署记录。
+
+## E04-B03 工期与评述统一保存
+
+stagePlans补丁code仅S1～S7，plannedDays为null或0～65535整数天，note为有效字符串、UTF-8最多65535字节；每项至少一个字段，阶段不得重复。省略字段保持原值，null明确未定工期，note空字符串明确清空。state/startedOn/completedOn等额外字段400，实际事实必须使用[项目动作](project-actions.md#5-e04-b03-阶段纠错误操作撤销与真实回退)。
+
+此字段与普通文字/资料关联同一个项目锁、版本、事务和审计。阶段状态/实际日期、节点成果、项目计划和检查事实保持；阶段事实有旧日期问题也不妨碍无关文字保存。非法工期/评述422 INVALID_PROJECT_FIELDS，fields.stagePlans提示，页面保留输入并返回原卡片。
+
+请求包含stagePlans时，result.values.stagePlans返回最终七阶段工期/评述；没有请求时不新增此返回字段，旧正文指纹不变。审计以stagePlans保存本次前后七项有效值；无变化不推进项目版本。页面跨基本信息/阶段页签暂存编辑，统一点击“保存项目”。独立动作打开前先处理普通编辑，表单期间暂停普通输入，取消后恢复。

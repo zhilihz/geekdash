@@ -1,0 +1,22 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T01:22:10.203519+00:00",
+  "markdownFiles": 9,
+  "localLinks": 119,
+  "anchors": 25,
+  "unchangedMigrations": {
+    "migrations/0001-foundation.json": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+    "migrations/0002-trial-save.json": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695"
+  },
+  "sourceHashes": {
+    "package.json": "7ef165fab6cd06ccf404bdf4267158da77819bb47078137ccbb65f29cefcf2b6",
+    "scripts/build.mjs": "b752c7eb3010a0cfa57590192c44ccb9baa417f0e50fe989d051a820329b44be",
+    "src/server/modules/identity.ts": "60401d29b93f1ecd6e52fe9abf978d57d6182f27a6a47b8eb4485871540f44d4",
+    "src/server/modules/project-actions.ts": "4f475594de0e7143fa784a0b357b00d40caec71e37e427d376422b0581bd59a1",
+    "src/server/modules/project-save.ts": "27a17830c89ad346bf00562ef653e38a4c846697c9a4b019b3b3f66c0d0089d6",
+    "src/server/routes/projects.ts": "cc2822a9fff09d4244f184743d039d6f9323ad7918478beebff1ee933cd93f60",
+    "src/web/detail.ts": "a8b76444330915c46f2a29427317af4f51b4ccf7c8a70841ac77b1408b5896db",
+    "src/web/shared/api.ts": "151c1450cbcd5c64f240bae337f2ca3bc940f90232abab04ea37cf9eb021aaa6",
+    "scripts/verify-stage-corrections.mjs": "f4fcf0bf4bd4e71f49cae6ad6b571ad8fd5522b266f88c099b509b7a69c1c23b"
+  }
+}

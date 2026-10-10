@@ -18,6 +18,12 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
   }
   app.post<{ Params: { id: string }; Body: unknown }>('/api/projects/:id/actions', (request, reply) => actionHandler(request, reply, false));
   app.post<{ Params: { id: string }; Body: unknown }>('/api/projects/:id/action-results/query', (request, reply) => actionHandler(request, reply, true));
+  app.post<{ Params: { id: string }; Body: unknown }>('/api/projects/:id/actions/preview', async (request, reply) => {
+    if (!request.actor) return reply.code(401).send({ code: 'AUTH_REQUIRED', outcome: 'not_committed' });
+    if (!validId(request.params.id)) return reply.code(400).send({ code: 'INVALID_PROJECT_ID', outcome: 'not_committed' });
+    if (!actions) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE', outcome: 'not_committed' });
+    return actions.preview(request.actor, request.params.id, validateAction(request.body));
+  });
   async function coreHandler(request: import('fastify').FastifyRequest<{ Params: { id?: string }; Body: unknown }>, reply: import('fastify').FastifyReply, confirm: boolean) {
     if (!request.actor) return reply.code(401).send({ code: 'AUTH_REQUIRED', outcome: 'not_committed' });
     const id = request.params.id;

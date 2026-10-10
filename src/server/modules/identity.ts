@@ -37,9 +37,9 @@ function sessionValid(row: RowDataPacket | undefined, now: Date) {
   return row && !row.revoked_at && utc(row.absolute_expires_at) > now.getTime() && utc(row.last_seen_at) + 7 * 86400000 > now.getTime();
 }
 // 所有业务写入按账号→会话→资料→项目取锁；不信任入口检查后的旧身份。
-export async function assertActor(c: PoolConnection, actor: Actor, allowChange = false, now = new Date(), exclusiveSession = false) {
-  const user = (await rows(c, `SELECT ${accountColumns} FROM users WHERE id=? FOR SHARE`, [actor.id]))[0];
-  const session = (await rows(c, `SELECT * FROM sessions WHERE token_hash=? AND user_id=? FOR ${exclusiveSession ? 'UPDATE' : 'SHARE'}`, [actor.tokenHash, actor.id]))[0];
+export async function assertActor(c: PoolConnection, actor: Actor, allowChange = false, now = new Date(), exclusiveSession = false, locked = true) {
+  const user = (await rows(c, `SELECT ${accountColumns} FROM users WHERE id=?${locked ? ' FOR SHARE' : ''}`, [actor.id]))[0];
+  const session = (await rows(c, `SELECT * FROM sessions WHERE token_hash=? AND user_id=?${locked ? ' FOR ' + (exclusiveSession ? 'UPDATE' : 'SHARE') : ''}`, [actor.tokenHash, actor.id]))[0];
   if (!user?.enabled || user.version !== actor.version || !sessionValid(session, now)) failure('AUTH_REQUIRED', 401);
   if (user.mustChangePassword && !allowChange) failure('PASSWORD_CHANGE_REQUIRED', 403);
   return user;

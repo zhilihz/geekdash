@@ -9,9 +9,32 @@ export { businessToday } from './project-dates.js';
 export type StageFact = { code: string; state: string; startedOn: string | null; completedOn: string | null };
 export type StageCommand = { action: 'startStage' | 'completeStage'; stageCode: string; actualDate: string; expectedVersion: string; idempotencyKey: string; completionNote?: string };
 export type StartCommand = { action: 'startProject'; actualDate: string; dueDate: string; planReason?: string; expectedVersion: string; idempotencyKey: string; configVersion: string; ruleVersion: string; previewWeek: string; previewFirstCheckWeek: string };
-export type ActionCommand = StageCommand | StartCommand;
+export type CorrectionCommand = { action: 'correctStageFacts'; changes: { code: string; startedOn?: string | null; completedOn?: string | null }[]; reason: string; expectedVersion: string; idempotencyKey: string }
+  | { action: 'undoStageStart' | 'undoStageComplete' | 'rollbackStage'; stageCode: string; undoStart?: boolean; reason: string; expectedVersion: string; idempotencyKey: string };
+export type ActionCommand = StageCommand | StartCommand | CorrectionCommand;
+export const correctionActions = ['correctStageFacts', 'undoStageStart', 'undoStageComplete', 'rollbackStage'];
 export function validateAction(value: unknown): ActionCommand {
   if (!value || typeof value !== 'object' || Array.isArray(value)) failure('INVALID_STAGE_COMMAND', 400);
+  if (correctionActions.includes((value as { action: string }).action)) {
+    const body = value as CorrectionCommand;
+    const required = ['action', 'reason', 'expectedVersion', 'idempotencyKey', body.action === 'correctStageFacts' ? 'changes' : 'stageCode'];
+    if (required.some(key => !Object.hasOwn(body, key)) || Object.keys(body).some(key => ![...required, ...(body.action === 'undoStageComplete' ? ['undoStart'] : [])].includes(key))
+      || !validId(body.expectedVersion) || typeof body.idempotencyKey !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(body.idempotencyKey)
+      || typeof body.reason !== 'string' || !body.reason.isWellFormed() || Buffer.byteLength(body.reason, 'utf8') > 65535) failure('INVALID_STAGE_COMMAND', 400);
+    if (!body.reason.trim()) failure('CORRECTION_REASON_REQUIRED', 422, { fields: { reason: '请填写纠错或回退原因' } });
+    if (body.action === 'correctStageFacts') {
+      if (!Array.isArray(body.changes) || !body.changes.length || body.changes.length > 7) failure('INVALID_STAGE_COMMAND', 400);
+      for (const item of body.changes) {
+        if (!item || typeof item !== 'object' || Array.isArray(item) || !/^S[1-7]$/.test(item.code) || Object.keys(item).length < 2
+          || Object.keys(item).some(key => !['code', 'startedOn', 'completedOn'].includes(key))) failure('INVALID_STAGE_COMMAND', 400);
+        for (const key of ['startedOn', 'completedOn'] as const) if (Object.hasOwn(item, key) && item[key] !== null) requireDate(item[key], item.code + '.' + key);
+      }
+      if (new Set(body.changes.map(item => item.code)).size !== body.changes.length) failure('INVALID_STAGE_COMMAND', 400);
+      return { ...body, changes: [...body.changes].sort((a, b) => a.code.localeCompare(b.code)).map(item => ({ code: item.code, ...Object.hasOwn(item, 'startedOn') ? { startedOn: item.startedOn } : {}, ...Object.hasOwn(item, 'completedOn') ? { completedOn: item.completedOn } : {} })) };
+    }
+    if (typeof body.stageCode !== 'string' || !/^S[1-7]$/.test(body.stageCode) || body.undoStart !== undefined && typeof body.undoStart !== 'boolean') failure('INVALID_STAGE_COMMAND', 400);
+    return { ...body, ...(body.action === 'undoStageComplete' ? { undoStart: body.undoStart ?? false } : {}) };
+  }
   if ((value as { action?: string }).action === 'startProject') {
     const body = value as StartCommand;
     const required = ['action', 'actualDate', 'dueDate', 'expectedVersion', 'idempotencyKey', 'configVersion', 'ruleVersion', 'previewWeek', 'previewFirstCheckWeek'];
@@ -57,10 +80,47 @@ export function stageBlock(status: string, facts: StageFact[], code: string, act
   return null;
 }
 async function rows(c: PoolConnection, sql: string, values: unknown[] = []) { return (await c.query<RowDataPacket[]>({ sql, timeout: 3000 }, values))[0]; }
+function stageCorrection(status: string, facts: StageFact[], body: CorrectionCommand, today: string) {
+  const next = structuredClone(facts);
+  if (body.action === 'correctStageFacts') {
+    for (const change of body.changes) {
+      const target = next.find(fact => fact.code === change.code);
+      if (!target) failure('STAGE_SEQUENCE_REVIEW_REQUIRED', 422);
+      Object.assign(target, change);
+    }
+  } else {
+    if (!validSequence(facts)) failure('STAGE_SEQUENCE_REVIEW_REQUIRED', 422);
+    if (status === 'closed') failure('PROJECT_REOPEN_REQUIRED', 422);
+    if (body.action === 'rollbackStage' && !['proposal', 'ongoing'].includes(status)) failure('PROJECT_RESUME_REQUIRED', 422);
+    const index = next.findIndex(fact => fact.code === body.stageCode);
+    if (index < 0) failure('STAGE_SEQUENCE_REVIEW_REQUIRED', 422);
+    const target = next[index];
+    if (target.state !== (body.action === 'undoStageStart' ? 'active' : 'completed')) failure('STAGE_STATE_CHANGED', 422);
+    if (body.action === 'undoStageComplete' && !body.undoStart && !target.startedOn) failure('STAGE_DATE_REVIEW_REQUIRED', 422);
+    target.state = body.action === 'undoStageComplete' && !body.undoStart ? 'active' : 'ready';
+    if (target.state === 'ready') target.startedOn = null;
+    target.completedOn = null;
+    for (const later of next.slice(index + 1)) Object.assign(later, { state: 'locked', startedOn: null, completedOn: null });
+  }
+  if (!validSequence(next)) failure('STAGE_SEQUENCE_REVIEW_REQUIRED', 422);
+  for (const [index, fact] of next.entries()) {
+    if (fact.startedOn && fact.startedOn > today || fact.completedOn && fact.completedOn > today
+      || ['ready', 'locked'].includes(fact.state) && (fact.startedOn || fact.completedOn)
+      || fact.state === 'active' && fact.completedOn || fact.startedOn && fact.completedOn && fact.startedOn > fact.completedOn
+      || index > 0 && fact.startedOn && next[index - 1].completedOn && fact.startedOn < next[index - 1].completedOn!) {
+      failure('INVALID_STAGE_DATE', 422, { fields: { [fact.code]: `${fact.code}实际日期与状态、前后顺序或今天冲突，请核对` } });
+    }
+  }
+  const codes = next.filter((fact, index) => JSON.stringify(fact) !== JSON.stringify(facts[index])).map(fact => fact.code);
+  const progress = (items: StageFact[]) => [0, 5, 10, 20, 60, 80, 90, 100][items.filter(fact => fact.state === 'completed').length];
+  return { stageChanges: next.filter(fact => codes.includes(fact.code)), beforeStages: facts.filter(fact => codes.includes(fact.code)), progressBefore: progress(facts), progressAfter: progress(next), reason: body.reason, changed: codes.length > 0 };
+}
+const stageSql = "SELECT stage_code code,state,DATE_FORMAT(started_on,'%Y-%m-%d') startedOn,DATE_FORMAT(completed_on,'%Y-%m-%d') completedOn FROM project_stages WHERE project_id=? ORDER BY stage_code";
 export function projectActions(database: RuntimeDatabase, clock = () => new Date()) {
   async function run(actor: Actor, id: string, body: ActionCommand, requestId: string, confirm: boolean) {
     const scope = `user:${actor.id}:project:${id}:actions`;
-    const hash = createHash('sha256').update(JSON.stringify(body.action === 'startProject' ? [id, body.action, body.actualDate, body.dueDate, body.planReason ?? '', body.expectedVersion, body.configVersion, body.ruleVersion, body.previewWeek, body.previewFirstCheckWeek] : [id, body.action, body.stageCode, body.actualDate, body.expectedVersion, body.completionNote ?? null])).digest();
+    const hash = createHash('sha256').update(JSON.stringify(body.action === 'startProject' ? [id, body.action, body.actualDate, body.dueDate, body.planReason ?? '', body.expectedVersion, body.configVersion, body.ruleVersion, body.previewWeek, body.previewFirstCheckWeek]
+      : 'reason' in body ? [id, body.action, body.expectedVersion, body.reason, body.action === 'correctStageFacts' ? body.changes : [body.stageCode, body.undoStart ?? false]] : [id, body.action, body.stageCode, body.actualDate, body.expectedVersion, body.completionNote ?? null])).digest();
     const lookup = async (c: PoolConnection, lock: boolean) => {
       const row = (await rows(c, `SELECT request_hash,response_json FROM command_receipts WHERE command_scope=? AND idempotency_key=?${lock ? ' FOR UPDATE' : ''}`, [scope, body.idempotencyKey]))[0];
       if (!row) return null;
@@ -77,18 +137,25 @@ export function projectActions(database: RuntimeDatabase, clock = () => new Date
       const prior = await lookup(c, true); if (prior) return { outcome: 'committed', result: prior };
       if (!(await rows(c, 'SELECT user_id FROM project_responsibilities WHERE project_id=? AND user_id=?', [id, actor.id])).length) failure('PROJECT_READ_ONLY', 403);
       if (project.version !== body.expectedVersion) failure('PROJECT_VERSION_CONFLICT', 409, { currentVersion: project.version });
-      const facts = await rows(c, "SELECT stage_code code,state,DATE_FORMAT(started_on,'%Y-%m-%d') startedOn,DATE_FORMAT(completed_on,'%Y-%m-%d') completedOn FROM project_stages WHERE project_id=? ORDER BY stage_code", [id]) as (RowDataPacket & StageFact)[];
+      const facts = await rows(c, stageSql, [id]) as (RowDataPacket & StageFact)[];
       const savedVersion = String(BigInt(project.version) + 1n);
-      if (project.version === '18446744073709551615') failure('PROJECT_VERSION_EXHAUSTED', 422);
-      const finish = async (action: string, beforeValues: unknown, afterValues: unknown, details: Record<string, unknown>) => {
+      const finish = async (action: string, beforeValues: unknown, afterValues: unknown, details: Record<string, unknown>, changed = true) => {
         const at = now.toISOString().slice(0, 23).replace('T', ' ');
-        await c.execute('UPDATE projects SET version=version+1,updated_at=? WHERE id=?', [at, id]);
-        await c.execute(`INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,version_before,version_after,before_json,after_json,request_id,created_at)
+        if (changed) {
+          if (project.version === '18446744073709551615') failure('PROJECT_VERSION_EXHAUSTED', 422);
+          await c.execute('UPDATE projects SET version=version+1,updated_at=? WHERE id=?', [at, id]);
+          await c.execute(`INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,version_before,version_after,before_json,after_json,request_id,created_at)
           VALUES (?,?,'user',?,'project',?,?,?,?,?,?,?,?)`, [actor.id, actor.name, action, id, id, project.version, savedVersion, JSON.stringify(beforeValues), JSON.stringify(afterValues), requestId, at]);
-        const result = { projectId: id, operationId: body.idempotencyKey, action: body.action, ...details, savedVersion };
+        }
+        const result = { projectId: id, operationId: body.idempotencyKey, action: body.action, ...details, savedVersion: changed ? savedVersion : project.version };
         await c.execute('INSERT INTO command_receipts (actor_id,command_scope,idempotency_key,request_hash,response_code,response_json,committed_at) VALUES (?,?,?,?,200,?,?)', [actor.id, scope, body.idempotencyKey, hash, JSON.stringify(result), at]);
         return { outcome: 'committed', result };
       };
+      if ('reason' in body) {
+        const correction = stageCorrection(project.status, facts, body, businessToday(now));
+        for (const fact of correction.stageChanges) await c.execute('UPDATE project_stages SET state=?,started_on=?,completed_on=? WHERE project_id=? AND stage_code=?', [fact.state, fact.startedOn, fact.completedOn, id, fact.code]);
+        return finish('project.stage.' + body.action, { stageChanges: correction.beforeStages, progress: correction.progressBefore }, { stageChanges: correction.stageChanges, progress: correction.progressAfter, reason: body.reason }, correction, correction.changed);
+      }
       if (body.action === 'startProject') {
         const blocked = startProjectBlock(project as { status: string; startDate: string | null; firstCheckWeek: unknown }, facts, businessToday(now));
         if (blocked) failure(blocked, 422);
@@ -134,5 +201,19 @@ export function projectActions(database: RuntimeDatabase, clock = () => new Date
       return finish('project.stage.' + (body.action === 'startStage' ? 'start' : 'complete'), { stageChanges: before }, { stageChanges: after, ...(body.action === 'completeStage' ? { completionNote: body.completionNote } : {}) }, { stageCode: body.stageCode, actualDate: body.actualDate, stages: after });
     });
   }
-  return { run };
+  return {
+    run,
+    preview(actor: Actor, id: string, body: ActionCommand) {
+      if (!('reason' in body)) failure('INVALID_STAGE_COMMAND', 400);
+      return database.readSnapshot(async c => {
+        await assertActor(c, actor, false, clock(), false, false);
+        const project = (await rows(c, 'SELECT status,CAST(version AS CHAR) version FROM projects WHERE id=?', [id]))[0];
+        if (!project) failure('PROJECT_NOT_FOUND', 404);
+        if (!(await rows(c, 'SELECT user_id FROM project_responsibilities WHERE project_id=? AND user_id=?', [id, actor.id])).length) failure('PROJECT_READ_ONLY', 403);
+        if (project.version !== body.expectedVersion) failure('PROJECT_VERSION_CONFLICT', 409, { currentVersion: project.version });
+        const facts = await rows(c, stageSql, [id]) as (RowDataPacket & StageFact)[];
+        return { projectId: id, expectedVersion: project.version, ...stageCorrection(project.status, facts, body, businessToday(clock())) };
+      });
+    },
+  };
 }

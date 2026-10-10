@@ -1,0 +1,40 @@
+{
+  "status": "passed",
+  "startedAt": "2026-10-09T12:26:14.765Z",
+  "checkedAt": "2026-10-09T12:26:25.604Z",
+  "projectCount": 500,
+  "stageCount": 3500,
+  "initialAuditCount": 500,
+  "workers": 4,
+  "authenticated": true,
+  "rounds": 20,
+  "errorCount": 0,
+  "measurements": {
+    "list": {
+      "requests": 80,
+      "p50Ms": 26,
+      "p95Ms": 36,
+      "maxMs": 45
+    },
+    "detail": {
+      "requests": 80,
+      "p50Ms": 19,
+      "p95Ms": 24,
+      "maxMs": 51
+    },
+    "save": {
+      "requests": 80,
+      "p50Ms": 26,
+      "p95Ms": 41,
+      "maxMs": 75
+    },
+    "audit": {
+      "requests": 80,
+      "p50Ms": 12,
+      "p95Ms": 14,
+      "maxMs": 18
+    }
+  },
+  "noHardProjectLimit": true,
+  "source": "专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时"
+}

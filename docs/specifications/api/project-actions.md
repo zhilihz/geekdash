@@ -1,13 +1,14 @@
 # E04 项目动作 API
 
-来源：`src/server/routes/projects.ts`、`modules/project-actions.ts`；2026-10-09。当前实现startStage/completeStage/startProject，行为正文引用SPEC-002/003/014；部署事实归系统真相及部署记录。身份、CSRF及可信账号头沿[项目主干](project-core.md)，所有ID/版本使用十进制字符串。
+来源：`src/server/routes/projects.ts`、`modules/project-actions.ts`；2026-10-10，E04-B03。当前代码增加阶段实际日期纠错、误操作撤销与真实回退；行为正文引用SPEC-002/003/014；实际部署版本归系统真相及部署记录。身份、CSRF及可信账号头沿[项目主干](project-core.md)，所有ID/版本使用十进制字符串。
 
 ## 1. 明确保存与原结果确认
 
 | 方法与路径 | 用途 |
 |---|---|
-| `POST /api/projects/:id/actions` | 当前负责人明确保存开始或完成 |
+| `POST /api/projects/:id/actions` | 当前负责人明确保存项目动作 |
 | `POST /api/projects/:id/action-results/query` | 当前账号用完整原正文与编号查询原结果；查不到不代表未提交 |
+| `POST /api/projects/:id/actions/preview` | 阶段纠错/回退的服务器影响预览，不写业务事实或动作回执 |
 
 两入口使用同一正文：
 
@@ -71,7 +72,7 @@ stages只列本次影响的阶段。确认入口未发现回执返回HTTP200 `{"
 
 详情增加businessDate（Asia/Shanghai业务日）及stageActions：每阶段code/startBlocked/completeBlocked，null表示本次快照条件允许。它是页面可用性提示，保存仍在事务内校验。项目日期未知、旧事实、资料、灯色/优先级及周检查事实不被此动作自动重写。
 
-阶段页复用原面板卡片与静态阶段定义；开始/完成表单在卡片内，明确保存后新GET。阶段工期/评述仍只读；结案、回退等后续功能不可用，不触发原浏览器数据库脚本。审计含stageChanges前后状态/有效日期，完成另含completionNote；创建的beforeValues可以为null。
+阶段页复用原面板卡片与静态阶段定义；开始/完成表单在卡片内，明确保存后新GET。B03工期/评述接普通保存，纠错/回退沿第5节；结案仍待后续批次。审计含stageChanges前后状态/有效日期，完成另含completionNote；创建的beforeValues可以为null。
 
 ## 4. E04-B02 人工启动
 
@@ -86,3 +87,33 @@ stages只列本次影响的阶段。确认入口未发现回执返回HTTP200 `{"
 - 422 PLAN_REASON_REQUIRED：补充同次改期原因。
 
 详情增加startBlocked、checkRule以及project.firstCheckWeek/firstCheckRuleVersion；未知依据返回null，不猜测。checkRule协议见[公共设置](public-settings.md)。原阶段回执请求指纹保持兼容。已确认后GET失败只提示重新进入，不再次生成动作；未确认请求保留原编号/正文。
+
+## 5. E04-B03 阶段纠错、误操作撤销与真实回退
+
+预览、保存和原结果确认使用同一个完整命令。实际日期纠错示例：
+
+```json
+{
+  "action": "correctStageFacts",
+  "changes": [{"code":"S3","completedOn":"2026-10-08"},{"code":"S4","startedOn":null}],
+  "reason": "核对原记录后纠正",
+  "expectedVersion": "12",
+  "idempotencyKey": "12345678-1234-4123-8123-123456789abc"
+}
+```
+
+changes为1～7个不同阶段补丁，仅接受code/startedOn/completedOn；至少指定一个日期字段。省略不改，null明确未知；已完成且日期未知仍保持已完成。所有补丁合并成最终候选后检查状态与相邻阶段已知日期，不要求阶段日期晚于项目启动日。
+
+误操作/真实返工示例：
+
+```json
+{"action":"undoStageComplete","stageCode":"S3","undoStart":false,"reason":"完成误录","expectedVersion":"12","idempotencyKey":"12345678-1234-4123-8123-123456789abc"}
+```
+
+action为undoStageStart/undoStageComplete/rollbackStage；undoStart仅undoStageComplete允许，默认false。目标S1～S7；原因必填有效文字，UTF-8最多65535字节。撤销误开始要求目标active；撤销误完成及真实回退要求目标当前completed。具体联动归SPEC-003；保存返回影响阶段及原/新进度。项目计划、总体状态、检查义务、节点成果、风险和责任保持。结案必须先重开才能撤销/回退；暂缓项目真实回退须先恢复。
+
+预览HTTP200直接返回projectId/expectedVersion/changed/beforeStages/stageChanges/progressBefore/progressAfter/reason，无outcome封装。预览绑定进入版本，保存仍在事务内重新计算；不接受客户端提供的最终阶段集合或进度。预览后改输入需重新预览，别人已保存则409。预览不写业务事实、审计或command_receipts；正常会话活动记录仍沿身份入口执行。
+
+保存HTTP200沿outcome=committed/result，result含projectId/operationId/action/savedVersion及上述影响字段。实际无变化时changed=false，版本/updated_at/审计保持，仍保存确定回执。新动作作用域沿账号/项目/actions，旧startStage/completeStage/startProject指纹不改。
+
+补充错误：422 CORRECTION_REASON_REQUIRED填写原因；INVALID_PROJECT_DATE校验日期格式；INVALID_STAGE_DATE指明最终状态/日期冲突；PROJECT_REOPEN_REQUIRED先重开；PROJECT_RESUME_REQUIRED先恢复。既有阶段顺序矛盾返回STAGE_SEQUENCE_REVIEW_REQUIRED，未知开始不可直接撤销完成后假造开始事实。403/409/503恢复沿第2节，旧副本及未知提交沿原编号保留。
