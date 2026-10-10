@@ -154,7 +154,11 @@ try {
   const boundarySave=async()=>projectActions(runtime,()=>boundaryNow).run(actor,boundaryId,validateAction(await request(boundaryId,'saveCheck',{...check()})),randomUUID(),false);
   await boundarySave();boundaryNow=fridayEnd;await boundarySave();
   // 截止按上海日界，原检查时点不能因追加记录而改变。
-  now=at(5);await change(5);rule=await a.api('/api/settings/check-rule');const boundaryPage=await a.api('/api/projects/'+boundaryId+'/checks');assert.equal(boundaryPage.items[1].onTime,true);assert.equal(boundaryPage.items[0].onTime,false);
+  now=at(5);await change(5);rule=await a.api('/api/settings/check-rule');const boundaryPage=await a.api('/api/projects/'+boundaryId+'/checks'),boundaryRaw=(await fresh(boundaryId)).project_checks;
+  assert.equal(new Date(boundaryRaw[0].checked_at).getTime(),fridayEnd.getTime()-1,JSON.stringify(boundaryRaw));assert.equal(new Date(boundaryRaw[1].checked_at).getTime(),fridayEnd.getTime(),JSON.stringify(boundaryRaw));
+  const boundaryEvidence={expectedBoundary:fridayEnd.toISOString(),rawChecks:boundaryRaw.map(row=>({id:String(row.id),checkedAt:new Date(row.checked_at).toISOString(),ruleVersion:String(row.rule_version)})),page:boundaryPage};
+  assert.equal(Number(boundaryPage.rule.rule.deadlineWeekday),5,JSON.stringify(boundaryEvidence));assert.equal(boundaryPage.items[1].onTime,true,JSON.stringify(boundaryEvidence));assert.equal(boundaryPage.items[0].onTime,false,JSON.stringify(boundaryEvidence));
+  for(let repeat=0;repeat<10;repeat++){const copies=await Promise.all(Array.from({length:4},()=>a.api('/api/projects/'+boundaryId+'/checks')));for(const copy of copies)assert.deepEqual(copy,boundaryPage,JSON.stringify({repeat,boundaryEvidence,copy}));}
   for(let i=0;i<22;i++){boundaryNow=new Date(fridayEnd.getTime()+i+1);await boundarySave();}
   const firstPage=await a.api('/api/projects/'+boundaryId+'/checks');assert.equal(firstPage.items.length,20);assert(firstPage.nextCursor);const secondPage=await a.api('/api/projects/'+boundaryId+'/checks?before='+firstPage.nextCursor);assert.equal(secondPage.items.length,4);assert.equal(secondPage.nextCursor,null);assert.equal(new Set([...firstPage.items,...secondPage.items].map(x=>x.id)).size,24);
   await a.api('/api/projects/'+boundaryId+'/checks?pageSize=101','GET',undefined,400);await a.api('/api/projects/'+boundaryId+'/checks?before=01','GET',undefined,400);await a.api('/api/projects/18446744073709551614/checks','GET',undefined,404);
@@ -195,7 +199,7 @@ try {
   const frozenSunday=await projectChecks(runtime,()=>now).read(yearId,20);assert.equal(frozenSunday.items[0].weekStart,'2026-12-28');assert.equal(frozenSunday.items[0].onTime,true);assert.equal(frozenSunday.rule.weekStart,'2027-01-04');
   assert.deepEqual((await a.api('/api/projects/'+yearId+'/actions','POST',sundayBody)).result,sundayResult.result);
   checks.push('真实检查保存跨月年周日最后毫秒、新周00:00拒绝旧周新编号；往周冻结与原编号跨年恢复不重复');
-  const build=(await a.api('/api/health/live')).build;await mkdir('test-results',{recursive:true});await writeFile('test-results/project-checks-check.json',JSON.stringify({status:'passed',checkedAt:new Date().toISOString(),checks,requestCount:measurements.length,measurements,build,isolatedTestDatabase:true},null,2)+'\n');console.log(JSON.stringify({status:'passed',groups:checks.length,requestCount:measurements.length}));
+  const build=(await a.api('/api/health/live')).build;await mkdir('test-results',{recursive:true});await writeFile('test-results/project-checks-check.json',JSON.stringify({status:'passed',checkedAt:new Date().toISOString(),checks,requestCount:measurements.length,measurements,build,isolatedTestDatabase:true,boundaryEvidence},null,2)+'\n');console.log(JSON.stringify({status:'passed',groups:checks.length,requestCount:measurements.length}));
 } finally {
   if (app) await app.close();
   for (const id of projects) { for (const table of ['project_nodes', 'project_risks', 'project_checks', 'schedule_changes', 'audit_log', 'project_stages', 'project_responsibilities']) await c.execute('DELETE FROM ' + table + ' WHERE project_id=?', [id]); await c.execute("DELETE FROM command_receipts WHERE command_scope LIKE CONCAT('user:%:project:',?,':%')", [id]); await c.execute('DELETE FROM projects WHERE id=?', [id]); }

@@ -1,0 +1,26 @@
+{
+  "status": "unresolved_not_reproduced",
+  "checkedAt": "2026-10-10T05:45:02.271096+00:00",
+  "scope": "E04-B07真实隔离库固定复测",
+  "firstFailure": {
+    "assertion": "截止前最后1毫秒的历史onTime，false != true",
+    "line": 157,
+    "initialBuild": "e97479d1836235bb02aefd8a5510eb06d63113f5",
+    "rawFailedRowCaptured": false
+  },
+  "repeatedFullSuites": {
+    "count": 5,
+    "eachGroups": 9,
+    "eachHttpRequests": 211,
+    "allPassed": true
+  },
+  "enhancedSuite": {
+    "groups": 9,
+    "httpRequests": 251,
+    "rawSqlTimestampAndCurrentWeekdayCompared": true,
+    "parallelHistoryReads": 40,
+    "passed": true
+  },
+  "rootCause": "未确认，不能称已修复；未来失败需保存完整boundaryEvidence",
+  "realDataImported": false
+}
