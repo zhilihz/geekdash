@@ -11,4 +11,4 @@
 
 证据：[专项](../../evidence/local-v1051-closure/acceptance.json)、[13项回归](../../evidence/local-v1051-closure/regression.json)、[兼容](../../evidence/local-v1051-closure/legacy-compatibility.json)、[首页](../../evidence/local-v1051-closure/board-card.png)、[整体结案](../../evidence/local-v1051-closure/completed-closure.png)、[发布摘要](../../evidence/local-v1051-closure/release-files.json)。入口为geekdashdesktop/scripts/verify-local.mjs、verify-local-browser.mjs、verify-legacy-compat.mjs、browser-regression.mjs；兼容旧1051来源可由实现2f5cf2a恢复，SHA256归兼容证据。
 
-发布包已替换D:/geekwon/geekdash-local-releases/GeekDash1051.zip，白名单10项与源码/解压目录逐字节一致，没有测试夹具或业务数据库。上一追加包备份为GeekDash1051_结案修正前.zip，首次备份仍保留。验证使用Edge及OPFS真实FileSystemFileHandle，不代替Windows文件选择对话框的首次人工授权。本次没有云端部署；Git集成与远端回读另随收尾记录。
+发布包已替换D:/geekwon/geekdash-local-releases/GeekDash1051.zip，白名单10项与源码/解压目录逐字节一致，没有测试夹具或业务数据库。上一追加包备份为GeekDash1051_结案修正前.zip，首次备份仍保留。验证使用Edge及OPFS真实FileSystemFileHandle，不代替Windows文件选择对话框的首次人工授权。本次没有云端部署；实现c5fa2f6及集成a582893c956f97444a9aa5a9709cf9851112e00a已推送并回读远端main，自有41870测试服务已关闭。这是10月9日交付时的产物事实，后续启动补充包见10月10日报告。
