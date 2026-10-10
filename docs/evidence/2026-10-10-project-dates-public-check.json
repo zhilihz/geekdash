@@ -1,0 +1,42 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T02:31:22.720961+00:00",
+  "build": {
+    "revision": "a7d281d8b7966e60ec50aa7685007ce26dc47a7a",
+    "dirty": false,
+    "builtAt": "2026-10-10T02:19:28.540Z",
+    "stage": "project-dates",
+    "schemaVersion": "0002-trial-save"
+  },
+  "projectId": "11",
+  "savedVersion": "13",
+  "syntheticOnly": true,
+  "checks": [
+    "两名可信负责人/首次计划/同值保存/真实提前向后/说明",
+    "不可变原历史、更正与撤销不回滚后来计划",
+    "明确未定再补计划保持原始未知，未知改期单列",
+    "项目实际日期纠错不改变阶段状态和首次义务",
+    "预览后他人保存旧版409；原结果身份隔离与重放",
+    "新请求详情/历史/看板筛选及统计消费",
+    "公网固定资源逐字节核对；不是浏览器实点验收"
+  ],
+  "assets": {
+    "index.html": "b71d55ee4a44f7334e6433dd372ce9b65ee1a42f8d47032db15afe7ae45e3e7b",
+    "/assets/index-CO6hbpSL.js": "ead50ea7c9b04c2130a5b420bf352312eca7ac0cfd8f85d985b993a56012af7d",
+    "/assets/api-BKQaAFeq.js": "a472a8049841c674addb286fd53e6e94e7414132a065fc03e2de1a95bc2c839d",
+    "/assets/api-CEMtlmAC.css": "f81b99ccd3ef21d4ce6a436d1c1b2a13dae22b52308ed681a5f614d0227e2fa0",
+    "/assets/index-D8NXthWN.css": "5cdef17e18b287780e8197cec16e9d4628b2b7da8036bf90b4c8fbe2a375e3c1",
+    "GeekDash.html": "b71d55ee4a44f7334e6433dd372ce9b65ee1a42f8d47032db15afe7ae45e3e7b",
+    "project-detail.html": "1d3a1e1752939da42f577196d8e4b47b89c613ae64dc7f3a11106cea243c5bda",
+    "/assets/project-detail-jpizPQgf.js": "90fd39464e4f2dd67c428d49fc6fbc7e186659a2217a222bafde6657c26666d3",
+    "/assets/detail-DYDiBCqo.css": "01e982097fd0e8a5d14ad60181e442a24634e630afae7e91b7148fee651d9ba1",
+    "project-new.html": "dbaa167e0e5a781b82788054cbe079667b7221abb5d791577ca133c9edf5e412",
+    "/assets/project-new-BNo84xUs.js": "dbd3797239cd56172af5f83c665289be6d2c3d77c71e421c23277028f7ef229a",
+    "/assets/forms-D9KYl3tU.css": "e179bf8998912737851b88af0bc94aeff622a19313ac40fe5dd626fb3206ece0",
+    "login.html": "c51f0d28353622642b38c1f7b07e676488cff23f541a62133faf2ae1899c01f1",
+    "/assets/login-67x1CVSM.js": "1455f866ac0077628579e66b91c829f24db7e3e1d20ec161146d888b7b59921e",
+    "settings.html": "010ecffa8ba4c2540a8b8c8b331e772864bc29ab8d9f8370019b8650f3e5a2e4",
+    "/assets/settings-BCGSFpPZ.js": "8f3e42f28eea8732c410a5b9789b047d48f2dc574f680c9fb69cc558711ca96e"
+  },
+  "assetCount": 16
+}

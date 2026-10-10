@@ -19,4 +19,12 @@ CUA枚举显示Edge fetch失败；绑定返回的IAB标签时自动审批因URL�
 
 2026-10-10 02:14 UTC观察本机app35.69MiB、MySQL510.5MiB，Windows八个Node约207MiB，未观察到Node溢出。此为一次采样，不是长期内存结论。
 
-固定构建、main回读与两端运行更新在实际完成后补记；当前常驻仍B03/af5de71。B05～B09、完整E04及真实备份导入尚未完成。
+## 固定版本与公网结果
+
+a7d281d8b7966e60ec50aa7685007ce26dc47a7a已合并并回读远端main，保留独立1051更新；干净构建再跑五组287请求通过，[固定验证](../../evidence/2026-10-10-project-dates-fixed-api-check.json)。本机41860/新加坡同一project-dates/0002，无迁移；镜像/备份和恢复入口归[部署](../../operations/deployments/2026-10-10-project-dates.md)。
+
+云内九类回归通过，dev指纹保持/test逐表计数恢复，MySQL及其他17容器保持。500项目四会话320请求零错误，云内列表/详情/保存/历史P95=180/89/105/34ms；[云端容量](../../evidence/2026-10-10-project-dates-cloud-capacity-check.json)，历史波动与公司实际使用仍待。
+
+公网新合成项目11、两个真实负责人完成首次/同值/说明/提前/向后/不可变记录更正/撤销、明确未定再补充、项目日期纠错和旧版409。新请求详情/历史/看板与原回执隔离通过，当前v13/提案/S1待开始/0%，当前计划已知、原始未知，原说明/字段保留；16项资源逐字节一致。[公网证据](../../evidence/2026-10-10-project-dates-public-check.json)。这是真实HTTPS/API及资源核对，没有原生表单实点通过。
+
+实际app停止/启动后，原会话、完整详情/规则、13条历史及11个原动作回执新读保持；持久行数、MySQL及其他17容器保持，无OOM。[进程证据](../../evidence/2026-10-10-project-dates-restart-check.json)、[公网回读](../../evidence/2026-10-10-project-dates-restart-public-check.json)。重启前一条只读请求TLS EOF，未动服务器；同路径重读成功后执行重启，未重复新业务操作。B05～B09、完整E04、隔离备份恢复及真实备份导入尚未完成。

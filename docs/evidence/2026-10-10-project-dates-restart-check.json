@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T02:34:51.895447+00:00",
+  "revision": "a7d281d8b7966e60ec50aa7685007ce26dc47a7a",
+  "appStartedAtBefore": "2026-10-10T02:25:42.315348225Z",
+  "appStartedAtAfter": "2026-10-10T02:34:44.604948231Z",
+  "persistentRowCountsPreserved": true,
+  "mysqlIdAndStartedAtPreserved": true,
+  "otherContainerStartedAtPreserved": 17,
+  "appOomKilled": false,
+  "appRestartCount": 0
+}
