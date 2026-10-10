@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T08:43:42.947406+00:00",
+  "build": {
+    "revision": "2dfb17c463972def4f8aaea6a9d1c4079bd9effa",
+    "dirty": false,
+    "builtAt": "2026-10-10T08:30:47.475Z",
+    "stage": "project-nodes-compatible",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "imageId": "sha256:5d0b0cfe90da94aaae5ca585adacb77622f1542ac1f1a25d0e23d30a8f1de2d3",
+  "structure": {
+    "tables": 34,
+    "columns": 315,
+    "foreignKeys": 55
+  },
+  "backup": {
+    "path": "D:\\geekwon\\geekdash-data\\backups\\pre-node-compatible-2dfb17c46397.sql.gz",
+    "bytes": 12724,
+    "sha256": "3063bddcf90b5ecfcf3304555fe38a4eaf4409c69a65a21544bceaf8e8e246cb",
+    "scope": "two complete logical databases; isolated restore pending"
+  },
+  "oldHistoryPreserved": true,
+  "oldBusinessByteFingerprintsPreserved": true,
+  "testFixturesRestored": true,
+  "otherContainersPreserved": 0,
+  "appOomKilled": false,
+  "mysqlStartedAtPreservedSinceB05": true,
+  "localTestResultsSeparateDirectory": true,
+  "initialTestDataChecksPassedBeforeArtifactError": true,
+  "powershellSystemPolicyUnchanged": true
+}

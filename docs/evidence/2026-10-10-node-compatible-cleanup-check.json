@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T08:52:12.989136+00:00",
+  "ownTemporaryMysqlContainerRemoved": true,
+  "ownInternalNetworkRemoved": true,
+  "ownRowsVerifiedEmptyBeforeRemoval": true,
+  "temporaryMemoryLimitFreedBytes": 536870912,
+  "probeDataStillOnDDrive": true,
+  "globalNodeTermination": false,
+  "dockerGlobalPrune": false,
+  "existingVolumesDeleted": false,
+  "observation": "Windows Node工作集最高115.1MiB/27进程合计488.5MiB及应用/工具未发现OOM；未据进程数量终止其他任务"
+}

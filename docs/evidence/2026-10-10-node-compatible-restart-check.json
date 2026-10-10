@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T08:58:46.540299+00:00",
+  "build": {
+    "revision": "2dfb17c463972def4f8aaea6a9d1c4079bd9effa",
+    "dirty": false,
+    "builtAt": "2026-10-10T08:30:47.475Z",
+    "stage": "project-nodes-compatible",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "sameImage": true,
+  "mysqlIdStartedAtPreserved": true,
+  "otherContainersPreserved": 17,
+  "appRestartCount": 0,
+  "appOomKilled": false,
+  "actualAppStartedAtChanged": true
+}

@@ -1,0 +1,49 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T08:47:17.066354+00:00",
+  "build": {
+    "revision": "2dfb17c463972def4f8aaea6a9d1c4079bd9effa",
+    "dirty": false,
+    "builtAt": "2026-10-10T08:30:47.475Z",
+    "stage": "project-nodes-compatible",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "fixedUpgrade": {
+    "status": "passed",
+    "checkedAt": "2026-10-10T08:31:29.437Z",
+    "checks": [
+      "含数据0002、原双向节点/来源/版本/历史/二进制回执；额外对象在新增DDL前拒绝",
+      "真实含数据升级/NULL有效、34表315列55外键、原两摘要/登记时刻及全部业务保持，重复无变化",
+      "新增DDL已生效而未登记时真实进程死亡后精确续跑；0003资源回改拒绝；旧0002不能验证新结构",
+      "真实登录/新详情/结案遗留/端点过滤；已删字段ID来源保留，无关文字可保存，旧正文原结果保持"
+    ],
+    "structure": {
+      "database": "geekdash_test",
+      "version": "0003-node-recovery",
+      "checksum": "4a5b38bd7c84ea230d9d2b1b0b7f93c575107f20c5df9968109901c09296e578",
+      "tables": 34,
+      "columns": 315,
+      "foreignKeys": 55,
+      "differences": 0
+    },
+    "source": "独立自有MySQL空实例/合成旧0002 SQL来源/真实HTTP/新连接；常驻库未参与破坏演练",
+    "deleteRestoreDelivered": false
+  },
+  "nodes": {
+    "groups": 5,
+    "requests": 164
+  },
+  "checks": {
+    "groups": 10,
+    "requests": 253
+  },
+  "fixedFoundationPassed": true,
+  "candidateWhole13RegressionAndCapacityEvidenceReferenced": true,
+  "newSourceAlteredAfterFixedBuild": false,
+  "migrationSha256": {
+    "0001-foundation": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+    "0002-trial-save": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695",
+    "0003-node-recovery": "4a5b38bd7c84ea230d9d2b1b0b7f93c575107f20c5df9968109901c09296e578"
+  },
+  "imageId": "sha256:5d0b0cfe90da94aaae5ca585adacb77622f1542ac1f1a25d0e23d30a8f1de2d3"
+}

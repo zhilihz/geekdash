@@ -1,0 +1,69 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T09:00:49.967479+00:00",
+  "build": {
+    "revision": "2dfb17c463972def4f8aaea6a9d1c4079bd9effa",
+    "dirty": false,
+    "builtAt": "2026-10-10T08:30:47.475Z",
+    "stage": "project-nodes-compatible",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "ready": {
+    "status": "ready"
+  },
+  "sameFixedHtmlRoutes": 3,
+  "sameFixedResources": [
+    {
+      "path": "/assets/api-BCWnN62K.js",
+      "sha256": "83bbd81264c0ef1ca4b709ff801e73d832dd4dd7fa1587e217ebd8aee2637c4d",
+      "bytes": 15153
+    },
+    {
+      "path": "/assets/api-CEMtlmAC.css",
+      "sha256": "f81b99ccd3ef21d4ce6a436d1c1b2a13dae22b52308ed681a5f614d0227e2fa0",
+      "bytes": 2284
+    },
+    {
+      "path": "/assets/detail-DYDiBCqo.css",
+      "sha256": "01e982097fd0e8a5d14ad60181e442a24634e630afae7e91b7148fee651d9ba1",
+      "bytes": 39849
+    },
+    {
+      "path": "/assets/forms-D9KYl3tU.css",
+      "sha256": "e179bf8998912737851b88af0bc94aeff622a19313ac40fe5dd626fb3206ece0",
+      "bytes": 482
+    },
+    {
+      "path": "/assets/index-CQ-C5uAe.js",
+      "sha256": "d97a0637a1fb2a7fc04e11e7b4d05beb28829f612971b68d74d86a69469b3986",
+      "bytes": 8088
+    },
+    {
+      "path": "/assets/index-D8NXthWN.css",
+      "sha256": "5cdef17e18b287780e8197cec16e9d4628b2b7da8036bf90b4c8fbe2a375e3c1",
+      "bytes": 40978
+    },
+    {
+      "path": "/assets/login-9ndOPPHM.js",
+      "sha256": "9ad607f4bb54c1fd7bbb03b362b98f5c5a6b15894aacc93538aee28c72418e87",
+      "bytes": 2027
+    },
+    {
+      "path": "/assets/project-detail-BYYBQTbI.js",
+      "sha256": "8995c9ed25777c256df8fc7b11f4700f361883d97414f054ed7630f54d005c48",
+      "bytes": 117231
+    },
+    {
+      "path": "/assets/project-new-O3hGNUu8.js",
+      "sha256": "b66e03c9de52124548f04c2275b0f70f4eae86a9b55c1e420bbd0dd9bc344421",
+      "bytes": 2011
+    },
+    {
+      "path": "/assets/settings-CpNH0Ess.js",
+      "sha256": "b960b5ef36f349a85102251b14ccb1b3167c02ae8cfeb10234d6119404817d50",
+      "bytes": 4431
+    }
+  ],
+  "nativeBrowserAcceptance": false,
+  "source": "公网HTTPS GET/固定本机字节；没有浏览器动作或业务写入"
+}
