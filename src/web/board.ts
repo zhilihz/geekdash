@@ -8,13 +8,14 @@ const message = element<HTMLParagraphElement>('message');
 const filterRows = element<HTMLDivElement>('filter-rows');
 const query = new URLSearchParams(location.search);
 query.set('view', ['active', 'proposal', 'closed', 'maintenance', 'all'].includes(query.get('view') ?? '') ? query.get('view')! : 'active');
-const dimensions = { customer: '客户', productLine: '产品线', odmFactory: 'ODM 工厂', app: 'APP', group: '分组', status: '状态', priority: '优先级', signal: '信号灯', stage: '当前阶段', progress: '进度', chip: '芯片', tags: '标签', owner: '业务人员' };
+const dimensions = { customer: '客户', productLine: '产品线', odmFactory: 'ODM 工厂', app: 'APP', group: '分组', status: '状态', priority: '优先级', signal: '信号灯', deadline: '计划结果', stage: '当前阶段', progress: '进度', chip: '芯片', tags: '标签', owner: '业务人员' };
 const allowed = new Set(['view', 'search', 'page', ...Object.keys(dimensions)]);
 for (const key of [...query.keys()]) if (!allowed.has(key)) query.delete(key);
 let controller: AbortController | undefined;
 let generation = 0;
 let pagination: List['pagination'] | undefined;
 let hasResult = false;
+let businessDate = '';
 setupTheme();
 search.value = query.get('search') ?? '';
 
@@ -22,19 +23,20 @@ function card(project: Project) {
   const people = (role: string) => project.people.filter(person => person.role === role).map(person => person.name).join(' / ') || '—';
   const fields = [['客户', project.customer], ['产品线', project.productLine], ['ODM 工厂', project.odmFactory], ['APP', project.app], ['芯片', project.chips.map(chip => chip.name).join(' · ')], ['负责人', `${people('hardware_owner')}（硬） · ${people('software_owner')}（软）`], ['项目经理', people('pm')], ['周期', `${project.proposalDate ?? '—'} → ${project.dueDate ?? '—'}`]];
   const stageName = project.stage === 'completed' ? '七阶段全部完成' : '当前阶段：' + label(project.stage) + ' · ' + (project.status === 'proposal' && project.stage !== 'S1' ? '需先启动项目' : label(project.stageState));
-  return `<a class="card ${project.priority === 'high' ? 'pri-border-high' : ''}" href="project-detail.html?id=${project.id}" data-project-id="${project.id}"><div class="card-top"><div class="tags">${projectTags(project)}${project.manualDelayed && project.status !== 'closed' ? '<span class="delay-tag">⏰ 人工标记延期</span>' : ''}</div><span class="open-hint">查看详情 ↗</span></div><div class="card-name">${esc(project.name)}</div><ul class="card-info">${fields.map(([key, value]) => `<li><span class="k">${key}</span><span class="v">${esc(value || '—')}</span></li>`).join('')}</ul><div class="card-desc"><span class="d-label">市场预期</span>${esc(project.marketExpectation || '—')}</div><div class="card-desc status-desc"><span class="d-label">状态</span>${esc(project.statusDesc || '—')}</div><div class="card-stage"><div class="stage-bar-top"><span class="stage-bar-name">${esc(stageName)}</span><span class="stage-bar-pct">${project.progress}%</span></div><div class="stage-bar-track"><div class="stage-bar-fill" style="width:${Number(project.progress)}%"></div></div></div></a>`;
+  return `<a class="card ${project.priority === 'high' ? 'pri-border-high' : ''}" href="project-detail.html?id=${project.id}" data-project-id="${project.id}"><div class="card-top"><div class="tags">${projectTags(project)}</div><span class="open-hint">查看详情 ↗</span></div><div class="card-name">${esc(project.name)}</div><ul class="card-info">${fields.map(([key, value]) => `<li><span class="k">${key}</span><span class="v">${esc(value || '—')}</span></li>`).join('')}</ul><div class="card-desc"><span class="d-label">市场预期</span>${esc(project.marketExpectation || '—')}</div><div class="card-desc status-desc"><span class="d-label">状态</span>${esc(project.statusDesc || '—')}</div><div class="card-stage"><div class="stage-bar-top"><span class="stage-bar-name">${esc(stageName)}</span><span class="stage-bar-pct">${project.progress}%</span></div><div class="stage-bar-track"><div class="stage-bar-fill" style="width:${Number(project.progress)}%"></div></div></div></a>`;
 }
 function filters(options: List['options']) {
   options.stage = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'completed', 'unconfigured'];
   options.progress = ['0', '5', '10', '20', '60', '80', '90', '100'];
+  options.deadline = ['upcoming', 'due', 'overdue', 'unset', 'closed_on_time', 'closed_late', 'closed_unplanned', 'closed_unknown', 'terminated'];
   filterRows.innerHTML = Object.entries(dimensions).map(([key, title]) => {
     const values = options[key] ?? [];
     const selected = query.get(key) ?? '';
     const choices = selected && !values.includes(selected) ? [selected, ...values] : values;
-    return `<div class="filter-row"><span class="filter-label">${title}</span><button class="chip ${selected ? '' : 'active'}" data-filter="${key}" data-value="">全部</button>${choices.map(value => `<button class="chip ${selected === value ? 'active' : ''}" data-filter="${key}" data-value="${esc(value)}">${esc(key === 'progress' ? value + '%' : ['status', 'priority', 'signal', 'stage'].includes(key) ? label(value) : value)}</button>`).join('')}</div>`;
+    return `<div class="filter-row"><span class="filter-label">${title}</span><button class="chip ${selected ? '' : 'active'}" data-filter="${key}" data-value="">全部</button>${choices.map(value => `<button class="chip ${selected === value ? 'active' : ''}" data-filter="${key}" data-value="${esc(value)}">${esc(key === 'progress' ? value + '%' : ['status', 'priority', 'signal', 'stage', 'deadline'].includes(key) ? label(value) : value)}</button>`).join('')}</div>`;
   }).join('');
 }
-async function load() {
+async function load(active = true) {
   controller?.abort();
   controller = new AbortController();
   const current = ++generation;
@@ -47,18 +49,19 @@ async function load() {
   history.replaceState(null, '', location.pathname + '?' + query);
   document.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(button => button.classList.toggle('active', button.dataset.view === query.get('view')));
   try {
-    const data = await get<List>('/api/projects?' + query, controller.signal);
+    const data = await get<List>('/api/projects?' + query, controller.signal, active);
     if (current !== generation) return;
     pagination = data.pagination;
     query.set('page', String(pagination.page));
     history.replaceState(null, '', location.pathname + '?' + query);
     filters(data.options);
     hasResult = true;
-    const stats = [['total', '项目总数'], ['high', '高优先级'], ['green', '绿灯'], ['yellow', '黄灯'], ['red', '红灯']];
+    businessDate = data.businessDate;
+    const stats = [['total', '项目总数'], ['high', '高优先级'], ['green', '绿灯'], ['yellow', '黄灯'], ['red', '红灯'], ['overdue', '已超期'], ['due', '今日到期'], ['unset', '计划未定']];
     element('stats-bar').innerHTML = stats.map(([key, title]) => `<div class="stat"><span class="stat-label">${title}</span><b>${data.stats[key]}</b></div>`).join('');
     element('stage-chart').innerHTML = data.stageCounts.map(item => `<span>${esc(label(item.value))} · ${item.count}</span>`).join('');
     element('card-grid').innerHTML = data.items.map(card).join('');
-    element('result-count').textContent = `筛选结果 ${pagination.total} 条 · 统计条与筛选结果一致`;
+    element('result-count').textContent = `筛选结果 ${pagination.total} 条 · 统计条与筛选结果一致 · 截至 ${businessDate}`;
     element('page-info').textContent = `${pagination.page} / ${pagination.pageCount} 页`;
     previous.disabled = pagination.page <= 1;
     next.disabled = pagination.page >= pagination.pageCount;
@@ -97,6 +100,8 @@ element('card-grid').onclick = event => {
     try { sessionStorage.setItem('geekdash_board_return', JSON.stringify({ url: location.href, scrollY: scrollY })); } catch { /* 无浏览器存储时可正常跳转。 */ }
   }
 };
+window.addEventListener('focus', () => { if (hasResult) void load(); });
+setInterval(() => { if (hasResult && document.visibilityState === 'visible' && businessDate !== new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date())) void load(false); }, 60000);
 void import('./shared/api').then(async ({ requireIdentity }) => { await requireIdentity(); const settings = document.createElement('a'); settings.className = 'head-btn'; settings.href = '/settings.html'; settings.textContent = '公共检查规则'; document.querySelector('.head-actions')?.append(settings); await load(); }).catch(error => {
   element('message').textContent = (error as Error).message;
   const link = document.createElement('a'); link.href = '/login.html'; link.textContent = '登录 GeekDash'; element('message').append(' ', link);

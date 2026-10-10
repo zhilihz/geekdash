@@ -1,6 +1,6 @@
 # 项目只读 API
 
-日期：2026-10-08；对应代码：`dfd9f0cc837ff98c10c61541dee2a8b3a057b057` 的项目读取模块；运行事实归[部署记录](../../operations/deployments/2026-10-08-project-reads.md)。以下是实际代码协议，部署状态不能由本文推导。业务语义引用 SPEC-002/014；本单元免登录，只提供 GET，不开放写入。
+日期：2026-10-10；来源src/server/modules/projects.ts及routes/projects.ts，E04-B04。当前业务查询要求可信登录，身份协议归[项目主干](project-core.md)；以下是读取协议，部署状态归系统真相，不能由本文推导。业务语义引用SPEC-002/004/014。
 
 ## 1. 看板列表
 
@@ -14,6 +14,7 @@
 | status | proposal/ongoing/paused/closed |
 | priority | high/mid/low |
 | signal | green/yellow/red |
+| deadline | upcoming/due/overdue/unset/closed_on_time/closed_late/closed_unplanned/closed_unknown/terminated |
 | stage | S1～S7/completed/unconfigured |
 | progress | 字符串 0/5/10/20/60/80/90/100 |
 | page/pageSize | 整数；page 1～1000000，pageSize 1～100，默认 1/24 |
@@ -22,7 +23,7 @@
 
 返回 `items`（当前页项目摘要及批量关联芯片/人员/标签）、`pagination`、`stats`、`options`、`stageCounts`、`readOnly=true`。项目 ID/version 及关联 ID 均为字符串，避免 bigint 精度丢失；progress 可为 SQL 返回的数字字符串。空引用为 null，空关联为数组。
 
-`stats/options/stageCounts` 对应当前 view 的全部项目，其他筛选仅影响 items 与 pagination.total，沿原版统计条视图范围；页面明确注明。列表与统计/选项处于同一短读事务。空查询返回 200 和空数组/零计数；不可用不能伪装成空查询。
+`stats/stageCounts`跟随完整筛选范围，options按view提供可选范围。列表与统计/选项处于同一短读事务，businessDate来自同次服务器Asia/Shanghai时钟。stats含九个deadline类别计数，当前范围合计等于total；项目deadline含kind/asOfDate/days/label。未定或未知days=null，不能解释为0；不返回manualDelayed。空查询返回200和空数组/零计数；不可用不能伪装成空查询。
 
 ## 2. 固定详情
 
@@ -30,7 +31,9 @@
 
 id 为正十进制 bigint 字符串，不超过 unsigned bigint；格式/越界返回 400，项目不存在返回 404/PROJECT_NOT_FOUND。
 
-返回 `project/stages/nodes/risks/changes/delays/history/readOnly`；project 含普通详情及已接入关联，history 当前为 legacy_project_history 来源记录。未来新增审计历史消费随保存单元接入，不能将当前来源历史称全部修改历史。节点包含业务归属与旧位置/连线引用，但当前未提供 Flow 页面编排。
+返回project/stages/nodes/risks/changes/delays/planSummary/history/responsible/readOnly/capabilities及动作提示和公共规则。history仅旧来源记录，服务器完整审计按[保存API](project-save.md)独立分页。responsible是账号负责关系，与业务人员资料不同；当前身份与负责范围决定编辑能力，所有账号可读全部项目。
+
+delays包含kind、有效oldDate/newDate/reason/measures/voided、原actorId/createdAt、original原值和corrections更正来源；读取全部关联更正，不受审计第一页20条限制。planSummary包含reschedules、laterAdjustments、unknownAdjustments及相对原始计划有符号netDays；缺日期netDays=null。note、撤销或同值记录不计真实改期，未知改期单列；不据历史数量判断当前超期。具体变更协议见[项目动作](project-actions.md)。
 
 同一连接以 REPEATABLE READ + WITH CONSISTENT SNAPSHOT、READ ONLY 组装项目和子集合；请求结束提交并释放，不随浏览器停留持锁。日期为 YYYY-MM-DD；时间为 UTC ISO 字符串。页面重新进入前保持本次取得的数据与版本。
 
@@ -38,6 +41,6 @@ id 为正十进制 bigint 字符串，不超过 unsigned bigint；格式/越界�
 
 正常返回 no-store；项目查询过程失败返回 503/PROJECT_READ_UNAVAILABLE，不泄露 SQL、账号或凭据。全局数据库未就绪时沿工程健康协议返回 503/reason；无运行数据库的构建探测实例返回 503/DATABASE_UNAVAILABLE。
 
-POST/PATCH/DELETE 不存在业务写接口；GET 不创建账号、责任、检查、业务历史或草稿，不触发阶段/灯色变化。当前没有本人负责授权、服务器个人状态或 SSE；浏览器只保存主题、列表 URL/位置等本机浏览偏好。
+GET不创建账号、责任、检查、业务历史或草稿，不触发阶段/灯色变化。写入协议分别归项目主干/普通保存/项目动作；服务器个人状态与SSE仍后续。页面同版本聚焦/跨日只刷新派生日期提示，不覆盖未保存输入；不同版本冻结原编辑，需重新进入。
 
 验证方法归 TEST-036，执行结果归 [报告](../../testing/reports/2026-10-08-project-reads.md)。

@@ -1,6 +1,6 @@
 import './shared/detail.css';
 import './shared/read.css';
-import { get, send, SaveError, esc, label, projectTags, setupTheme, requireIdentity, account, stageMessages, actionLabels, type CorrectionCommand, type CorrectionPreview, type StageCommand, type StartCommand, type ProjectCommand, type CheckRuleContext, type Detail, type Entry, type EditValues, type Catalog, type SaveRequest, type SaveResult, type AuditPage } from './shared/api';
+import { get, send, SaveError, esc, label, projectTags, setupTheme, requireIdentity, account, stageMessages, actionLabels, dateTitles, isPlanCommand, type PlanCommand, type PlanPreview, type ScheduleRecord, type CorrectionCommand, type CorrectionPreview, type StageCommand, type StartCommand, type ProjectCommand, type CheckRuleContext, type Detail, type Entry, type EditValues, type Catalog, type SaveRequest, type SaveResult, type AuditPage } from './shared/api';
 
 const element = (id: string) => document.getElementById(id)!;
 const id = new URLSearchParams(location.search).get('id') ?? '';
@@ -33,11 +33,12 @@ let bufferKey = '';
 let stagePending: ProjectCommand | undefined;
 let stageDraft: Omit<StageCommand, 'idempotencyKey'> | Omit<StartCommand, 'idempotencyKey'> | undefined;
 let correctionDraft: CorrectionCommand | undefined;
+let planDraft: PlanCommand | undefined;
 declare const __GEEKDASH_STAGES__: { id: number; name: string; standard: string; progress: number; mid: number; milestone: string; hw: string; sw: string; biz: string }[];
 const stageKey = () => `geekdash_stage_action:${account!.id}:${id}`;
 function persistStage() {
   try {
-    if (stagePending || stageDraft || correctionDraft) sessionStorage.setItem(stageKey(), JSON.stringify({ pending: stagePending, draft: stageDraft, correction: correctionDraft }));
+    if (stagePending || stageDraft || correctionDraft || planDraft) sessionStorage.setItem(stageKey(), JSON.stringify({ pending: stagePending, draft: stageDraft, correction: correctionDraft, plan: planDraft }));
     else sessionStorage.removeItem(stageKey());
   } catch { storageFailed = true; }
 }
@@ -88,7 +89,74 @@ async function prepareAction(action: ProjectCommand['action'], code?: string) {
     if (await choose('已有未保存纠错副本，是否放弃后继续？旧输入可先复制。', [['cancel', '保留副本'], ['discard', '放弃副本后继续']]) !== 'discard') return false;
     correctionDraft = undefined; persistStage();
   }
+  if (planDraft && (planDraft.expectedVersion !== snapshot.project.version || planDraft.action !== action || 'recordId' in planDraft && planDraft.recordId !== code)) {
+    if (await choose('已有计划/日期副本，是否放弃后继续？可先复制输入。', [['cancel', '保留副本'], ['discard', '放弃副本后继续']]) !== 'discard') return false;
+    planDraft = undefined; persistStage();
+  }
   return true;
+}
+function scheduleHistory(record: ScheduleRecord) {
+  return `<article class="audit-entry"><h3>${record.kind === 'reschedule' ? '调整计划' : '补充说明'} #${esc(record.id)}${record.voided ? '（误录已撤销）' : ''}</h3><p>${esc(record.oldDate ?? '未定')} → ${esc(record.newDate ?? '未定')} · 原操作人ID ${esc(record.actorId ?? '未知')} · ${esc(record.createdAt)}（UTC）</p><p>有效原因：${esc(record.reason)}<br>有效措施：${esc(record.measures)}</p><details><summary>原记录及纠错来源</summary><p>原日期：${esc(record.original.oldDate ?? '未定')} → ${esc(record.original.newDate ?? '未定')}<br>原原因：${esc(record.original.reason)}<br>原措施：${esc(record.original.measures)}</p>${record.corrections.map(item => `<p>${esc(item.actorDisplayName)} · ${esc(item.createdAt)} · ${esc(item.reason)}</p>`).join('') || '<p>没有更正记录。</p>'}</details>${snapshot!.capabilities.editText ? `<button class="back-btn" data-plan="correctScheduleRecord" data-record="${esc(record.id)}">纠正这条记录</button>${!record.voided ? `<button class="back-btn" data-plan="voidScheduleRecord" data-record="${esc(record.id)}">撤销误录记录</button>` : ''}` : ''}</article>`;
+}
+async function openPlan(action: PlanCommand['action'], recordId?: string) {
+  if (!await prepareAction(action, recordId) || !snapshot?.capabilities.editText) return;
+  const record = recordId ? snapshot.delays.find(item => item.id === recordId) : undefined;
+  if (recordId && !record) { note('未找到该项目的计划记录，请重新进入核对。', true); return; }
+  if (!planDraft) {
+    const base = { expectedVersion: snapshot.project.version, idempotencyKey: crypto.randomUUID() };
+    if (action === 'setPlan') planDraft = { ...base, action, dueDate: String(snapshot.project.dueDate ?? '') };
+    else if (action === 'reschedulePlan') planDraft = { ...base, action, dueDate: String(snapshot.project.dueDate ?? ''), reason: '', measures: '' };
+    else if (action === 'notePlan') planDraft = { ...base, action, reason: '', measures: '' };
+    else if (action === 'correctProjectDates') planDraft = { ...base, action, changes: {}, reason: '' };
+    else if (action === 'correctScheduleRecord') planDraft = { ...base, action, recordId: recordId!, changes: {}, reason: '' };
+    else planDraft = { ...base, action, recordId: recordId!, reason: '' };
+  }
+  const draft = planDraft; tab = record ? 'risk' : 'info'; render();
+  let preview: PlanPreview | undefined;
+  let fields = '';
+  if (draft.action === 'setPlan' || draft.action === 'reschedulePlan') fields = `<label for="plan-date">预计结案日期</label><input id="plan-date" type="date" required value="${esc(draft.dueDate)}"><p>当前：${esc(snapshot.project.dueDate ?? '未定')}；原始：${esc(snapshot.project.originalDueDate ?? '未知')}。允许合法过去计划，不自动消除超期。</p>`;
+  if (draft.action === 'reschedulePlan' || draft.action === 'notePlan') fields += `<label for="plan-measures">措施（选填）</label><textarea id="plan-measures" class="choice-note">${esc(draft.measures)}</textarea>`;
+  if (draft.action === 'correctProjectDates') fields = Object.entries(dateTitles).map(([key, title]) => `<div class="field"><label><input type="checkbox" data-plan-select="${key}"${Object.hasOwn(draft.changes, key) ? ' checked' : ''}>纠正${title}</label><input type="date" data-plan-date="${key}" aria-label="${title}" value="${esc(Object.hasOwn(draft.changes, key) ? draft.changes[key as keyof typeof dateTitles] ?? '' : snapshot!.project[key] ?? '')}"${['proposalDate', 'filingDate', 'startDate'].includes(key) ? ` max="${esc(snapshot!.businessDate)}"` : ''}></div>`).join('');
+  if (record) {
+    fields = `<p>本项目记录 #${esc(record.id)}，${record.kind === 'note' ? '补充说明' : '真实调整'}；只修改历史不会回滚后来计划。</p>`;
+    if (draft.action === 'correctScheduleRecord') fields += (record.kind === 'reschedule' ? ['oldDate', 'newDate', 'reason', 'measures'] : ['reason', 'measures']).map(key => `<div class="field"><label><input type="checkbox" data-record-select="${key}"${Object.hasOwn(draft.changes, key) ? ' checked' : ''}>纠正${({ oldDate: '原日期', newDate: '新日期', reason: '原业务原因', measures: '原措施' } as Record<string, string>)[key]}</label>${key.endsWith('Date') ? `<input type="date" data-record-value="${key}" value="${esc(Object.hasOwn(draft.changes, key) ? draft.changes[key as keyof typeof draft.changes] ?? '' : record[key as keyof ScheduleRecord] ?? '')}">` : `<textarea data-record-value="${key}" class="choice-note">${esc(Object.hasOwn(draft.changes, key) ? draft.changes[key as keyof typeof draft.changes] : record[key as keyof ScheduleRecord])}</textarea>`}</div>`).join('');
+    if ('recordId' in draft) fields += `<label><input type="checkbox" id="plan-current-select"${Object.hasOwn(draft, 'currentDueDate') ? ' checked' : ''}>另外明确纠正当前计划（不自动回滚）</label><input id="plan-current-date" type="date" value="${esc(Object.hasOwn(draft, 'currentDueDate') ? draft.currentDueDate ?? '' : snapshot.project.dueDate ?? '')}">`;
+  }
+  element('plan-form').innerHTML = `<form id="plan-edit" class="stage-card"><h2>${esc(actionLabels[draft.action])}</h2><p>进入版本 ${esc(draft.expectedVersion)}。明确勾选的日期留空表示未知/未定，未选字段保持。状态、阶段、结案时计划与首次义务保持。</p><div class="field-grid">${fields}</div>${draft.action !== 'setPlan' ? `<label for="plan-reason">${draft.action === 'notePlan' ? '原因/说明（原因或措施至少一项）' : '本次调整/纠错原因（必填）'}</label><textarea id="plan-reason" class="choice-note"${draft.action === 'notePlan' ? '' : ' required'}>${esc(draft.reason)}</textarea>` : ''}<p id="plan-error" class="field-error" role="alert"></p><div id="plan-preview" aria-live="polite"></div><button type="submit" class="choice-btn">预览影响</button><button type="button" id="plan-save" class="choice-btn" disabled>保存${esc(actionLabels[draft.action])}</button><button type="button" id="plan-cancel" class="choice-btn">取消</button></form>`;
+  const capture = () => {
+    const previous = JSON.stringify(draft);
+    if ('dueDate' in draft) draft.dueDate = (element('plan-date') as HTMLInputElement).value;
+    if ('reason' in draft) draft.reason = (element('plan-reason') as HTMLTextAreaElement).value;
+    if ('measures' in draft) draft.measures = (element('plan-measures') as HTMLTextAreaElement).value;
+    if (draft.action === 'correctProjectDates') {
+      draft.changes = {};
+      for (const key of Object.keys(dateTitles) as (keyof typeof dateTitles)[]) if (document.querySelector<HTMLInputElement>(`[data-plan-select="${key}"]`)!.checked) draft.changes[key] = document.querySelector<HTMLInputElement>(`[data-plan-date="${key}"]`)!.value || null;
+    }
+    if (draft.action === 'correctScheduleRecord') {
+      draft.changes = {};
+      document.querySelectorAll<HTMLInputElement>('[data-record-select]:checked').forEach(input => { const key = input.dataset.recordSelect as keyof typeof draft.changes; const value = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[data-record-value="${key}"]`)!.value; if (key === 'oldDate' || key === 'newDate') draft.changes[key] = value || null; else draft.changes[key] = value; });
+    }
+    if ('recordId' in draft) { if ((element('plan-current-select') as HTMLInputElement).checked) draft.currentDueDate = (element('plan-current-date') as HTMLInputElement).value || null; else delete draft.currentDueDate; }
+    if (previous !== JSON.stringify(draft)) draft.idempotencyKey = crypto.randomUUID();
+    preview = undefined; (element('plan-save') as HTMLButtonElement).disabled = true; element('plan-preview').textContent = '输入已变化，请重新预览。'; persistStage();
+  };
+  element('plan-edit').oninput = capture; element('plan-cancel').onclick = () => { capture(); render(); };
+  element('plan-edit').onsubmit = async event => {
+    event.preventDefault(); capture();
+    if (dirty() || inFlight || loading || stale || authFrozen || pending || stagePending || responsibilityPending) return;
+    inFlight = true; controls(); const exact = JSON.stringify(draft);
+    try {
+      const result = await send<PlanPreview>(`/api/projects/${id}/actions/preview`, 'POST', draft);
+      if (exact !== JSON.stringify(draft)) { element('plan-error').textContent = '输入变化，请重新预览。'; return; }
+      preview = result;
+      element('plan-preview').innerHTML = `<h3>影响预览</h3>${table(Object.entries(result.afterValues).map(([key, value]) => ({ field: dateTitles[key as keyof typeof dateTitles] ?? ({ scheduleRecord: '历史有效记录', correctionReason: '纠错原因' } as Record<string, string>)[key] ?? key, before: showValue(key, result.beforeValues[key]), after: showValue(key, value) })), [['field', '明确修改'], ['before', '原有效事实'], ['after', '保存后有效事实']])}<p>${esc(result.beforeDeadline.label)} → ${esc(result.afterDeadline.label)}（截至 ${esc(result.afterDeadline.asOfDate)}）</p>${result.adjustmentDays !== undefined ? `<p>净本次调整：${result.adjustmentDays} 天；${result.direction === 'same' ? '日期相同，不新增改期；原因/措施请保留，若需记录用补充计划说明。' : result.direction === 'later' ? '向后调整' : '提前调整'}。</p>` : ''}${result.scheduleRecord ? `<p>新增${result.scheduleRecord.kind === 'note' ? '补充说明' : '真实改期'}：${esc(result.scheduleRecord.reason)} · ${esc(result.scheduleRecord.measures)}</p>` : ''}${result.startupBasisNote ? `<p>${esc(result.startupBasisNote)}：${esc(result.startupBasis ?? '未知')}</p>` : ''}${!result.changed ? '<p>没有实际变化；保存只记录原结果回执，不增加版本或修改历史。</p>' : ''}`;
+      element('plan-error').textContent = ''; (element('plan-save') as HTMLButtonElement).disabled = false;
+    } catch (error) { const failure = error as SaveError; if (failure.code === 'PROJECT_VERSION_CONFLICT') stale = true; if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID'].includes(failure.code)) authFrozen = true; element('plan-error').textContent = Object.values(failure.fields ?? {})[0] ?? failure.message; }
+    finally { inFlight = false; controls(); }
+  };
+  element('plan-save').onclick = async () => { if (!preview || dirty() || inFlight || loading || stale || authFrozen || draft.expectedVersion !== snapshot!.project.version) return; stagePending = structuredClone(draft); persistStage(); await executeStage(false); };
+  persistStage(); controls();
+  element('plan-edit').querySelector<HTMLInputElement | HTMLTextAreaElement>('input,textarea')?.focus();
 }
 async function openCorrection(action: CorrectionCommand['action'], code?: string) {
   if (!await prepareAction(action, code) || !snapshot?.capabilities.editText) return;
@@ -190,12 +258,12 @@ async function openStart() {
 async function executeStage(confirm: boolean) {
   if (!stagePending || inFlight) return;
   const original = stagePending; inFlight = true; render();
-  let result: { projectId: string; operationId: string; savedVersion: string } | undefined;
+  let result: { projectId: string; operationId: string; savedVersion: string; changed?: boolean } | undefined;
   try {
     const response = await send<{ outcome: string; result?: typeof result }>(`/api/projects/${id}/${confirm ? 'action-results/query' : 'actions'}`, 'POST', original, !confirm);
     if (response.outcome === 'committed' && response.result) {
       if (response.result.projectId !== id || response.result.operationId !== original.idempotencyKey) throw new SaveError('RESPONSE_UNKNOWN', 'unknown');
-      result = response.result; stagePending = undefined; stageDraft = undefined; correctionDraft = undefined; persistStage();
+      result = response.result; stagePending = undefined; stageDraft = undefined; correctionDraft = undefined; planDraft = isPlanCommand(original) && !result.changed ? original : undefined; persistStage();
     } else note('暂未查到阶段回执，结果仍待确认。请重试原操作，不要另造编号。', true);
   } catch (error) {
     const failure = error instanceof SaveError ? error : new SaveError('TRANSPORT_UNKNOWN', 'unknown');
@@ -208,7 +276,7 @@ async function executeStage(confirm: boolean) {
     observedVersion = result.savedVersion;
     const refreshed = await load();
     if (!refreshed) stale = true;
-    note(`${actionLabels[original.action]}已确认保存，版本${result.savedVersion}。${refreshed ? original.action === 'startProject' ? 'S2仍待开始，请单独保存开始阶段。' : original.action === 'completeStage' && original.stageCode === 'S1' ? '下一步需明确启动项目，项目仍为提案中。' : '' : '后续刷新失败，请重新进入查看；无需再次保存。'}`, !refreshed);
+    note(`${actionLabels[original.action]}${result.changed === false ? '无实际变化，副本已保留；如需记录原因/措施请选择补充说明。' : '已确认保存'}版本${result.savedVersion}。${refreshed ? original.action === 'startProject' ? 'S2仍待开始，请单独保存开始阶段。' : original.action === 'completeStage' && original.stageCode === 'S1' ? '下一步需明确启动项目，项目仍为提案中。' : '' : '后续刷新失败，请重新进入查看；无需再次保存。'}`, !refreshed);
     controls();
   }
 }
@@ -266,7 +334,7 @@ function dirty() { return !!values && !!snapshot && Object.keys(changes()).lengt
 function controls() {
   responsibilityControls();
   const frozen = inFlight || !!pending || !!responsibilityPending || !!stagePending || loading;
-  const actionOpen = !!document.querySelector('#stage-form, #start-form, #correction-edit');
+  const actionOpen = !!document.querySelector('#stage-form, #start-form, #correction-edit, #plan-edit');
   document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('[data-edit]').forEach(input => { input.disabled = frozen || actionOpen || stale || authFrozen || input.dataset.reference === 'true' && !catalog; });
   const save = document.getElementById('save') as HTMLButtonElement | null;
   if (save) save.disabled = frozen || stale || authFrozen || !dirty();
@@ -324,8 +392,8 @@ function choose(text: string, options: [string, string][], extra = ''): Promise<
   });
 }
 async function copyText() {
-  const stageCopy = stagePending ?? stageDraft ?? correctionDraft;
-  const text = (stageCopy ? 'reason' in stageCopy ? `${actionLabels[stageCopy.action]}副本\n原因：${stageCopy.reason}\n进入版本：${stageCopy.expectedVersion}\n${stageCopy.action === 'correctStageFacts' ? JSON.stringify(stageCopy.changes) : label(stageCopy.stageCode) + (stageCopy.undoStart ? '（开始也误记）' : '')}\n\n` : stageCopy.action === 'startProject' ? `启动项目副本\n实际启动：${stageCopy.actualDate}\n预计结案：${stageCopy.dueDate}\n调整原因：${stageCopy.planReason ?? ''}\n首次应检周：${stageCopy.previewFirstCheckWeek}\n进入版本：${stageCopy.expectedVersion}\n\n` : `阶段操作副本\n${label(stageCopy.stageCode)} · ${stageCopy.action === 'startStage' ? '开始' : '完成'}\n实际日期：${stageCopy.actualDate}\n说明：${stageCopy.completionNote ?? ''}\n进入版本：${stageCopy.expectedVersion}\n\n` : '') + keys.map(key => `${titles[key]}\n${showValue(key, values?.[key])}`).join('\n\n') + (candidate ? '\n\n——恢复候选副本——\n' + keys.map(key => `${titles[key]}\n${showValue(key, candidate!.values[key])}`).join('\n\n') : '') + (legacyCopy ? '\n\n——旧匿名试用副本（仅供核对）——\n' + keys.map(key => `${titles[key]}\n${showValue(key, legacyCopy!.values[key])}`).join('\n\n') : '');
+  const stageCopy = stagePending ?? stageDraft ?? correctionDraft ?? planDraft;
+  const text = (stageCopy ? isPlanCommand(stageCopy) ? `${actionLabels[stageCopy.action]}副本\n${JSON.stringify(stageCopy, null, 2)}\n\n` : 'reason' in stageCopy ? `${actionLabels[stageCopy.action]}副本\n原因：${stageCopy.reason}\n进入版本：${stageCopy.expectedVersion}\n${stageCopy.action === 'correctStageFacts' ? JSON.stringify(stageCopy.changes) : label(stageCopy.stageCode) + (stageCopy.undoStart ? '（开始也误记）' : '')}\n\n` : stageCopy.action === 'startProject' ? `启动项目副本\n实际启动：${stageCopy.actualDate}\n预计结案：${stageCopy.dueDate}\n调整原因：${stageCopy.planReason ?? ''}\n首次应检周：${stageCopy.previewFirstCheckWeek}\n进入版本：${stageCopy.expectedVersion}\n\n` : `阶段操作副本\n${label(stageCopy.stageCode)} · ${stageCopy.action === 'startStage' ? '开始' : '完成'}\n实际日期：${stageCopy.actualDate}\n说明：${stageCopy.completionNote ?? ''}\n进入版本：${stageCopy.expectedVersion}\n\n` : '') + keys.map(key => `${titles[key]}\n${showValue(key, values?.[key])}`).join('\n\n') + (candidate ? '\n\n——恢复候选副本——\n' + keys.map(key => `${titles[key]}\n${showValue(key, candidate!.values[key])}`).join('\n\n') : '') + (legacyCopy ? '\n\n——旧匿名试用副本（仅供核对）——\n' + keys.map(key => `${titles[key]}\n${showValue(key, legacyCopy!.values[key])}`).join('\n\n') : '');
   await choose('以下文字可选择后复制；复制不会保存项目。', [['cancel', '关闭']], `<textarea class="copy-text" readonly aria-label="未保存文字">${esc(text)}</textarea>`);
 }
 function editor() {
@@ -352,6 +420,7 @@ function showValue(key: string, value: unknown): string {
   if (value == null || value === '' || Array.isArray(value) && !value.length) return '（空）';
   if (key === 'stageChanges' && Array.isArray(value)) return value.map(item => `${label(item.code)}：${label(item.state)}；开始 ${item.startedOn ?? '未知'}；完成 ${item.completedOn ?? '未知'}`).join('\n');
   if (key === 'stagePlans' && Array.isArray(value)) return value.map(item => `${label(item.code)}：工期 ${item.plannedDays ?? '未定'}；评述 ${item.note ?? ''}`).join('\n');
+  if (key === 'scheduleRecord' && typeof value === 'object') { const record = value as ScheduleRecord; return `记录 #${record.id ?? '新记录'}：${record.kind === 'note' ? '补充说明' : '真实改期'}；${record.oldDate ?? '未定'} → ${record.newDate ?? '未定'}\n原因：${record.reason}\n措施：${record.measures}${record.voided ? '\n误录已撤销' : ''}`; }
   if (Array.isArray(value)) return value.map(item => showValue(key, item)).join('\n');
   if (typeof value === 'object') { const item = value as { id?: string; name?: string; role?: string }; const name = Object.hasOwn(referenceFields, key) ? catalog?.[referenceFields[key as keyof typeof referenceFields]]?.find(row => row.id === item.id)?.name : undefined; return `${item.name ?? name ?? item.id ?? ''}${item.id ? ' [ID ' + item.id + ']' : ''}${item.role ? ' · ' + label(item.role) : ''}`; }
   if (Object.hasOwn(referenceFields, key)) {
@@ -465,15 +534,20 @@ async function execute(confirm: boolean) {
     if (failure.fields) fieldErrors(failure.fields);
   } finally { inFlight = false; render(); }
 }
-async function observe(afterSave = false) {
+async function observe(afterSave = false, active = true) {
   const entry = snapshot;
   if (!entry) return;
   const token = generation;
   try {
-    const current = await get<Detail>('/api/projects/' + id, undefined, !afterSave);
+    const current = await get<Detail>('/api/projects/' + id, undefined, active && !afterSave);
     if (token !== generation || snapshot !== entry) return;
     if (BigInt(current.project.version) > BigInt(observedVersion)) observedVersion = current.project.version;
     if (BigInt(observedVersion) > BigInt(entry.project.version)) { stale = true; note('项目已被他人更新，请重新进入项目。未保存文字已保留供复制。', true); controls(); }
+    else if (current.project.version === entry.project.version) {
+      entry.project.deadline = current.project.deadline; entry.businessDate = current.businessDate;
+      element('d-tags').innerHTML = projectTags(entry.project);
+      element('d-meta').textContent = detailMeta(entry.project);
+    }
   } catch (error) { if (error instanceof SaveError) { authFrozen = true; persist(); note(error.message, true); controls(); } else if (afterSave) note('本次保存已确认，后续详情刷新失败。可重新进入查看；无需重复保存。', true); }
 }
 async function loadAudit(more = false) {
@@ -504,7 +578,7 @@ function render() {
   element('notice').textContent = snapshot.capabilities.editText ? '本人负责项目：普通文字、灯色、紧急程度和资料关联点击“保存项目”后生效，历史记录实际账号。页面保持进入版本。' : '当前项目只能查看。保存加入本人负责范围后可编辑；重新进入读取最新版。';
   element('d-title').textContent = p.name;
   element('d-tags').innerHTML = projectTags(p);
-  element('d-meta').textContent = `客户：${p.customer ?? '—'} · 产品线：${p.productLine ?? '—'} · 核心芯片：${p.chips.map(chip => chip.name).join(' / ') || '—'} · 项目版本：${p.version}`;
+  element('d-meta').textContent = detailMeta(p);
   let content = '';
   if (tab === 'info') {
     const values: [string, unknown][] = [['项目名称', p.name], ['客户', p.customer], ['产品线', p.productLine], ['ODM 工厂', p.odmFactory], ['APP', p.app], ['分组', p.projectGroup], ['项目标签', p.tags.map(tag => tag.name).join(' / ')], ['项目状态', label(p.status)], ['优先级', label(p.priority)], ['信号灯', label(p.signal)], ['灯色说明', p.signalNote], ['提案日期', p.proposalDate], ['立案日期', p.filingDate], ['启动日期', p.startDate], ['原计划结案日期', p.originalDueDate], ['当前计划结案日期', p.dueDate], ['结案日期', p.closedOn], ['结案类型', p.closureType ? label(p.closureType) : '—'], ['市场预期', p.marketExpectation], ['最新状态', p.statusDesc], ['项目备注', p.detailNote], ['汇总备注', p.summaryNote], ['芯片统计备注', p.chipstatNote], ['结案说明', p.closureNote], ['剩余工作', p.remainingWorkNote], ['阶段进度', `${p.progress}%`]];
@@ -517,10 +591,19 @@ function render() {
     + (audit?.items.length ? audit.items.map(item => `<article class="audit-entry"><h3>${esc(actionLabels[item.action] ?? item.action)} · ${esc(item.actorDisplayName)} · ${esc(item.createdAt)} · 版本 ${esc(item.versionBefore)} → ${esc(item.versionAfter)}</h3>${Object.keys(item.afterValues).map(key => `<div><strong>${esc(titles[key as keyof EditValues] ?? ({ stageChanges: '阶段状态与实际日期', completionNote: '完成说明', reason: '操作原因', progress: '有效阶段进度', status: '项目状态', startDate: '实际启动日期', dueDate: '当前计划结案日期', originalDueDate: '原计划结案日期', firstCheckWeek: '首次应检周', firstCheckRuleVersion: '首次应检规则版本' } as Record<string, string>)[key] ?? key)}</strong><div class="audit-diff"><div><span class="read-label">修改前</span><div class="read-value">${esc(showValue(key, item.beforeValues?.[key]))}</div></div><div><span class="read-label">修改后</span><div class="read-value">${esc(showValue(key, item.afterValues[key]))}</div></div></div></div>`).join('')}</article>`).join('') : '<p>暂无服务器修改历史。</p>')
     + `<p class="read-message">${esc(auditMessage)}</p><button class="back-btn" id="audit-refresh">重新读取历史</button>${audit?.nextCursor ? '<button class="back-btn" id="audit-more">读取更早记录</button>' : ''}`
     + '<h2>旧来源历史</h2><p class="read-message">保留原来源时间文本，与服务器修改历史分开。</p>' + table(snapshot.history.slice().reverse(), [['date', '来源时间'], ['text', '更新内容']]);
-  else if (tab === 'risk') content = '<h2>风险</h2>' + table(snapshot.risks.map(risk => ({ ...risk, resolved: risk.resolved ? '已解决' : '未解决' })), [['content', '风险内容'], ['level', '级别'], ['resolved', '状态'], ['resolution', '解决说明']]) + '<h2>需求变更</h2>' + table(snapshot.changes, [['source', '来源'], ['content', '内容'], ['decision', '结论'], ['reason', '原因']]) + '<h2>改期与说明</h2>' + table(snapshot.delays, [['oldDate', '原日期'], ['newDate', '新日期'], ['reason', '原因'], ['measures', '措施']]);
+  else if (tab === 'risk') content = '<h2>风险</h2>' + table(snapshot.risks.map(risk => ({ ...risk, resolved: risk.resolved ? '已解决' : '未解决' })), [['content', '风险内容'], ['level', '级别'], ['resolved', '状态'], ['resolution', '解决说明']]) + '<h2>需求变更</h2>' + table(snapshot.changes, [['source', '来源'], ['content', '内容'], ['decision', '结论'], ['reason', '原因']]) + '<h2>改期与说明</h2>' + (snapshot.delays.map(scheduleHistory).join('') || '<p>没有计划历史。</p>');
+  if (snapshot.capabilities.editText && ['info', 'risk'].includes(tab)) content = `<div class="edit-actions"><button class="back-btn" data-plan="${p.dueDate ? 'reschedulePlan' : 'setPlan'}">${p.dueDate ? '调整计划' : '确定计划'}</button><button class="back-btn" data-plan="notePlan">补充计划说明</button><button class="back-btn" data-plan="correctProjectDates">纠正项目日期</button></div>` + content;
+  if (['info', 'risk'].includes(tab)) content = `<p class="read-message">有效改期 ${snapshot.planSummary.reschedules} 次，其中向后调整 ${snapshot.planSummary.laterAdjustments} 次；日期待核对 ${snapshot.planSummary.unknownAdjustments} 次。相对原始计划净调整：${snapshot.planSummary.netDays === null ? '无法计算' : snapshot.planSummary.netDays + ' 天'}。</p>` + content;
+  if (planDraft && !stagePending) content = `<p>本标签页保留${esc(actionLabels[planDraft.action])}副本。</p><button class="back-btn" id="plan-restore">恢复计划/日期表单</button><button class="back-btn" id="plan-discard">放弃该副本</button>${planDraft.action === 'reschedulePlan' ? '<button class="back-btn" id="plan-as-note">作为补充说明重新预览</button>' : ''}` + content;
+  if (stagePending && isPlanCommand(stagePending) && tab !== 'stages') content = '<p role="status">原计划/日期结果待确认。</p><button class="back-btn" id="stage-confirm">确认原动作结果</button><button class="back-btn" id="stage-retry">重试原动作</button>' + content;
+  content += '<div id="plan-form"></div>';
   element('detail-body').innerHTML = content;
   document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => button.classList.toggle('active', button.dataset.tab === tab));
   bindEditor();
+  document.querySelectorAll<HTMLButtonElement>('[data-plan]').forEach(button => button.onclick = () => { void openPlan(button.dataset.plan as PlanCommand['action'], button.dataset.record); });
+  const planRestore = document.getElementById('plan-restore'); if (planRestore) planRestore.onclick = () => { if (planDraft) void openPlan(planDraft.action, 'recordId' in planDraft ? planDraft.recordId : undefined); };
+  const planDiscard = document.getElementById('plan-discard'); if (planDiscard) planDiscard.onclick = () => { planDraft = undefined; persistStage(); render(); };
+  const asNote = document.getElementById('plan-as-note'); if (asNote) asNote.onclick = () => { if (planDraft?.action === 'reschedulePlan') { planDraft = { action: 'notePlan', expectedVersion: planDraft.expectedVersion, idempotencyKey: crypto.randomUUID(), reason: planDraft.reason, measures: planDraft.measures }; persistStage(); void openPlan('notePlan'); } };
   document.querySelectorAll<HTMLButtonElement>('[data-stage-action]').forEach(button => button.onclick = () => { void openStage(button.dataset.stage!, button.dataset.stageAction as StageCommand['action']); });
   document.querySelectorAll<HTMLButtonElement>('[data-correction]').forEach(button => button.onclick = () => { void openCorrection(button.dataset.correction as CorrectionCommand['action'], button.dataset.stage); });
   const correctionRestore = document.getElementById('correction-restore'); if (correctionRestore) correctionRestore.onclick = () => { if (correctionDraft) void openCorrection(correctionDraft.action, 'stageCode' in correctionDraft ? correctionDraft.stageCode : undefined); };
@@ -549,7 +632,7 @@ async function load(initial = false) {
     render();
     element('message').textContent = '';
     if (initial) {
-      if (stagePending) { tab = 'stages'; render(); await executeStage(true); }
+      if (stagePending) { tab = isPlanCommand(stagePending) ? 'info' : 'stages'; render(); await executeStage(true); }
       candidate = readBuffer();
       if (candidate?.pending && data.capabilities.editText) {
         values = { ...candidate.values }; editBaseVersion = candidate.baseVersion; pending = candidate.pending; candidate = undefined; render(); await execute(true);
@@ -578,17 +661,19 @@ element('reload').onclick = async () => {
   await load();
 };
 element('back').onclick = async event => {
-  if (!dirty() && !pending && !stagePending && !stageDraft && !correctionDraft) return;
+  if (!dirty() && !pending && !stagePending && !stageDraft && !correctionDraft && !planDraft) return;
   event.preventDefault(); persist();
   const choice = await choose(pending || stagePending ? '原保存结果尚未确认，离开会保留原操作恢复信息。' : '项目尚未保存，如何返回列表？', [['cancel', '继续编辑'], ['keep', '保留本标签页副本并离开'], ...(!pending && !stagePending ? [['discard', '放弃编辑并离开'] as [string, string]] : [])]);
   if (choice === 'cancel') return;
-  if (choice === 'discard') { candidate = undefined; stageDraft = undefined; correctionDraft = undefined; persistStage(); try { sessionStorage.removeItem(bufferKey); } catch { storageFailed = true; } }
+  if (choice === 'discard') { candidate = undefined; stageDraft = undefined; correctionDraft = undefined; planDraft = undefined; persistStage(); try { sessionStorage.removeItem(bufferKey); } catch { storageFailed = true; } }
   leaving = true;
   location.href = (element('back') as HTMLAnchorElement).href;
 };
 element('copy').onclick = () => { void copyText(); };
 window.addEventListener('focus', () => { void observe(); });
-window.addEventListener('beforeunload', event => { if (!leaving && (dirty() || pending || stagePending || stageDraft || correctionDraft)) { persist(); event.preventDefault(); } });
+function detailMeta(p: Detail['project']) { return `客户：${p.customer ?? '—'} · 产品线：${p.productLine ?? '—'} · 核心芯片：${p.chips.map(chip => chip.name).join(' / ') || '—'} · 项目版本：${p.version} · 日期结果截至 ${p.deadline.asOfDate}`; }
+setInterval(() => { if (snapshot && !inFlight && !loading && document.visibilityState === 'visible' && snapshot.businessDate !== new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date())) void observe(false, false); }, 60000);
+window.addEventListener('beforeunload', event => { if (!leaving && (dirty() || pending || stagePending || stageDraft || correctionDraft || planDraft)) { persist(); persistStage(); event.preventDefault(); } });
 document.addEventListener('geekdash-identity-changed', () => { persist(); authFrozen = true; note('账号已变化。请复制未保存内容，重新登录原账号后再进入。', true); controls(); });
 void requireIdentity().then(async () => {
   bufferKey = `geekdash_project_buffer:${account!.id}:${id}`;
@@ -597,11 +682,20 @@ void requireIdentity().then(async () => {
   try { responsibilityPending = JSON.parse(sessionStorage.getItem(responsibilityKey()) ?? 'null') ?? undefined; } catch { note('责任变更恢复信息损坏，请先核对当前负责人。', true); }
   try {
     const saved = JSON.parse(sessionStorage.getItem(stageKey()) ?? 'null');
-    for (const part of ['pending', 'draft', 'correction'] as const) {
+    for (const part of ['pending', 'draft', 'correction', 'plan'] as const) {
       const v = saved?.[part];
       const validCorrection = v && typeof v.reason === 'string' && (v.action === 'correctStageFacts' ? Array.isArray(v.changes) && v.changes.every((item: { code: string }) => /^S[1-7]$/.test(item.code)) : ['undoStageStart', 'undoStageComplete', 'rollbackStage'].includes(v.action) && /^S[1-7]$/.test(v.stageCode));
-      const validAction = validCorrection || v && typeof v.actualDate === 'string' && (v.action === 'startProject' ? ['dueDate', 'configVersion', 'ruleVersion', 'previewWeek', 'previewFirstCheckWeek'].every(key => typeof v[key] === 'string') : /^S[1-7]$/.test(v.stageCode) && ['startStage', 'completeStage'].includes(v.action) && (v.completionNote === undefined || typeof v.completionNote === 'string'));
-      if (validAction && /^[1-9][0-9]{0,19}$/.test(v.expectedVersion) && (part === 'draft' || typeof v.idempotencyKey === 'string')) { if (part === 'pending') stagePending = v; else if (part === 'correction' && validCorrection) correctionDraft = v; else stageDraft = v; }
+      const patch = v?.changes;
+      const validPatch = patch && typeof patch === 'object' && !Array.isArray(patch) && Object.values(patch).every(value => value === null || typeof value === 'string');
+      const validPlan = v && typeof v.action === 'string' && isPlanCommand(v)
+        && (v.action === 'setPlan' ? typeof v.dueDate === 'string' : typeof v.reason === 'string')
+        && (!(v.action === 'reschedulePlan' || v.action === 'notePlan') || typeof v.measures === 'string')
+        && (v.action !== 'reschedulePlan' || typeof v.dueDate === 'string')
+        && (!['correctProjectDates', 'correctScheduleRecord'].includes(v.action) || validPatch && Object.keys(patch).every(key => (v.action === 'correctProjectDates' ? Object.keys(dateTitles) : ['oldDate', 'newDate', 'reason', 'measures']).includes(key)))
+        && (!(v.action === 'correctScheduleRecord' || v.action === 'voidScheduleRecord') || /^[1-9][0-9]{0,19}$/.test(v.recordId))
+        && (!('currentDueDate' in v) || v.currentDueDate === null || typeof v.currentDueDate === 'string');
+      const validAction = validPlan || validCorrection || v && typeof v.actualDate === 'string' && (v.action === 'startProject' ? ['dueDate', 'configVersion', 'ruleVersion', 'previewWeek', 'previewFirstCheckWeek'].every(key => typeof v[key] === 'string') : /^S[1-7]$/.test(v.stageCode) && ['startStage', 'completeStage'].includes(v.action) && (v.completionNote === undefined || typeof v.completionNote === 'string'));
+      if (validAction && /^[1-9][0-9]{0,19}$/.test(v.expectedVersion) && (part === 'draft' || typeof v.idempotencyKey === 'string')) { if (part === 'pending') stagePending = v; else if (part === 'correction' && validCorrection) correctionDraft = v; else if (part === 'plan' && validPlan) planDraft = v; else stageDraft = v; }
     }
   } catch { note('动作恢复信息无法读取，请核对当前项目。', true); }
   await load(true); legacyCopy = readBuffer(`geekdash_trial_text_v1:${id}`); await loadCatalog(); if (responsibilityPending) await changeResponsibility(true);

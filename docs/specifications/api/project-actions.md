@@ -1,6 +1,25 @@
 # E04 项目动作 API
 
-来源：`src/server/routes/projects.ts`、`modules/project-actions.ts`；2026-10-10，E04-B03。当前代码增加阶段实际日期纠错、误操作撤销与真实回退；行为正文引用SPEC-002/003/014；实际部署版本归系统真相及部署记录。身份、CSRF及可信账号头沿[项目主干](project-core.md)，所有ID/版本使用十进制字符串。
+来源：`src/server/routes/projects.ts`、`modules/project-actions.ts`、`modules/project-plans.ts`；2026-10-10，E04-B04。行为正文引用SPEC-002/003/004/014；实际部署版本归系统真相及部署记录。身份、CSRF及可信账号头沿[项目主干](project-core.md)，所有ID/版本使用十进制字符串。
+
+## E04-B04 日期与计划命令
+
+复用下方三个深接口，统一必填expectedVersion、idempotencyKey；不得提供actor、项目最终版本或派生状态。原因/措施UTF-8最多65535字节，日期为YYYY-MM-DD或明确允许的null。
+
+| action | 额外输入 |
+|---|---|
+| setPlan | dueDate必填，仅当前计划未定时可用 |
+| reschedulePlan | dueDate、reason必填；measures省略等价空字符串 |
+| notePlan | reason必填可空、measures选填；二者至少一项非空 |
+| correctProjectDates | reason、changes必填；changes仅proposalDate/filingDate/startDate/dueDate/originalDueDate，值为日期或null |
+| correctScheduleRecord | recordId、reason、changes必填；changes仅oldDate/newDate/reason/measures；currentDueDate可另外明确提供日期或null |
+| voidScheduleRecord | recordId、reason必填；currentDueDate可另外明确提供日期或null |
+
+未提供的字段保持。历史note不能改日期；记录kind、原操作人和时间不可更改。correctProjectDates与历史changes至少选择一项；显式null只用于日期，不能用空字符串代替。新预览返回changed、beforeValues、afterValues、beforeDeadline、afterDeadline；改期另含direction（earlier/same/later）、有符号adjustmentDays、拟新增scheduleRecord；涉及启动日期另含startupBasis及未知提示。
+
+保存成功沿outcome=committed，result含projectId/operationId/action/savedVersion及同次预览事实。新增业务行真实ID在afterValues.scheduleRecord.id；记录原编号恢复时结果不重新计算。changed=false时保存回执但不推进版本、不写审计/改期；页面保留原因，可明确转成独立notePlan预览保存。原阶段/启动命令请求指纹兼容保持。
+
+错误：400 INVALID_PLAN_COMMAND；422 PLAN_REASON_REQUIRED / PLAN_NOTE_REQUIRED / PLAN_ALREADY_SET / PLAN_REQUIRED / INVALID_PROJECT_DATE / SCHEDULE_RECORD_KIND_MISMATCH；404 SCHEDULE_RECORD_NOT_FOUND（含非本项目记录）。身份、负责范围、版本409、原编号冲突及提交未知503沿第2节，不允许通过换编号覆盖新版本。fields指明原表单问题。规则正文引用SPEC-003/004，预览与保存同模块重算，预览不是提交。
 
 ## 1. 明确保存与原结果确认
 
@@ -8,7 +27,7 @@
 |---|---|
 | `POST /api/projects/:id/actions` | 当前负责人明确保存项目动作 |
 | `POST /api/projects/:id/action-results/query` | 当前账号用完整原正文与编号查询原结果；查不到不代表未提交 |
-| `POST /api/projects/:id/actions/preview` | 阶段纠错/回退的服务器影响预览，不写业务事实或动作回执 |
+| `POST /api/projects/:id/actions/preview` | 阶段纠错/回退及日期/计划的服务器影响预览，不写业务事实或动作回执 |
 
 两入口使用同一正文：
 

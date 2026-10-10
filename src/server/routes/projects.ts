@@ -4,6 +4,7 @@ import { projectReads, type ProjectQuery } from '../modules/projects.js';
 import { projectSaves, validateSave, validId, type SaveRequest } from '../modules/project-save.js';
 import { projectCore, validateCore } from '../modules/project-core.js';
 import { projectActions, validateAction } from '../modules/project-actions.js';
+import { deadlineKinds } from '../modules/project-dates.js';
 
 export function registerProjectReads(app: FastifyInstance, database?: RuntimeDatabase) {
   const reads = database ? projectReads(database) : undefined;
@@ -77,6 +78,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
   properties.status = { type: 'string', enum: ['proposal', 'ongoing', 'paused', 'closed'] };
   properties.priority = { type: 'string', enum: ['high', 'mid', 'low'] };
   properties.signal = { type: 'string', enum: ['green', 'yellow', 'red'] };
+  properties.deadline = { type: 'string', enum: deadlineKinds };
   properties.stage = { type: 'string', enum: ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'completed', 'unconfigured'] };
   properties.progress = { type: 'string', enum: ['0', '5', '10', '20', '60', '80', '90', '100'] };
   properties.page = { type: 'integer', minimum: 1, maximum: 1000000 };
