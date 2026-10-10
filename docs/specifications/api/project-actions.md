@@ -171,3 +171,20 @@ changes只接受closedOn、closureDueDate、closureType、closureNote、remainin
 保存返回committed/result及上述影响、action/operationId/savedVersion。结案捕获当前计划和原总体状态；重开清空已消费结案投影、关闭维护，保留当前计划/阶段/普通修改/暂停来源/首次义务。维护同值和纠错同值changed=false，只保存原结果回执；不增加历史。project.close/project.reopen/project.maintenance/project.closure.correct为新审计名，原结案事件及原回执不可改写；历史通过已有audit分页读取。
 
 补充错误：400 INVALID_CLOSURE_COMMAND；422 CLOSURE_NOTE_REQUIRED/CLOSURE_REASON_REQUIRED/CLOSURE_REMAINING_REQUIRED/INVALID_CLOSURE_DATE/PROJECT_CLOSE_BLOCKED/PROJECT_CLOSED_REQUIRED/PROJECT_REOPEN_BASIS_UNKNOWN；409 CLOSURE_CHANGED（旧或跨项目结案ID不能纠正/重开当前周期）。日期格式错误沿INVALID_PROJECT_DATE；身份/只读/版本/503及原编号恢复沿共同协议。数据库已回滚返回not_committed；COMMIT未知返回unknown，不能因后续GET失败再发新结案。
+
+## 8. E04-B07 明确检查与文字纠错
+
+沿本文件的动作、只读预览与原结果接口，统一 expectedVersion 和 UUIDv4 idempotencyKey；项目负责人写入，所有可信账号可读。行为正文归 SPEC-005/019，纠错来源取舍归 AD-010。实际源为 project-actions.ts / project-checks.ts。
+
+| action | 额外必填输入 |
+|---|---|
+| saveCheck | conclusion、note、ruleVersion、previewWeek |
+| correctCheck | checkId、conclusion、note、reason |
+
+conclusion 为 checked / follow_up；note 可以为空，纠错时空字符串表示明确清空。文字为合法 Unicode、UTF-8 最多 65535 字节；reason 非空；版本和 checkId 为字符串 ID，previewWeek 为服务器提供的周一日期。拒绝额外操作者、时间、历史周、状态或整条撤销字段。correctCheck 不携带截止规则，目标必须属于本项目。
+
+预览 HTTP200 返回 changed / beforeValues / afterValues；saveCheck 另有 deadlineDate / onTime，拟检查包含 checkedAt / weekStart / ruleVersion / observedVersion / resultVersion，实际人、时间与周在保存时重新确认。correctCheck 另有原人、时间、周、原版本及 original 文字；只读预览不写入。输入变化、项目变版或检查规则变化后重新核对。
+
+保存返回 committed/result，包含 action / operationId / projectId / checkId / changed / savedVersion 及预览影响。实际保存检查在身份→配置共享锁→项目锁取得后取一次时钟，检查、项目版本、project.check.save 审计及原回执同事务。纠错只追加 project.check.correct 审计，原 project_checks 行保持；有效文字按原检查 ID 的最新更正投影。审计 entity_type=project_check、entity_id=原检查 ID，project_id 仍供项目历史分页。无变化纠错只写回执。
+
+补充错误：400 INVALID_CHECK_COMMAND；422 CHECK_REASON_REQUIRED / CHECK_RULE_REQUIRED；404 PROJECT_CHECK_NOT_FOUND；409 CHECK_PREVIEW_CHANGED。身份、负责人、项目版本、编号重复及数据库失败沿第2节恢复；COMMIT 未知只能先确认原编号正文，不能换编号补一条检查。跨周或后来规则改变不影响原回执重放。检查列表协议见[项目读取](projects-read.md)。

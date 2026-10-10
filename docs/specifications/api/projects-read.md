@@ -51,7 +51,7 @@ project增加resumeStatus（暂缓前proposal/ongoing或null）、firstCheckWeek
 
 checkStatus包含kind/label/required/weekStart/deadlineDate/onTime/updatedAfterCheck/latest。kind为excluded/not_due/basis_unknown/rule_unknown/pending/overdue/checked/checked_late；required只表示默认当周必查，已有主动检查可以required=false。onTime为首次检查对本周当前有效截止的判定，未知为null；updatedAfterCheck比较最新resultVersion。latest为本周最新id/actorId/actorName/checkedAt/conclusion/note/observedVersion/resultVersion，没有则null。时间为UTC，自然周/截止按服务器Asia/Shanghai；结论原值checked/follow_up。
 
-stats增加checkRequired/checkPending/checkOverdue/checkDone/checkUpdated，沿完整筛选范围再应用默认必查范围；checkPending+checkOverdue+checkDone等于checkRequired，checkUpdated可以与已查计数重叠。暂缓移出必查不表示已查；恢复沿原首次义务立即查询。列表一次按当页项目批量读取周事实，详情相同投影；无定时业务写入或检查创建。B05只接读取，明确检查/纠错写入口仍属B07；规则正文归SPEC-005/019，不据现有表或夹具称写入口已交付。
+stats增加checkRequired/checkPending/checkOverdue/checkDone/checkUpdated，沿完整筛选范围再应用默认必查范围；checkPending+checkOverdue+checkDone等于checkRequired，checkUpdated可以与已查计数重叠。暂缓移出必查不表示已查；恢复沿原首次义务立即查询。列表一次按当页项目批量读取周事实，详情相同投影；无定时业务写入或检查创建。B07已接明确检查和文字纠错；最新摘要采用有效文字，原检查事实及原规则保留。规则正文归SPEC-005/019，实际验收与运行范围见系统真相。
 
 ## E04-B06 当前结案来源
 
@@ -60,3 +60,11 @@ stats增加checkRequired/checkPending/checkOverdue/checkDone/checkUpdated，沿�
 original为原结案审计内容，仅在详情读取；每次纠正通过物理当前投影及追加审计表达，原人/时间/原文不变。旧周期和各次更正从既有audit游标读取，500列表不加载完整审计。结案维护沿既有closed/maintenance视图；S7与维护标识分别显示。
 
 日期结果沿SPEC-004：旧来源缺少当时计划依据时归closed_unknown，不能取当前计划补造；服务器新结案已确认计划未定时归closed_unplanned。closurePlanKnown为内部查询计算值，日期模块显式数值化，不依字符串真假；筛选/统计与详情使用同一来源判断。没有新增表或迁移，完整真实导入仍后续。
+
+### E04-B07 检查历史分页
+
+GET `/api/projects/:id/checks?pageSize=20&before=字符串ID`；默认20、最大100，before为独立检查记录ID游标，总量无上限。可信账号可读，no-store；404项目不存在、400非法参数，数据库错误503。返回 projectVersion / items / nextCursor / pageSize / rule，同一数据库快照；项目版本不同于详情固定版本时客户端提示重入，不把新历史混入旧编辑基线。
+
+items 按原检查 ID 降序，每项保留 id / projectId / actorId / actorName / checkedAt / weekStart / ruleVersion / observedVersion / resultVersion；conclusion / note 为有效文字，original 为原文字，correction 为最新更正 id / actorName / createdAt / reason 或 null。完整更正过程仍读取项目审计。保存检查时的原人名快照来自创建审计，不随账号后来改名重写。
+
+deadlineDate / effectiveRuleVersion / onTime 为当前采用的截止判定，originalDeadlineDate / originalOnTime 为原规则判定。本周采用最新有效设置；历史周取该周结束前有效的最后修订，以后的调整不重算过去。列表首查采用 MIN(id)、最新采用 MAX(id)，同毫秒和时钟回拨不会改成按最小时间选首查。列表只批量读取当页周摘要与有效文字，详情和历史复用同一投影。

@@ -7,6 +7,7 @@ import { businessToday, checkContext, closurePlanKnownExpression, initialPlan, r
 import { dateColumns, isPlanCommand, planCandidate, validatePlan, type PlanCommand, type ProjectDates } from './project-plans.js';
 import { isLifecycleCommand, lifecycleCandidate, validateLifecycle, type LifecycleCommand, type LifecycleProject } from './project-lifecycle.js';
 import { closureCandidate, closureColumns, isClosureCommand, validateClosure, type ClosureCommand, type ClosureFacts } from './project-closures.js';
+import { checkCandidate, isCheckCommand, validateCheck, type CheckCommand } from './project-checks.js';
 export { businessToday } from './project-dates.js';
 
 export type StageFact = { code: string; state: string; startedOn: string | null; completedOn: string | null };
@@ -14,10 +15,11 @@ export type StageCommand = { action: 'startStage' | 'completeStage'; stageCode: 
 export type StartCommand = { action: 'startProject'; actualDate: string; dueDate: string; planReason?: string; expectedVersion: string; idempotencyKey: string; configVersion: string; ruleVersion: string; previewWeek: string; previewFirstCheckWeek: string };
 export type CorrectionCommand = { action: 'correctStageFacts'; changes: { code: string; startedOn?: string | null; completedOn?: string | null }[]; reason: string; expectedVersion: string; idempotencyKey: string }
   | { action: 'undoStageStart' | 'undoStageComplete' | 'rollbackStage'; stageCode: string; undoStart?: boolean; reason: string; expectedVersion: string; idempotencyKey: string };
-export type ActionCommand = StageCommand | StartCommand | CorrectionCommand | PlanCommand | LifecycleCommand | ClosureCommand;
+export type ActionCommand = StageCommand | StartCommand | CorrectionCommand | PlanCommand | LifecycleCommand | ClosureCommand | CheckCommand;
 export const correctionActions = ['correctStageFacts', 'undoStageStart', 'undoStageComplete', 'rollbackStage'];
 export function validateAction(value: unknown): ActionCommand {
   if (!value || typeof value !== 'object' || Array.isArray(value)) failure('INVALID_STAGE_COMMAND', 400);
+  if (isCheckCommand(value as { action: string })) return validateCheck(value);
   if (isClosureCommand(value as { action: string })) return validateClosure(value);
   if (isLifecycleCommand(value as { action: string })) return validateLifecycle(value);
   if (isPlanCommand(value as { action: string })) return validatePlan(value);
@@ -126,7 +128,7 @@ const projectSql = `SELECT ${closurePlanKnownExpression} closurePlanKnown,status
 export function projectActions(database: RuntimeDatabase, clock = () => new Date()) {
   async function run(actor: Actor, id: string, body: ActionCommand, requestId: string, confirm: boolean) {
     const scope = `user:${actor.id}:project:${id}:actions`;
-    const hash = createHash('sha256').update(JSON.stringify(isPlanCommand(body) || isLifecycleCommand(body) || isClosureCommand(body) ? [id, Object.keys(body).filter(key => key !== 'idempotencyKey').sort().map(key => [key, (body as unknown as Record<string, unknown>)[key]])] : body.action === 'startProject' ? [id, body.action, body.actualDate, body.dueDate, body.planReason ?? '', body.expectedVersion, body.configVersion, body.ruleVersion, body.previewWeek, body.previewFirstCheckWeek]
+    const hash = createHash('sha256').update(JSON.stringify(isPlanCommand(body) || isLifecycleCommand(body) || isClosureCommand(body) || isCheckCommand(body) ? [id, Object.keys(body).filter(key => key !== 'idempotencyKey').sort().map(key => [key, (body as unknown as Record<string, unknown>)[key]])] : body.action === 'startProject' ? [id, body.action, body.actualDate, body.dueDate, body.planReason ?? '', body.expectedVersion, body.configVersion, body.ruleVersion, body.previewWeek, body.previewFirstCheckWeek]
       : 'reason' in body ? [id, body.action, body.expectedVersion, body.reason, body.action === 'correctStageFacts' ? body.changes : [body.stageCode, body.undoStart ?? false]] : [id, body.action, body.stageCode, body.actualDate, body.expectedVersion, body.completionNote ?? null])).digest();
     const lookup = async (c: PoolConnection, lock: boolean) => {
       const row = (await rows(c, `SELECT request_hash,response_json FROM command_receipts WHERE command_scope=? AND idempotency_key=?${lock ? ' FOR UPDATE' : ''}`, [scope, body.idempotencyKey]))[0];
@@ -137,27 +139,40 @@ export function projectActions(database: RuntimeDatabase, clock = () => new Date
     if (confirm) return database.readSnapshot(async c => { const result = await lookup(c, false); return result ? { outcome: 'committed', result } : { outcome: 'not_found' }; });
     return database.writeTransaction(async c => {
       await assertActor(c, actor);
-      const now = clock();
-      const context = body.action === 'startProject' ? await checkContext(c, actor.id, now, true) : null;
+      const needsRule = body.action === 'startProject' || body.action === 'saveCheck';
+      if (needsRule) await c.query('SELECT id FROM system_configuration WHERE id=1 FOR SHARE');
       const project = (await rows(c, projectSql + ' FOR UPDATE', [id]))[0];
       if (!project) failure('PROJECT_NOT_FOUND', 404);
       const prior = await lookup(c, true); if (prior) return { outcome: 'committed', result: prior };
       if (!(await rows(c, 'SELECT user_id FROM project_responsibilities WHERE project_id=? AND user_id=?', [id, actor.id])).length) failure('PROJECT_READ_ONLY', 403);
       if (project.version !== body.expectedVersion) failure('PROJECT_VERSION_CONFLICT', 409, { currentVersion: project.version });
+      const now = clock();
+      const context = needsRule ? await checkContext(c, actor.id, now) : null;
       const facts = await rows(c, stageSql, [id]) as (RowDataPacket & StageFact)[];
       const savedVersion = String(BigInt(project.version) + 1n);
-      const finish = async (action: string, beforeValues: unknown, afterValues: unknown, details: Record<string, unknown>, changed = true) => {
+      const finish = async (action: string, beforeValues: unknown, afterValues: unknown, details: Record<string, unknown>, changed = true, entity = { type: 'project', id }) => {
         const at = now.toISOString().slice(0, 23).replace('T', ' ');
         if (changed) {
           if (project.version === '18446744073709551615') failure('PROJECT_VERSION_EXHAUSTED', 422);
           await c.execute('UPDATE projects SET version=version+1,updated_at=? WHERE id=?', [at, id]);
           await c.execute(`INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,version_before,version_after,before_json,after_json,request_id,created_at)
-          VALUES (?,?,'user',?,'project',?,?,?,?,?,?,?,?)`, [actor.id, actor.name, action, id, id, project.version, savedVersion, JSON.stringify(beforeValues), JSON.stringify(afterValues), requestId, at]);
+          VALUES (?,?,'user',?,?,?,?,?,?,?,?,?,?)`, [actor.id, actor.name, action, entity.type, entity.id, id, project.version, savedVersion, JSON.stringify(beforeValues), JSON.stringify(afterValues), requestId, at]);
         }
         const result = { projectId: id, operationId: body.idempotencyKey, action: body.action, ...details, savedVersion: changed ? savedVersion : project.version };
         await c.execute('INSERT INTO command_receipts (actor_id,command_scope,idempotency_key,request_hash,response_code,response_json,committed_at) VALUES (?,?,?,?,200,?,?)', [actor.id, scope, body.idempotencyKey, hash, JSON.stringify(result), at]);
         return { outcome: 'committed', result };
       };
+      if (isCheckCommand(body)) {
+        const candidate = await checkCandidate(c, id, project as { version: string }, body, now, context ?? undefined);
+        let checkId = body.action === 'correctCheck' ? body.checkId : '';
+        if (body.action === 'saveCheck') {
+          const value = candidate.afterValues.check;
+          await c.execute('INSERT INTO project_checks (project_id,actor_id,checked_at,week_start,conclusion,note,rule_version,observed_version,result_version) VALUES (?,?,?,?,?,?,?,?,?)', [id, actor.id, now.toISOString().slice(0, 23).replace('T', ' '), 'weekStart' in value ? value.weekStart : null, body.conclusion, body.note, body.ruleVersion, project.version, savedVersion]);
+          checkId = (await rows(c, 'SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0].id;
+          Object.assign(value, { id: checkId, actorId: actor.id, actorName: actor.name });
+        }
+        return finish(body.action === 'saveCheck' ? 'project.check.save' : 'project.check.correct', candidate.beforeValues, candidate.afterValues, { ...candidate.preview, checkId }, candidate.changed, { type: 'project_check', id: checkId });
+      }
       if (isClosureCommand(body)) {
         const candidate = await closureCandidate(c, id, project as RowDataPacket & LifecycleProject & ClosureFacts, facts, body, now);
         const entries = Object.entries(candidate.patch);
@@ -238,7 +253,7 @@ export function projectActions(database: RuntimeDatabase, clock = () => new Date
   return {
     run,
     preview(actor: Actor, id: string, body: ActionCommand) {
-      if (!isPlanCommand(body) && !isLifecycleCommand(body) && !isClosureCommand(body) && !('reason' in body)) failure('INVALID_STAGE_COMMAND', 400);
+      if (!isPlanCommand(body) && !isLifecycleCommand(body) && !isClosureCommand(body) && !isCheckCommand(body) && !('reason' in body)) failure('INVALID_STAGE_COMMAND', 400);
       return database.readSnapshot(async c => {
         const now = clock();
         await assertActor(c, actor, false, now, false, false);
@@ -246,6 +261,7 @@ export function projectActions(database: RuntimeDatabase, clock = () => new Date
         if (!project) failure('PROJECT_NOT_FOUND', 404);
         if (!(await rows(c, 'SELECT user_id FROM project_responsibilities WHERE project_id=? AND user_id=?', [id, actor.id])).length) failure('PROJECT_READ_ONLY', 403);
         if (project.version !== body.expectedVersion) failure('PROJECT_VERSION_CONFLICT', 409, { currentVersion: project.version });
+        if (isCheckCommand(body)) return { projectId: id, expectedVersion: project.version, ...(await checkCandidate(c, id, project as { version: string }, body, now)).preview };
         if (isClosureCommand(body)) return { projectId: id, expectedVersion: project.version, ...(await closureCandidate(c, id, project as RowDataPacket & LifecycleProject & ClosureFacts, await rows(c, stageSql, [id]) as (RowDataPacket & StageFact)[], body, now)).preview };
         if (isLifecycleCommand(body)) return { projectId: id, expectedVersion: project.version, ...(await lifecycleCandidate(c, id, project as RowDataPacket & LifecycleProject, body, now)).preview };
         if (isPlanCommand(body)) return { projectId: id, expectedVersion: project.version, ...(await planCandidate(c, id, project as RowDataPacket & ProjectDates, body, now)).preview };

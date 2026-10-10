@@ -4,12 +4,14 @@ import { projectReads, type ProjectQuery } from '../modules/projects.js';
 import { projectSaves, validateSave, validId, type SaveRequest } from '../modules/project-save.js';
 import { projectCore, validateCore } from '../modules/project-core.js';
 import { projectActions, validateAction } from '../modules/project-actions.js';
+import { projectChecks } from '../modules/project-checks.js';
 import { deadlineKinds } from '../modules/project-dates.js';
 
 export function registerProjectReads(app: FastifyInstance, database?: RuntimeDatabase) {
   const reads = database ? projectReads(database) : undefined;
   const saves = database ? projectSaves(database) : undefined;
   const core = database ? projectCore(database) : undefined;
+  const checks = database ? projectChecks(database) : undefined;
   const actions = database ? projectActions(database) : undefined;
   async function actionHandler(request: import('fastify').FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: import('fastify').FastifyReply, confirm: boolean) {
     if (!request.actor) return reply.code(401).send({ code: 'AUTH_REQUIRED', outcome: 'not_committed' });
@@ -71,6 +73,15 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
     if (!saves) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE' });
     try { return await saves.audit(request.params.id, request.query.pageSize ?? 20, request.query.before); }
     catch (error) { const failure = error as { status?: number; code?: string }; return reply.code(failure.status ?? 503).send({ code: failure.code ?? 'AUDIT_UNAVAILABLE' }); }
+  });
+  app.get<{ Params: { id: string }; Querystring: { pageSize?: number; before?: string } }>('/api/projects/:id/checks', {
+    schema: { querystring: { type: 'object', additionalProperties: false, properties: { pageSize: { type: 'integer', minimum: 1, maximum: 100 }, before: { type: 'string', pattern: '^[1-9][0-9]{0,19}$' } } } },
+  }, (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    if (!request.actor) return reply.code(401).send({ code: 'AUTH_REQUIRED' });
+    if (!validId(request.params.id) || request.query.before && !validId(request.query.before)) return reply.code(400).send({ code: 'INVALID_CURSOR_OR_PROJECT' });
+    if (!checks) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE' });
+    return checks.read(request.params.id, request.query.pageSize ?? 20, request.query.before);
   });
   const properties: Record<string, unknown> = {};
   for (const key of ['search', 'customer', 'productLine', 'odmFactory', 'app', 'group', 'chip', 'tags', 'owner']) properties[key] = { type: 'string', maxLength: 255 };

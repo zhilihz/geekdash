@@ -4,14 +4,16 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { createApp } from '../dist/server/app.js';
 import { connectDatabase } from '../dist/server/infrastructure/db.js';
 import { openRuntimeDatabase } from '../dist/server/infrastructure/runtime-database.js';
+import { addDays, businessToday, businessWeek } from '../dist/server/modules/project-dates.js';
 import { hashPassword } from '../dist/server/modules/identity.js';
 
-const namespace = '__capacity_500_test__';
+const checkMode = process.argv.includes('--checks');
+const namespace = checkMode ? '__capacity_500_checks_test__' : '__capacity_500_test__';
 const ids = Array.from({length: 501}, (_, i) => String(9007199254780000n + BigInt(i)));
 const {connection} = await connectDatabase('test_migrator');
-let app, runtime, origin, owned = false;
+let app, runtime, origin, owned = false, ownConfig = false, checkRule;
 const references = {customers: [], chips: [], engineers: [], tags: []};
-const measurements = {list: [], detail: [], save: [], audit: []};
+const measurements = {list: [], detail: [], save: [], audit: [], ...(checkMode ? {checkSave: [], checkHistory: []} : {})};
 const began = new Date().toISOString();
 const accounts = [];
 const password = '四人容量验证 password 2026';
@@ -61,6 +63,21 @@ try {
   await connection.commit(); owned = true;
   // 每个项目都有通过真实普通保存产生的审计与回执。
   for (let index=0;index<500;index++) await api('/api/projects/'+ids[index],'PATCH',{expectedVersion:'1',idempotencyKey:randomUUID(),changes:{name:'规模测试项目'+index}});
+  if (checkMode) {
+    for (const table of ['system_configuration','check_rule_revisions']) assert.equal(Number((await connection.query('SELECT COUNT(*) n FROM '+table))[0][0].n),0,'检查规模夹具配置非空，不覆盖');
+    await connection.execute("INSERT INTO system_configuration (id,maintenance_user_id,full_name,short_name,manager_text,name_prefix,updated_by,updated_at) VALUES (1,?,'','','','',?,UTC_TIMESTAMP(3))",[accounts[0].id,accounts[0].id]);ownConfig=true;
+    const context=await api('/api/settings/check-rule');const week=businessWeek(businessToday());
+    checkRule=(await api('/api/settings/check-rule','POST',{action:'initializeCheckRule',deadlineWeekday:5,expectedVersion:context.configVersion,previewWeek:week,idempotencyKey:randomUUID()})).result.ruleVersion;
+    // 明确合成往周历史；本周检查与有效纠错均通过真实 HTTP 深接口保存。
+    for(let index=0;index<500;index++){
+      for(const offset of [-14,-7])await connection.execute('INSERT INTO project_checks (project_id,actor_id,checked_at,week_start,conclusion,note,rule_version,observed_version,result_version) VALUES (?,?,?,?,?,?,?,1,1)',[ids[index],accounts[index%4].id,addDays(week,offset+2)+' 04:00:00.000',addDays(week,offset),'checked','往周明确合成历史',checkRule]);
+      await connection.execute('UPDATE projects SET first_check_week=?,first_check_rule_version=? WHERE id=?',[week,checkRule,ids[index]]);
+      const saved=(await api('/api/projects/'+ids[index]+'/actions','POST',{action:'saveCheck',expectedVersion:'2',idempotencyKey:randomUUID(),conclusion:'checked',note:'本周实际核对',ruleVersion:checkRule,previewWeek:week})).result;
+      await api('/api/projects/'+ids[index]+'/actions','POST',{action:'correctCheck',expectedVersion:saved.savedVersion,idempotencyKey:randomUUID(),checkId:saved.checkId,conclusion:'follow_up',note:'有效文字更正 '+index,reason:'规模验收明确文字纠错'});
+    }
+    assert.equal(Number((await connection.query('SELECT COUNT(*) n FROM project_checks ck JOIN projects p ON p.id=ck.project_id WHERE p.source_namespace=?',[namespace]))[0][0].n),1500);
+    assert.equal(Number((await connection.query("SELECT COUNT(*) n FROM audit_log a JOIN projects p ON p.id=a.project_id WHERE p.source_namespace=? AND a.action='project.check.correct'",[namespace]))[0][0].n),500);
+  }
   const initial = await api('/api/projects?view=all&search='+encodeURIComponent('规模测试项目'));
   assert.equal(initial.pagination.total,500); assert.equal(initial.stats.total,500); assert.equal(initial.items.length,24);
   const filtered = await api('/api/projects?view=all&customer='+encodeURIComponent('规模夹具-customers-0'));
@@ -73,9 +90,15 @@ try {
     const target=ids[worker];
     const list=await measured('list','/api/projects?view=all&customer='+encodeURIComponent('规模夹具-customers-'+worker)); assert.equal(list.pagination.total,125);
     const detail=await measured('detail','/api/projects/'+target); assert.equal(detail.stages.length,7); assert.equal(detail.nodes.length,1); assert.equal(detail.risks.length,1);
+    if(checkMode){assert.equal(detail.project.checkStatus.latest.note,round===0?'有效文字更正 '+worker:`四人检查${worker}轮次${round-1}`);assert.equal(detail.project.checkStatus.required,true);}
     const result=await measured('save','/api/projects/'+target,'PATCH',{expectedVersion:detail.project.version,idempotencyKey:randomUUID(),changes:{summaryNote:`四人容量验证${worker}轮次${round}`,signal:round%2?'red':'yellow',priority:round%2?'high':'low',chipIds:[references.chips[(worker+round)%4]],people:[{id:references.engineers[worker],role:'hardware_owner'}]}});
     const fresh=await api('/api/projects/'+target); assert.equal(fresh.project.summaryNote,result.result.values.summaryNote); assert.equal(fresh.project.version,result.result.savedVersion); assert.deepEqual(fresh.project.chips.map(chip=>chip.id),result.result.values.chipIds); assert.equal(fresh.project.priority,result.result.values.priority);
-    const audit=await measured('audit','/api/projects/'+target+'/audit'); assert.equal(audit.items[0].versionAfter,result.result.savedVersion);
+    if(checkMode){
+      const savedCheck=await measured('checkSave','/api/projects/'+target+'/actions','POST',{action:'saveCheck',expectedVersion:fresh.project.version,idempotencyKey:randomUUID(),conclusion:'checked',note:`四人检查${worker}轮次${round}`,ruleVersion:checkRule,previewWeek:businessWeek(businessToday())});
+      const checked=await api('/api/projects/'+target);assert.equal(checked.project.version,savedCheck.result.savedVersion);assert.equal(checked.project.checkStatus.latest.id,savedCheck.result.checkId);assert.equal(checked.project.checkStatus.updatedAfterCheck,false);
+      const history=await measured('checkHistory','/api/projects/'+target+'/checks');assert.equal(history.items[0].id,savedCheck.result.checkId);assert.equal(history.items[0].note,checked.project.checkStatus.latest.note);
+    }
+    const audit=await measured('audit','/api/projects/'+target+'/audit'); assert.equal(audit.items[0].versionAfter,checkMode ? String(BigInt(result.result.savedVersion)+1n) : result.result.savedVersion);
   }));
   // 第 501 个项目可入库和查询，500 是验收规模，不是结构或读取总量上限。
   await connection.execute(`INSERT INTO projects (id,name,data_kind,source_namespace,source_key,status,signal_note,market_expectation,status_description,detail_note,summary_note,chipstat_note,closure_note,remaining_work_note,created_at,updated_at)
@@ -83,18 +106,19 @@ try {
   assert.equal((await api('/api/projects?view=all&search='+encodeURIComponent('规模测试项目'))).pagination.total,501);
   const summary=Object.fromEntries(Object.entries(measurements).map(([kind,values])=>{values.sort((a,b)=>a-b);return [kind,{requests:values.length,p50Ms:Math.round(values[Math.ceil(values.length*.5)-1]),p95Ms:Math.round(values[Math.ceil(values.length*.95)-1]),maxMs:Math.round(values.at(-1))}];}));
   await mkdir('test-results',{recursive:true});
-  const result={status:'passed',startedAt:began,checkedAt:new Date().toISOString(),projectCount:500,stageCount:3500,initialAuditCount:500,workers:4,authenticated:true,rounds:20,errorCount:0,measurements:summary,noHardProjectLimit:true,source:'专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时'};
-  await writeFile('test-results/project-capacity-check.json',JSON.stringify(result,null,2)+'\n'); console.log(JSON.stringify(result));
+  const result={status:'passed',startedAt:began,checkedAt:new Date().toISOString(),projectCount:500,stageCount:3500,initialAuditCount:checkMode?1500:500,...(checkMode?{checkCount:1580,initialCorrectionCount:500,weekHistoryCount:1000,processMemory:process.memoryUsage()}:{}),workers:4,authenticated:true,rounds:20,errorCount:0,measurements:summary,noHardProjectLimit:true,source:'专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时'};
+  await writeFile(checkMode?'test-results/project-checks-capacity-check.json':'test-results/project-capacity-check.json',JSON.stringify(result,null,2)+'\n'); console.log(JSON.stringify(result));
 } finally {
   await connection.rollback(); await app?.close();
   if (!app) await runtime?.close();
   if (owned) {
-    for (const table of ['audit_log','project_risks','project_nodes','project_chips','project_people','project_tags','project_stages','project_responsibilities']) await connection.execute(`DELETE FROM ${table} WHERE project_id IN (SELECT id FROM projects WHERE source_namespace=?)`,[namespace]);
+    for (const table of ['audit_log','project_checks','project_risks','project_nodes','project_chips','project_people','project_tags','project_stages','project_responsibilities']) await connection.execute(`DELETE FROM ${table} WHERE project_id IN (SELECT id FROM projects WHERE source_namespace=?)`,[namespace]);
     const scopes=ids.flatMap(id=>['text','ordinary'].map(mode=>'anonymous:project:'+id+':'+mode));
     await connection.execute('DELETE FROM command_receipts WHERE command_scope IN ('+scopes.map(()=>'?').join(',')+')',scopes);
     await connection.execute('DELETE FROM projects WHERE source_namespace=?',[namespace]);
     for (const [table,refs] of Object.entries(references)) for (const reference of refs) await connection.execute(`DELETE FROM ${table} WHERE id=?`,[reference]);
   }
+  if(ownConfig){await connection.execute('DELETE FROM system_configuration WHERE id=1 AND maintenance_user_id=?',[accounts[0].id]);await connection.execute('DELETE FROM check_rule_revisions WHERE saved_by=?',[accounts[0].id]);}
   for (const account of accounts) { await connection.execute('DELETE FROM command_receipts WHERE actor_id=?',[account.id]); await connection.execute('DELETE FROM audit_log WHERE actor_id=?',[account.id]); await connection.execute('DELETE FROM sessions WHERE user_id=?',[account.id]); await connection.execute('DELETE FROM users WHERE id=?',[account.id]); }
   await connection.end();
 }

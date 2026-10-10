@@ -6,9 +6,9 @@
 
 用户DEC-109授权离开期间持续施工，范围不限E04：规划完整阶段→实施/验收→提交合并远端main→下一阶段，当前E04仍未完成。方法归[GD-GOAL-001](../implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)，代决只归[autonomous-decisions](../decisions/autonomous-decisions.md)；先核对1051及已确认SPEC，缺口推荐选择记录理由/选项/影响。工具目标保持E04 active，不能将B06完成称整个E04完成。
 
-当前codex/e04-b07-project-checks，基线225b7f09d5631343805f429d473a1d5a1d3b18ed；B06收尾已合并并回读远端main，运行仍为固定21cdfb4/project-close/0002。B07所有功能八步已纳入F08第9节；AD-010记录原检查稳定目标/有效更正索引取舍。当前尚未编写B07代码或执行其测试；准确已有能力只归系统真相39及结案报告/部署，重读git status保留已有工作。
+当前codex/e04-b07-project-checks，基线225b7f09d5631343805f429d473a1d5a1d3b18ed；B06收尾已合并并回读远端main，运行仍为固定21cdfb4/project-close/0002。B07所有功能八步已纳入F08第9节；AD-010记录原检查稳定目标/有效更正索引取舍。B07代码及真实MySQL9组211 HTTP、十类回归/工程/两库结构/500历史容量已通过，尚未提交代码或固定部署；实际候选范围只归系统真相40与检查报告。未提交文件为package/build/capacity、project-actions/checks/public-settings/routes、detail/settings/shared-api、新verify-project-checks及本批文档证据；重读git status保留已有工作。
 
-按F08第9节先有限检查保存/文字纠错协议及锁后时钟，复用project-actions事务/版本/审计/原回执与project-checks只读基础；完善首尾/分页、设置星期修改和原详情表单，再真实MySQL/HTTP/并发/故障/受控clock及500规模验收。代码形成后才更新实际API，候选/固定/公网事实各归报告/系统真相/部署；具名提交合并main后固定备份/部署及原会话/原结果恢复，不重置数据或凭据。B08子记录/B09联验接续，循环不限E04。
+F08第9节代码及候选验证已完成；接下来核对文档/源码、具名提交并固定干净构建再验，然后main与新加坡部署。云验证工具256MiB内运行检查历史容量时使用node --max-old-space-size=96，实际约222MiB，未改生产配置；禁止并行在同一测试库跑夹具。代码形成后才更新实际API，候选/固定/公网事实各归报告/系统真相/部署；具名提交合并main后固定备份/部署及原会话/原结果恢复，不重置数据或凭据。B08子记录/B09联验接续，循环不限E04。
 
 B04～B06原生页面因既有CUA URL协议策略明确拒绝未通过，Edge同时fetch失败，沿AD-007保留B09、不换表面/脚本绕过。无未完成服务器写操作。B06私有install旧预期2880b6e且目标目录存在，不盲重跑；原公网项目13/v21及21条历史/19个原结果的恢复已归档。真实备份仍受控，不导入。
 

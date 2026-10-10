@@ -5,11 +5,11 @@ import { assertActor, type Actor } from './identity.js';
 import { failure, validId } from './project-save.js';
 import { checkContext, validDate } from './project-dates.js';
 
-export type RuleCommand = { action: 'initializeCheckRule'; deadlineWeekday: number; expectedVersion: string; previewWeek: string; idempotencyKey: string };
+export type RuleCommand = { action: 'initializeCheckRule' | 'modifyCheckRule'; deadlineWeekday: number; expectedVersion: string; previewWeek: string; idempotencyKey: string };
 export function validateRule(value: unknown): RuleCommand {
   if (!value || typeof value !== 'object' || Array.isArray(value)) failure('INVALID_CHECK_RULE_COMMAND', 400);
   const body = value as RuleCommand;
-  if (Object.keys(body).length !== 5 || body.action !== 'initializeCheckRule' || !Number.isInteger(body.deadlineWeekday) || body.deadlineWeekday < 1 || body.deadlineWeekday > 7 || !validId(body.expectedVersion) || !validDate(body.previewWeek)
+  if (Object.keys(body).length !== 5 || !['initializeCheckRule', 'modifyCheckRule'].includes(body.action) || !Number.isInteger(body.deadlineWeekday) || body.deadlineWeekday < 1 || body.deadlineWeekday > 7 || !validId(body.expectedVersion) || !validDate(body.previewWeek)
     || typeof body.idempotencyKey !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(body.idempotencyKey)) failure('INVALID_CHECK_RULE_COMMAND', 400);
   return { action: body.action, deadlineWeekday: body.deadlineWeekday, expectedVersion: body.expectedVersion, previewWeek: body.previewWeek, idempotencyKey: body.idempotencyKey };
 }
@@ -34,17 +34,23 @@ export function publicSettings(database: RuntimeDatabase, clock = () => new Date
         const config = configs[0];
         if (config.maintenanceUserId !== actor.id) failure('MAINTENANCE_REQUIRED', 403);
         if (config.version !== body.expectedVersion) failure('SETTINGS_VERSION_CONFLICT', 409);
-        if (config.version === '18446744073709551615') failure('SETTINGS_VERSION_EXHAUSTED', 422);
         const now = clock(), context = await checkContext(c, actor.id, now);
-        if (context.rule) failure('CHECK_RULE_ALREADY_INITIALIZED', 422);
+        if (body.action === 'initializeCheckRule' && context.rule) failure('CHECK_RULE_ALREADY_INITIALIZED', 422);
+        if (body.action === 'modifyCheckRule' && !context.rule) failure('CHECK_RULE_REQUIRED', 422);
         if (body.previewWeek !== context.weekStart) failure('CHECK_PREVIEW_CHANGED', 409);
         const at = now.toISOString().slice(0, 23).replace('T', ' ');
+        if (context.rule?.deadlineWeekday === body.deadlineWeekday) {
+          const result = { operationId: body.idempotencyKey, savedVersion: config.version, changed: false, ruleVersion: context.rule.version, deadlineWeekday: body.deadlineWeekday, effectiveWeek: context.rule.effectiveWeek };
+          await c.execute('INSERT INTO command_receipts (actor_id,command_scope,idempotency_key,request_hash,response_code,response_json,committed_at) VALUES (?,?,?,?,200,?,?)', [actor.id, scope, body.idempotencyKey, hash, JSON.stringify(result), at]);
+          return { outcome: 'committed', result };
+        }
+        if (config.version === '18446744073709551615') failure('SETTINGS_VERSION_EXHAUSTED', 422);
         await c.execute('INSERT INTO check_rule_revisions (deadline_weekday,effective_week,saved_at,saved_by) VALUES (?,?,?,?)', [body.deadlineWeekday, context.weekStart, at, actor.id]);
         const [ids] = await c.query<RowDataPacket[]>('SELECT CAST(LAST_INSERT_ID() AS CHAR) id');
         const savedVersion = String(BigInt(config.version) + 1n);
-        const result = { operationId: body.idempotencyKey, savedVersion, ruleVersion: ids[0].id, deadlineWeekday: body.deadlineWeekday, effectiveWeek: context.weekStart };
+        const result = { operationId: body.idempotencyKey, savedVersion, ...(body.action === 'modifyCheckRule' ? { changed: true } : {}), ruleVersion: ids[0].id, deadlineWeekday: body.deadlineWeekday, effectiveWeek: context.weekStart };
         await c.execute('UPDATE system_configuration SET version=version+1,updated_by=?,updated_at=? WHERE id=1', [actor.id, at]);
-        await c.execute("INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,version_before,version_after,before_json,after_json,request_id,created_at) VALUES (?,?,'user','settings.check-rule.initialize','system_configuration',1,?,?,?,?,?,?)", [actor.id, actor.name, config.version, savedVersion, 'null', JSON.stringify(result), requestId, at]);
+        await c.execute("INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,version_before,version_after,before_json,after_json,request_id,created_at) VALUES (?,?,'user',?,'system_configuration',1,?,?,?,?,?,?)", [actor.id, actor.name, body.action === 'initializeCheckRule' ? 'settings.check-rule.initialize' : 'settings.check-rule.modify', config.version, savedVersion, JSON.stringify(context.rule), JSON.stringify(result), requestId, at]);
         await c.execute('INSERT INTO command_receipts (actor_id,command_scope,idempotency_key,request_hash,response_code,response_json,committed_at) VALUES (?,?,?,?,200,?,?)', [actor.id, scope, body.idempotencyKey, hash, JSON.stringify(result), at]);
         return { outcome: 'committed', result };
       });
