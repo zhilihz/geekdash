@@ -16,4 +16,4 @@
 
 验证边界：测试通过CDP拖入合成磁盘文件取得真实句柄，仅在独立Edge测试配置预授/撤销文件权限；未修改使用者浏览器配置，也未读写真实业务数据库。首次Windows系统文件选择/授权由使用者完成。HTTP与file://入口浏览器缓存相互独立，切换入口需首次选择原JSON一次；清浏览器数据、换配置或移动文件仍可能需重新选择。没有声称跨浏览器自动找到旧缓存或后台绕过权限。
 
-交付：`D:/geekwon/geekdash-local-releases/GeekDash1051.zip`，206131字节，白名单9项（六个HTML、projects-data.js、README、SHA256.json），源码/解压目录/ZIP逐字节一致；不含启动脚本、测试配置或业务数据库。替换前的实际旧ZIP保存在 `GeekDash1051_启动修正前.zip`。正常入口为双击HTML，不要求Python或HTTP服务。本次没有云端部署；Git提交、集成远端main和临时测试服务关闭随收尾回读记录。
+交付：`D:/geekwon/geekdash-local-releases/GeekDash1051.zip`，206131字节，白名单9项（六个HTML、projects-data.js、README、SHA256.json），源码/解压目录/ZIP逐字节一致；不含启动脚本、测试配置或业务数据库。替换前的实际旧ZIP保存在 `GeekDash1051_启动修正前.zip`。正常入口为双击HTML，不要求Python或HTTP服务。本次没有云端部署；实现53412ab、集成7d6d832350d9aa7f5847c36a6800a2758c73f1b3已推送并以ls-remote回读远端main一致。合并后语法/共享规则及源码/目录/ZIP字节核对通过，临时自有41870验证服务已停止。后续文档收尾提交不改变发布包代码。
