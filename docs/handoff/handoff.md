@@ -1,28 +1,28 @@
 # 未完成任务交接
 
-更新时间：2026-10-10。E03项目主干与最小身份、E04-B01～B06已固定部署，完整公网浏览器与公司实际使用仍未验收。[系统真相](../status/current-system-truth.md#39-e04-b06结案链路2026-10-10固定部署)为当前能力入口，详细验证归各批报告。本轮不接真实备份。
+更新时间：2026-10-10。E03项目主干与最小身份、E04-B01～B07已固定部署，完整公网浏览器与公司实际使用仍未验收。[系统真相](../status/current-system-truth.md#40-e04-b07检查与共同截止2026-10-10固定部署)为当前能力入口，详细验证归各批报告。本轮不接真实备份。
 
 ## 0. 当前活动：继续E04，再逐阶段完整规划/实施/提交
 
-用户DEC-109授权离开期间持续施工，范围不限E04：规划完整阶段→实施/验收→提交合并远端main→下一阶段，当前E04仍未完成。方法归[GD-GOAL-001](../implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)，代决只归[autonomous-decisions](../decisions/autonomous-decisions.md)；先核对1051及已确认SPEC，缺口推荐选择记录理由/选项/影响。工具目标保持E04 active，不能将B06完成称整个E04完成。
+用户DEC-109授权离开期间持续施工，范围不限E04：规划完整阶段→实施/验收→提交合并远端main→下一阶段，当前E04仍未完成。方法归[GD-GOAL-001](../implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)，代决只归[autonomous-decisions](../decisions/autonomous-decisions.md)；先核对1051及已确认SPEC，缺口推荐选择记录理由/选项/影响。工具目标保持E04 active，不能将B07完成称整个E04完成。
 
-当前codex/e04-b07-project-checks，基线225b7f09d5631343805f429d473a1d5a1d3b18ed；B06收尾已合并并回读远端main，运行仍为固定21cdfb4/project-close/0002。B07所有功能八步已纳入F08第9节；AD-010记录原检查稳定目标/有效更正索引取舍。B07代码检查点e97479d及真实MySQL9组211 HTTP、十类回归/工程/两库结构/500历史容量已通过，增强边界诊断未提交，尚未合并main或固定部署；实际候选范围只归系统真相40与检查报告。未提交文件为package/build/capacity、project-actions/checks/public-settings/routes、detail/settings/shared-api、新verify-project-checks及本批文档证据；重读git status保留已有工作。
+当前codex/e04-b07-project-checks，基线225b7f0；固定代码4974e0f已合并回读远端main，本机/新加坡同project-checks/0002。B07代码/固定云验/公网及实际app恢复已经完成，原生页面沿AD-007保留B09；准确能力只归系统真相40与检查报告/部署。当前未提交仅本批部署/报告/证据等收尾文档，重读git status保留已有工作；提交后不能把文档SHA当运行镜像。
 
-F08第9节代码及候选验证已完成；固定复测有一次未复现毫秒边界失败，PE-20261010-004/AD-011保留，五轮及原SQL/40并发新读增强通过，不能称已修复。接下来核对文档/源码、具名提交并固定干净构建再验，然后main与新加坡部署。云验证工具256MiB内运行检查历史容量时使用node --max-old-space-size=96，实际约222MiB，未改生产配置；禁止并行在同一测试库跑夹具。代码形成后才更新实际API，候选/固定/公网事实各归报告/系统真相/部署；具名提交合并main后固定备份/部署及原会话/原结果恢复，不重置数据或凭据。B08子记录/B09联验接续，循环不限E04。
+下一步具名提交收尾并合并main，然后从最新main开B08分支，复核14.9整包风险A～D/节点A～E/变更A～B、原1051/ERD5.8，把有限协议/兼容0003迁移/有效过滤/候选图与失效集合/原子历史/普通副本及验证落位补成全部步骤，再从风险闭环开始施工。不要在0001/0002改列，节点删后回退必须保留有效过滤，不直接退到无过滤旧镜像。B09必须处理原生页面、检查边界诊断和500历史列表SQL性能，再按用户授权继续其他阶段。
 
-B04～B06原生页面因既有CUA URL协议策略明确拒绝未通过，Edge同时fetch失败，沿AD-007保留B09、不换表面/脚本绕过。无未完成服务器写操作。B06私有install旧预期2880b6e且目标目录存在，不盲重跑；原公网项目13/v21及21条历史/19个原结果的恢复已归档。真实备份仍受控，不导入。
+B07私有install目标4974目录已存在、旧预期21cdfb4，禁止盲重跑；所有TAT写任务已成功结束。公网项目14/v17及3原会话/21原结果受控存于仓库外，原项目7～13保持；完整数据/备份及恢复入口只归检查部署。验证工具256MiB/旧堆96MiB验收通过，本机/云结束RSS约222MiB，不改常驻配置，不并行在同一测试库跑夹具。Node采样无溢出，仅自有临时工具正常退出，未全局终止或删卷/prune。
 
-用户新指令：遇到Node溢出可以清理自身进程/资源。本轮验证容器已正常退出/夹具清理，未发现本项目OOM；Windows还有其他任务Node，不全局终止、不删卷/prune，也不因退出码猜原因。新的运行采样归B06证据。
+固定首次有一次未复现毫秒边界失败，原失败SQL未捕获；五轮与增强本机/云端9组251 HTTP通过，PE-20261010-004/AD-011保留待排查，不能称修复。阶段包广泛替换漏旧结案测试已在安装前修复，12项包清单/哈希及云回归通过，PE-20261010-005记录。云带检查历史列表P95=295ms高于200ms；原生页面既有CUA URL协议明确拒绝、Edge fetch失败，不换表面/脚本绕过，B09原生联验未执行。真实备份仍不导入。
 
 ## 1. 位置、基线与授权
 
-- D:/geekwon/geekdash；当前分支/基线见第0节；常驻B06固定21cdfb4。后续文档SHA不是运行镜像，E03/B01～B03历史归系统真相31/34/35/36。
+- D:/geekwon/geekdash；当前分支/基线见第0节；常驻B07固定4974e0f。后续文档SHA不是运行镜像，E03/B01～B03历史归系统真相31/34/35/36。
 - 用户DEC-090明确恢复最小登录/首次改密/会话完成E03，邀请码与完整账号后台后置；CLI/Git/test部署授权有效。不是重新开发替换原系统，也没有批准导入真实备份。
 - 500为整体性能规模、不设创建硬上限；推荐方案取舍只归[决策](../decisions/decisions.md)。阶段提交、main合并与发布分别按[代码管理](../operations/release-maintenance.md#2-代码管理)。代码用ponytail full，纯文档/讨论不延续。
 
 ## 2. 运行与恢复入口
 
-本机41860/新加坡https://geekdash.zhiluan.cool 同21cdfb4 / project-close /0002；两库34表/314列/55外键，无本轮迁移。MySQL本机D盘、云/var/lib/geekdash/mysql；凭据仓库外，两端账号独立。本批镜像/备份/恢复归[结案部署](../operations/deployments/2026-10-10-project-close.md)。云business01/02及maint01已改密，分发须用currentPassword；business03/04仍需首次改密，不能重置或打印凭据。
+本机41860/新加坡https://geekdash.zhiluan.cool 同4974e0f / project-checks /0002；两库34表/314列/55外键，无本轮迁移。MySQL本机D盘、云/var/lib/geekdash/mysql；凭据仓库外，两端账号独立。本批镜像/备份/恢复归[检查部署](../operations/deployments/2026-10-10-project-checks.md)。云business01/02及maint01已改密，分发须用currentPassword；business03/04仍需首次改密，不能重置或打印凭据。
 
 深模块：identity.ts校验可信actor，project-core.ts创建/本人责任，project-save.ts普通保存，project-actions.ts阶段命令，projects.ts一致快照。事务、结果恢复方法只归执行计划；实际协议归api/project-core.md与api/project-actions.md。
 

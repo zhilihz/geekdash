@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T05:53:22.070441+00:00",
+  "build": {
+    "revision": "4974e0f4cbc844321e1b7da6da7c0006428c0f32",
+    "dirty": false,
+    "builtAt": "2026-10-10T05:45:13.851Z",
+    "stage": "project-checks",
+    "schemaVersion": "0002-trial-save"
+  },
+  "ready": {
+    "status": "ready"
+  },
+  "appOomKilled": false,
+  "appRestartCount": 0,
+  "mysqlOomKilled": false,
+  "stats": "geekdash-dev-app-1 33.65MiB / 6.664GiB\ngeekdash-dev-mysql-1 566.2MiB / 6.664GiB\n",
+  "allOwnVerificationContainersExited": true,
+  "globalNodeTermination": false,
+  "databasePruned": false
+}

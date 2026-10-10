@@ -1,0 +1,43 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T06:04:24.464459+00:00",
+  "build": {
+    "revision": "4974e0f4cbc844321e1b7da6da7c0006428c0f32",
+    "dirty": false,
+    "builtAt": "2026-10-10T05:45:13.851Z",
+    "stage": "project-checks",
+    "schemaVersion": "0002-trial-save"
+  },
+  "projectId": "14",
+  "savedVersion": "17",
+  "checkCount": 6,
+  "auditCount": 17,
+  "syntheticOnly": true,
+  "checks": [
+    "两负责人提案/进行中/暂缓/结案/维护明确检查；原阶段5%保持",
+    "原文/有效纠错及同值保存；原人时周规则和核对版本保留",
+    "预览后普通修改409；新查后更新提示清除；原结果身份隔离",
+    "共同截止周五→周日→恢复周五、本周即用、项目版本/首次义务不变；旧规则409",
+    "新请求详情/检查分页/原审计/维护看板统计及固定资源字节一致",
+    "公网HTTP/API验收；原生浏览器实点仍未验收"
+  ],
+  "assets": {
+    "index.html": "76f4fe99b94816a9b4d21732b0372665335974ece41aca82f280608a14d1bd57",
+    "/assets/index-C4pP7Guo.js": "018f449eef67fd6916c5ef47cd1d63afc609a72408505d015b2922668e73ffbd",
+    "/assets/api-BsCdDE0g.js": "67ccfea4b8513b7a71cb26c6dcce6b5f250fb2895e47e1475dbd78180030cb07",
+    "/assets/api-CEMtlmAC.css": "f81b99ccd3ef21d4ce6a436d1c1b2a13dae22b52308ed681a5f614d0227e2fa0",
+    "/assets/index-D8NXthWN.css": "5cdef17e18b287780e8197cec16e9d4628b2b7da8036bf90b4c8fbe2a375e3c1",
+    "GeekDash.html": "76f4fe99b94816a9b4d21732b0372665335974ece41aca82f280608a14d1bd57",
+    "project-detail.html": "3fc6fd69866821fea78eb6d0edf9f8678fd2c6abc30681bcf7dd29e8efff4286",
+    "/assets/project-detail-DyO4WyHe.js": "978e3b188d97f47bdc8888e68790294580a167ec3ed8226ed338eaed6f550001",
+    "/assets/detail-DYDiBCqo.css": "01e982097fd0e8a5d14ad60181e442a24634e630afae7e91b7148fee651d9ba1",
+    "project-new.html": "2afbb47eab6e98ee9f03ae6f9d12f6ddf9e6808e149703d847e0514da3c6b581",
+    "/assets/project-new-CVbBvQ1J.js": "4d6279912cc98fa9d140a3bd98baf8863566bb4634ca40fa15c352898494b0fa",
+    "/assets/forms-D9KYl3tU.css": "e179bf8998912737851b88af0bc94aeff622a19313ac40fe5dd626fb3206ece0",
+    "login.html": "58faf67d38a6a7006b35061baaebc849b804dd770ea2853e46e9de43ac61a7a5",
+    "/assets/login-DCyCoU9U.js": "3b3d12e1bd283aa3871b606743fe443d0fd0c495f9a5e1581ea1bf400eb23432",
+    "settings.html": "1a976a351fc670dac3de169e6c7dd814cf227bccbfd3dc64fc4f6dfbdda2d656",
+    "/assets/settings-CgjEe-7f.js": "b8c783647a1d5992d4a90140d49ab21a1a0a50247bb65b50dbc651ebbf315f07"
+  },
+  "assetCount": 16
+}

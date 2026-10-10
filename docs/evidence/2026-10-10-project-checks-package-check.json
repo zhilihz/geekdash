@@ -1,0 +1,26 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T06:02:03.814230+00:00",
+  "revision": "4974e0f4cbc844321e1b7da6da7c0006428c0f32",
+  "previousReleaseSha256": "c6c8e6046578ae177ac99ec226995bdfa1c4fb208dd33f3283efe7763e1308c9",
+  "fixedReleaseSha256": "63c638d165bc0f44a654fb3f409b2a2bdb73078ac411c037c81a107792650548",
+  "imageSha256Unchanged": "c98173a4e76b37d66302aa9cd6fa7b1c211ec5b9ed69e79a1c24984409fb01e4",
+  "verificationFileCount": 12,
+  "verificationFiles": [
+    "verification/verify-project-reads.mjs",
+    "verification/verify-project-saves.mjs",
+    "verification/verify-project-capacity.mjs",
+    "verification/verify-project-ordinary.mjs",
+    "verification/verify-project-core.mjs",
+    "verification/verify-stage-actions.mjs",
+    "verification/verify-project-start.mjs",
+    "verification/verify-stage-corrections.mjs",
+    "verification/verify-project-dates.mjs",
+    "verification/verify-project-pause.mjs",
+    "verification/verify-project-close.mjs",
+    "verification/verify-project-checks.mjs"
+  ],
+  "repairedBeforeInstall": true,
+  "earlierArchiveRetainedOutsideRepository": true,
+  "sourceImagesAndDatabaseNotModified": true
+}
