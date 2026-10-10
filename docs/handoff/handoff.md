@@ -6,9 +6,9 @@
 
 用户DEC-109授权离开期间持续施工，范围不限E04：规划完整阶段→实施/验收→提交合并远端main→下一阶段，当前E04仍未完成。方法归[GD-GOAL-001](../implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)，代决只归[autonomous-decisions](../decisions/autonomous-decisions.md)；先核对1051及已确认SPEC，缺口推荐选择记录理由/选项/影响。工具目标保持E04 active，不能将B07完成称整个E04完成。
 
-当前codex/e04-b08-node-recovery，main已固定2a342d6；D/E源码/候选与固定验证已完成并部署，当前未提交为本批收尾文档/脱敏证据/PE-011。两端干净2a342d6 / project-nodes-recovery /0003，34/315/55及三历史，原dev/test指纹保持。准确事实归[真相45](../status/current-system-truth.md#45-e04-b08节点de删除恢复固定部署2026-10-10)、[恢复报告](../testing/reports/2026-10-10-project-node-recovery.md)和[部署](../operations/deployments/2026-10-10-project-node-recovery.md)。收尾具名提交合并远端main后，再从最新main开需求变更A/B分支。
+当前codex/e04-b08-project-changes，从远端main/5640686施工；D/E源码2a342d6和收尾5640686已合并推送回读，两端仍运行干净2a342d6/0003。当前仅需求变更施工计划/AD-019与本交接修改，未编写changeOps、未执行其测试。真实D/E事实归[真相45](../status/current-system-truth.md#45-e04-b08节点de删除恢复固定部署2026-10-10)、[恢复报告](../testing/reports/2026-10-10-project-node-recovery.md)和[部署](../operations/deployments/2026-10-10-project-node-recovery.md)。
 
-下一入口14.9.14步骤7/14.9.11～12：原1051 addChange已支持四字段编辑，renderChangeList有编辑按钮，现有14.9.12“原版没有纠错入口”应修正；继续复用原来源客户/业务、内容、人工accept/reject/理由，有限changeOps及同普通事务/目标历史，补纠错原因/副本。不新增审批/删除/自动计划或阶段。私有test-results/change-next-plan-private.md仅准备材料，先归权威计划八项粒度/AD-019，再编码；之后B09及后续阶段按完整规划→实施验收→main循环，E04仍active。
+下一入口14.9.14步骤7/14.9.11～12：原1051 addChange已支持四字段编辑，renderChangeList有编辑按钮，现有14.9.12“原版没有纠错入口”应修正；继续复用原来源客户/业务、内容、人工accept/reject/理由，有限changeOps及同普通事务/目标历史，补纠错原因/副本。不新增审批/删除/自动计划或阶段。具体八步已归14.9.18/AD-019，先提交计划，再按真实链路编码；之后B09及后续阶段按完整规划→实施验收→main循环，E04仍active。
 
 公网新合成项目17/v11/四有效节点/0已删/25历史，两原会话/11原结果受控在D:/geekwon/geekdash-data/secrets/recovery-public-sessions.json；原项目16/两会话/14结果保持。正式删除后实际旧2dfb17c回退过滤/旧结果、新D/E未知→再升级恢复同ID→真实app stop/up新结果保持，current最终2a342d6。初次回退辅助后半指纹1045/NO，应用已旧且ready、链接仍新；先实际核对并同步链接再升级，不能盲重跑原fallback/install。
 
