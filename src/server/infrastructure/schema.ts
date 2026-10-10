@@ -19,22 +19,28 @@ function fail(code: string, differences: Difference[] = []): never {
 export async function loadSchema() {
   const bytes = await readFile(new URL('../../migrations/0001-foundation.json', import.meta.url));
   const foundation = JSON.parse(bytes.toString('utf8')) as Manifest;
-  const increment = await readFile(new URL('../../migrations/0002-trial-save.json', import.meta.url));
-  const delta = JSON.parse(increment.toString('utf8')) as { version: string; steps: { table: string; sql: string; columns?: Column[]; indexes?: Index[]; checks?: Check[] }[] };
-  if (foundation.version !== '0001-foundation' || foundation.tables.length !== 34 || delta.version !== '0002-trial-save' || delta.steps.length !== 3) fail('DB_MIGRATION_RESOURCE_INVALID');
-  const manifest = structuredClone(foundation);
-  manifest.version = delta.version;
-  for (const step of delta.steps) {
-    const table = manifest.tables.find(table => table.name === step.table);
-    if (!table) fail('DB_MIGRATION_RESOURCE_INVALID');
-    for (const kind of ['columns', 'indexes', 'checks'] as const) for (const item of step[kind] ?? []) {
-      const items = table[kind] as { name: string }[];
-      const index = items.findIndex(existing => existing.name === item.name);
-      if (index === -1) items.push(item); else items[index] = item;
+  if (foundation.version !== '0001-foundation' || foundation.tables.length !== 34) fail('DB_MIGRATION_RESOURCE_INVALID');
+  let manifest = structuredClone(foundation);
+  const history = [{ version: foundation.version, checksum: createHash('sha256').update(bytes).digest() }];
+  const increments: { previous: Manifest; manifest: Manifest; steps: { table: string; sql: string; columns?: Column[]; indexes?: Index[]; checks?: Check[] }[] }[] = [];
+  for (const [version, count] of [['0002-trial-save', 3], ['0003-node-recovery', 1]] as const) {
+    const bytes = await readFile(new URL('../../migrations/' + version + '.json', import.meta.url));
+    const delta = JSON.parse(bytes.toString('utf8')) as { version: string; steps: typeof increments[number]['steps'] };
+    if (delta.version !== version || delta.steps.length !== count) fail('DB_MIGRATION_RESOURCE_INVALID');
+    const previous = manifest; manifest = structuredClone(previous); manifest.version = version;
+    for (const step of delta.steps) {
+      const table = manifest.tables.find(table => table.name === step.table);
+      if (!table) fail('DB_MIGRATION_RESOURCE_INVALID');
+      for (const kind of ['columns', 'indexes', 'checks'] as const) for (const item of step[kind] ?? []) {
+        const items = table[kind] as { name: string }[];
+        const index = items.findIndex(existing => existing.name === item.name);
+        if (index === -1) items.push(item); else items[index] = item;
+      }
     }
+    increments.push({ previous, manifest, steps: delta.steps });
+    history.push({ version, checksum: createHash('sha256').update(bytes).digest() });
   }
-  const history = [{ version: foundation.version, checksum: createHash('sha256').update(bytes).digest() }, { version: delta.version, checksum: createHash('sha256').update(increment).digest() }];
-  return { manifest, foundation, steps: delta.steps, history, checksum: history[1].checksum };
+  return { manifest, foundation, increments, history, checksum: history.at(-1)!.checksum };
 }
 
 async function query(connection: Connection, sql: string, values: unknown[] = []) {
@@ -135,7 +141,7 @@ export async function verifySchemaConnection(connection: Connection, resource: A
 
 export async function migrateDatabase(profile: DatabaseProfile) {
   if (!profile.endsWith('_migrator')) fail('DB_MIGRATION_IDENTITY_INVALID');
-  const { manifest: target, foundation: manifest, history, steps } = await loadSchema();
+  const { manifest: target, foundation: manifest, history, increments } = await loadSchema();
   const { connection, fact } = await connectDatabase(profile);
   const lockName = `geekdash:${fact.database}:schema`;
   let locked = false;
@@ -190,13 +196,16 @@ export async function migrateDatabase(profile: DatabaseProfile) {
       await query(connection, 'INSERT INTO schema_migrations (version, checksum, applied_at) VALUES (?, ?, UTC_TIMESTAMP(3))', [history[0].version, history[0].checksum]);
       applied = true;
     }
-    if (completed < 2) {
-      // 每张受影响表只有一次原子 ALTER；中断后仅接受该表的旧结构或精确目标结构。
+    for (const [index, increment] of increments.entries()) {
+      if (completed > index + 1) continue;
+      const { manifest: target, previous, steps } = increment;
+      // 每次增量只接受上一精确结构或本次精确目标；额外对象在DDL前拒绝。
       actual = await readStructure(connection);
+      for (const name of actual.keys()) if (!target.tables.some(table => table.name === name)) fail('DB_SCHEMA_MISMATCH', [{ table: name, object: 'table', expected: '未定义', actual: '额外对象' }]);
       for (const table of target.tables) {
         const differences = compareTable(table, actual.get(table.name), true);
         if (!differences.length) continue;
-        const old = manifest.tables.find(old => old.name === table.name)!;
+        const old = previous.tables.find(old => old.name === table.name)!;
         const pending = steps.find(step => step.table === table.name);
         const oldDifferences = compareTable(old, actual.get(table.name), true);
         if (!pending || oldDifferences.length) fail('DB_SCHEMA_MISMATCH', differences);
@@ -216,7 +225,7 @@ export async function migrateDatabase(profile: DatabaseProfile) {
       await verifyStructure(connection, target);
       console.log(JSON.stringify({ event: 'migration_structure_verified', registered: false }));
       step = 'register_increment';
-      await query(connection, 'INSERT INTO schema_migrations (version, checksum, applied_at) VALUES (?, ?, UTC_TIMESTAMP(3))', [history[1].version, history[1].checksum]);
+      await query(connection, 'INSERT INTO schema_migrations (version, checksum, applied_at) VALUES (?, ?, UTC_TIMESTAMP(3))', [history[index + 1].version, history[index + 1].checksum]);
       applied = true;
     }
     return { status: 'verified', applied, ...await verifyDatabase(profile) };

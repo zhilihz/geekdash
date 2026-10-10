@@ -30,3 +30,7 @@
 ## 失败
 
 401 AUTH_REQUIRED：重新认证；403 PASSWORD_CHANGE_REQUIRED/CSRF_INVALID/INVALID_REQUEST_SOURCE/PROJECT_READ_ONLY：完成相应身份或负责前置；409 AUTH_CONTEXT_CHANGED/PROJECT_VERSION_CONFLICT/OPERATION_KEY_REUSED：保留旧输入并重新核对；422 LAST_RESPONSIBLE：先由另一启用账号加入；字段及密码错误保留表单修正。503 DATABASE_UNAVAILABLE 或 COMMIT_UNKNOWN：区分未提交与结果未知；项目命令沿原编号确认/重试，改密用新密码重新认证核对。创建和责任接口不接受客户端身份或他人负责 ID。
+
+## 0003节点读取兼容补充
+
+E04-B08兼容候选增加节点响应deletedAt可空字段；正常详情/普通保存候选仅返回deleted_at为NULL的有效节点，结案遗留沿同一条件。既有节点ID/来源/字段与原保存回执不改写；旧结果查询仍返回当次原JSON。此批没有删除/恢复写意图，固定运行状态归系统真相，结构归ERD5.8。

@@ -29,7 +29,7 @@ export function validateLifecycle(value: unknown): LifecycleCommand {
 }
 export type LifecycleNote = { id: string; action: string; note: string; originalNote: string; actorDisplayName: string; createdAt: string; versionBefore: string; versionAfter: string; corrections: { id: string; reason: string; actorDisplayName: string; createdAt: string }[] };
 export async function lifecycleNotes(c: PoolConnection, id: string): Promise<LifecycleNote[]> {
-  const [history] = await c.query<RowDataPacket[]>({ sql: "SELECT CAST(id AS CHAR) id,action,after_json afterValues,actor_display_name actorDisplayName,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%s.%fZ') createdAt,CAST(version_before AS CHAR) versionBefore,CAST(version_after AS CHAR) versionAfter FROM audit_log WHERE project_id=? AND action IN ('project.pause','project.resume','project.lifecycle.note.correct') ORDER BY id", timeout: 3000 }, [id]);
+  const [history] = await c.query<RowDataPacket[]>({ sql: "SELECT CAST(id AS CHAR) id,action,after_json afterValues,actor_display_name actorDisplayName,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%s.%fZ') createdAt,CAST(version_before AS CHAR) versionBefore,CAST(version_after AS CHAR) versionAfter FROM audit_log WHERE project_id=? AND action IN ('project.pause','project.resume','project.lifecycle.note.correct') ORDER BY audit_log.id", timeout: 3000 }, [id]);
   const notes: LifecycleNote[] = [], byId = new Map<string, LifecycleNote>();
   for (const item of history) {
     const after = typeof item.afterValues === 'string' ? JSON.parse(item.afterValues) : item.afterValues;

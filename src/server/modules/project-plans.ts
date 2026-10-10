@@ -51,10 +51,10 @@ export function validatePlan(value: unknown): PlanCommand {
 }
 
 export async function scheduleRecords(c: PoolConnection, id: string) {
-  const originals = await rows(c, "SELECT CAST(id AS CHAR) id,kind,DATE_FORMAT(old_date,'%Y-%m-%d') oldDate,DATE_FORMAT(new_date,'%Y-%m-%d') newDate,reason,measures,CAST(actor_id AS CHAR) actorId,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%s.%fZ') createdAt FROM schedule_changes WHERE project_id=? ORDER BY created_at,id", [id]) as (RowDataPacket & Omit<ScheduleRecord, 'voided'>)[];
+  const originals = await rows(c, "SELECT CAST(id AS CHAR) id,kind,DATE_FORMAT(old_date,'%Y-%m-%d') oldDate,DATE_FORMAT(new_date,'%Y-%m-%d') newDate,reason,measures,CAST(actor_id AS CHAR) actorId,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%s.%fZ') createdAt FROM schedule_changes WHERE project_id=? ORDER BY created_at,schedule_changes.id", [id]) as (RowDataPacket & Omit<ScheduleRecord, 'voided'>)[];
   const records = originals.map(original => ({ ...original, voided: false, original: { ...original }, corrections: [] as { id: string; reason: string; actorDisplayName: string; createdAt: string }[] }));
   if (!records.length) return records;
-  const audits = await rows(c, "SELECT CAST(id AS CHAR) id,after_json afterValues,actor_display_name actorDisplayName,created_at createdAt FROM audit_log WHERE project_id=? AND action IN ('project.plan.correctScheduleRecord','project.plan.voidScheduleRecord') ORDER BY id", [id]);
+  const audits = await rows(c, "SELECT CAST(id AS CHAR) id,after_json afterValues,actor_display_name actorDisplayName,created_at createdAt FROM audit_log WHERE project_id=? AND action IN ('project.plan.correctScheduleRecord','project.plan.voidScheduleRecord') ORDER BY audit_log.id", [id]);
   const byId = new Map(records.map(record => [record.id, record]));
   for (const audit of audits) {
     const after = typeof audit.afterValues === 'string' ? JSON.parse(audit.afterValues) : audit.afterValues;

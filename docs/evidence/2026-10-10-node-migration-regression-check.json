@@ -1,0 +1,249 @@
+[
+  {
+    "name": "nodes",
+    "exitCode": 0,
+    "elapsedSeconds": 5.54,
+    "results": [
+      {
+        "status": "passed",
+        "groups": 5,
+        "requestCount": 164
+      }
+    ]
+  },
+  {
+    "name": "risks",
+    "exitCode": 0,
+    "elapsedSeconds": 4.79,
+    "results": [
+      {
+        "status": "passed",
+        "groups": 5,
+        "requestCount": 120
+      }
+    ]
+  },
+  {
+    "name": "checks",
+    "exitCode": 0,
+    "elapsedSeconds": 6.67,
+    "results": [
+      {
+        "status": "passed",
+        "groups": 10,
+        "requestCount": 253
+      }
+    ]
+  },
+  {
+    "name": "close",
+    "exitCode": 0,
+    "elapsedSeconds": 7.19,
+    "results": [
+      {
+        "status": "passed",
+        "groups": 7,
+        "requestCount": 299
+      }
+    ]
+  },
+  {
+    "name": "pause",
+    "exitCode": 0,
+    "elapsedSeconds": 5.45,
+    "results": [
+      {
+        "status": "passed",
+        "groups": 5,
+        "requestCount": 124
+      }
+    ]
+  },
+  {
+    "name": "dates",
+    "exitCode": 0,
+    "elapsedSeconds": 6.84,
+    "results": [
+      {
+        "status": "passed",
+        "groups": 5,
+        "requestCount": 287
+      }
+    ]
+  },
+  {
+    "name": "corrections",
+    "exitCode": 0,
+    "elapsedSeconds": 4.0,
+    "results": [
+      {
+        "status": "passed",
+        "groups": 6,
+        "requestCount": 87,
+        "output": "test-results/stage-corrections-check.json"
+      }
+    ]
+  },
+  {
+    "name": "start",
+    "exitCode": 0,
+    "elapsedSeconds": 3.64,
+    "results": [
+      {
+        "status": "passed",
+        "groups": 6,
+        "requests": 76
+      }
+    ]
+  },
+  {
+    "name": "stages",
+    "exitCode": 0,
+    "elapsedSeconds": 4.01,
+    "results": [
+      {
+        "status": "passed",
+        "groups": 7,
+        "requestCount": 57,
+        "output": "test-results/stage-actions-check.json"
+      }
+    ]
+  },
+  {
+    "name": "core",
+    "exitCode": 0,
+    "elapsedSeconds": 3.49,
+    "results": [
+      {
+        "status": "passed",
+        "checks": 8,
+        "requests": 66
+      }
+    ]
+  },
+  {
+    "name": "ordinary",
+    "exitCode": 0,
+    "elapsedSeconds": 3.36,
+    "results": [
+      {
+        "status": "passed",
+        "checkedAt": "2026-10-10T08:25:56.120Z",
+        "source": "真实 test MySQL 与 HTTP；合成输入",
+        "checks": [
+          {
+            "check": "ordinary-fields-relations-single-version-fresh-sql-http-filter-stats-audit",
+            "passed": true
+          },
+          {
+            "check": "existing-disabled-kept-new-disabled-rejected-receipt-replay-and-no-change",
+            "passed": true
+          },
+          {
+            "check": "whitelist-reference-validation-relation-and-audit-failure-all-rollback",
+            "passed": true
+          },
+          {
+            "check": "explicit-clear-and-omitted-relations-preserved",
+            "passed": true
+          },
+          {
+            "check": "same-version-conflict-real-commit-lost-ack-reopen-and-exact-replay",
+            "passed": true
+          },
+          {
+            "check": "reference-row-lock-observes-concurrent-disabled-before-new-link",
+            "passed": true
+          },
+          {
+            "check": "four-workers-same-project-five-rounds-one-winner",
+            "passed": true,
+            "requests": 20,
+            "p95Ms": 37,
+            "maxMs": 37
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "saves",
+    "exitCode": 0,
+    "elapsedSeconds": 9.8,
+    "results": [
+      {
+        "status": "passed",
+        "checks": [
+          {
+            "check": "four-fields-atomic-save-bigint-fresh-connection-http-board-and-audit",
+            "passed": true
+          },
+          {
+            "check": "concurrent-idempotent-replay-canonical-field-order-and-key-reuse",
+            "passed": true
+          },
+          {
+            "check": "same-version-winner-only-stale-rejected-no-change-receipt-and-old-result",
+            "passed": true
+          },
+          {
+            "check": "whitelist-scope-null-type-unicode-byte-capacity-and-no-partial-write",
+            "passed": true
+          },
+          {
+            "check": "real-audit-receipt-sql-failure-rolls-back-and-real-commit-lost-ack-confirmed-once",
+            "passed": true
+          },
+          {
+            "check": "inflight-not-found-read-only-process-restart-replay-pool-failure-and-recovery",
+            "passed": true
+          },
+          {
+            "check": "four-concurrent-actual-writes-five-rounds-and-fresh-readback",
+            "passed": true,
+            "requests": 20,
+            "p95Ms": 47
+          },
+          {
+            "check": "audit-default20-max100-unbounded-total-stable-cursor-legacy-separated-index",
+            "passed": true,
+            "totalRead": 515,
+            "selectedIndex": "PRIMARY",
+            "accessType": "range"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "projects",
+    "exitCode": 0,
+    "elapsedSeconds": 5.16,
+    "results": [
+      {
+        "status": "passed",
+        "origin": "http://127.0.0.1:46285",
+        "checks": [
+          {
+            "check": "actual-http-list-views-filters-pagination-literal-search-id-validation-no-write",
+            "passed": true
+          },
+          {
+            "check": "complete-project-snapshot-with-all-read-collections-and-bigint-precision",
+            "passed": true
+          },
+          {
+            "check": "real-concurrent-commit-does-not-mix-detail-versions-fresh-request-sees-new-version",
+            "passed": true
+          },
+          {
+            "check": "four-concurrent-real-list-reads-and-pool-exhaustion-recovery",
+            "passed": true,
+            "requests": 20,
+            "p95Ms": 78
+          }
+        ]
+      }
+    ]
+  }
+]

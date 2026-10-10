@@ -46,7 +46,7 @@ export function validateRiskOps(value: unknown): RiskOperation[] {
 }
 async function query(connection: PoolConnection, sql: string, values: unknown[] = []) { return (await connection.query<RowDataPacket[]>({ sql, timeout: 3000 }, values))[0]; }
 export async function riskRows(connection: PoolConnection, id: string): Promise<Risk[]> {
-  const rows = await query(connection, "SELECT CAST(id AS CHAR) id,content,level,resolved,resolution,DATE_FORMAT(resolved_at,'%Y-%m-%dT%H:%i:%s.%fZ') resolvedAt,CAST(actor_id AS CHAR) actorId,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%s.%fZ') createdAt,source_key sourceKey,sort_order sortOrder FROM project_risks WHERE project_id=? ORDER BY sort_order,id", [id]) as Risk[];
+  const rows = await query(connection, "SELECT CAST(id AS CHAR) id,content,level,resolved,resolution,DATE_FORMAT(resolved_at,'%Y-%m-%dT%H:%i:%s.%fZ') resolvedAt,CAST(actor_id AS CHAR) actorId,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%s.%fZ') createdAt,source_key sourceKey,sort_order sortOrder FROM project_risks WHERE project_id=? ORDER BY sort_order,project_risks.id", [id]) as Risk[];
   if (!rows.length) return rows;
   const placeholders = rows.map(() => '?').join(',');
   const facts = await query(connection, `SELECT CAST(a.entity_id AS CHAR) id,a.action,a.actor_display_name name FROM (
@@ -110,7 +110,7 @@ export type NodeOperation =
   | { op: 'move'; id: string; x: number; y: number }
   | { op: 'link'; from: string; to: string; replaceEdges: Edge[]; affectedIds: string[]; reason: string }
   | { op: 'unlink'; from: string; to: string };
-type Node = RowDataPacket & NodeFields & { id: string; kind: string; completedOn: string | null; previousNodeId: string | null; nextNodeId: string | null; x: number | null; y: number | null; sourceKey: string | null; sortOrder: number };
+type Node = RowDataPacket & NodeFields & { id: string; kind: string; completedOn: string | null; previousNodeId: string | null; nextNodeId: string | null; x: number | null; y: number | null; sourceKey: string | null; sortOrder: number; deletedAt: string | null };
 type NodeEvent = { id: string; before: Node | null; after: Node; operations: NodeOperation[]; reason: string };
 const nodeFieldKeys = ['title', 'stage', 'targetDate', 'output', 'note'] as const;
 const edgeKey = (edge: Edge) => edge.from + ':' + edge.to;
@@ -157,7 +157,7 @@ export function validateNodeOps(value: unknown): NodeOperation[] {
   return result;
 }
 export async function nodeRows(connection: PoolConnection, id: string): Promise<Node[]> {
-  const rows = await query(connection, "SELECT CAST(n.id AS CHAR) id,n.kind,s.stage_code stage,n.title,DATE_FORMAT(n.target_date,'%Y-%m-%d') targetDate,DATE_FORMAT(n.completed_on,'%Y-%m-%d') completedOn,n.output,n.note,CAST(n.previous_node_id AS CHAR) previousNodeId,CAST(n.next_node_id AS CHAR) nextNodeId,n.x,n.y,n.source_key sourceKey,n.sort_order sortOrder FROM project_nodes n LEFT JOIN project_stages s ON s.id=n.stage_id WHERE n.project_id=? ORDER BY n.sort_order,n.id", [id]) as Node[];
+  const rows = await query(connection, "SELECT CAST(n.id AS CHAR) id,n.kind,s.stage_code stage,n.title,DATE_FORMAT(n.target_date,'%Y-%m-%d') targetDate,DATE_FORMAT(n.completed_on,'%Y-%m-%d') completedOn,n.output,n.note,CAST(n.previous_node_id AS CHAR) previousNodeId,CAST(n.next_node_id AS CHAR) nextNodeId,n.x,n.y,n.source_key sourceKey,n.sort_order sortOrder,DATE_FORMAT(n.deleted_at,'%Y-%m-%dT%H:%i:%s.%fZ') deletedAt FROM project_nodes n LEFT JOIN project_stages s ON s.id=n.stage_id WHERE n.project_id=? AND n.deleted_at IS NULL ORDER BY n.sort_order,n.id", [id]) as Node[];
   return rows.map(row => ({ ...row, x: row.x === null ? null : Number(row.x), y: row.y === null ? null : Number(row.y) }));
 }
 export async function nodeCandidate(connection: PoolConnection, id: string, operations: NodeOperation[], timestamp: string, preview = false) {
@@ -170,7 +170,7 @@ export async function nodeCandidate(connection: PoolConnection, id: string, oper
   for (const operation of operations) {
     if (operation.op === 'add') {
       if (order > 4294967295) failure('NODE_ORDER_EXHAUSTED', 422);
-      const row = { id: operation.tempId, kind: operation.kind, stage: null, targetDate: null, output: '', note: '', ...operation.fields, completedOn: null, previousNodeId: null, nextNodeId: null, x: null, y: null, sourceKey: null, sortOrder: order++ } as Node;
+      const row = { id: operation.tempId, kind: operation.kind, stage: null, targetDate: null, output: '', note: '', ...operation.fields, completedOn: null, previousNodeId: null, nextNodeId: null, x: null, y: null, sourceKey: null, sortOrder: order++, deletedAt: null } as Node;
       candidates.push(row); rows.set(row.id, row); touch(row.id, operation); continue;
     }
     if (operation.op === 'link' || operation.op === 'unlink') {

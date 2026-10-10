@@ -1,0 +1,10 @@
+{
+  "version": "0003-node-recovery",
+  "steps": [
+    {
+      "table": "project_nodes",
+      "sql": "ALTER TABLE project_nodes ADD COLUMN deleted_at datetime(3) NULL DEFAULT NULL",
+      "columns": [{"name":"deleted_at","type":"datetime(3)","nullable":true,"default":null,"autoIncrement":false,"charset":null,"collation":null}]
+    }
+  ]
+}

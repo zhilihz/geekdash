@@ -15,7 +15,7 @@ export function weekContext(now: Date, weekday: number | null) {
 export async function checkContext(c: PoolConnection, actorId?: string, now = new Date(), lock = false) {
   const [configs] = await c.query<RowDataPacket[]>(`SELECT CAST(version AS CHAR) configVersion,CAST(maintenance_user_id AS CHAR) maintenanceUserId FROM system_configuration WHERE id=1${lock ? ' FOR SHARE' : ''}`);
   const weekStart = businessWeek(businessToday(now));
-  const [rules] = await c.query<RowDataPacket[]>("SELECT CAST(version AS CHAR) version,deadline_weekday deadlineWeekday,DATE_FORMAT(effective_week,'%Y-%m-%d') effectiveWeek,saved_at savedAt,CAST(saved_by AS CHAR) savedBy FROM check_rule_revisions WHERE effective_week<=? ORDER BY effective_week DESC,version DESC LIMIT 1", [weekStart]);
+  const [rules] = await c.query<RowDataPacket[]>("SELECT CAST(version AS CHAR) version,deadline_weekday deadlineWeekday,DATE_FORMAT(effective_week,'%Y-%m-%d') effectiveWeek,saved_at savedAt,CAST(saved_by AS CHAR) savedBy FROM check_rule_revisions WHERE effective_week<=? ORDER BY effective_week DESC,check_rule_revisions.version DESC LIMIT 1", [weekStart]);
   const rule = rules[0] ?? null;
   return { configVersion: configs[0]?.configVersion ?? null, canMaintain: !!actorId && configs[0]?.maintenanceUserId === actorId, rule, ...weekContext(now, rule?.deadlineWeekday ?? null) };
 }

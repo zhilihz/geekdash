@@ -1,0 +1,78 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T08:29:12.183192+00:00",
+  "before": {
+    "source": "旧编译候选，真实同周规则修改与新HTTP读取",
+    "actualVersion": "99",
+    "savedVersion": "100",
+    "assertionFailed": true,
+    "wholeCommandExit": 1
+  },
+  "after": {
+    "groups": 10,
+    "requests": 253,
+    "wholeCommandExit": 0,
+    "lockDiagnostic": {
+      "expected": "CHECK_PREVIEW_CHANGED",
+      "sql": [
+        {
+          "sql": "SELECT CAST(version AS CHAR) version,CAST(maintenance_user_id AS CHAR) maintenanceUserId FROM system_configuration WHERE id=1 FOR UPDATE",
+          "rows": [
+            {
+              "version": "9"
+            }
+          ]
+        },
+        {
+          "sql": "SELECT CAST(version AS CHAR) configVersion,CAST(maintenance_user_id AS CHAR) maintenanceUserId FROM system_configuration WHERE id=1",
+          "rows": [
+            {
+              "configVersion": "9"
+            }
+          ]
+        },
+        {
+          "sql": "SELECT CAST(version AS CHAR) version,deadline_weekday deadlineWeekday,DATE_FORMAT(effective_week,'%Y-%m-%d') effectiveWeek,saved_at savedAt,CAST(saved_by AS CHAR) savedBy FROM check_rule_revisions WHERE effective_week<=? ORDER BY effective_week DESC,check_rule_revisions.version DESC LIMIT 1",
+          "rows": [
+            {
+              "version": "109",
+              "deadlineWeekday": 5,
+              "effectiveWeek": "2026-10-05",
+              "savedAt": "2026-10-10T04:00:00.000Z"
+            }
+          ]
+        },
+        {
+          "sql": "SELECT id FROM system_configuration WHERE id=1 FOR SHARE",
+          "rows": [
+            {
+              "id": "1"
+            }
+          ]
+        },
+        {
+          "sql": "SELECT CAST(version AS CHAR) configVersion,CAST(maintenance_user_id AS CHAR) maintenanceUserId FROM system_configuration WHERE id=1",
+          "rows": [
+            {
+              "configVersion": "10"
+            }
+          ]
+        },
+        {
+          "sql": "SELECT CAST(version AS CHAR) version,deadline_weekday deadlineWeekday,DATE_FORMAT(effective_week,'%Y-%m-%d') effectiveWeek,saved_at savedAt,CAST(saved_by AS CHAR) savedBy FROM check_rule_revisions WHERE effective_week<=? ORDER BY effective_week DESC,check_rule_revisions.version DESC LIMIT 1",
+          "rows": [
+            {
+              "version": "110",
+              "deadlineWeekday": 3,
+              "effectiveWeek": "2026-10-05",
+              "savedAt": "2026-10-10T04:00:00.000Z"
+            }
+          ]
+        }
+      ],
+      "error": "CHECK_PREVIEW_CHANGED"
+    }
+  },
+  "oldMillisecondFailureRootCauseConfirmed": false,
+  "constantDatabasesMigrated": false
+}

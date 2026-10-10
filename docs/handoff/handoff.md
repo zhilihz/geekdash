@@ -8,9 +8,9 @@
 
 当前codex/e04-b08-node-migration，从节点实现196405e开始，0003详细计划a83b928已合并远端main。节点A～C已固定部署，两端164真实HTTP与混合500四会话800测量、云14类回归、公网项目16/v13/5节点/30审计/16资源及真实app重启通过，2原会话/14原结果保持；准确范围归系统真相42及[节点部署](../operations/deployments/2026-10-10-project-nodes.md)。运行196405e不随文档SHA改变。
 
-接续14.9.15：0003资源/schema有序续跑、nodeRows及闭案过滤候选已编码；自有临时MySQL的空库迁移8项/ready8项通过，含数据0002升级/过滤未测。未提交源码：migrations/0003、schema.ts、project-records/closures、web api、build、verify-migrations/readiness，全部为本轮自有施工，不覆盖他人。新专项verify-node-migration.mjs待补，现有两库仍0002，禁止把新候选直接启动到旧库。
+接续14.9.15：0003资源/schema有序续跑、nodeRows及闭案过滤候选已编码；自有临时MySQL的空库迁移8项/ready8项通过，含数据升级四组、13类回归已测；跨数字位数规则读取失败已复现并修正，253请求通过。未提交源码：migrations/0003、schema.ts、project-records/closures、web api、build、verify-migrations/readiness，全部为本轮自有施工，不覆盖他人。专项verify-node-migration.mjs已完成，强制自有实例UUID及固定旧schema字节门槛，现有两库仍0002，禁止把新候选直接启动到旧库。
 
-先核对Git/运行与临时环境test-results/node-migration-probe-private.json（只含自有环境信息，不输出凭据）；D:/geekwon/geekdash-data/migration-probes的自有MySQL512MiB/独立网络/无端口，常驻mysql未动。完成含数据/过滤/旧回执、候选回归及固定验证，具名提交main再分别备份迁移两库/部署兼容版。DDL前失败保持0002，DDL后按精确目标接续0003兼容应用，不能启动旧0002掩盖失败；后续D/E才可回退到此兼容固定版。云列表2290ms/旧检查边界及原生实点沿B09，真实备份不接。
+先核对Git/运行与临时环境test-results/node-migration-probe-private.json（只含自有环境信息，不输出凭据）；D:/geekwon/geekdash-data/migration-probes的自有MySQL512MiB/独立网络/无端口，常驻mysql未动。500混合容量800测量零错误/退出0，继续固定验证，具名提交main再分别备份迁移两库/部署兼容版。DDL前失败保持0002，DDL后按精确目标接续0003兼容应用，不能启动旧0002掩盖失败；后续D/E才可回退到此兼容固定版。云列表2290ms/旧检查边界及原生实点沿B09，真实备份不接。
 
 节点私有install已完成切换后，旧容量文件名归档失败；现场reconcile和仅补归档通过，原安装失败回执仍留，禁止盲重跑安装（目录已存在、旧预期5ae7ecc）。公网操作/原会话受控记录在仓库外，只读取核对，其他合成项目7～15保持；无待执行节点服务器写命令。当前未发现Node溢出，普通工具退出、自有夹具清理完成，没有全局杀进程/prune/删现有卷。
 

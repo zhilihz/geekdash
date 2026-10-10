@@ -20,7 +20,7 @@ async function start() {
   runtime = await openRuntimeDatabase('test_app'); const write = runtime.writeTransaction;
   runtime.writeTransaction = work => write(async lease => {
     const execute = lease.execute, commit = lease.commit, query = lease.query;
-    lease.query = async function(statement, params) { const sql = typeof statement === 'string' ? statement : statement.sql; const gate = lockGate; if (gate?.before && sql.startsWith(gate.before)) gate.attempted(); const value = await query.call(this, statement, params); if (gate?.after && sql.startsWith(gate.after)) { gate.locked(); await gate.release; } return value; };
+    lease.query = async function(statement, params) { const sql = typeof statement === 'string' ? statement : statement.sql; const gate = lockGate; if (gate?.before && sql.startsWith(gate.before)) gate.attempted(); const value = await query.call(this, statement, params); if (gate?.trace && /system_configuration|check_rule_revisions/.test(sql)) gate.trace.push({ sql, rows: value[0] }); if (gate?.after && sql.startsWith(gate.after)) { gate.locked(); await gate.release; } return value; };
     lease.execute = function(sql, params) {
       if (fault === 'middle' && sql.startsWith('UPDATE projects SET') && ++projectWrites === 2 || fault && sql.startsWith(fault)) return execute.call(this, 'INSERT INTO __missing_close_test_table VALUES (1)');
       return execute.call(this, sql, params);
@@ -58,10 +58,16 @@ try {
   await start();const a=client(),b=client(),maint=client();await a.login(0);await b.login(1);await maint.login(2);
   await c.execute("INSERT INTO system_configuration (id,maintenance_user_id,full_name,short_name,manager_text,name_prefix,updated_by,updated_at) VALUES (1,?,'','','','',?,UTC_TIMESTAMP(3))",[users[2].id,users[2].id]);ownConfig=true;
   const actors=[await identities(runtime).resolve(a.token),await identities(runtime).resolve(b.token),await identities(runtime).resolve(maint.token)];
+  const nextRule=Number((await c.query("SELECT AUTO_INCREMENT value FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='check_rule_revisions'"))[0][0].value);
+  const digitBoundary=10 ** String(nextRule).length-1;assert(Number.isSafeInteger(digitBoundary));await c.query('ALTER TABLE check_rule_revisions AUTO_INCREMENT='+digitBoundary);
   const today=businessToday(),week=businessWeek(today), at=(day,hour=4)=>new Date(addDays(week,day)+'T'+String(hour).padStart(2,'0')+':00:00.000Z');
   let now=at(3),rule=await publicSettings(runtime,()=>now).read(users[2].id);
   const initialize={action:'initializeCheckRule',deadlineWeekday:5,expectedVersion:rule.configVersion,previewWeek:week,idempotencyKey:randomUUID()};
   await publicSettings(runtime,()=>now).save(actors[2],initialize,randomUUID(),false);rule=await a.api('/api/settings/check-rule');
+  const crossing=await publicSettings(runtime,()=>now).save(actors[2],{action:'modifyCheckRule',deadlineWeekday:3,expectedVersion:rule.configVersion,previewWeek:week,idempotencyKey:randomUUID()},randomUUID(),false);
+  rule=await a.api('/api/settings/check-rule');assert.equal(crossing.result.ruleVersion,String(digitBoundary+1));assert.equal(rule.rule.version,crossing.result.ruleVersion);assert.equal(rule.rule.deadlineWeekday,3);
+  await publicSettings(runtime,()=>now).save(actors[2],{action:'modifyCheckRule',deadlineWeekday:5,expectedVersion:rule.configVersion,previewWeek:week,idempotencyKey:randomUUID()},randomUUID(),false);rule=await a.api('/api/settings/check-rule');
+  checks.push('同周规则版本跨数字位数仍按真实保存顺序立即生效，返回字符串ID不改变数值排序');
   const id=await create(a),path='/api/projects/'+id,bodies=[];
   const detail=(id,user=a)=>user.api('/api/projects/'+id);
   const request=async(id,action,extra={})=>({action,expectedVersion:(await detail(id)).project.version,idempotencyKey:randomUUID(),...extra});
@@ -167,11 +173,14 @@ try {
   const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve};};
   now=at(5);rule=await a.api('/api/settings/check-rule');
   const lockBody=await request(raceId,'saveCheck',check()),locked=deferred(),attempted=deferred(),release=deferred();
-  lockGate={after:'SELECT CAST(version AS CHAR) version,CAST(maintenance_user_id',before:'SELECT id FROM system_configuration',locked:locked.resolve,attempted:attempted.resolve,release:release.promise};
+  const lockTrace=[];
+  lockGate={after:'SELECT CAST(version AS CHAR) version,CAST(maintenance_user_id',before:'SELECT id FROM system_configuration',locked:locked.resolve,attempted:attempted.resolve,release:release.promise,trace:lockTrace};
   const changing=change(3);await locked.promise;
   before=await fresh(raceId);const checking=projectActions(runtime,()=>now).run(await identities(runtime).resolve(a.token),raceId,validateAction(lockBody),randomUUID(),false).then(value=>({value}),error=>({error}));
   await attempted.promise;release.resolve();await changing;const rejected=await checking;lockGate=undefined;
-  assert.equal(rejected.error?.code,'CHECK_PREVIEW_CHANGED');assert.deepEqual(await fresh(raceId),before);
+  const lockEvidence={expected:'CHECK_PREVIEW_CHANGED',body:lockBody,sql:lockTrace,result:rejected.value,error:rejected.error?.code,rules:(await c.query("SELECT CAST(version AS CHAR) version,deadline_weekday deadlineWeekday,DATE_FORMAT(effective_week,'%Y-%m-%d') effectiveWeek FROM check_rule_revisions ORDER BY version"))[0]};
+  await mkdir('test-results',{recursive:true});await writeFile('test-results/check-rule-lock-check.json',JSON.stringify(lockEvidence,null,2));
+  assert.equal(rejected.error?.code,'CHECK_PREVIEW_CHANGED',JSON.stringify(lockEvidence));assert.deepEqual(await fresh(raceId),before);
   await change(5);rule=await a.api('/api/settings/check-rule');
   const lockClockBody=await request(raceId,'saveCheck',check()),waiting=deferred();
   await c.beginTransaction();await c.query('SELECT id FROM system_configuration WHERE id=1 FOR UPDATE');

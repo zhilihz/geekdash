@@ -18,6 +18,7 @@
     "test:db": "node scripts/verify-database.mjs prepare",
     "test:db:resume": "node scripts/verify-database.mjs resume",
     "test:migrations": "node scripts/verify-migrations.mjs",
+    "test:node-migration": "node scripts/verify-node-migration.mjs",
     "test:readiness": "node scripts/verify-readiness.mjs",
     "test:projects": "node scripts/verify-project-reads.mjs",
     "test:saves": "node scripts/verify-project-saves.mjs",
