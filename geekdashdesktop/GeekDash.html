@@ -274,7 +274,7 @@ header .head-actions { display: flex; gap: 8px; align-items: center; flex-wrap: 
 .welcome-db-status { min-height: 22px; margin-top: 12px; color: #9ae6ff; font-size: 13px; }
 .database-status { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; color: var(--text-faint); font-size: 12px; }
 .database-status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #3fb950; }
-.database-status.saving::before { background: #f0883e; }
+.database-status.saving::before, .database-status.permission::before, .database-status.pending::before { background: #f0883e; }
 .database-status.error { color: #f85149; }
 .database-status.error::before { background: #f85149; }
 .welcome-opt {
@@ -1429,6 +1429,11 @@ header .head-actions { display: flex; gap: 8px; align-items: center; flex-wrap: 
       <h1><span id="board-title-text">智能硬件项目看板系统</span><span class="app-version" id="app-version"></span></h1>
       <p id="board-subtitle">智能硬件项目看板系统</p>
       <div class="database-status" id="database-status" style="display:none"></div>
+      <div id="database-actions" style="display:none">
+        <button class="head-btn" id="database-resume" style="display:none">授权上次数据库</button>
+        <button class="head-btn" id="database-switch">更换数据库</button>
+        <button class="head-btn" id="database-save-as" style="display:none">另存当前数据</button>
+      </div>
     </div>
     <div class="date-zone" id="date-zone">
       <div class="dz-left">
@@ -1810,7 +1815,7 @@ function restoreDetailReturnContext() {
     sessionStorage.removeItem(DETAIL_RETURN_CONTEXT_KEY);
   }));
 }
-window.addEventListener("pageshow", restoreDetailReturnContext);
+window.addEventListener("pageshow", event => { if (event.persisted) restoreDetailReturnContext(); });
 document.addEventListener("click", (event) => {
   const link = event.target.closest('a[href^="project-detail.html?id="]');
   if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -3654,15 +3659,19 @@ $("#mu-save").addEventListener("click", () => {
 });
 $("#dl-mode-roles").innerHTML = (PROJECT_DB.ENGINEER_ROLE_SUGGESTIONS || []).map(r => `<option value="${esc(r)}">`).join("");
 
-/* ---- 项目数据库入口：新会话必须由用户主动打开或新建 ---- */
+/* ---- 项目数据库入口：首次选择，后续恢复 ---- */
 function renderDatabaseStatus(session = PROJECT_DB.databaseSession()) {
   const el = $("#database-status");
   if (!el) return;
   if (!session || !session.name) { el.style.display = "none"; return; }
   el.style.display = "inline-flex";
   el.className = `database-status ${session.state || "saved"}`;
-  const stateText = session.state === "saving" ? "自动保存中" : session.state === "error" ? `保存失败：${session.error || "请重新打开数据库"}` : `已自动保存${session.savedAt ? ` · ${session.savedAt}` : ""}`;
+  const stateText = session.state === "saving" ? "自动保存中" : session.state === "permission" ? "已恢复上次数据，请授权原文件访问" : session.state === "pending" ? "修改保存在本机，待写回原文件" : session.state === "error" ? `文件连接失败：${session.error || "请授权原文件访问"}` : `已自动保存${session.savedAt ? ` · ${session.savedAt}` : ""}`;
   el.textContent = `数据库：${session.name} · ${stateText}`;
+  $("#database-actions").style.display = "";
+  $("#database-resume").style.display = ["permission", "pending", "error"].includes(session.state) ? "" : "none";
+  $("#database-resume").textContent = session.pendingChanges ? "授权并保存到原文件" : "授权上次数据库";
+  $("#database-save-as").style.display = ["permission", "pending", "error"].includes(session.state) ? "" : "none";
 }
 function showWelcomeIfNeeded() {
   $("#welcome-overlay").style.display = PROJECT_DB.hasActiveDatabaseSession() ? "none" : "flex";
@@ -3681,19 +3690,25 @@ async function runDatabaseWelcomeAction(action, pendingText) {
     setTimeout(() => location.reload(), 250);
   } catch (error) {
     status.textContent = error && error.name === "AbortError" ? "已取消选择，请打开或新建数据库后进入。" : `操作失败：${error.message || error}`;
+    showToast(status.textContent, 3000);
     buttons.forEach(button => button.disabled = false);
   }
 }
 $("#database-open").addEventListener("click", () => runDatabaseWelcomeAction(() => PROJECT_DB.openProjectDatabasePicker(), "正在读取并校验数据库…"));
+$("#database-resume").addEventListener("click", () => runDatabaseWelcomeAction(() => PROJECT_DB.resumeProjectDatabase(), "正在连接上次数据库…"));
+$("#database-switch").addEventListener("click", () => runDatabaseWelcomeAction(() => PROJECT_DB.openProjectDatabasePicker(), "请选择新的数据库…"));
+$("#database-save-as").addEventListener("click", () => runDatabaseWelcomeAction(() => PROJECT_DB.createProjectDatabasePicker(true), "请选择当前数据的新保存位置…"));
 $("#database-migrate").addEventListener("click", () => runDatabaseWelcomeAction(() => PROJECT_DB.createProjectDatabasePicker(true), "请选择保存位置，正在迁移当前浏览器数据…"));
 $("#database-new").addEventListener("click", () => {
   if (!confirm("新建空数据库后，当前浏览器缓存会切换为空数据。若缓存中有正式数据，请先选择“将当前浏览器数据存为数据库”。是否继续？")) return;
   runDatabaseWelcomeAction(() => PROJECT_DB.createProjectDatabasePicker(false), "请选择保存位置，正在创建空数据库…");
 });
 window.addEventListener("geekdash-database-status", event => renderDatabaseStatus(event.detail));
-window.addEventListener("geekdash-database-save-error", event => alert(`项目数据库自动保存失败：${event.detail.message}\n请勿关闭页面，返回首页重新打开数据库后再保存。`));
+window.addEventListener("geekdash-database-save-error", event => alert(`项目数据库自动保存失败：${event.detail.message}\n修改已保留在本机，请返回首页授权并保存到原文件，或另存当前数据。`));
 
-function init() {
+async function init() {
+  await PROJECT_DB.restoreProjectDatabase();
+  projects = PROJECT_DB.load();
   // 标题版本号
   const verEl = $("#app-version");
   if (verEl) verEl.textContent = PROJECT_DB.APP_VERSION;
@@ -3720,6 +3735,7 @@ function init() {
   renderCards();
   applyFilterCollapse();
   showWelcomeIfNeeded();
+  restoreDetailReturnContext();
 }
 
 /* ---- 主题切换 ---- */

@@ -1,0 +1,44 @@
+{
+  "version": "V1.051",
+  "revision": "2026-10-10-startup",
+  "files": [
+    {
+      "file": "GeekDash.html",
+      "sha256": "822998ccebbd91f5a046dd687d01bcc0ded1bb299b74aa2d6ba4f1382b4f75f5"
+    },
+    {
+      "file": "project-detail.html",
+      "sha256": "8e85c5453d604e7110d0cb6a5c9669f757a374d315a24b1d19921cbe90673d59"
+    },
+    {
+      "file": "project-status-summary.html",
+      "sha256": "396dcac56bc86964d5bf51b15172c14f4ae823f187cb169c59ad0f9a4bef0d34"
+    },
+    {
+      "file": "chip-statistics.html",
+      "sha256": "d841d02d18b899960e1a39dad52497e478dc21e907b0504563a1808d9a25e066"
+    },
+    {
+      "file": "data-manage.html",
+      "sha256": "a3d15c1caa6a3294c650e0971eb4338ccac1e9a1365a143ea56cc5dec1b3333a"
+    },
+    {
+      "file": "settings.html",
+      "sha256": "1c4feeb3960bc4e60a67321177651979e6d9d55531e96005feffe4d7ae5ef17d"
+    },
+    {
+      "file": "projects-data.js",
+      "sha256": "7085d01efde9b78b337a0f1f75fb76b40742a4553e158f633bdfa9d86d7b3297"
+    },
+    {
+      "file": "README版本_V1.051.txt",
+      "sha256": "fe7c340330a3da7f7de4de9895c38387a9ff1a05b491cd5f83f1494cd4c493a4"
+    }
+  ],
+  "archiveSha256": "388dbd89bb8878dd034467dba46b6557e3ea72df8a26c93207ee4d0ff679a5bd",
+  "archiveBytes": 206131,
+  "whitelistVerified": true,
+  "sourceDeliveryZipByteEqual": true,
+  "normalEntry": "GeekDash.html",
+  "launchScriptIncluded": false
+}
