@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T09:47:23.192390+00:00",
+  "sourceBase": "e4b075a4680e16f68fd1c6898713cbddf9a29c62",
+  "candidateDirty": true,
+  "stagePanelComparedTo": "adb6422d83ae4c0e6065f12a847ba285e334422c",
+  "stagePanelUnchanged": true,
+  "stagePanelSliceSha256": "743b9dd144109ad1b5148efcc6b21e377a7bd009a5c10c19d68bbe60df47bb3a",
+  "sourceHashes": {
+    "src/server/modules/project-records.ts": "ddad993e400e31f24f826e2a23cc93121f45b19c9e1c7641a9c331fe80729dad",
+    "src/server/routes/projects.ts": "60bbcd909419af96524c69009437f82feb3353880371aec406c5e3c39ad444a5",
+    "src/web/detail.ts": "be33bbfd439811acb2267940fb8fe70c36ad787493cff50b7a524c0b06bac857",
+    "src/web/shared/api.ts": "ad41b3c375974a72ef75331a7285a5854f2eefaaca829f525e76d240f29bb68f",
+    "scripts/verify-project-node-recovery.mjs": "ffd58725f7bd7e8de191b2359b9e5541b21c5583dfc7238350fa494ce106d377",
+    "scripts/verify-project-capacity.mjs": "75c485c48e7e69dfaecbec23dbce7bfe9d4b3b71f1361fd3fc36feb2706c67c7"
+  },
+  "foundationCommandExitCode": 0,
+  "nativeBrowserAcceptance": false,
+  "realBackupImported": false,
+  "schemaChangeInThisUnit": false
+}

@@ -5,21 +5,24 @@ import { createApp } from '../dist/server/app.js';
 import { connectDatabase } from '../dist/server/infrastructure/db.js';
 import { openRuntimeDatabase } from '../dist/server/infrastructure/runtime-database.js';
 import { addDays, businessToday, businessWeek } from '../dist/server/modules/project-dates.js';
-import { riskRows } from '../dist/server/modules/project-records.js';
+import { riskRows, deletedNodes } from '../dist/server/modules/project-records.js';
 import { hashPassword } from '../dist/server/modules/identity.js';
 
 const checkMode = process.argv.includes('--checks');
 const riskMode = process.argv.includes('--risks');
 const nodeMode = process.argv.includes('--nodes'), nodeIds = [];
+const recoveryMode = process.argv.includes('--recovery'), deletedIds = [];
+assert(!recoveryMode || nodeMode && riskMode && checkMode, '恢复容量沿完整节点/风险/检查负载验收');
 
 const riskIds = [];
 let riskQueryPlan;
-const namespace = nodeMode ? '__capacity_500_nodes_test__' : riskMode ? '__capacity_500_risks_test__' : checkMode ? '__capacity_500_checks_test__' : '__capacity_500_test__';
+let deletedQueryPlan;
+const namespace = recoveryMode ? '__capacity_500_recovery_test__' : nodeMode ? '__capacity_500_nodes_test__' : riskMode ? '__capacity_500_risks_test__' : checkMode ? '__capacity_500_checks_test__' : '__capacity_500_test__';
 const ids = Array.from({length: 501}, (_, i) => String(9007199254780000n + BigInt(i)));
 const {connection} = await connectDatabase('test_migrator');
 let app, runtime, origin, owned = false, ownConfig = false, checkRule;
 const references = {customers: [], chips: [], engineers: [], tags: []};
-const measurements = {list: [], detail: [], save: [], audit: [], ...(checkMode ? {checkSave: [], checkHistory: []} : {}), ...(riskMode ? {riskPreview: [], riskSave: []} : {}), ...(nodeMode ? {nodePreview: [], nodeSave: []} : {})};
+const measurements = {list: [], detail: [], save: [], audit: [], ...(checkMode ? {checkSave: [], checkHistory: []} : {}), ...(riskMode ? {riskPreview: [], riskSave: []} : {}), ...(nodeMode ? {nodePreview: [], nodeSave: []} : {}), ...(recoveryMode ? {deletedRead: [], restorePreview: [], restoreSave: [], deletePreview: [], deleteSave: []} : {})};
 const began = new Date().toISOString();
 const accounts = [];
 const password = '四人容量验证 password 2026';
@@ -106,6 +109,14 @@ try {
     const completed=nodes.map(node=>({op:'complete',id:node.tempId,completedOn:'2020-01-01'}));
     const saved=(await api('/api/projects/'+ids[index],'PATCH',{expectedVersion:(await api('/api/projects/'+ids[index])).project.version,idempotencyKey:randomUUID(),changes:{nodeOps:[...nodes,...links,...completed]}})).result;
     nodeIds.push(saved.nodeIdMap[nodes[0].tempId]);assert.equal(saved.nodes.length,4);
+    if (recoveryMode) { const target = saved.nodeIdMap[nodes[2].tempId], previous = saved.nodeIdMap[nodes[1].tempId]; deletedIds.push(target); await api('/api/projects/'+ids[index],'PATCH',{expectedVersion:saved.savedVersion,idempotencyKey:randomUUID(),changes:{nodeOps:[{op:'delete',id:target,removeEdges:[{from:previous,to:target}]}]}}); }
+  }
+  if (recoveryMode) {
+    const originalQuery=connection.query;
+    connection.query=async function(statement,params) { const sql=typeof statement==='string'?statement:statement.sql; if(sql.includes('n.deleted_at IS NOT NULL')) deletedQueryPlan=JSON.parse((await originalQuery.call(this,{sql:'EXPLAIN FORMAT=JSON '+sql,timeout:3000},params))[0][0].EXPLAIN); return originalQuery.call(this,statement,params); };
+    try { await deletedNodes({readSnapshot:work=>work(connection)},ids[0],20); } finally { connection.query=originalQuery; }
+    const findNodeScan = value => value && typeof value === 'object' ? value.table_name === 'n' ? value : Object.values(value).map(findNodeScan).find(Boolean) : undefined;
+    const scan = findNodeScan(deletedQueryPlan); assert(scan && scan.access_type !== 'ALL' && scan.used_key_parts.includes('project_id'), '500项目已删读取必须使用项目范围索引');
   }
   const initial = await api('/api/projects?view=all&search='+encodeURIComponent('规模测试项目'));
   assert.equal(initial.pagination.total,500); assert.equal(initial.stats.total,500); assert.equal(initial.items.length,24);
@@ -118,7 +129,7 @@ try {
   for (let round=0;round<20;round++) await Promise.all(Array.from({length:4},async(_,worker)=>{
     const target=ids[worker];
     const list=await measured('list','/api/projects?view=all&customer='+encodeURIComponent('规模夹具-customers-'+worker)); assert.equal(list.pagination.total,125);
-    const detail=await measured('detail','/api/projects/'+target); assert.equal(detail.stages.length,7); assert.equal(detail.nodes.length,nodeMode?4:1); assert.equal(detail.risks.length,riskMode?2:1);
+    const detail=await measured('detail','/api/projects/'+target); assert.equal(detail.stages.length,7); assert.equal(detail.nodes.length,recoveryMode?3:nodeMode?4:1); assert.equal(detail.risks.length,riskMode?2:1);
     if(checkMode){assert.equal(detail.project.checkStatus.latest.note,round===0?'有效文字更正 '+worker:`四人检查${worker}轮次${round-1}`);assert.equal(detail.project.checkStatus.required,true);}
     const result=await measured('save','/api/projects/'+target,'PATCH',{expectedVersion:detail.project.version,idempotencyKey:randomUUID(),changes:{summaryNote:`四人容量验证${worker}轮次${round}`,signal:round%2?'red':'yellow',priority:round%2?'high':'low',chipIds:[references.chips[(worker+round)%4]],people:[{id:references.engineers[worker],role:'hardware_owner'}]}});
     const fresh=await api('/api/projects/'+target); assert.equal(fresh.project.summaryNote,result.result.values.summaryNote); assert.equal(fresh.project.version,result.result.savedVersion); assert.deepEqual(fresh.project.chips.map(chip=>chip.id),result.result.values.chipIds); assert.equal(fresh.project.priority,result.result.values.priority);
@@ -141,6 +152,17 @@ try {
       const saved=await measured('nodeSave','/api/projects/'+target,'PATCH',body);finalVersion=saved.result.savedVersion;
       const after=await api('/api/projects/'+target);assert.equal(after.project.version,finalVersion);assert.equal(after.nodes.find(node=>node.id===nodeIds[worker]).x,600+round);assert.equal(after.nodes.find(node=>node.id===nodeIds[worker]).completedOn,'2020-01-01');
     }
+    if (recoveryMode) {
+      const page=await measured('deletedRead','/api/projects/'+target+'/deleted-nodes');assert.equal(page.projectVersion,finalVersion);assert.equal(page.items.length,1);assert.equal(page.items[0].id,deletedIds[worker]);assert.equal(page.items[0].deletion.actorName,'合成容量账号'+worker);
+      const restore={expectedVersion:finalVersion,idempotencyKey:randomUUID(),changes:{nodeOps:[{op:'restore',id:deletedIds[worker],reason:'实际容量验证恢复'}]}};
+      assert.equal((await measured('restorePreview','/api/projects/'+target+'/save-preview','POST',restore)).confirmed,true);
+      const saved=(await measured('restoreSave','/api/projects/'+target,'PATCH',restore)).result;finalVersion=saved.savedVersion;
+      const restored=await api('/api/projects/'+target);assert.equal(restored.nodes.length,4);assert.equal(restored.nodes.find(n=>n.id===deletedIds[worker]).previousNodeId,null);assert.equal(restored.nodes.find(n=>n.id===deletedIds[worker]).completedOn,'2020-01-01');
+      const remove={expectedVersion:finalVersion,idempotencyKey:randomUUID(),changes:{nodeOps:[{op:'delete',id:deletedIds[worker],removeEdges:[]}]}};
+      assert.equal((await measured('deletePreview','/api/projects/'+target+'/save-preview','POST',remove)).confirmed,true);
+      finalVersion=(await measured('deleteSave','/api/projects/'+target,'PATCH',remove)).result.savedVersion;
+      const removed=await api('/api/projects/'+target);assert.equal(removed.project.version,finalVersion);assert.equal(removed.nodes.length,3);assert(!removed.nodes.some(n=>n.id===deletedIds[worker]));
+    }
     const audit=await measured('audit','/api/projects/'+target+'/audit'); assert.equal(audit.items[0].versionAfter,finalVersion);
   }));
   // 第 501 个项目可入库和查询，500 是验收规模，不是结构或读取总量上限。
@@ -150,7 +172,8 @@ try {
   const summary=Object.fromEntries(Object.entries(measurements).map(([kind,values])=>{values.sort((a,b)=>a-b);return [kind,{requests:values.length,p50Ms:Math.round(values[Math.ceil(values.length*.5)-1]),p95Ms:Math.round(values[Math.ceil(values.length*.95)-1]),maxMs:Math.round(values.at(-1))}];}));
   await mkdir('test-results',{recursive:true});
   const result={status:'passed',startedAt:began,checkedAt:new Date().toISOString(),projectCount:500,stageCount:3500,initialAuditCount:(checkMode?1500:500)+(riskMode?1000:0)+(nodeMode?1500:0),...(checkMode?{checkCount:1580,initialCorrectionCount:500,weekHistoryCount:1000}:{}),...(riskMode?{riskCount:1000,realRiskAdditions:500,riskCorrections:580,riskQueryPlan}:{}),...(nodeMode?{nodeCount:2000,realNodeAdditions:1500,nodeMoveCount:80}:{}),processMemory:process.memoryUsage(),workers:4,authenticated:true,rounds:20,errorCount:0,measurements:summary,noHardProjectLimit:true,source:'专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时'};
-  await writeFile(nodeMode?'test-results/project-nodes-capacity-check.json':riskMode?'test-results/project-risks-capacity-check.json':checkMode?'test-results/project-checks-capacity-check.json':'test-results/project-capacity-check.json',JSON.stringify(result,null,2)+'\n'); console.log(JSON.stringify(result));
+  if(recoveryMode)Object.assign(result,{initialAuditCount:result.initialAuditCount+1000,initialActiveNodes:1500,deletedNodeCount:500,realInitialDeletes:500,restoreCount:80,deleteCount:580,deletedQueryPlan});
+  await writeFile(recoveryMode?'test-results/project-node-recovery-capacity-check.json':nodeMode?'test-results/project-nodes-capacity-check.json':riskMode?'test-results/project-risks-capacity-check.json':checkMode?'test-results/project-checks-capacity-check.json':'test-results/project-capacity-check.json',JSON.stringify(result,null,2)+'\n'); console.log(JSON.stringify(result));
 } finally {
   await connection.rollback(); await app?.close();
   if (!app) await runtime?.close();

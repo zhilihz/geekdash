@@ -26,12 +26,15 @@ let loading = false;
 let leaving = false;
 let storageFailed = false;
 let bufferTimer: ReturnType<typeof setTimeout> | undefined;
-type Buffer = { format: 2; baseVersion: string; values: EditValues; pending?: SaveRequest; riskDraft?: RiskOperation; nodeDraft?: NodeOperation };
+type Buffer = { format: 2; baseVersion: string; values: EditValues; pending?: SaveRequest; riskDraft?: RiskOperation; nodeDraft?: NodeOperation; nodeRestoreExtras?: NodeOperation[] };
 let candidate: Buffer | undefined;
 let legacyCopy: Buffer | undefined;
 let bufferKey = '';
 let riskDraft: RiskOperation | undefined;
 let nodeDraft: NodeOperation | undefined;
+let nodeRestoreExtras: NodeOperation[] = [];
+let deletedNodes: import('./shared/api').DeletedNodePage | undefined, deletedLoading = false, deletedMessage = '', deletedGeneration = 0;
+const restoredSources = new Map<string, NodeRecord>();
 let stagePending: ProjectCommand | undefined;
 let stageDraft: Omit<StageCommand, 'idempotencyKey'> | Omit<StartCommand, 'idempotencyKey'> | undefined;
 let correctionDraft: CorrectionCommand | undefined;
@@ -186,25 +189,66 @@ function validNodeDraft(value: unknown): value is NodeOperation {
   if (item.op === 'uncomplete') return typeof item.id === 'string' && typeof item.reason === 'string' && ids(item.affectedIds);
   if (item.op === 'move') return typeof item.id === 'string' && Number.isFinite(item.x) && Number.isFinite(item.y);
   if (item.op === 'link') return typeof item.from === 'string' && typeof item.to === 'string' && typeof item.reason === 'string' && ids(item.affectedIds) && Array.isArray(item.replaceEdges) && item.replaceEdges.every(edge => edge && typeof edge.from === 'string' && typeof edge.to === 'string');
+  if (item.op === 'delete') return typeof item.id === 'string' && Array.isArray(item.removeEdges) && item.removeEdges.every(edge => edge && typeof edge.from === 'string' && typeof edge.to === 'string');
+  if (item.op === 'restore') return typeof item.id === 'string' && typeof item.reason === 'string';
   return item.op === 'unlink' && typeof item.from === 'string' && typeof item.to === 'string';
 }
-function nodeCopy() {
-  const rows = structuredClone(snapshot!.nodes), targets = new Map(rows.map(row => [row.id, row]));
+function nodeCopy(includeDeleted = false) {
+  const rows = structuredClone([...new Map([...restoredSources.values(), ...deletedNodes?.items ?? [], ...snapshot!.nodes].map(row => [row.id, row])).values()]), targets = new Map(rows.map(row => [row.id, row]));
   const unlink = (from: string, to: string) => { const a = targets.get(from), b = targets.get(to); if (a?.nextNodeId === to) a.nextNodeId = null; if (b?.previousNodeId === from) b.previousNodeId = null; };
   for (const op of values?.nodeOps ?? []) {
     if (op.op === 'add') { const row = { id: op.tempId, kind: op.kind, stage: null, targetDate: null, output: '', note: '', ...op.fields, completedOn: null, previousNodeId: null, nextNodeId: null, x: null, y: null, sourceKey: null, sortOrder: rows.length } as NodeRecord; rows.push(row); targets.set(row.id, row); }
     else if (op.op === 'link') { op.replaceEdges.forEach(edge => unlink(edge.from, edge.to)); const a = targets.get(op.from), b = targets.get(op.to); if (a) a.nextNodeId = op.to; if (b) b.previousNodeId = op.from; }
     else if (op.op === 'unlink') unlink(op.from, op.to);
-    else { const row = targets.get(op.id); if (!row) continue; if (op.op === 'correct') Object.assign(row, op.changes); else if (op.op === 'move') Object.assign(row, { x: op.x, y: op.y }); else row.completedOn = op.op === 'complete' ? op.completedOn : null; }
+    else { const row = targets.get(op.id); if (!row) continue; if (op.op === 'correct') Object.assign(row, op.changes); else if (op.op === 'move') Object.assign(row, { x: op.x, y: op.y }); else if (op.op === 'delete') { for (const item of rows) { if (item.previousNodeId === row.id) item.previousNodeId = null; if (item.nextNodeId === row.id) item.nextNodeId = null; } row.previousNodeId = null; row.nextNodeId = null; row.deletedAt = '未保存删除'; } else if (op.op === 'restore') { row.deletedAt = null; row.previousNodeId = null; row.nextNodeId = null; } else row.completedOn = op.op === 'complete' ? op.completedOn : null; }
     if ('affectedIds' in op) op.affectedIds.forEach(key => { const row = targets.get(key); if (row) row.completedOn = null; });
   }
-  return rows;
+  return includeDeleted ? rows : rows.filter(row => !row.deletedAt);
 }
-const nodeLabels: Record<NodeOperation['op'], string> = { add: '新增节点', correct: '纠正节点信息', complete: '填写实际完成日', uncomplete: '纠正为未完成', move: '移动节点', link: '连接节点', unlink: '解除连线' };
+const nodeLabels: Record<NodeOperation['op'], string> = { add: '新增节点', correct: '纠正节点信息', complete: '填写实际完成日', uncomplete: '纠正为未完成', move: '移动节点', link: '连接节点', unlink: '解除连线', delete: '删除节点', restore: '恢复误删节点' };
+function deletedNodePanel(kind: string) {
+  const items = nodeCopy(true).filter(row => row.kind === kind && row.deletedAt), editable = snapshot!.capabilities.editText;
+  const pending = (values?.nodeOps ?? []).filter(op => op.op === 'delete' || op.op === 'restore');
+  return `<section><h3>已删除节点</h3><p>按需读取两类节点，每页20条；恢复默认不接回旧连线，仍需保存项目。</p><button class="back-btn" id="deleted-refresh">查看/重新读取已删除节点</button>${deletedNodes?.nextCursor ? '<button class="back-btn" id="deleted-more">读取更多已删除节点</button>' : ''}<p role="alert">${esc(deletedLoading ? '正在读取…' : deletedMessage)}</p>${items.map(row => { const fact = deletedNodes?.items.find(item => item.id === row.id)?.deletion; return `<article class="node-item"><h4>${esc(row.title)} #${esc(row.id)}</h4><p>${row.deletedAt === '未保存删除' ? '本次副本待删除，正式数据尚未修改。' : '删除于 ' + esc(row.deletedAt) + '（UTC） · ' + esc(fact?.actorName ?? '原删除人未知')}</p><p>阶段：${esc(row.stage ? label(row.stage) : '—')}；目标日：${esc(row.targetDate ?? '未定')}；实际日：${esc(row.completedOn ?? '未完成')}</p><p>${esc(kind === 'project' ? row.output : row.note)}</p>${fact?.beforeNode ? `<p>原连线：${esc(fact.beforeNode.previousNodeId ?? '无')} → ${esc(row.id)} → ${esc(fact.beforeNode.nextNodeId ?? '无')}；只作核对，不自动接回。</p>` : ''}${editable && row.deletedAt !== '未保存删除' ? `<button class="back-btn" data-node="restore" data-node-id="${esc(row.id)}">恢复误删节点</button>` : ''}</article>`; }).join('')}${editable ? pending.map(op => `<p>${esc(nodeLabels[op.op])} #${esc('id' in op ? op.id : '')} 尚未保存 <button class="back-btn" data-node-withdraw="${esc('id' in op ? op.id : '')}">撤回该删除/恢复副本</button></p>`).join('') : ''}</section>`;
+}
+async function loadDeletedNodes(more = false) {
+  if (!snapshot || stale || authFrozen || inFlight || pending || stagePending || deletedLoading) return;
+  const current = ++deletedGeneration, version = snapshot.project.version;
+  deletedLoading = true; controls();
+  try {
+    const page = await get<import('./shared/api').DeletedNodePage>('/api/projects/' + id + '/deleted-nodes' + (more && deletedNodes?.nextCursor ? '?before=' + deletedNodes.nextCursor : ''));
+    if (current !== deletedGeneration) return;
+    if (page.projectVersion !== version || snapshot.project.version !== version) { stale = true; throw new Error('项目已被他人更新，请重新进入项目；旧副本保留供复制。'); }
+    deletedNodes = { ...page, items: more ? [...deletedNodes?.items ?? [], ...page.items] : page.items }; deletedMessage = '';
+  } catch (error) { if (current === deletedGeneration) { if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'PASSWORD_CHANGE_REQUIRED'].includes((error as SaveError).code)) authFrozen = true; deletedMessage = (error as Error).message; } }
+  finally { if (current === deletedGeneration) { deletedLoading = false; render(); } }
+}
+async function hydrateRestoredNodes() {
+  if (!values?.nodeOps?.some(op => op.op === 'restore') || stale || authFrozen) return;
+  const version = editBaseVersion;
+  try {
+    const preview = await send<NodePreview>('/api/projects/' + id + '/save-preview', 'POST', { expectedVersion: version, idempotencyKey: crypto.randomUUID(), changes: { nodeOps: values.nodeOps } });
+    if (editBaseVersion !== version || snapshot?.project.version !== version) return;
+    for (const event of preview.nodeEvents) if (event.before?.deletedAt) restoredSources.set(event.id, event.before);
+    render();
+  } catch (error) { if ((error as SaveError).code === 'PROJECT_VERSION_CONFLICT') stale = true; if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'PASSWORD_CHANGE_REQUIRED'].includes((error as SaveError).code)) authFrozen = true; note('恢复副本仍保留，请重新预览核对：' + (error as Error).message, true); }
+}
+async function withdrawNode(target: string, temporary = false) {
+  if (!snapshot?.capabilities.editText || stale || authFrozen || inFlight || loading || pending || stagePending) return;
+  if (await choose(temporary ? '移除这个未保存节点及引用它的副本操作？正式数据不变。' : '撤回这个节点的未保存删除或恢复？正式数据不变。', [['cancel', '保留'], ['withdraw', '撤回']]) !== 'withdraw') return;
+  const references = (op: NodeOperation) => op.op === 'add' ? op.tempId === target : 'id' in op ? op.id === target : op.from === target || op.to === target;
+  const operations = (values!.nodeOps ?? []).filter(op => temporary ? !references(op) && !('affectedIds' in op && op.affectedIds.includes(target)) && !('replaceEdges' in op && op.replaceEdges.some(edge => edge.from === target || edge.to === target)) : !((op.op === 'delete' || op.op === 'restore') && op.id === target));
+  inFlight = true; controls();
+  try {
+    if (operations.length) { const preview = await send<NodePreview>('/api/projects/' + id + '/save-preview', 'POST', { expectedVersion: editBaseVersion, idempotencyKey: crypto.randomUUID(), changes: { nodeOps: operations } }); if (!preview.confirmed) throw new Error('剩余节点操作需要重新确认完成影响；原副本保留。'); }
+    values!.nodeOps = operations; persist(); render(); note('该副本操作已撤回，正式数据未修改。');
+  } catch (error) { if ((error as SaveError).code === 'PROJECT_VERSION_CONFLICT') stale = true; if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'PASSWORD_CHANGE_REQUIRED'].includes((error as SaveError).code)) authFrozen = true; note((error as Error).message, true); }
+  finally { inFlight = false; controls(); }
+}
 function nodePosition(node: NodeRecord, rows: NodeRecord[]) { const lane = Math.max(0, Number(node.stage?.slice(1) ?? 1) - 1), index = rows.filter(row => row.stage === node.stage).findIndex(row => row.id === node.id); return { x: node.x ?? 220 + index * 170, y: node.y ?? lane * 110 + 20 }; }
 function nodePanel(kind: 'project' | 'customer') {
   const rows = nodeCopy().filter(row => row.kind === kind), editable = snapshot!.capabilities.editText;
-  const actions = (row: NodeRecord) => editable ? `${(['correct', 'complete', ...row.completedOn ? ['uncomplete'] : []] as NodeOperation['op'][]).map(op => `<button class="back-btn" data-node="${op}" data-node-id="${esc(row.id)}">${esc(nodeLabels[op])}</button>`).join('')}${kind === 'project' ? `<button class="back-btn" data-node="link" data-node-id="${esc(row.id)}">连接下一节点</button>${row.nextNodeId ? `<button class="back-btn" data-node="unlink" data-node-id="${esc(row.id)}">解除下一连线</button>` : ''}` : ''}` : '';
+  const actions = (row: NodeRecord) => editable ? `${(['correct', 'complete', ...row.completedOn ? ['uncomplete'] : []] as NodeOperation['op'][]).map(op => `<button class="back-btn" data-node="${op}" data-node-id="${esc(row.id)}">${esc(nodeLabels[op])}</button>`).join('')}${kind === 'project' ? `<button class="back-btn" data-node="link" data-node-id="${esc(row.id)}">连接下一节点</button>${row.nextNodeId ? `<button class="back-btn" data-node="unlink" data-node-id="${esc(row.id)}">解除下一连线</button>` : ''}` : ''}${/^[1-9][0-9]*$/.test(row.id) ? `<button class="node-del" data-node="delete" data-node-id="${esc(row.id)}">删除</button>` : `<button class="node-del" data-node-withdraw="${esc(row.id)}" data-temporary="true">移除未保存节点</button>`}` : '';
   const toolbar = `<div class="nodes-toolbar"><span class="nodes-hint">共 ${rows.length} 个节点 · 已完成 ${rows.filter(row => row.completedOn).length} 个</span>${editable ? '<button class="node-add-btn" data-node="add">＋ 新增节点</button>' : ''}</div><p>编辑、完成、连线和拖动先进入副本，统一点击保存项目。</p>${editable ? '<button id="save" class="back-btn">保存项目</button><button id="discard" class="back-btn">放弃普通编辑</button>' : ''}<span id="edit-state"></span>`;
   const graph = kind === 'project' ? `<div class="flow-canvas"><div class="flow-inner" style="height:${Math.max(770, ...rows.map(row => nodePosition(row, rows).y + 100))}px;width:${Math.max(1240, ...rows.map(row => nodePosition(row, rows).x + 170))}px">${__GEEKDASH_STAGES__.map((stage, index) => `<div class="flow-lane" style="top:${index * 110}px;height:110px"></div><div class="flow-lane-label" style="top:${index * 110}px;height:110px"><span class="sl-name">S${stage.id} ${esc(stage.name)}</span><span class="sl-milestone">${esc(stage.milestone)}</span></div>`).join('')}<svg class="flow-links" width="100%" height="100%">${rows.map(row => { const next = rows.find(item => item.id === row.nextNodeId); if (!next) return ''; const a = nodePosition(row, rows), b = nodePosition(next, rows); return `<path class="flow-link-path" d="M ${a.x + 140} ${a.y + 30} C ${a.x + 170} ${a.y + 30},${b.x - 30} ${b.y + 30},${b.x} ${b.y + 30}"/>`; }).join('')}</svg>${rows.map(row => { const p = nodePosition(row, rows); return `<div class="flow-node ${row.completedOn ? 'done' : 'todo'}" style="left:${p.x}px;top:${p.y}px" data-node-drag="${esc(row.id)}" tabindex="0" role="button" aria-label="${esc(row.title)}，双击编辑"><div class="fn-name">${esc(row.title || '原名称待核对')}</div><div class="fn-date">${esc(row.completedOn ? '实际完成 ' + row.completedOn : '目标 ' + (row.targetDate ?? '未定'))}</div></div>`; }).join('')}</div></div>` : '';
   return `<div class="nodes-wrap">${toolbar}${graph}<div class="node-list">${rows.map(row => `<div class="node-item${row.completedOn ? ' done' : ''}"><div class="node-head"><span class="node-name">${esc(row.title || '原名称待核对')}</span><span class="node-stage">${esc(row.stage ? label(row.stage) : '—')}</span><span class="node-badge ${row.completedOn ? 'done' : 'todo'}">${row.completedOn ? '已完成' : '未完成'}</span></div><div class="node-dates">目标完成：${esc(row.targetDate ?? '未定')} · 实际完成：${esc(row.completedOn ?? '未完成')}</div><div class="node-output">${kind === 'project' ? '输出成果：' + esc(row.output || '—') : '备注：' + esc(row.note || '—')}</div>${row.previousNodeId ? `<p>前置：${esc(nodeCopy().find(node => node.id === row.previousNodeId)?.title ?? row.previousNodeId)}</p>` : ''}${actions(row)}</div>`).join('') || '<div class="node-empty">暂无节点</div>'}</div></div>`;
@@ -214,13 +258,21 @@ async function openNode(op: NodeOperation['op'], target?: string, move?: { x: nu
   if (nodeDraft && (nodeDraft.op !== op || 'id' in nodeDraft && nodeDraft.id !== target)) {
     if (await choose('已有未确认节点表单，是否放弃该表单？', [['cancel', '保留'], ['discard', '放弃']]) !== 'discard') return; nodeDraft = undefined;
   }
-  const rows = nodeCopy(), row = rows.find(row => row.id === target), kind = row?.kind === 'customer' || !row && tab === 'custnodes' ? 'customer' : 'project';
-  if (!nodeDraft) nodeDraft = op === 'add' ? { op, tempId: crypto.randomUUID(), kind, fields: { title: '', targetDate: null, ...kind === 'project' ? { stage: 'S1', output: '' } : { note: '' } } } : op === 'correct' ? { op, id: target!, changes: {}, reason: '' } : op === 'complete' ? { op, id: target!, completedOn: row?.completedOn ?? snapshot.businessDate, reason: '' } : op === 'uncomplete' ? { op, id: target!, reason: '', affectedIds: [] } : op === 'move' ? { op, id: target!, ...move! } : op === 'link' ? { op, from: target!, to: '', replaceEdges: [], affectedIds: [], reason: '' } : { op, from: target!, to: row!.nextNodeId! };
+  const rows = nodeCopy(), row = nodeCopy(true).find(row => row.id === target), kind = row?.kind === 'customer' || !row && tab === 'custnodes' ? 'customer' : 'project';
+  if (!nodeDraft) nodeRestoreExtras = [];
+  if (!nodeDraft) nodeDraft = op === 'add' ? { op, tempId: crypto.randomUUID(), kind, fields: { title: '', targetDate: null, ...kind === 'project' ? { stage: 'S1', output: '' } : { note: '' } } } : op === 'correct' ? { op, id: target!, changes: {}, reason: '' } : op === 'complete' ? { op, id: target!, completedOn: row?.completedOn ?? snapshot.businessDate, reason: '' } : op === 'uncomplete' ? { op, id: target!, reason: '', affectedIds: [] } : op === 'move' ? { op, id: target!, ...move! } : op === 'link' ? { op, from: target!, to: '', replaceEdges: [], affectedIds: [], reason: '' } : op === 'delete' ? { op, id: target!, removeEdges: [] } : op === 'restore' ? { op, id: target!, reason: '' } : { op, from: target!, to: row!.nextNodeId! };
   tab = kind === 'customer' ? 'custnodes' : 'nodes'; persist(); render(); const draft = nodeDraft; let preview: NodePreview | undefined;
   const data = draft.op === 'add' ? draft.fields : draft.op === 'correct' ? { ...row, ...draft.changes } : {};
   const fieldNames = { title: '节点名称', stage: '所属阶段', targetDate: '目标完成日期', output: '输出成果', note: '客户节点备注' };
+  const restoredChanges = nodeRestoreExtras.find(item => item.op === 'correct');
+  const restoreFields = draft.op === 'restore' ? (kind === 'project' ? ['title', 'stage', 'targetDate', 'output'] : ['title', 'targetDate', 'note']).map(key => {
+    const selected = restoredChanges?.op === 'correct' && Object.hasOwn(restoredChanges.changes, key), value = selected && restoredChanges?.op === 'correct' ? restoredChanges.changes[key as keyof NodeFields] : row?.[key as keyof NodeFields];
+    const field = key === 'stage' ? `<select data-restore-field="${key}"><option value="">原阶段未知</option>${__GEEKDASH_STAGES__.map(stage => `<option value="S${stage.id}"${value === 'S' + stage.id ? ' selected' : ''}>S${stage.id} ${esc(stage.name)}</option>`).join('')}</select>` : key === 'output' || key === 'note' ? `<textarea data-restore-field="${key}">${esc(value ?? '')}</textarea>` : `<input data-restore-field="${key}" type="${key === 'targetDate' ? 'date' : 'text'}" value="${esc(value ?? '')}">`;
+    return `<label><input type="checkbox" data-restore-select="${key}"${selected ? ' checked' : ''}>恢复时明确纠正${fieldNames[key as keyof typeof fieldNames]}${field}</label>`;
+  }).join('') + (() => { const op = nodeRestoreExtras.find(item => item.op === 'complete' || item.op === 'uncomplete'); return `<label><input type="checkbox" id="restore-actual-select"${op ? ' checked' : ''}>恢复时明确纠正实际完成日（留空表示未完成）<input id="restore-actual" type="date" max="${esc(snapshot.businessDate)}" value="${esc(op?.op === 'complete' ? op.completedOn : op ? '' : row?.completedOn ?? '')}"></label>`; })() : '';
+
   const fields = draft.op === 'add' || draft.op === 'correct' ? (kind === 'project' ? ['title', 'stage', 'targetDate', 'output'] : ['title', 'targetDate', 'note']).map(key => `<div class="field"><label>${draft.op === 'correct' ? `<input type="checkbox" data-node-select="${key}"${Object.hasOwn(draft.changes, key) ? ' checked' : ''}>明确纠正` : ''}${fieldNames[key as keyof typeof fieldNames]}</label>${key === 'stage' ? `<select data-node-field="${key}"><option value="">原阶段未知，请核对</option>${__GEEKDASH_STAGES__.map(stage => `<option value="S${stage.id}"${data.stage === 'S' + stage.id ? ' selected' : ''}>S${stage.id} ${esc(stage.name)}</option>`).join('')}</select>` : key === 'output' || key === 'note' ? `<textarea data-node-field="${key}">${esc(data[key as keyof NodeFields] ?? '')}</textarea>` : `<input data-node-field="${key}" type="${key === 'targetDate' ? 'date' : 'text'}" value="${esc(data[key as keyof NodeFields] ?? '')}">`}</div>`).join('') : draft.op === 'complete' ? `<label>实际完成日期<input id="node-completed" type="date" max="${esc(snapshot.businessDate)}" value="${esc(draft.completedOn)}"></label>` : draft.op === 'link' ? `<label>下一节点<select id="node-to"><option value="">请选择</option>${rows.filter(node => node.kind === 'project' && node.id !== draft.from).map(node => `<option value="${esc(node.id)}"${node.id === draft.to ? ' selected' : ''}>${esc(node.title)}</option>`).join('')}</select></label><label><input type="checkbox" id="node-replace">明确确认替换本次涉及的旧连线</label><p id="node-old-lines"></p>` : draft.op === 'move' ? `<p>位置：${draft.x}, ${draft.y}</p>` : `<p>${esc(row?.title ?? target)}：${draft.op === 'uncomplete' ? '实际完成日期将明确清空' : '解除当前下一连线'}</p>`;
-  element('pane').innerHTML = `<form id="node-edit" class="node-form"><h3>${esc(nodeLabels[draft.op])}</h3><div class="node-form-grid">${fields}</div>${'reason' in draft ? `<label>${draft.op === 'complete' ? '完成日期纠错时必填原因' : draft.op === 'link' ? '联动纠正完成日时必填原因' : '纠错原因'}<textarea id="node-reason">${esc(draft.reason ?? '')}</textarea></label>` : ''}${'affectedIds' in draft ? '<label><input type="checkbox" id="node-impact">明确确认预览列出的依赖完成日一并清空</label>' : ''}<p id="node-error" class="field-error" role="alert"></p><div id="node-preview"></div><button type="submit" class="back-btn">预览</button><button type="button" id="node-accept" class="back-btn" disabled>确认加入未保存修改</button><button type="button" id="node-cancel" class="back-btn">取消</button></form>`;
+  element('pane').innerHTML = `<form id="node-edit" class="node-form"><h3>${esc(nodeLabels[draft.op])}</h3><div class="node-form-grid">${draft.op === 'delete' ? `<p>${esc(row?.title ?? target)}：从有效节点移除，保留原字段供恢复；邻居不删除、不桥接。</p><label><input type="checkbox" id="node-remove-edges">明确确认解除下面列出的全部原连线</label><p id="node-delete-lines"></p>` : draft.op === 'restore' ? `<p>${esc(row?.title ?? target)}：保留原ID和字段恢复，默认无前后线。确认加入副本后可继续原信息纠正/连线，最终保存项目。</p>${restoreFields}` : fields}</div>${'reason' in draft ? `<label>${draft.op === 'restore' ? '恢复原因（必填）' : draft.op === 'complete' ? '完成日期纠错时必填原因' : draft.op === 'link' ? '联动纠正完成日时必填原因' : '纠错原因'}<textarea id="node-reason">${esc(draft.reason ?? '')}</textarea></label>` : ''}${'affectedIds' in draft ? '<label><input type="checkbox" id="node-impact">明确确认预览列出的依赖完成日一并清空</label>' : ''}<p id="node-error" class="field-error" role="alert"></p><div id="node-preview"></div><button type="submit" class="back-btn">预览</button><button type="button" id="node-accept" class="back-btn" disabled>确认加入未保存修改</button><button type="button" id="node-cancel" class="back-btn">取消</button>${draft.op === 'correct' && row && /^[1-9][0-9]*$/.test(row.id) ? '<button type="button" id="node-delete-selected" class="node-del">删除这个节点</button>' : ''}</form>`;
   const form = element('node-edit') as HTMLFormElement, local = (key: string) => form.querySelector<HTMLElement>('#' + key)!;
   let impact: string[] = [];
   const capture = () => {
@@ -229,6 +281,13 @@ async function openNode(op: NodeOperation['op'], target?: string, move?: { x: nu
       form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('[data-node-field]').forEach(input => { const key = input.dataset.nodeField as keyof NodeFields; if (draft.op === 'add' || form.querySelector<HTMLInputElement>(`[data-node-select="${key}"]`)!.checked) { if (key === 'targetDate') fields.targetDate = input.value || null; else fields[key] = input.value; } });
       if (draft.op === 'add') draft.fields = fields as typeof draft.fields; else draft.changes = fields;
     } else if (draft.op === 'complete') draft.completedOn = (local('node-completed') as HTMLInputElement).value;
+    else if (draft.op === 'delete') {
+      const old = new Map<string, { from: string; to: string }>();
+      const add = (from: string | null, to: string | null) => { if (from && to) old.set(from + ':' + to, { from, to }); };
+      if (row) { add(row.previousNodeId, row.id); add(row.id, row.nextNodeId); for (const item of rows) { if (item.nextNodeId === row.id) add(item.id, row.id); if (item.previousNodeId === row.id) add(row.id, item.id); } }
+      local('node-delete-lines').textContent = '将解除：' + ([...old.values()].map(edge => (rows.find(row => row.id === edge.from)?.title ?? edge.from) + ' → ' + (rows.find(row => row.id === edge.to)?.title ?? edge.to)).join('；') || '无');
+      draft.removeEdges = (local('node-remove-edges') as HTMLInputElement).checked ? [...old.values()] : [];
+    }
     else if (draft.op === 'link') {
       draft.to = (local('node-to') as HTMLSelectElement).value;
       const from = rows.find(row => row.id === draft.from), to = rows.find(row => row.id === draft.to), old = new Map<string, { from: string; to: string }>();
@@ -238,6 +297,13 @@ async function openNode(op: NodeOperation['op'], target?: string, move?: { x: nu
       draft.replaceEdges = (local('node-replace') as HTMLInputElement).checked ? [...old.values()] : [];
     }
     if ('reason' in draft) draft.reason = (local('node-reason') as HTMLTextAreaElement).value;
+    if (draft.op === 'restore') {
+      nodeRestoreExtras = []; const changes: Partial<NodeFields> = {};
+      form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('[data-restore-field]').forEach(input => { const key = input.dataset.restoreField as keyof NodeFields; if (form.querySelector<HTMLInputElement>(`[data-restore-select="${key}"]`)!.checked) { if (key === 'targetDate') changes.targetDate = input.value || null; else changes[key] = input.value; } });
+      if (Object.keys(changes).length) nodeRestoreExtras.push({ op: 'correct', id: draft.id, changes, reason: draft.reason });
+      if ((local('restore-actual-select') as HTMLInputElement).checked) { const date = (local('restore-actual') as HTMLInputElement).value; if (date) nodeRestoreExtras.push({ op: 'complete', id: draft.id, completedOn: date, reason: draft.reason }); else if (row?.completedOn) nodeRestoreExtras.push({ op: 'uncomplete', id: draft.id, reason: draft.reason, affectedIds: [] }); }
+    }
+
     if ('affectedIds' in draft) draft.affectedIds = (local('node-impact') as HTMLInputElement).checked ? impact : [];
     preview = undefined; local('node-accept').dataset.preview = 'false'; persist();
   };
@@ -245,7 +311,7 @@ async function openNode(op: NodeOperation['op'], target?: string, move?: { x: nu
   form.onsubmit = async event => {
     event.preventDefault(); capture(); inFlight = true; controls();
     try {
-      preview = await send<NodePreview>('/api/projects/' + id + '/save-preview', 'POST', { expectedVersion: editBaseVersion, idempotencyKey: crypto.randomUUID(), changes: { nodeOps: [...values!.nodeOps ?? [], draft] } });
+      preview = await send<NodePreview>('/api/projects/' + id + '/save-preview', 'POST', { expectedVersion: editBaseVersion, idempotencyKey: crypto.randomUUID(), changes: { nodeOps: [...values!.nodeOps ?? [], draft, ...draft.op === 'restore' ? nodeRestoreExtras : []] } });
       if (preview.projectId !== id || preview.expectedVersion !== editBaseVersion) throw new SaveError('RESPONSE_UNKNOWN', 'unknown');
       impact = preview.requiredUncompleteIds.filter(key => !(values!.nodeOps ?? []).some(op => 'affectedIds' in op && op.affectedIds.includes(key)));
       local('node-preview').innerHTML = preview.nodeEvents.map(item => `<div class="audit-diff"><div>原值：<pre>${esc(JSON.stringify(item.before, null, 2))}</pre></div><div>拟值：<pre>${esc(JSON.stringify(item.after, null, 2))}</pre></div></div>`).join('') + (preview.confirmed ? '<p>影响已核对，确认后仍需保存项目。</p>' : `<p>需要明确一并清空完成日期：${esc(preview.requiredUncompleteIds.map(key => rows.find(row => row.id === key)?.title ?? key).join('、'))}。勾选上方确认并填写原因，再次预览。</p>`);
@@ -253,11 +319,15 @@ async function openNode(op: NodeOperation['op'], target?: string, move?: { x: nu
     } catch (error) { const failure = error as SaveError; if (failure.code === 'PROJECT_VERSION_CONFLICT') stale = true; if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'PASSWORD_CHANGE_REQUIRED'].includes(failure.code)) authFrozen = true; local('node-error').textContent = failure.message + ' ' + Object.values(failure.fields ?? {}).join('；'); }
     finally { inFlight = false; controls(); }
   };
-  local('node-accept').onclick = () => { if (!preview?.confirmed || stale || authFrozen || inFlight) return; values!.nodeOps = [...values!.nodeOps ?? [], structuredClone(draft)]; nodeDraft = undefined; persist(); render(); note('节点操作已加入副本，请点击保存项目后生效。'); };
-  local('node-cancel').onclick = () => { nodeDraft = undefined; persist(); render(); }; controls();
+  local('node-accept').onclick = () => { if (!preview?.confirmed || stale || authFrozen || inFlight) return; for (const event of preview.nodeEvents) if (event.before?.deletedAt) restoredSources.set(event.id, event.before); values!.nodeOps = [...values!.nodeOps ?? [], structuredClone(draft), ...draft.op === 'restore' ? structuredClone(nodeRestoreExtras) : []]; nodeDraft = undefined; nodeRestoreExtras = []; persist(); render(); note('节点操作已加入副本，请点击保存项目后生效。'); };
+  const selectedDelete = document.getElementById('node-delete-selected'); if (selectedDelete) selectedDelete.onclick = () => { void openNode('delete', target); };
+  if (draft.op === 'delete') capture();
+  local('node-cancel').onclick = () => { nodeDraft = undefined; nodeRestoreExtras = []; persist(); render(); }; controls();
 }
 function bindNodes() {
   document.querySelectorAll<HTMLButtonElement>('[data-node]').forEach(button => button.onclick = () => { void openNode(button.dataset.node as NodeOperation['op'], button.dataset.nodeId); });
+  document.querySelectorAll<HTMLButtonElement>('[data-node-withdraw]').forEach(button => button.onclick = () => { void withdrawNode(button.dataset.nodeWithdraw!, button.dataset.temporary === 'true'); });
+  for (const [name, more] of [['deleted-refresh', false], ['deleted-more', true]] as const) { const button = document.getElementById(name); if (button) button.onclick = () => { void loadDeletedNodes(more); }; }
   document.querySelectorAll<HTMLElement>('[data-node-drag]').forEach(node => {
     node.ondblclick = () => { void openNode('correct', node.dataset.nodeDrag); };
     node.onkeydown = event => { if (event.key === 'Enter') void openNode('correct', node.dataset.nodeDrag); };
@@ -644,7 +714,7 @@ function responsibilityControls() {
     if (dirty()) {
       const choice = await choose('变更负责范围前请处理未保存内容。', [['cancel', '继续编辑'], ['keep', '保留副本供复制，再变更'], ['discard', '放弃未保存内容，再变更']]);
       if (choice === 'cancel') return;
-      if (choice === 'keep') { persist(); candidate = { format: 2, baseVersion: editBaseVersion, values: structuredClone(values!), riskDraft, nodeDraft }; }
+      if (choice === 'keep') { persist(); candidate = { format: 2, baseVersion: editBaseVersion, values: structuredClone(values!), riskDraft, nodeDraft, nodeRestoreExtras }; }
       else { candidate = undefined; sessionStorage.removeItem(bufferKey); }
     }
     responsibilityPending = { expectedVersion: snapshot.project.version, idempotencyKey: crypto.randomUUID(), action: snapshot.readOnly ? 'join' : 'leave' };
@@ -703,6 +773,8 @@ function controls() {
   document.querySelectorAll<HTMLButtonElement>('[data-closure]').forEach(button => { button.disabled = frozen || stale || authFrozen || !snapshot?.capabilities.editText; });
   const closureSave = document.getElementById('closure-save') as HTMLButtonElement | null; if (closureSave && (frozen || stale || authFrozen)) closureSave.disabled = true;
   document.querySelectorAll<HTMLButtonElement>('[data-node]').forEach(button => { button.disabled = frozen || actionOpen || stale || authFrozen || !snapshot?.capabilities.editText; });
+  document.querySelectorAll<HTMLButtonElement>('[data-node-withdraw]').forEach(button => { button.disabled = frozen || actionOpen || stale || authFrozen || !snapshot?.capabilities.editText; });
+  for (const name of ['deleted-refresh', 'deleted-more']) { const button = document.getElementById(name) as HTMLButtonElement | null; if (button) button.disabled = frozen || actionOpen || stale || authFrozen || deletedLoading; }
   document.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLButtonElement>('#node-edit input,#node-edit select,#node-edit textarea,#node-edit button').forEach(input => { input.disabled = frozen || stale || authFrozen || input.id === 'node-accept' && input.dataset.preview !== 'true'; });
   document.querySelectorAll<HTMLButtonElement>('[data-risk]').forEach(button => { button.disabled = frozen || actionOpen || stale || authFrozen || !snapshot?.capabilities.editText; });
   document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLButtonElement>('#risk-edit input,#risk-edit textarea,#risk-edit button').forEach(input => { input.disabled = frozen || stale || authFrozen || input.id === 'risk-accept' && input.dataset.preview !== 'true'; });
@@ -720,7 +792,7 @@ function persist() {
   clearTimeout(bufferTimer);
   if (!snapshot || !values) return;
   try {
-    if (pending || dirty()) sessionStorage.setItem(bufferKey, JSON.stringify({ format: 2, baseVersion: pending?.expectedVersion ?? editBaseVersion, values, pending, riskDraft, nodeDraft }));
+    if (pending || dirty()) sessionStorage.setItem(bufferKey, JSON.stringify({ format: 2, baseVersion: pending?.expectedVersion ?? editBaseVersion, values, pending, riskDraft, nodeDraft, nodeRestoreExtras }));
     else if (!candidate) sessionStorage.removeItem(bufferKey);
     storageFailed = false;
   } catch { storageFailed = true; }
@@ -740,7 +812,7 @@ function readBuffer(key = bufferKey) {
       return typeof value === 'string';
     };
     if ([1, 2].includes(parsed?.format) && typeof parsed.baseVersion === 'string' && /^[1-9][0-9]{0,19}$/.test(parsed.baseVersion) && parsed.values && (parsed.format === 1 ? textKeys.slice(0, 4).every(key => typeof parsed.values[key] === 'string') : keys.every(key => valid(key, parsed.values[key])))) {
-      if (parsed.riskDraft && !validRiskDraft(parsed.riskDraft) || parsed.nodeDraft && !validNodeDraft(parsed.nodeDraft)) return;
+      if (parsed.riskDraft && !validRiskDraft(parsed.riskDraft) || parsed.nodeDraft && !validNodeDraft(parsed.nodeDraft) || parsed.nodeRestoreExtras && (!Array.isArray(parsed.nodeRestoreExtras) || !parsed.nodeRestoreExtras.every(validNodeDraft))) return;
       if (parsed.pending && (parsed.pending.expectedVersion !== parsed.baseVersion || typeof parsed.pending.idempotencyKey !== 'string' || !parsed.pending.changes || Object.entries(parsed.pending.changes).some(([key, value]) => !valid(key, value)))) return;
       return { ...parsed, format: 2, values: { ...baseline(), ...parsed.values } } as Buffer;
     }
@@ -758,10 +830,10 @@ function choose(text: string, options: [string, string][], extra = ''): Promise<
   });
 }
 async function copyText() {
-  const nodeCopyText = nodeDraft ? '未确认节点表单\n' + JSON.stringify(nodeDraft, null, 2) + '\n\n' : '';
+  const nodeCopyText = nodeDraft ? '未确认节点表单\n' + JSON.stringify({ nodeDraft, nodeRestoreExtras }, null, 2) + '\n\n' : '';
   const riskCopy = riskDraft ? '未确认风险表单\n' + JSON.stringify(riskDraft, null, 2) + '\n\n' : '';
   const stageCopy = stagePending ?? stageDraft ?? correctionDraft ?? planDraft ?? lifecycleDraft ?? closureDraft ?? checkDraft;
-  const text = nodeCopyText + riskCopy + (stageCopy ? (isPlanCommand(stageCopy) || isLifecycleCommand(stageCopy) || isClosureCommand(stageCopy) || isCheckCommand(stageCopy)) ? `${actionLabels[stageCopy.action]}副本\n${JSON.stringify(stageCopy, null, 2)}\n\n` : 'reason' in stageCopy ? `${actionLabels[stageCopy.action]}副本\n原因：${stageCopy.reason}\n进入版本：${stageCopy.expectedVersion}\n${stageCopy.action === 'correctStageFacts' ? JSON.stringify(stageCopy.changes) : label(stageCopy.stageCode) + (stageCopy.undoStart ? '（开始也误记）' : '')}\n\n` : stageCopy.action === 'startProject' ? `启动项目副本\n实际启动：${stageCopy.actualDate}\n预计结案：${stageCopy.dueDate}\n调整原因：${stageCopy.planReason ?? ''}\n首次应检周：${stageCopy.previewFirstCheckWeek}\n进入版本：${stageCopy.expectedVersion}\n\n` : `阶段操作副本\n${label(stageCopy.stageCode)} · ${stageCopy.action === 'startStage' ? '开始' : '完成'}\n实际日期：${stageCopy.actualDate}\n说明：${stageCopy.completionNote ?? ''}\n进入版本：${stageCopy.expectedVersion}\n\n` : '') + keys.map(key => `${titles[key]}\n${showValue(key, values?.[key])}`).join('\n\n') + (candidate ? '\n\n——恢复候选副本——\n' + keys.map(key => `${titles[key]}\n${showValue(key, candidate!.values[key])}`).join('\n\n') + (candidate.riskDraft ? '\n未确认风险表单\n' + JSON.stringify(candidate.riskDraft, null, 2) : '') + (candidate.nodeDraft ? '\n未确认节点表单\n' + JSON.stringify(candidate.nodeDraft, null, 2) : '') : '') + (legacyCopy ? '\n\n——旧匿名试用副本（仅供核对）——\n' + keys.map(key => `${titles[key]}\n${showValue(key, legacyCopy!.values[key])}`).join('\n\n') : '');
+  const text = nodeCopyText + riskCopy + (stageCopy ? (isPlanCommand(stageCopy) || isLifecycleCommand(stageCopy) || isClosureCommand(stageCopy) || isCheckCommand(stageCopy)) ? `${actionLabels[stageCopy.action]}副本\n${JSON.stringify(stageCopy, null, 2)}\n\n` : 'reason' in stageCopy ? `${actionLabels[stageCopy.action]}副本\n原因：${stageCopy.reason}\n进入版本：${stageCopy.expectedVersion}\n${stageCopy.action === 'correctStageFacts' ? JSON.stringify(stageCopy.changes) : label(stageCopy.stageCode) + (stageCopy.undoStart ? '（开始也误记）' : '')}\n\n` : stageCopy.action === 'startProject' ? `启动项目副本\n实际启动：${stageCopy.actualDate}\n预计结案：${stageCopy.dueDate}\n调整原因：${stageCopy.planReason ?? ''}\n首次应检周：${stageCopy.previewFirstCheckWeek}\n进入版本：${stageCopy.expectedVersion}\n\n` : `阶段操作副本\n${label(stageCopy.stageCode)} · ${stageCopy.action === 'startStage' ? '开始' : '完成'}\n实际日期：${stageCopy.actualDate}\n说明：${stageCopy.completionNote ?? ''}\n进入版本：${stageCopy.expectedVersion}\n\n` : '') + keys.map(key => `${titles[key]}\n${showValue(key, values?.[key])}`).join('\n\n') + (candidate ? '\n\n——恢复候选副本——\n' + keys.map(key => `${titles[key]}\n${showValue(key, candidate!.values[key])}`).join('\n\n') + (candidate.riskDraft ? '\n未确认风险表单\n' + JSON.stringify(candidate.riskDraft, null, 2) : '') + (candidate.nodeDraft ? '\n未确认节点表单\n' + JSON.stringify({ nodeDraft: candidate.nodeDraft, nodeRestoreExtras: candidate.nodeRestoreExtras }, null, 2) : '') : '') + (legacyCopy ? '\n\n——旧匿名试用副本（仅供核对）——\n' + keys.map(key => `${titles[key]}\n${showValue(key, legacyCopy!.values[key])}`).join('\n\n') : '');
   await choose('以下文字可选择后复制；复制不会保存项目。', [['cancel', '关闭']], `<textarea class="copy-text" readonly aria-label="未保存文字">${esc(text)}</textarea>`);
 }
 function editor() {
@@ -899,6 +971,7 @@ async function execute(confirm: boolean) {
       }
       values = merged; editBaseVersion = result.savedVersion; pending = undefined; stale = higher;
       candidate = undefined; riskDraft = undefined; nodeDraft = undefined;
+      deletedNodes = undefined; deletedGeneration++; deletedLoading = false; deletedMessage = ''; restoredSources.clear();
       // 只清除本项目该原操作对应的缓存，不清除后来出现的副本。
       try { const stored = readBuffer(); if (stored?.pending?.idempotencyKey === original.idempotencyKey) sessionStorage.removeItem(bufferKey); } catch { storageFailed = true; }
       note((result.changed ? '项目已保存。' : '内容一致，已确认，无新增修改历史。') + (higher ? ' 项目又被更新，请重新进入项目。' : ''));
@@ -967,7 +1040,7 @@ function render() {
     for (const role of ['hardware_owner', 'software_owner', 'pm', 'participant']) values.push([label(role), p.people.filter(person => person.role === role).map(person => person.name).join(' / ')]);
     content = (snapshot.capabilities.editText ? editor() : '') + `<div class="field-grid">${values.filter(([title]) => !snapshot!.capabilities.editText || ![...Object.values(titles), '项目备注', '汇总备注', '最新状态', '优先级', ...roles.map(label)].includes(title)).map(([title, value]) => `<div class="field"><span class="read-label">${title}</span><div class="read-value">${esc(value === '' || value == null ? '—' : value)}</div></div>`).join('')}</div>`;
   } else if (tab === 'stages') content = stagePanel();
-  else if (tab === 'nodes' || tab === 'custnodes') content = nodePanel(tab === 'nodes' ? 'project' : 'customer');
+  else if (tab === 'nodes' || tab === 'custnodes') content = nodePanel(tab === 'nodes' ? 'project' : 'customer') + deletedNodePanel(tab === 'nodes' ? 'project' : 'customer');
   else if (tab === 'history') content = '<h2>服务器修改历史</h2><p class="read-message">时间为 UTC，每页 20 条。只有实际变化才产生修改历史。</p>'
     + (audit?.items.length ? audit.items.map(item => `<article class="audit-entry"><h3>${esc(actionLabels[item.action] ?? item.action)} · ${esc(item.actorDisplayName)} · ${esc(item.createdAt)} · 版本 ${esc(item.versionBefore)} → ${esc(item.versionAfter)}</h3>${Object.keys(item.afterValues).map(key => `<div><strong>${esc(titles[key as keyof EditValues] ?? ({ stageChanges: '阶段状态与实际日期', completionNote: '完成说明', reason: '操作原因', progress: '有效阶段进度', status: '项目状态', startDate: '实际启动日期', dueDate: '当前计划结案日期', originalDueDate: '原计划结案日期', firstCheckWeek: '首次应检周', firstCheckRuleVersion: '首次应检规则版本', resumeStatus: '暂缓前项目状态', closure: '当前结案事实', closureSource: '原结案来源', remaining: '当时遗留', stageFacts: '当时有效阶段事实', lifecycleNote: '有效说明', note: '操作说明' } as Record<string, string>)[key] ?? key)}</strong><div class="audit-diff"><div><span class="read-label">修改前</span><div class="read-value">${esc(showValue(key, item.beforeValues?.[key]))}</div></div><div><span class="read-label">修改后</span><div class="read-value">${esc(showValue(key, item.afterValues[key]))}</div></div></div></div>`).join('')}</article>`).join('') : '<p>暂无服务器修改历史。</p>')
     + `<p class="read-message">${esc(auditMessage)}</p><button class="back-btn" id="audit-refresh">重新读取历史</button>${audit?.nextCursor ? '<button class="back-btn" id="audit-more">读取更早记录</button>' : ''}`
@@ -1037,8 +1110,9 @@ async function load(initial = false) {
     const data = await get<Detail>('/api/projects/' + id);
     if (current !== generation) return;
     snapshot = data;
-    values = baseline(); riskDraft = undefined; nodeDraft = undefined; editBaseVersion = data.project.version; observedVersion = data.project.version; stale = false; validationErrors = {};
+    values = baseline(); riskDraft = undefined; nodeDraft = undefined; nodeRestoreExtras = []; editBaseVersion = data.project.version; observedVersion = data.project.version; stale = false; validationErrors = {};
     audit = undefined; auditMessage = ''; auditGeneration++; checks = undefined; checksMessage = ''; checksGeneration++;
+    deletedNodes = undefined; deletedMessage = ''; deletedGeneration++; deletedLoading = false; restoredSources.clear();
     element('detail-panel').hidden = false;
     render();
     element('message').textContent = '';
@@ -1046,13 +1120,14 @@ async function load(initial = false) {
       if (stagePending) { tab = isPlanCommand(stagePending) || isLifecycleCommand(stagePending) || isClosureCommand(stagePending) || isCheckCommand(stagePending) ? 'info' : 'stages'; render(); await executeStage(true); }
       candidate = readBuffer();
       if (candidate?.pending && data.capabilities.editText) {
-        values = { ...candidate.values }; riskDraft = candidate.riskDraft; nodeDraft = candidate.nodeDraft; editBaseVersion = candidate.baseVersion; pending = candidate.pending; candidate = undefined; render(); await execute(true);
+        values = { ...candidate.values }; riskDraft = candidate.riskDraft; nodeDraft = candidate.nodeDraft; nodeRestoreExtras = candidate.nodeRestoreExtras ?? []; editBaseVersion = candidate.baseVersion; pending = candidate.pending; candidate = undefined; render(); await execute(true);
       } else if (candidate) {
         if (candidate.baseVersion === data.project.version && data.capabilities.editText) {
-          if (await choose('发现本标签页未保存文字，是否恢复？恢复后仍需明确保存。', [['restore', '恢复编辑'], ['cancel', '暂不恢复']]) === 'restore') { values = { ...candidate.values }; riskDraft = candidate.riskDraft; nodeDraft = candidate.nodeDraft; candidate = undefined; render(); persist(); }
+          if (await choose('发现本标签页未保存文字，是否恢复？恢复后仍需明确保存。', [['restore', '恢复编辑'], ['cancel', '暂不恢复']]) === 'restore') { values = { ...candidate.values }; riskDraft = candidate.riskDraft; nodeDraft = candidate.nodeDraft; nodeRestoreExtras = candidate.nodeRestoreExtras ?? []; candidate = undefined; render(); persist(); }
         } else { note('旧副本的项目版本已过期或当前项目只读，旧文字仅供复制核对。', true); controls(); }
       }
     }
+    await hydrateRestoredNodes();
     return true;
   } catch (error) {
     if (current !== generation) return false;

@@ -1,0 +1,37 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T09:34:38.559Z",
+  "checks": [
+    "真实删中间并精确确认旧线，来源/实际日/成果保持、邻居不桥接/不清完成；另一负责人新线后恢复同ID默认无旧线、原审计/原结果保持",
+    "同份多个恢复与新线复用最终前置/明确影响，异常旧阶段和未来实际日可同次明确纠正；客户恢复与旧单边所有引用预览清除",
+    "从实际2dfb17c兼容镜像导出的服务启动同库，真实ready/原会话/有效过滤/旧A-C原结果保持；D/E确认窗口明确未知不写，再升级恢复原ID/来源/新原结果",
+    "已删记录独立20/100数值游标超过100无总量上限，版本同快照；未知删除来源不补造，结案遗留与有效详情排除已删行",
+    "新增有限协议白名单/跨项目/非法原线/原因拒绝且普通文字不部分写；四真实会话删除同版一赢家，失权和事务内停用拒绝，本人旧结果仍可确认",
+    "删除/恢复及多邻居第二SQL写点、审计/回执全回滚；两类真实COMMIT丢确认应用重建后原会话/原结果保持，无业务自动联动"
+  ],
+  "requestCount": 217,
+  "build": {
+    "revision": "e4b075a4680e16f68fd1c6898713cbddf9a29c62",
+    "dirty": true,
+    "builtAt": "2026-10-10T09:25:43.025Z",
+    "stage": "project-nodes-recovery",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "fallbackBuild": {
+    "revision": "2dfb17c463972def4f8aaea6a9d1c4079bd9effa",
+    "dirty": false,
+    "builtAt": "2026-10-10T08:30:47.475Z",
+    "stage": "project-nodes-compatible",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "processMemory": {
+    "rss": 232660992,
+    "heapTotal": 39141376,
+    "heapUsed": 31109104,
+    "external": 4924360,
+    "arrayBuffers": 801626
+  },
+  "isolatedTestDatabase": true,
+  "syntheticLegacyAnomalies": true,
+  "nativeBrowserAcceptance": false
+}

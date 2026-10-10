@@ -37,7 +37,9 @@
     "test:checks": "node scripts/verify-project-checks.mjs",
     "test:checks-capacity": "node scripts/verify-project-capacity.mjs --checks",
     "test:nodes": "node scripts/verify-project-nodes.mjs",
-    "test:nodes-capacity": "node scripts/verify-project-capacity.mjs --checks --risks --nodes"
+    "test:nodes-capacity": "node scripts/verify-project-capacity.mjs --checks --risks --nodes",
+    "test:node-recovery": "node scripts/verify-project-node-recovery.mjs",
+    "test:node-recovery-capacity": "node scripts/verify-project-capacity.mjs --checks --risks --nodes --recovery"
   },
   "dependencies": {
     "@fastify/static": "10.1.5",

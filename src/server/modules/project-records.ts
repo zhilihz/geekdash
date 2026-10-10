@@ -2,6 +2,7 @@ import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { Actor } from './identity.js';
 import { failure, validId } from './project-save.js';
 import { businessToday, requireDate } from './project-dates.js';
+import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 
 type RiskFields = { content: string; level: 'high' | 'mid' | 'low'; resolution: string };
 export type RiskOperation =
@@ -109,7 +110,9 @@ export type NodeOperation =
   | { op: 'uncomplete'; id: string; reason: string; affectedIds: string[] }
   | { op: 'move'; id: string; x: number; y: number }
   | { op: 'link'; from: string; to: string; replaceEdges: Edge[]; affectedIds: string[]; reason: string }
-  | { op: 'unlink'; from: string; to: string };
+  | { op: 'unlink'; from: string; to: string }
+  | { op: 'delete'; id: string; removeEdges: Edge[] }
+  | { op: 'restore'; id: string; reason: string };
 type Node = RowDataPacket & NodeFields & { id: string; kind: string; completedOn: string | null; previousNodeId: string | null; nextNodeId: string | null; x: number | null; y: number | null; sourceKey: string | null; sortOrder: number; deletedAt: string | null };
 type NodeEvent = { id: string; before: Node | null; after: Node; operations: NodeOperation[]; reason: string };
 const nodeFieldKeys = ['title', 'stage', 'targetDate', 'output', 'note'] as const;
@@ -125,14 +128,15 @@ export function validateNodeOps(value: unknown): NodeOperation[] {
   };
   const result = value.map((item, index) => {
     if (!object(item)) failure('INVALID_NODE_OPERATIONS', 400);
-    const keys = item.op === 'add' ? ['op', 'tempId', 'kind', 'fields'] : item.op === 'correct' ? ['op', 'id', 'changes', 'reason'] : item.op === 'complete' ? ['op', 'id', 'completedOn', ...Object.hasOwn(item, 'reason') ? ['reason'] : []] : item.op === 'uncomplete' ? ['op', 'id', 'reason', 'affectedIds'] : item.op === 'move' ? ['op', 'id', 'x', 'y'] : item.op === 'link' ? ['op', 'from', 'to', 'replaceEdges', 'affectedIds', 'reason'] : item.op === 'unlink' ? ['op', 'from', 'to'] : [];
+    const keys = item.op === 'add' ? ['op', 'tempId', 'kind', 'fields'] : item.op === 'correct' ? ['op', 'id', 'changes', 'reason'] : item.op === 'complete' ? ['op', 'id', 'completedOn', ...Object.hasOwn(item, 'reason') ? ['reason'] : []] : item.op === 'uncomplete' ? ['op', 'id', 'reason', 'affectedIds'] : item.op === 'move' ? ['op', 'id', 'x', 'y'] : item.op === 'link' ? ['op', 'from', 'to', 'replaceEdges', 'affectedIds', 'reason'] : item.op === 'unlink' ? ['op', 'from', 'to'] : item.op === 'delete' ? ['op', 'id', 'removeEdges'] : item.op === 'restore' ? ['op', 'id', 'reason'] : [];
     if (!keys.length || keys.length !== Object.keys(item).length || keys.some(key => !Object.hasOwn(item, key))) failure('INVALID_NODE_OPERATIONS', 400);
     if (item.op === 'add') {
       if (!uuid(item.tempId) || added.has(item.tempId) || !['project', 'customer'].includes(item.kind as string)) failure('INVALID_NODE_OPERATIONS', 400);
       added.add(item.tempId);
     } else if ('id' in item ? !target(item.id) : !target(item.from) || !target(item.to)) failure('INVALID_NODE_OPERATIONS', 400);
+    if ((item.op === 'delete' || item.op === 'restore') && !validId(item.id)) failure('INVALID_NODE_OPERATIONS', 400);
     const prefix = 'nodeOps.' + index + '.';
-    if (Object.hasOwn(item, 'reason')) text(item.reason, prefix + 'reason', item.op === 'correct' || item.op === 'uncomplete');
+    if (Object.hasOwn(item, 'reason')) text(item.reason, prefix + 'reason', item.op === 'correct' || item.op === 'uncomplete' || item.op === 'restore');
     if (item.op === 'add' || item.op === 'correct') {
       const data = item.op === 'add' ? item.fields : item.changes;
       if (!object(data) || !Object.keys(data).length || Object.keys(data).some(key => !nodeFieldKeys.includes(key as typeof nodeFieldKeys[number]))) failure('INVALID_NODE_OPERATIONS', 400);
@@ -150,24 +154,53 @@ export function validateNodeOps(value: unknown): NodeOperation[] {
     if (item.op === 'complete') requireDate(item.completedOn, prefix + 'completedOn');
     if (item.op === 'move') for (const key of ['x', 'y']) if (typeof item[key] !== 'number' || !Number.isFinite(item[key]) || Math.abs(item[key] as number) > 999999999.999 || Math.abs(Math.round((item[key] as number) * 1000) / 1000 - (item[key] as number)) > 1e-7) fields[prefix + key] = '位置必须在DECIMAL(12,3)范围内';
     if (Object.hasOwn(item, 'affectedIds') && (!Array.isArray(item.affectedIds) || item.affectedIds.some((id: unknown) => !target(id)) || new Set(item.affectedIds).size !== item.affectedIds.length)) failure('INVALID_NODE_OPERATIONS', 400);
-    if (item.op === 'link' && (!Array.isArray(item.replaceEdges) || item.replaceEdges.some((edge: unknown) => !object(edge) || Object.keys(edge).length !== 2 || !target(edge.from) || !target(edge.to)) || new Set(item.replaceEdges.map((edge: Edge) => edgeKey(edge))).size !== item.replaceEdges.length)) failure('INVALID_NODE_OPERATIONS', 400);
-    return Object.fromEntries(keys.map(key => [key, key === 'affectedIds' ? [...item[key] as string[]].sort() : key === 'replaceEdges' ? [...item[key] as Edge[]].sort((a, b) => edgeKey(a).localeCompare(edgeKey(b))).map(({ from, to }) => ({ from, to })) : item[key]])) as NodeOperation;
+    const edges = item.op === 'link' ? item.replaceEdges : item.op === 'delete' ? item.removeEdges : undefined;
+    if (edges !== undefined && (!Array.isArray(edges) || edges.some((edge: unknown) => !object(edge) || Object.keys(edge).length !== 2 || !target(edge.from) || !target(edge.to)) || new Set(edges.map((edge: Edge) => edgeKey(edge))).size !== edges.length)) failure('INVALID_NODE_OPERATIONS', 400);
+    return Object.fromEntries(keys.map(key => [key, key === 'affectedIds' ? [...item[key] as string[]].sort() : key === 'replaceEdges' || key === 'removeEdges' ? [...item[key] as Edge[]].sort((a, b) => edgeKey(a).localeCompare(edgeKey(b))).map(({ from, to }) => ({ from, to })) : item[key]])) as NodeOperation;
   });
   if (Object.keys(fields).length) failure('INVALID_PROJECT_FIELDS', 422, { fields });
   return result;
 }
-export async function nodeRows(connection: PoolConnection, id: string): Promise<Node[]> {
-  const rows = await query(connection, "SELECT CAST(n.id AS CHAR) id,n.kind,s.stage_code stage,n.title,DATE_FORMAT(n.target_date,'%Y-%m-%d') targetDate,DATE_FORMAT(n.completed_on,'%Y-%m-%d') completedOn,n.output,n.note,CAST(n.previous_node_id AS CHAR) previousNodeId,CAST(n.next_node_id AS CHAR) nextNodeId,n.x,n.y,n.source_key sourceKey,n.sort_order sortOrder,DATE_FORMAT(n.deleted_at,'%Y-%m-%dT%H:%i:%s.%fZ') deletedAt FROM project_nodes n LEFT JOIN project_stages s ON s.id=n.stage_id WHERE n.project_id=? AND n.deleted_at IS NULL ORDER BY n.sort_order,n.id", [id]) as Node[];
-  return rows.map(row => ({ ...row, x: row.x === null ? null : Number(row.x), y: row.y === null ? null : Number(row.y) }));
+const nodeColumns = "CAST(n.id AS CHAR) id,n.kind,s.stage_code stage,n.title,DATE_FORMAT(n.target_date,'%Y-%m-%d') targetDate,DATE_FORMAT(n.completed_on,'%Y-%m-%d') completedOn,n.output,n.note,CAST(n.previous_node_id AS CHAR) previousNodeId,CAST(n.next_node_id AS CHAR) nextNodeId,n.x,n.y,n.source_key sourceKey,n.sort_order sortOrder,DATE_FORMAT(n.deleted_at,'%Y-%m-%dT%H:%i:%s.%fZ') deletedAt";
+const numericPositions = (rows: Node[]) => rows.map(row => ({ ...row, x: row.x === null ? null : Number(row.x), y: row.y === null ? null : Number(row.y) }));
+export async function nodeRows(connection: PoolConnection, id: string, deletedIds: string[] = []): Promise<Node[]> {
+  const rows = await query(connection, `SELECT ${nodeColumns} FROM project_nodes n LEFT JOIN project_stages s ON s.id=n.stage_id WHERE n.project_id=? AND (n.deleted_at IS NULL${deletedIds.length ? ' OR n.id IN (' + deletedIds.map(() => '?').join(',') + ')' : ''}) ORDER BY n.sort_order,n.id`, [id, ...deletedIds]) as Node[];
+  return numericPositions(rows);
+}
+export function deletedNodes(database: RuntimeDatabase, id: string, pageSize: number, before?: string) {
+  return database.readSnapshot(async connection => {
+    const projects = await query(connection, 'SELECT CAST(version AS CHAR) version FROM projects WHERE id=?', [id]);
+    if (!projects.length) failure('PROJECT_NOT_FOUND', 404);
+    const rows = numericPositions(await query(connection, `SELECT ${nodeColumns} FROM project_nodes n LEFT JOIN project_stages s ON s.id=n.stage_id WHERE n.project_id=? AND n.deleted_at IS NOT NULL${before ? ' AND n.id<?' : ''} ORDER BY n.id DESC LIMIT ?`, [id, ...before ? [before] : [], pageSize + 1]) as Node[]);
+    const hasMore = rows.length > pageSize; if (hasMore) rows.pop();
+    const facts = rows.length ? await query(connection, `SELECT CAST(a.id AS CHAR) id,CAST(a.entity_id AS CHAR) nodeId,a.actor_display_name actorName,DATE_FORMAT(a.created_at,'%Y-%m-%dT%H:%i:%s.%fZ') createdAt,a.before_json beforeValues,a.after_json afterValues FROM (SELECT MAX(id) id FROM audit_log WHERE entity_type='project_node' AND entity_id IN (${rows.map(() => '?').join(',')}) AND JSON_TYPE(JSON_EXTRACT(after_json,'$.node.deletedAt'))='STRING' GROUP BY entity_id) targets JOIN audit_log a ON a.id=targets.id`, rows.map(row => row.id)) : [];
+    const byId = new Map(facts.map(fact => [fact.nodeId, fact]));
+    return { projectVersion: projects[0].version, items: rows.map(row => { const fact = byId.get(row.id); return { ...row, deletion: fact ? { auditId: fact.id, actorName: fact.actorName, createdAt: fact.createdAt, beforeNode: fact.beforeValues.node, operations: fact.afterValues.operations, reason: fact.afterValues.reason } : null }; }), nextCursor: hasMore ? rows.at(-1)!.id : null, pageSize };
+  });
 }
 export async function nodeCandidate(connection: PoolConnection, id: string, operations: NodeOperation[], timestamp: string, preview = false) {
-  const original = await nodeRows(connection, id), candidates = structuredClone(original), rows = new Map(candidates.map(row => [row.id, row])), before = new Map(original.map(row => [row.id, row]));
+  const deletedIds = [...new Set(operations.flatMap(op => op.op === 'delete' || op.op === 'restore' ? [op.id] : []))];
+  const original = await nodeRows(connection, id, deletedIds), candidates = structuredClone(original), rows = new Map(candidates.map(row => [row.id, row])), before = new Map(original.map(row => [row.id, row]));
   const graphIds = new Set<string>(), supplied = new Set<string>(), reasons = new Map<string, string>(), touched = new Map<string, NodeOperation[]>();
   let order = original.reduce((max, row) => Math.max(max, row.sortOrder + 1), 0);
   const touch = (target: string, operation: NodeOperation) => { touched.set(target, [...touched.get(target) ?? [], operation]); if ('reason' in operation && operation.reason) reasons.set(target, operation.reason); };
-  const target = (key: string) => { const row = rows.get(key); if (!row) failure('NODE_NOT_FOUND', 404); return row; };
+  const target = (key: string) => { const row = rows.get(key); if (!row || row.deletedAt) failure('NODE_NOT_FOUND', 404); return row; };
   const unlink = (edge: Edge, operation: NodeOperation) => { const a = target(edge.from), b = target(edge.to); if (a.nextNodeId === b.id) { a.nextNodeId = null; touch(a.id, operation); } if (b.previousNodeId === a.id) { b.previousNodeId = null; touch(b.id, operation); } graphIds.add(a.id); graphIds.add(b.id); };
   for (const operation of operations) {
+    if (operation.op === 'restore') {
+      const row = rows.get(operation.id); if (!row) failure('NODE_NOT_FOUND', 404); if (!row.deletedAt) failure('NODE_NOT_DELETED', 422);
+      row.deletedAt = null; row.previousNodeId = null; row.nextNodeId = null; touch(row.id, operation); graphIds.add(row.id); continue;
+    }
+    if (operation.op === 'delete') {
+      const row = rows.get(operation.id); if (!row) failure('NODE_NOT_FOUND', 404); if (row.deletedAt) failure('NODE_ALREADY_DELETED', 422);
+      const edges = new Map<string, Edge>();
+      const edge = (from: string | null, to: string | null) => { if (from && to) edges.set(edgeKey({ from, to }), { from, to }); };
+      edge(row.previousNodeId, row.id); edge(row.id, row.nextNodeId);
+      for (const neighbor of candidates.filter(node => !node.deletedAt && node.id !== row.id)) { if (neighbor.nextNodeId === row.id) edge(neighbor.id, row.id); if (neighbor.previousNodeId === row.id) edge(row.id, neighbor.id); }
+      if (JSON.stringify([...edges.keys()].sort()) !== JSON.stringify(operation.removeEdges.map(edgeKey).sort())) failure('NODE_DELETE_LINKS_CHANGED', 422, { fields: { nodeOps: '需要明确确认将解除的全部旧线：' + [...edges.keys()].sort().join('、') } });
+      for (const neighbor of candidates.filter(node => !node.deletedAt && node.id !== row.id)) { if (neighbor.nextNodeId === row.id) { neighbor.nextNodeId = null; touch(neighbor.id, operation); graphIds.add(neighbor.id); } if (neighbor.previousNodeId === row.id) { neighbor.previousNodeId = null; touch(neighbor.id, operation); graphIds.add(neighbor.id); } }
+      row.previousNodeId = null; row.nextNodeId = null; row.deletedAt = timestamp; touch(row.id, operation); graphIds.add(row.id); continue;
+    }
     if (operation.op === 'add') {
       if (order > 4294967295) failure('NODE_ORDER_EXHAUSTED', 422);
       const row = { id: operation.tempId, kind: operation.kind, stage: null, targetDate: null, output: '', note: '', ...operation.fields, completedOn: null, previousNodeId: null, nextNodeId: null, x: null, y: null, sourceKey: null, sortOrder: order++, deletedAt: null } as Node;
@@ -203,15 +236,19 @@ export async function nodeCandidate(connection: PoolConnection, id: string, oper
     }
   }
   const stages = new Map((await query(connection, 'SELECT stage_code code,CAST(id AS CHAR) id FROM project_stages WHERE project_id=?', [id])).map(row => [row.code, row.id]));
-  for (const row of candidates) if (touched.get(row.id)?.some(op => op.op === 'add' || op.op === 'correct' && Object.hasOwn(op.changes, 'stage')) && row.kind === 'project' && !stages.has(row.stage)) failure('NODE_STAGE_INVALID', 422);
+  for (const row of candidates.filter(row => !row.deletedAt)) {
+    if (touched.get(row.id)?.some(op => op.op === 'add' || op.op === 'restore' || op.op === 'correct' && Object.hasOwn(op.changes, 'stage')) && row.kind === 'project' && !stages.has(row.stage)) failure('NODE_STAGE_INVALID', 422);
+    if (touched.get(row.id)?.some(op => op.op === 'restore') && row.completedOn && row.completedOn > businessToday(new Date(timestamp))) failure('INVALID_PROJECT_FIELDS', 422, { fields: { nodeOps: '恢复节点的实际完成日不能在未来，请同次明确纠正' } });
+  }
   // 只检查本次完成/关系涉及的组件；移动和无关文字不被旧异常阻断。
   const scope = new Set<string>(), queue = [...graphIds];
   for (const key of queue) {
     if (scope.has(key)) continue; scope.add(key);
-    for (const row of [rows.get(key), before.get(key)]) if (row) for (const neighbor of [row.previousNodeId, row.nextNodeId]) if (neighbor && !scope.has(neighbor)) queue.push(neighbor);
+    for (const row of [rows.get(key), before.get(key)]) if (row && !row.deletedAt) for (const neighbor of [row.previousNodeId, row.nextNodeId]) if (neighbor && rows.has(neighbor) && !rows.get(neighbor)!.deletedAt && !scope.has(neighbor)) queue.push(neighbor);
   }
   const checked = new Set<string>();
   for (const key of scope) {
+    if (rows.get(key)?.deletedAt) continue;
     const row = target(key);
     if (row.previousNodeId && target(row.previousNodeId).nextNodeId !== key || row.nextNodeId && target(row.nextNodeId).previousNodeId !== key) failure('NODE_RELATION_INVALID', 422);
     const path: string[] = [], visited = new Set<string>(); let current: string | null = key;
@@ -223,6 +260,7 @@ export async function nodeCandidate(connection: PoolConnection, id: string, oper
   while (changed) {
     changed = false;
     for (const key of scope) {
+      if (rows.get(key)?.deletedAt) continue;
       const row = target(key);
       if (hypothetical.get(key) && row.previousNodeId && !hypothetical.get(row.previousNodeId)) {
         if (!before.get(key)?.completedOn) failure('NODE_PREDECESSOR_INCOMPLETE', 422, { fields: { nodeOps: '前置节点尚未完成：' + row.previousNodeId + ' → ' + key } });
@@ -234,7 +272,7 @@ export async function nodeCandidate(connection: PoolConnection, id: string, oper
   if (!confirmed && !preview) failure('NODE_IMPACT_CHANGED', 422, { fields: { nodeOps: '请重新预览并明确确认这些完成日一并清空：' + requiredUncompleteIds.join('、') } });
   if (confirmed) for (const key of supplied) { if (!reasons.get(key)?.trim()) failure('NODE_CORRECTION_REASON_REQUIRED', 422); target(key).completedOn = null; touched.set(key, operations.filter(op => 'affectedIds' in op && op.affectedIds.includes(key))); }
   const events = candidates.filter(row => touched.has(row.id) && JSON.stringify(before.get(row.id) ?? null) !== JSON.stringify(row)).map(row => ({ id: row.id, before: before.get(row.id) ?? null, after: row, operations: touched.get(row.id)!, reason: reasons.get(row.id) ?? '' })) as NodeEvent[];
-  return { rows: candidates, events, requiredUncompleteIds, confirmed, stages };
+  return { rows: candidates.filter(row => !row.deletedAt), events, requiredUncompleteIds, confirmed, stages };
 }
 export async function writeNodes(connection: PoolConnection, id: string, candidate: Awaited<ReturnType<typeof nodeCandidate>>, actor: Actor, versionBefore: string, versionAfter: string, requestId: string, timestamp: string) {
   const idMap: Record<string, string> = {};
@@ -248,7 +286,7 @@ export async function writeNodes(connection: PoolConnection, id: string, candida
   for (const event of candidate.events) if (event.before && (event.before.previousNodeId !== event.after.previousNodeId || event.before.nextNodeId !== event.after.nextNodeId)) await connection.execute('UPDATE project_nodes SET previous_node_id=NULL,next_node_id=NULL WHERE project_id=? AND id=?', [id, event.id]);
   for (const event of candidate.events) {
     const row = event.after;
-    await connection.execute('UPDATE project_nodes SET stage_id=?,title=?,target_date=?,completed_on=?,output=?,note=?,previous_node_id=?,next_node_id=?,x=?,y=? WHERE project_id=? AND id=?', [row.stage ? candidate.stages.get(row.stage) : null, row.title, row.targetDate, row.completedOn, row.output, row.note, stable(row.previousNodeId), stable(row.nextNodeId), row.x, row.y, id, stable(row.id)]);
+    await connection.execute('UPDATE project_nodes SET stage_id=?,title=?,target_date=?,completed_on=?,output=?,note=?,previous_node_id=?,next_node_id=?,x=?,y=?,deleted_at=? WHERE project_id=? AND id=?', [row.stage ? candidate.stages.get(row.stage) : null, row.title, row.targetDate, row.completedOn, row.output, row.note, stable(row.previousNodeId), stable(row.nextNodeId), row.x, row.y, row.deletedAt?.slice(0, 23).replace('T', ' ') ?? null, id, stable(row.id)]);
     const projectNode = (node: Node | null) => node ? { ...node, id: stable(node.id), previousNodeId: stable(node.previousNodeId), nextNodeId: stable(node.nextNodeId) } : null;
     await connection.execute(`INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,version_before,version_after,before_json,after_json,request_id,created_at)
       VALUES (?,?,'user',?,'project_node',?,?,?,?,?,?,?,?)`, [actor.id, actor.name, event.before ? 'project.node.save' : 'project.node.add', stable(row.id), id, versionBefore, versionAfter, JSON.stringify({ node: projectNode(event.before) }), JSON.stringify({ node: projectNode(row), reason: event.reason, operations: event.operations }), requestId, timestamp]);

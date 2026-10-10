@@ -68,3 +68,11 @@ GET `/api/projects/:id/checks?pageSize=20&before=字符串ID`；默认20、最�
 items 按原检查 ID 降序，每项保留 id / projectId / actorId / actorName / checkedAt / weekStart / ruleVersion / observedVersion / resultVersion；conclusion / note 为有效文字，original 为原文字，correction 为最新更正 id / actorName / createdAt / reason 或 null。完整更正过程仍读取项目审计。保存检查时的原人名快照来自创建审计，不随账号后来改名重写。
 
 deadlineDate / effectiveRuleVersion / onTime 为当前采用的截止判定，originalDeadlineDate / originalOnTime 为原规则判定。本周采用最新有效设置；历史周取该周结束前有效的最后修订，以后的调整不重算过去。列表首查采用 MIN(id)、最新采用 MAX(id)，同毫秒和时钟回拨不会改成按最小时间选首查。列表只批量读取当页周摘要与有效文字，详情和历史复用同一投影。
+
+### E04-B08 已删除节点分页
+
+GET `/api/projects/:id/deleted-nodes?pageSize=20&before=字符串ID`；默认20、单次最多100，before按原数字ID严格小于，ID倒序，总量不限。当前启用身份可查看所有项目；未知参数/非法游标400，缺项目404 PROJECT_NOT_FOUND，数据库错误503。返回no-store。
+
+同一快照返回projectVersion/items/nextCursor/pageSize；items为完整原NodeRecord（deletedAt非空）和deletion。deletion有auditId/actorName/createdAt/beforeNode/operations/reason，来自当前页目标最后可信删除审计；无可信审计则null，页面显示来源未知。复用项目前缀索引及目标审计索引，不读取全项目全部历史。普通详情和结案遗留只消费有效节点。
+
+客户端只在页projectVersion等于进入项目版本时接收；不同则冻结原编辑并提示重入，原副本保留供复制。恢复或删除明确保存后清旧分页缓存，再新请求读取；分页GET不产生恢复、历史、项目版本或回执。

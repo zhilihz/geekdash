@@ -107,10 +107,29 @@ risks在详情和保存结果包含id/content/level/resolved/resolution/resolved
 
 项目add fields必须title/stage/output，可带targetDate；客户必须title，可带targetDate/note。correct changes非空，仅该类型对应字段；实际完成不能通过普通字段null清空。title非空/最多255码点，output非空，文字完整Unicode/UTF-8不超过65535字节；targetDate为有效日期或null。stage仅本项目S1～S7。正式ID为十进制字符串，或数组此前新增临时ID；关系只允许同项目的两个不同项目节点，客户节点不参与连线。
 
-complete的实际日不能晚于中国业务今天；前置完成按最终候选判断，同次完成整条链可行，不额外要求日期按连线顺序递增，也不推进研发阶段。uncomplete/新前置导致已完成依赖不成立时，save-preview给出requiredUncompleteIds及confirmed=false；用户逐项核对后提供完全相同affectedIds和原因，重新预览为true后加入副本。遗漏/额外影响对象使正式保存422 NODE_IMPACT_CHANGED；系统不静默清下游完成。replaceEdges精确表示当前占用的旧线，不一致返回NODE_REPLACEMENT_CHANGED；双方和旧邻居同事务解除/设置，删除未开通。
+complete的实际日不能晚于中国业务今天；前置完成按最终候选判断，同次完成整条链可行，不额外要求日期按连线顺序递增，也不推进研发阶段。uncomplete/新前置导致已完成依赖不成立时，save-preview给出requiredUncompleteIds及confirmed=false；用户逐项核对后提供完全相同affectedIds和原因，重新预览为true后加入副本。遗漏/额外影响对象使正式保存422 NODE_IMPACT_CHANGED；系统不静默清下游完成。replaceEdges精确表示当前占用的旧线，不一致返回NODE_REPLACEMENT_CHANGED；双方和旧邻居同事务解除/设置；删除/恢复扩展见下节，运行状态归系统真相。
 
 涉及完成/关系的候选检查双向一致及循环；NODE_CYCLE的fields.nodeOps显示具体循环。旧循环不妨碍无关文字/移动，可明确unlink纠正；不通过旧历史重复制造循环。移动/纠错同值不推进版本。节点操作不自动改变灯色、计划、阶段、检查或项目状态。
 
 nodeOps不进入result.values；结果另附nodes和nodeIdMap，新ID先全部分配再设置关系。目标审计entity_type=project_node，action=project.node.add或project.node.save，before/after保存node及有限operations/reason；每个实际变更对象一条，统一项目版本、可信actor/时间和requestId，旧来源不改。save-preview不写正式ID/项目/历史/回执；正式保存仍在项目锁下重算。SQL任一写点失败整份回滚；原结果恢复包括稳定节点映射及当时投影，后来的变化不改旧回执。
 
-其他失败：400 INVALID_NODE_OPERATIONS；404 NODE_NOT_FOUND；422 NODE_RELATION_INVALID/NODE_LINK_NOT_FOUND/NODE_STAGE_INVALID/NODE_PREDECESSOR_INCOMPLETE/NODE_CORRECTION_REASON_REQUIRED/NODE_NOT_COMPLETED/NODE_ORDER_EXHAUSTED及字段错误。版本/权限/停用/未知结果沿原普通保存协议。节点D/E软删除恢复及0003尚未在此批实现。
+其他失败：400 INVALID_NODE_OPERATIONS；404 NODE_NOT_FOUND；422 NODE_RELATION_INVALID/NODE_LINK_NOT_FOUND/NODE_STAGE_INVALID/NODE_PREDECESSOR_INCOMPLETE/NODE_CORRECTION_REASON_REQUIRED/NODE_NOT_COMPLETED/NODE_ORDER_EXHAUSTED及字段错误。版本/权限/停用/未知结果沿原普通保存协议。节点A～C不自行执行删除/恢复；0003兼容已部署，D/E扩展协议见下节。
+
+## E04-B08 节点D/E删除恢复统一保存
+
+2026-10-10实际候选协议；运行版本与验收分别归系统真相、报告。复用原nodeOps、save-preview及PATCH普通保存，不另加写路由，未保存副本不更改正式数据。
+
+| op | 精确输入 |
+|---|---|
+| delete | op/id/removeEdges；id仅正式十进制字符串，removeEdges为去重的{from,to}数组 |
+| restore | op/id/reason；id仅正式十进制字符串，reason有效非空文字、UTF-8最多65535字节 |
+
+removeEdges必须精确覆盖当前目标的前后引用及有效邻居指向它的全部反向引用，包括旧单边关系；每条from/to可引用同份此前新增的临时节点。空集合仅在确实无旧线时通过。删除清目标和有效邻居引用、由服务器保存deletedAt，原字段/日期/成果/位置/sourceKey/ID保留，不桥接邻居、不删除或自动清空邻居完成日。客户节点同样可删，不能连线。
+
+恢复要求目标当前已删除，清deletedAt及其前后引用、保持原ID和其余字段；可以同份恢复多个端点再明确link。恢复的项目节点须为本项目有效阶段，实际日不能在未来；需要纠正时同份restore后另列既有correct/complete/uncomplete操作，原因明确，不自动补造或清空。最终有效图继续原双向/循环/前置及完成影响校验；旧线保持在原审计，恢复默认不接回。
+
+预览nodeEvents包含目标及实际受影响邻居的before/after/operations/reason；nodes仅返回有效候选。正式保存同一个项目事务/版本/审计/原回执；删除/恢复操作从目标审计operations和前后deletedAt识别，不增重复表或操作者列。结果仅含有效nodes，之后独立已删读取核对。原save-results按原正文/编号返回原结果，即使后来恢复或再次删除也不重写旧投影。
+
+新增错误：422 NODE_DELETE_LINKS_CHANGED（必须重新核对全部旧线）、NODE_ALREADY_DELETED、NODE_NOT_DELETED；跨项目或无目标404 NODE_NOT_FOUND，非法额外字段/UUID正式目标400 INVALID_NODE_OPERATIONS，恢复原因/阶段/实际日及最终图错误沿既有字段/节点契约。任何子操作错误，整份普通文字和节点都不部分写；409冻结旧版并保留副本，SQL失败回滚，COMMIT未知沿原编号确认。
+
+兼容回退2dfb17c能读取0003有效节点、保持原A～C结果和会话，但不理解新D/E正文。回退窗口内以新D/E正文确认会返回400/未知，不能据此宣布原保存失败或换编号；保留原正文，重新升级D/E版后再确认。本限制由实际旧镜像导出服务/同库验证，不以迁移兼容冒充协议兼容。

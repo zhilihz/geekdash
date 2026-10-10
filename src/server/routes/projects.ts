@@ -6,6 +6,7 @@ import { projectCore, validateCore } from '../modules/project-core.js';
 import { projectActions, validateAction } from '../modules/project-actions.js';
 import { projectChecks } from '../modules/project-checks.js';
 import { deadlineKinds } from '../modules/project-dates.js';
+import { deletedNodes } from '../modules/project-records.js';
 
 export function registerProjectReads(app: FastifyInstance, database?: RuntimeDatabase) {
   const reads = database ? projectReads(database) : undefined;
@@ -13,6 +14,15 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
   const core = database ? projectCore(database) : undefined;
   const checks = database ? projectChecks(database) : undefined;
   const actions = database ? projectActions(database) : undefined;
+  app.get<{ Params: { id: string }; Querystring: { pageSize?: number; before?: string } }>('/api/projects/:id/deleted-nodes', {
+    schema: { querystring: { type: 'object', additionalProperties: false, properties: { pageSize: { type: 'integer', minimum: 1, maximum: 100 }, before: { type: 'string', pattern: '^[1-9][0-9]{0,19}$' } } } },
+  }, (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    if (!request.actor) return reply.code(401).send({ code: 'AUTH_REQUIRED' });
+    if (!validId(request.params.id) || request.query.before && !validId(request.query.before)) return reply.code(400).send({ code: 'INVALID_CURSOR_OR_PROJECT' });
+    if (!database) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE' });
+    return deletedNodes(database, request.params.id, request.query.pageSize ?? 20, request.query.before);
+  });
   async function actionHandler(request: import('fastify').FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: import('fastify').FastifyReply, confirm: boolean) {
     if (!request.actor) return reply.code(401).send({ code: 'AUTH_REQUIRED', outcome: 'not_committed' });
     if (!validId(request.params.id)) return reply.code(400).send({ code: 'INVALID_PROJECT_ID', outcome: 'not_committed' });
