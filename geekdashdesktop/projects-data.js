@@ -15,6 +15,7 @@
   const STORAGE_KEY_CHIPS         = "hw_project_board_chips_v1";
   const STORAGE_KEY_COMPANY       = "hw_project_board_company_v1";
   const DATABASE_SESSION_KEY      = "hw_project_board_database_session_v1";
+  const DATABASE_LAST_SESSION_KEY = "hw_project_board_database_last_v1";
   const DATABASE_HANDLE_IDB_KEY   = "activeDatabaseFile";
   const DATABASE_LAST_HANDLE_KEY  = "lastDatabaseFile";
   const BACKUP_SCHEMA_VERSION     = 2;
@@ -791,13 +792,14 @@
   }
 
   // ======================================================================
-  // 主动项目数据库：每个新会话由欢迎页打开或新建；业务写入后自动回写。
+  // 项目数据库：首次选择，后续恢复同一文件；业务写入后自动回写。
   // IndexedDB 只保存文件句柄和上次位置，localStorage 仅作为当前会话缓存与故障恢复副本。
   // ======================================================================
   let activeDatabaseHandleCache = null;
   let databaseAutosaveTimer = null;
+  let databaseOpening = false;
   function databaseSession() {
-    try { return JSON.parse(sessionStorage.getItem(DATABASE_SESSION_KEY) || "null"); }
+    try { return JSON.parse(sessionStorage.getItem(DATABASE_SESSION_KEY) || localStorage.getItem(DATABASE_LAST_SESSION_KEY) || "null"); }
     catch (e) { return null; }
   }
   function hasActiveDatabaseSession() {
@@ -805,14 +807,16 @@
     return !!(session && session.mode === "file" && session.name);
   }
   function setDatabaseSession(handle, state) {
-    const session = { mode: "file", name: handle.name || "GeekDash项目数据库", state: state || "saved", openedAt: todayTimeStr(), savedAt: state === "saved" ? todayTimeStr() : "" };
+    const session = { mode: "file", name: handle.name || "GeekDash项目数据库", state: state || "saved", writable: true, pendingChanges: false, openedAt: todayTimeStr(), savedAt: state === "saved" ? todayTimeStr() : "" };
     try { sessionStorage.setItem(DATABASE_SESSION_KEY, JSON.stringify(session)); } catch (e) {}
+    localStorage.setItem(DATABASE_LAST_SESSION_KEY, JSON.stringify(session));
     window.dispatchEvent(new CustomEvent("geekdash-database-status", { detail: session }));
     return session;
   }
   function updateDatabaseSession(patch) {
     const next = Object.assign({}, databaseSession() || {}, patch || {});
     try { sessionStorage.setItem(DATABASE_SESSION_KEY, JSON.stringify(next)); } catch (e) {}
+    localStorage.setItem(DATABASE_LAST_SESSION_KEY, JSON.stringify(next));
     window.dispatchEvent(new CustomEvent("geekdash-database-status", { detail: next }));
     return next;
   }
@@ -831,8 +835,11 @@
     };
   }
   function applyOpenedDatabase(validated) {
-    saveBusinessDataAtomic(fullDatabasePayload(validated));
-    if (validated.preferences) restoreBackupPreferences(validated.preferences);
+    databaseOpening = true;
+    try {
+      saveBusinessDataAtomic(fullDatabasePayload(validated));
+      if (validated.preferences) restoreBackupPreferences(validated.preferences);
+    } finally { databaseOpening = false; }
   }
   async function rememberDatabaseHandle(handle) {
     activeDatabaseHandleCache = handle;
@@ -870,6 +877,42 @@
     setDatabaseSession(handle, "saved");
     return { name: handle.name || file.name, projects: validated.projects.length };
   }
+  async function restoreProjectDatabase() {
+    if (sessionStorage.getItem(DATABASE_SESSION_KEY)) {
+      updateDatabaseSession({});
+    }
+    const previous = databaseSession();
+    const handle = await getActiveDatabaseHandle();
+    if (!handle) {
+      if (previous) updateDatabaseSession({ state: "error", writable: false, error: "未找到原文件连接，请另存或重新选择数据库" });
+      return !!previous;
+    }
+    try {
+      const granted = typeof handle.queryPermission !== "function" || await handle.queryPermission({ mode: "readwrite" }) === "granted";
+      if (!granted) {
+        if (!previous) return false;
+        updateDatabaseSession({ state: "permission", writable: false, pendingChanges: !!previous.pendingChanges });
+      } else if (previous && (previous.pendingChanges || previous.state === "saving")) {
+        updateDatabaseSession({ state: "pending", writable: true, pendingChanges: true });
+      } else await openProjectDatabaseHandle(handle);
+      return true;
+    } catch (error) {
+      if (!previous) return false;
+      updateDatabaseSession({ state: "error", writable: false, error: error.message || String(error) });
+      return true;
+    }
+  }
+  async function resumeProjectDatabase() {
+    const handle = await getActiveDatabaseHandle();
+    if (!handle) throw new Error("原文件连接不可用，请另存当前数据或重新选择数据库");
+    await ensureDatabaseWritePermission(handle);
+    if (databaseSession()?.pendingChanges) {
+      updateDatabaseSession({ writable: true });
+      await saveActiveProjectDatabase();
+      return { name: handle.name, projects: load().length };
+    }
+    return openProjectDatabaseHandle(handle);
+  }
   async function pickerWithRememberedLocation(kind, options) {
     const picker = kind === "open" ? window.showOpenFilePicker : window.showSaveFilePicker;
     if (typeof picker !== "function") throw new Error("当前浏览器不支持直接读写数据库文件，请使用最新版 Chrome 或 Edge 打开 GeekDash");
@@ -882,6 +925,7 @@
     }
   }
   async function openProjectDatabasePicker() {
+    if (databaseSession()?.pendingChanges) throw new Error("有未写回的修改，请先授权保存到原文件，或将当前数据另存为新数据库");
     const result = await pickerWithRememberedLocation("open", {
       multiple: false,
       types: [{ description: "GeekDash 项目数据库", accept: { "application/json": [".json", ".bak", ".geekdash"] } }]
@@ -910,17 +954,21 @@
     if (!handle) throw new Error("当前数据库文件句柄已失效，请返回首页重新打开数据库");
     try {
       await writeDatabaseHandle(handle, buildBackupData());
-      updateDatabaseSession({ state: "saved", savedAt: todayTimeStr(), error: "" });
+      updateDatabaseSession({ state: "saved", writable: true, pendingChanges: false, savedAt: todayTimeStr(), error: "" });
       return true;
     } catch (error) {
-      updateDatabaseSession({ state: "error", error: error.message || String(error) });
+      updateDatabaseSession({ state: "error", pendingChanges: true, error: error.message || String(error) });
       window.dispatchEvent(new CustomEvent("geekdash-database-save-error", { detail: { message: error.message || String(error) } }));
       throw error;
     }
   }
   function scheduleDatabaseAutosave() {
-    if (!hasActiveDatabaseSession()) return;
-    updateDatabaseSession({ state: "saving" });
+    if (databaseOpening || !hasActiveDatabaseSession()) return;
+    if (databaseSession().writable === false) {
+      updateDatabaseSession({ state: "pending", pendingChanges: true });
+      return;
+    }
+    updateDatabaseSession({ state: "saving", pendingChanges: true });
     if (databaseAutosaveTimer) clearTimeout(databaseAutosaveTimer);
     databaseAutosaveTimer = setTimeout(() => {
       databaseAutosaveTimer = null;
@@ -1247,10 +1295,11 @@
 
   // 应用版本（每次改动 +0.001）与版本生成时间
   const APP_VERSION = "V1.051";
-  const APP_VERSION_TIME = "2026-10-09 19:31:00";
+  const APP_VERSION_TIME = "2026-10-10 09:52:57";
   // 历史版本更改日志（简要总结；新改动可在此追加新条目并 +0.001 版本号）
   const VERSION_LOG = [
     { version: "V1.051", date: APP_VERSION_TIME, items: [
+      "双击GeekDash.html直接运行，无需启动脚本；首次选择数据库后记住原文件，后续恢复读取与自动保存",
       "详情滚动时项目标题保持可见，日期时钟正常滚动",
       "风险预警与需求变更支持编辑，保留创建时间并记录修改前后内容",
       "首页移除风险预警与需求变更独立专区，修改仍在项目最新状态和详情历史查看",
@@ -1504,7 +1553,7 @@
     load, save, reset, resetAll,
     loadCustomers, saveCustomers, loadEngineers, saveEngineers, loadProductLines, saveProductLines, loadApps, saveApps, loadTags, saveTags, loadGroups, saveGroups, loadChips, saveChips, loadCompany, saveCompany, saveBusinessDataAtomic,
     loadAutoBackupConfig, saveAutoBackupConfig, runAutoBackup, buildBackupData, validateBackupData, restoreBackupPreferences,
-    databaseSession, hasActiveDatabaseSession, openProjectDatabaseHandle, openProjectDatabasePicker, createProjectDatabasePicker, saveActiveProjectDatabase
+    databaseSession, hasActiveDatabaseSession, restoreProjectDatabase, resumeProjectDatabase, openProjectDatabaseHandle, openProjectDatabasePicker, createProjectDatabasePicker, saveActiveProjectDatabase
   };
   // 防止通过书签直接绕过数据库入口访问详情、报表或设置页面。
   const runtimePage = typeof location === "undefined" ? "" : String(location.pathname || "").split("/").pop();
