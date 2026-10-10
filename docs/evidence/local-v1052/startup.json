@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "protocol": "file://",
+  "browser": "Microsoft Edge",
+  "fileStorage": "真实Windows磁盘JSON与FileSystemFileHandle",
+  "permissions": "独立验收profile预授读写；实际首次文件选择/授权由用户完成",
+  "checks": [
+    "直接file://首次选择真实磁盘文件，详情保存实际写回，跨HTML页面共享数据",
+    "原标签页返回首页仍读取文件最新内容，不被旧sessionStorage跳过",
+    "关闭整个Edge进程后重新启动，自动恢复同一文件并读取磁盘最新内容，报表消费一致",
+    "重启保留未写回修改，不用旧磁盘覆盖；明确继续保存后真实写回原文件",
+    "实际撤销测试profile文件写权限仍进入原看板，编辑/重启保留待保存内容，恢复权限后写回原文件"
+  ],
+  "pageErrors": []
+}

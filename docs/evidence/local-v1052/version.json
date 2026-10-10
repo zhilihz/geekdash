@@ -1,0 +1,26 @@
+{
+  "passed": true,
+  "version": "V1.052",
+  "pages": [
+    "GeekDash.html",
+    "project-detail.html?id=980001",
+    "project-status-summary.html",
+    "chip-statistics.html",
+    "data-manage.html",
+    "settings.html"
+  ],
+  "versionLog": {
+    "version": "V1.052",
+    "date": "2026-10-10 10:14:26",
+    "items": [
+      "启动时恢复上次连接的数据库，授权有效时直接读取原文件，不必每次重新选择备份",
+      "用Edge直接打开GeekDash.html运行，无需Python或启动脚本"
+    ]
+  },
+  "backupAndExport": {
+    "appVersion": "V1.052",
+    "schema": 2,
+    "exportVersion": true
+  },
+  "pageErrors": []
+}

@@ -315,6 +315,6 @@ try {
   assert.equal(await page.locator("#risk-zone, #change-zone").count(), 0);
   checks.push("四看板及单文件移除两个独立专区和开关，风险及变更修改保留在最新状态/详情历史");
   assert.deepEqual(errors, []);
-  await fs.writeFile(path.join(output, "acceptance.json"), JSON.stringify({ version: "V1.051", browser: "Microsoft Edge", storage: "真实 FileSystemFileHandle（浏览器私有文件系统 OPFS）", checks, bounds, pageErrors: errors, passed: true }, null, 2));
+  await fs.writeFile(path.join(output, "acceptance.json"), JSON.stringify({ version: await page.evaluate(() => PROJECT_DB.APP_VERSION), browser: "Microsoft Edge", storage: "真实 FileSystemFileHandle（浏览器私有文件系统 OPFS）", checks, bounds, pageErrors: errors, passed: true }, null, 2));
   console.log(JSON.stringify({ passed: true, checks, output }, null, 2));
 } finally { await browser.close(); }
