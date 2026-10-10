@@ -1,0 +1,43 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T07:10:19.493682+00:00",
+  "build": {
+    "revision": "5ae7eccc57d8d2a5f1cfb8e8c70a049c147fb802",
+    "dirty": false,
+    "builtAt": "2026-10-10T06:55:38.354Z",
+    "stage": "project-risks",
+    "schemaVersion": "0002-trial-save"
+  },
+  "projectId": "15",
+  "savedVersion": "11",
+  "riskCount": 3,
+  "auditCount": 13,
+  "originalResults": 12,
+  "syntheticOnly": true,
+  "checks": [
+    "两负责人风险新增/内容等级说明纠错/解除/误解除撤销；明确普通保存",
+    "同次文字风险统一版本；同次新增解除临时ID映射；同值不制造历史",
+    "解除说明纠错保留原解除人时；真实再发生另建风险；无状态计划灯色自动联动",
+    "预览不写库；预览后其他保存时409；重新读取再纠正；原结果账号隔离",
+    "新请求详情/审计/提案看板及固定资源一致；原生页面未验收"
+  ],
+  "assets": {
+    "index.html": "178c051bb1e7d9967ca4de339e134f06bf29cde2caea9a61672973c90b93b83d",
+    "/assets/index-DeWOMfmL.js": "65bddf6722e10aa9f24be382422c9b156c352a9fb46cedc5bd17f88179a5ee79",
+    "/assets/api-A3yT-0Ov.js": "d9f93c36882ee04e233d56d692abea3c13bf0b922c5aac06631dc428aa1bfc50",
+    "/assets/api-CEMtlmAC.css": "f81b99ccd3ef21d4ce6a436d1c1b2a13dae22b52308ed681a5f614d0227e2fa0",
+    "/assets/index-D8NXthWN.css": "5cdef17e18b287780e8197cec16e9d4628b2b7da8036bf90b4c8fbe2a375e3c1",
+    "GeekDash.html": "178c051bb1e7d9967ca4de339e134f06bf29cde2caea9a61672973c90b93b83d",
+    "project-detail.html": "f619b9f88533e5e9eb5f303964b76515fcc856bde9f702905177d28bedeb928a",
+    "/assets/project-detail-BogioeOJ.js": "4a5d371f44e47a2c22b7f95894c11b1b0c9512d3a2775d004d0acd95771258ef",
+    "/assets/detail-DYDiBCqo.css": "01e982097fd0e8a5d14ad60181e442a24634e630afae7e91b7148fee651d9ba1",
+    "project-new.html": "6897d80a5d37d70d69e4443b1305bd2caf6e9da02663a2375db22b430a971346",
+    "/assets/project-new-BsY38PmX.js": "ade21c02afc156712916957f8b1fa3825edd666ae53d11b717170b37509d79e5",
+    "/assets/forms-D9KYl3tU.css": "e179bf8998912737851b88af0bc94aeff622a19313ac40fe5dd626fb3206ece0",
+    "login.html": "53a38736600e160c958c51f545dd5c1af73de7708fc032de08e89656482a0054",
+    "/assets/login-q7iI4hOz.js": "fa167f1cd61a5e25720f49f7cf283c54f7c5ca5f1b5a187b4183a3e8c3d65588",
+    "settings.html": "9fbb67d0f6ebe5a9382d4daa06c6bfbde7fa739cd81448ebc8a5b9967ca38a69",
+    "/assets/settings-dZ5aGayQ.js": "f9a44ffb067cf98ea7cd9f7b0be2942d91b9769eb661616e1e33fea86b02f990"
+  },
+  "assetCount": 16
+}

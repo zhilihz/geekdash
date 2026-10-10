@@ -1,23 +1,12 @@
 {
   "status": "passed",
-  "checkedAt": "2026-10-10T06:55:14.440235+00:00",
-  "markdownFiles": 12,
-  "localLinks": 234,
-  "anchors": 50,
+  "checkedAt": "2026-10-10T07:12:00.457893+00:00",
+  "markdownFiles": 8,
+  "localLinks": 180,
+  "anchors": 23,
   "unchangedMigrations": {
     "migrations/0001-foundation.json": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
     "migrations/0002-trial-save.json": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695"
   },
-  "sourceHashes": {
-    "package.json": "deeef37ecf0ee86680f25e01c1a77e4e42ff1f2cd7e35daf2c0801ef9115831d",
-    "scripts/build.mjs": "cfd6c6100d308f233ffd5c617d388d3caa0cbd5cdaa7d4cba1c47fe5d32bf9e8",
-    "scripts/verify-project-capacity.mjs": "903aa68a22a464c5337110ba43d018a50cb0eedfb8e63e1c21fe97f9931c340d",
-    "src/server/modules/project-save.ts": "f1ba99586503565ce620e30229438f09c0dfc1fa36665751d8872efbe2289424",
-    "src/server/modules/projects.ts": "4dcaadfb4780681ee6287a4c4954fb7ae2ede9f37890370ddc825f8ced29dc57",
-    "src/server/routes/projects.ts": "14876606c1c8dd1f6d4d7d4b9cd91ebbbb6e1144663b679a2e471e0c53815f37",
-    "src/web/detail.ts": "bc4e8d3698de7a463c9a746a027e67f79ead3c10e205a1f2407a6961e3fbe619",
-    "src/web/shared/api.ts": "29de9481356e9323db49147a0640fd18f64065e1cdc55252693a1b9ce5569f81",
-    "scripts/verify-project-risks.mjs": "0c46f30932166a7e11781a37f58f5d519e23c91998d10d783a9235bedd1211e5",
-    "src/server/modules/project-records.ts": "8e3aa001471521b4c609384ffff538d9525c489c8d63bf0a2692458e2c6e141f"
-  }
+  "sourceHashes": {}
 }

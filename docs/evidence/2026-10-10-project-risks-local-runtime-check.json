@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T07:12:00.055426+00:00",
+  "live": {
+    "status": "alive",
+    "stage": "project-risks",
+    "build": {
+      "revision": "5ae7eccc57d8d2a5f1cfb8e8c70a049c147fb802",
+      "dirty": false,
+      "builtAt": "2026-10-10T06:55:38.354Z",
+      "stage": "project-risks",
+      "schemaVersion": "0002-trial-save"
+    }
+  },
+  "ready": {
+    "status": "ready"
+  },
+  "imageId": "sha256:ec0088ce6a221e7ebb95e6e38eb120f5b9527eb0dce7ed5fdbc7fb1a6999a6d4",
+  "appOomKilled": false,
+  "appRestartCount": 0
+}

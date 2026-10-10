@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T06:59:50.261023+00:00",
+  "backup": "D:\\geekwon\\geekdash-data\\backups\\pre-project-risks-5ae7eccc57d8.sql.gz",
+  "bytes": 12725,
+  "sha256": "09bac2a95767c73efef94c35bd25432b16ebacb3520993e9810e4a6ce5c769d8",
+  "mysqlIdAndStartedAtPreserved": true,
+  "scope": "两库完整逻辑备份；未隔离恢复"
+}
