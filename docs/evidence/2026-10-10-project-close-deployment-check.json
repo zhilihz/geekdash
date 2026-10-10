@@ -1,0 +1,311 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T04:03:02.365258+00:00",
+  "revision": "21cdfb4ecf2d448bf7c0a8a4452c1952f96f343f",
+  "build": {
+    "revision": "21cdfb4ecf2d448bf7c0a8a4452c1952f96f343f",
+    "dirty": false,
+    "builtAt": "2026-10-10T03:50:43.379Z",
+    "stage": "project-close",
+    "schemaVersion": "0002-trial-save"
+  },
+  "imageId": "sha256:9d33da0eb8918b09d15ada5a7686767bf8e32db20b7ef42e0ca0001b2fb342a3",
+  "backup": {
+    "path": "/var/backups/geekdash/pre-project-close-21cdfb4ecf2d.sql.gz",
+    "bytes": 33728,
+    "sha256": "6cbe1ab99839c85d7d96cfab7a0b12989f9cbc6b680f44f78614054e5be097d8",
+    "scope": "两库完整逻辑备份；尚未隔离恢复演练"
+  },
+  "schemaMigrationCount": 2,
+  "schemaChanged": false,
+  "existingDevDataFingerprintPreserved": true,
+  "catalogRowsAdded": {
+    "apps": 0,
+    "chips": 0,
+    "customers": 0,
+    "engineers": 0,
+    "product_lines": 0,
+    "project_groups": 0,
+    "tags": 0
+  },
+  "cloudOrdinary": {
+    "status": "passed",
+    "checkedAt": "2026-10-10T04:02:00.663Z",
+    "source": "真实 test MySQL 与 HTTP；合成输入",
+    "checks": [
+      {
+        "check": "ordinary-fields-relations-single-version-fresh-sql-http-filter-stats-audit",
+        "passed": true
+      },
+      {
+        "check": "existing-disabled-kept-new-disabled-rejected-receipt-replay-and-no-change",
+        "passed": true
+      },
+      {
+        "check": "whitelist-reference-validation-relation-and-audit-failure-all-rollback",
+        "passed": true
+      },
+      {
+        "check": "explicit-clear-and-omitted-relations-preserved",
+        "passed": true
+      },
+      {
+        "check": "same-version-conflict-real-commit-lost-ack-reopen-and-exact-replay",
+        "passed": true
+      },
+      {
+        "check": "reference-row-lock-observes-concurrent-disabled-before-new-link",
+        "passed": true
+      },
+      {
+        "check": "four-workers-same-project-five-rounds-one-winner",
+        "passed": true,
+        "requests": 20,
+        "p95Ms": 239,
+        "maxMs": 242
+      }
+    ]
+  },
+  "cloudCapacity": {
+    "status": "passed",
+    "startedAt": "2026-10-10T04:02:02.706Z",
+    "checkedAt": "2026-10-10T04:02:23.353Z",
+    "projectCount": 500,
+    "stageCount": 3500,
+    "initialAuditCount": 500,
+    "workers": 4,
+    "authenticated": true,
+    "rounds": 20,
+    "errorCount": 0,
+    "noHardProjectLimit": true,
+    "source": "专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时"
+  },
+  "cloudSave": {
+    "checkedAt": "2026-10-10T04:02:33.405Z",
+    "status": "passed",
+    "source": "专用 MySQL 测试库及真实 HTTP，新连接回读；仅合成输入",
+    "checks": [
+      {
+        "check": "four-fields-atomic-save-bigint-fresh-connection-http-board-and-audit",
+        "passed": true
+      },
+      {
+        "check": "concurrent-idempotent-replay-canonical-field-order-and-key-reuse",
+        "passed": true
+      },
+      {
+        "check": "same-version-winner-only-stale-rejected-no-change-receipt-and-old-result",
+        "passed": true
+      },
+      {
+        "check": "whitelist-scope-null-type-unicode-byte-capacity-and-no-partial-write",
+        "passed": true
+      },
+      {
+        "check": "real-audit-receipt-sql-failure-rolls-back-and-real-commit-lost-ack-confirmed-once",
+        "passed": true
+      },
+      {
+        "check": "inflight-not-found-read-only-process-restart-replay-pool-failure-and-recovery",
+        "passed": true
+      },
+      {
+        "check": "four-concurrent-actual-writes-five-rounds-and-fresh-readback",
+        "passed": true,
+        "requests": 20,
+        "p95Ms": 124
+      },
+      {
+        "check": "audit-default20-max100-unbounded-total-stable-cursor-legacy-separated-index",
+        "passed": true,
+        "totalRead": 515,
+        "selectedIndex": "PRIMARY",
+        "accessType": "range"
+      }
+    ]
+  },
+  "cloudRead": {
+    "checkedAt": "2026-10-10T04:02:36.914Z",
+    "scope": "专用测试库、真实 HTTP/MySQL；不包含业务保存或公网性能",
+    "checks": [
+      {
+        "check": "actual-http-list-views-filters-pagination-literal-search-id-validation-no-write",
+        "passed": true
+      },
+      {
+        "check": "complete-project-snapshot-with-all-read-collections-and-bigint-precision",
+        "passed": true
+      },
+      {
+        "check": "real-concurrent-commit-does-not-mix-detail-versions-fresh-request-sees-new-version",
+        "passed": true
+      },
+      {
+        "check": "four-concurrent-real-list-reads-and-pool-exhaustion-recovery",
+        "passed": true,
+        "requests": 20,
+        "p95Ms": 80
+      }
+    ]
+  },
+  "cloudStages": {
+    "status": "passed",
+    "checkedAt": "2026-10-10T04:01:51.259Z",
+    "checks": [
+      "白名单、身份/负责范围、前置、未开始直接完成及非法/未来日期拒绝，持久数据保持",
+      "负责人S1开始→新连接/另一账号详情与阶段状态；进度0、总体不变、原编号只执行一次及账号回执隔离",
+      "阶段更新、审计及回执实际SQL故障，阶段/解锁/项目版本/历史/回执全部回滚",
+      "S1同日完成/说明原文→只解锁S2、不启动项目/阶段；新GET/看板/历史一致，旧版本拒绝",
+      "独立进行中夹具：仅相邻日期校验；普通保存/动作同版本竞争、真实COMMIT丢回执、应用重建后会话与原结果恢复",
+      "暂缓/结案禁止推进、事务内拒绝已停用身份、未知前置日期及非法序列明确核对，不自动修复",
+      "通用七阶段与原版累计进度，全部完成仍不自动结案/检查，不改灯色/优先级/阶段评述"
+    ],
+    "requestCount": 57,
+    "build": {
+      "revision": "21cdfb4ecf2d448bf7c0a8a4452c1952f96f343f",
+      "dirty": false,
+      "builtAt": "2026-10-10T03:50:43.379Z",
+      "stage": "project-close",
+      "schemaVersion": "0002-trial-save"
+    },
+    "isolatedTestDatabase": true
+  },
+  "cloudCore": {
+    "status": "passed",
+    "checks": [
+      "真实临时登录、强制改密、CSRF、改密后重新登录和旧会话撤销",
+      "创建项目及七阶段、真实创建者、自动负责、重复创建对账、非负责人只读和最后退出拒绝",
+      "本人加入、实名普通保存及新连接回读、回执账号隔离、统一版本冲突及实名历史",
+      "保存及创建审计故障：项目、七阶段、关系、版本和回执整体回滚",
+      "同时退出仅一个成功，提交后丢失响应、应用重建后原责任回执与持久会话接续",
+      "四个真实账号同版本并发保存仅一个成功，其他冲突可恢复",
+      "事务内拒绝已停用身份快照；旧匿名历史保留且只读确认，不伪造实名",
+      "后台请求不续期、真实前台活动续期、到期不可复活、明确退出撤销当前会话"
+    ],
+    "requests": 66,
+    "maxRequestMs": 181.527959,
+    "build": {
+      "revision": "21cdfb4ecf2d448bf7c0a8a4452c1952f96f343f",
+      "dirty": false,
+      "builtAt": "2026-10-10T03:50:43.379Z",
+      "stage": "project-close",
+      "schemaVersion": "0002-trial-save"
+    }
+  },
+  "anonymousBusinessRejected": true,
+  "testRowCountsRestored": true,
+  "mysqlIdAndStartedAtPreserved": true,
+  "otherContainerStartedAtPreserved": 17,
+  "mysqlMemoryLimitBytes": 805306368,
+  "availableMiB": 681,
+  "swapUsedMiB": 1987,
+  "stats": "geekdash-app-1 34.66MiB / 256MiB\ngeekdash-mysql-1 554MiB / 768MiB\n",
+  "appRestartCount": 0,
+  "appOomKilled": false,
+  "freeDiskBytes": 16140800000,
+  "cloudClose": {
+    "status": "passed",
+    "checkedAt": "2026-10-10T04:01:28.785Z",
+    "checks": [
+      "提案人工结案保留0%与计划快照、当前日期未知/类型/说明纠错、原审计不变、维护分类/无变化、重开保留最新普通及当前计划、两周期绑定",
+      "真实S1启动/S2、进行中与暂缓结案三目标重开、暂停来源保持、闭案日期纠错继续有效、真实进度/首次义务保持且不生成检查",
+      "合成全阶段完成仍人工结案、真实节点/风险遗留必填及保留、全完成重开不凭空开工、没有遗留时说明可空",
+      "旧完结合成事实保留过去日期/未知来源、不重演结案、不伪造身份、可靠重开依据门槛",
+      "两负责人同版本一赢家、只读/普通PATCH不能越界、原编号绑定账号与正文、快照/版本/审计/回执故障全回滚、真实COMMIT丢确认后原会话与全部原结果恢复",
+      "重开/维护/当前纠错分别与另一负责人普通保存竞争，仅一次新版本；已停用账号拒绝，无业务副作用",
+      "可控业务时钟：结案结果跨日保持、关闭默认检查、真实日期与操作时间分离、首次义务不重置"
+    ],
+    "requestCount": 299,
+    "build": {
+      "revision": "21cdfb4ecf2d448bf7c0a8a4452c1952f96f343f",
+      "dirty": false,
+      "builtAt": "2026-10-10T03:50:43.379Z",
+      "stage": "project-close",
+      "schemaVersion": "0002-trial-save"
+    },
+    "isolatedTestDatabase": true,
+    "nodeRiskRowsAreExplicitFixtures": true
+  },
+  "cloudPause": {
+    "status": "passed",
+    "checkedAt": "2026-10-10T04:01:34.027Z",
+    "checks": [
+      "可信身份/负责范围、严格字段及原因、提案暂缓保存此前状态、阶段推进拒绝、普通信息继续可存、恢复使用最新事实、不制造启动或首次义务",
+      "原因/恢复说明有效投影、原审计不可变、恢复说明明确清空、同值无新历史/版本、暂缓原因非空及错类型/跨项目拒绝",
+      "真实S1/启动/S2→暂停中纠错和计划未知→恢复保持新事实/原义务；恢复改期共享日期校验和不可变历史，同事务项目/计划行/审计/回执故障全回滚",
+      "同版本两负责人单赢家、旧版本409、真实COMMIT丢确认后应用重建、原会话/原结果保持、账号隔离和编号正文冲突拒绝",
+      "上海截止毫秒两侧、暂停/恢复必查数量与逾期立即联动、首次/未来/未知依据保持、已有检查首次判按时/最新判更新、纯查询不写业务，检查行明确仅为夹具"
+    ],
+    "requestCount": 124,
+    "build": {
+      "revision": "21cdfb4ecf2d448bf7c0a8a4452c1952f96f343f",
+      "dirty": false,
+      "builtAt": "2026-10-10T03:50:43.379Z",
+      "stage": "project-close",
+      "schemaVersion": "0002-trial-save"
+    },
+    "isolatedTestDatabase": true,
+    "checkWriteInterfaceDelivered": false
+  },
+  "cloudDates": {
+    "status": "passed",
+    "checkedAt": "2026-10-10T04:01:40.811Z",
+    "checks": [
+      "可信负责人、输入白名单、首次原始/当前计划、提前与向后真实记录、同值无变化与说明保持计划；独立SQL/新HTTP/原回执",
+      "不可变原行、关联原ID完整有效更正/撤销、超过20条审计、后续计划不自动回滚、当前明确同次纠正、说明类型/跨项目拒绝、原始未知不补造",
+      "联合日期/明确未知保持生命周期，旧版/同版并发，项目中途/业务行/审计/回执故障全回滚，真实COMMIT丢确认与应用重建后会话/原结果接续",
+      "真实S1→启动→返工→再次S1之后纠正首次启动，原首次S1依据及检查义务保持；已知原依据的日期冲突拒绝",
+      "统一服务器业务日、全部未结案/结案/终止/未知结果、同条件筛选与范围聚合、闰日年末/午夜两侧，原人工值不参与且直接写拒绝，跨日不写项目/历史"
+    ],
+    "requestCount": 287,
+    "build": {
+      "revision": "21cdfb4ecf2d448bf7c0a8a4452c1952f96f343f",
+      "dirty": false,
+      "builtAt": "2026-10-10T03:50:43.379Z",
+      "stage": "project-close",
+      "schemaVersion": "0002-trial-save"
+    },
+    "isolatedTestDatabase": true
+  },
+  "cloudCorrections": {
+    "status": "passed",
+    "checkedAt": "2026-10-10T04:01:44.894Z",
+    "checks": [
+      "白名单/身份/负责/原因及非法日期；只读预览和无变化回执，不推进版本或虚构历史",
+      "原卡片工期/评述与普通字段同版本保存，新SQL/详情/历史/原回执；状态白名单及SQL失败全回滚",
+      "多阶段日期最终结果共同校验；旧矛盾可纠正，明确未知不撤销完成/进度且普通文字可存",
+      "撤销误开始可再开始；误完成整块联动保留目标开始/评述/项目计划/义务，半程SQL/审计/回执失败原子回滚",
+      "未知开始不补造，明确连开始撤销；全完成可真实返工且目标待开始，COMMIT丢确认/重建/原回执只有一次",
+      "暂停/结案区别限制与日期纠错；预览后保存冲突、双负责人同版一胜出，预览不信停用身份"
+    ],
+    "requestCount": 87,
+    "build": {
+      "revision": "21cdfb4ecf2d448bf7c0a8a4452c1952f96f343f",
+      "dirty": false,
+      "builtAt": "2026-10-10T03:50:43.379Z",
+      "stage": "project-close",
+      "schemaVersion": "0002-trial-save"
+    },
+    "isolatedTestDatabase": true
+  },
+  "cloudStart": {
+    "status": "passed",
+    "checkedAt": "2026-10-10T04:01:47.798Z",
+    "checks": [
+      "维护资格、真实初始化及新GET消费；规则/审计/回执SQL失败全回滚，原编号不重复初始化",
+      "身份/版本/日期/规则及跨周预览拒绝，未保存状态/计划/义务保持",
+      "真实创建→S1→明确启动→新连接/看板/首次义务→S2补录早于启动且符合相邻顺序；启动不自动检查或开始阶段",
+      "首次计划、保留既有计划、未知原始保持未知；明确同次改期及计划写失败全回滚",
+      "双负责人同版启动只提交一次，后来版本重放原结果；真实COMMIT丢确认/应用重建后会话与原启动结果保持",
+      "业务周五全天/次日/周日到下一周的边界、补录过去启动仍按保存周建立义务，真实库受控时钟验证"
+    ],
+    "requests": 76,
+    "build": {
+      "revision": "21cdfb4ecf2d448bf7c0a8a4452c1952f96f343f",
+      "dirty": false,
+      "builtAt": "2026-10-10T03:50:43.379Z",
+      "stage": "project-close",
+      "schemaVersion": "0002-trial-save"
+    }
+  }
+}

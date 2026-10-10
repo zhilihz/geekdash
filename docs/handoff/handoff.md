@@ -1,26 +1,26 @@
 # 未完成任务交接
 
-更新时间：2026-10-10。E03项目主干与最小身份、E04-B01～B05已固定部署，完整公网浏览器与公司实际使用仍未验收。[系统真相](../status/current-system-truth.md#38-e04-b05暂缓恢复2026-10-10固定部署)为当前能力入口，详细验证归各批报告。本轮不接真实备份。
+更新时间：2026-10-10。E03项目主干与最小身份、E04-B01～B06已固定部署，完整公网浏览器与公司实际使用仍未验收。[系统真相](../status/current-system-truth.md#39-e04-b06结案链路2026-10-10固定部署)为当前能力入口，详细验证归各批报告。本轮不接真实备份。
 
 ## 0. 当前活动：继续E04，再逐阶段完整规划/实施/提交
 
-用户DEC-109授权离开期间持续施工，范围不限E04：规划完整阶段→实施/验收→提交合并远端main→下一阶段，当前E04仍未完成。方法归[GD-GOAL-001](../implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)，代决只归[autonomous-decisions](../decisions/autonomous-decisions.md)；先核对1051及已确认SPEC，缺口推荐选择记录理由/选项/影响。工具目标保持E04 active，不能将B05完成称整个E04完成。
+用户DEC-109授权离开期间持续施工，范围不限E04：规划完整阶段→实施/验收→提交合并远端main→下一阶段，当前E04仍未完成。方法归[GD-GOAL-001](../implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)，代决只归[autonomous-decisions](../decisions/autonomous-decisions.md)；先核对1051及已确认SPEC，缺口推荐选择记录理由/选项/影响。工具目标保持E04 active，不能将B06完成称整个E04完成。
 
-当前codex/e04-b06-project-close，基线a5898a0（B05收尾已合并回读远端main）；运行仍为B05固定2880b6e，两端同干净project-pause/0002。B06实施前有限协议、落位和验证已补F06第9节，当前结案来源取舍归AD-009；B06代码及真实隔离库候选验收完成，七组293/十类既有回归/工程与500规模通过；当前尚未固定提交或部署，证据归结案报告/系统真相39，准确文件重读git status。B05结果只归[暂缓报告](../testing/reports/2026-10-10-project-pause.md)。无未完成服务器写操作。
+当前codex/e04-b06-project-close，基线a5898a0；固定代码21cdfb4已具名提交、合并并回读远端main，本机/新加坡同干净project-close/0002。候选七组293，固定两端七组299；云内11类回归、原数据/MySQL/其他17容器保持。代码与验证归结案报告/系统真相39，部署实际产物/两库备份归结案部署；本轮收尾文档及脱敏证据尚未提交，准确文件重读git status。公网新合成项目13到v21/已结案维护/实际5%进度，三次结案来源、最新事实、21条历史及16项资源通过；实际app重启后原会话/完整详情/规则及19个原动作回执保持。原public只读对账TLS EOF已沿原正文/编号和已确认结果接续，无未完成服务器写操作。
 
-核对候选源码/文档并按E04-B06提交、合并回读main；干净固定构建复测，再备份/更新自身app，公网新合成项目及实际app恢复回读。B07检查写入/B08子记录/B09联验接续；用户离开期间的循环不限E04。B04/B05原生页面因既有CUA URL协议策略明确拒绝未通过，Edge同时fetch失败；按AD-007保留B09，不能换表面/脚本绕过。真实备份仍受控，不导入。
+接手先核对Git/实际运行及B06已归档事实，当前只待收尾文档证据具名提交main回读；不盲重跑close-install，旧预期为2880b6e且目标目录已存在。B07实施八步已在忽略test-results/checks-execution-addition.md准备，收尾后从最新main开codex分支纳入F08第9节及AD-010，再写代码。B08子记录/B09联验接续；用户循环不限E04。B04～B06原生页面因既有CUA URL协议策略明确拒绝未通过，Edge同时fetch失败；沿AD-007保留B09，不换表面/脚本绕过。真实备份仍受控、不导入。
 
-用户新指令：遇到Node溢出可以清理自身进程/资源。本轮验证容器已正常退出/夹具清理，未发现本项目OOM；Windows还有其他任务Node，不全局终止、不删卷/prune，也不因退出码猜原因。新的运行采样归B05证据。
+用户新指令：遇到Node溢出可以清理自身进程/资源。本轮验证容器已正常退出/夹具清理，未发现本项目OOM；Windows还有其他任务Node，不全局终止、不删卷/prune，也不因退出码猜原因。新的运行采样归B06证据。
 
 ## 1. 位置、基线与授权
 
-- D:/geekwon/geekdash；当前分支/基线见第0节；常驻B05固定2880b6e。后续文档SHA不是运行镜像，E03/B01～B03历史归系统真相31/34/35/36。
+- D:/geekwon/geekdash；当前分支/基线见第0节；常驻B06固定21cdfb4。后续文档SHA不是运行镜像，E03/B01～B03历史归系统真相31/34/35/36。
 - 用户DEC-090明确恢复最小登录/首次改密/会话完成E03，邀请码与完整账号后台后置；CLI/Git/test部署授权有效。不是重新开发替换原系统，也没有批准导入真实备份。
 - 500为整体性能规模、不设创建硬上限；推荐方案取舍只归[决策](../decisions/decisions.md)。阶段提交、main合并与发布分别按[代码管理](../operations/release-maintenance.md#2-代码管理)。代码用ponytail full，纯文档/讨论不延续。
 
 ## 2. 运行与恢复入口
 
-本机41860/新加坡https://geekdash.zhiluan.cool 同2880b6e / project-pause /0002；两库34表/314列/55外键，无本轮迁移。MySQL本机D盘、云/var/lib/geekdash/mysql；凭据仓库外，两端账号独立。本批镜像/备份/恢复归[暂缓部署](../operations/deployments/2026-10-10-project-pause.md)。云business01/02及maint01已改密，分发须用currentPassword；business03/04仍需首次改密，不能重置或打印凭据。
+本机41860/新加坡https://geekdash.zhiluan.cool 同21cdfb4 / project-close /0002；两库34表/314列/55外键，无本轮迁移。MySQL本机D盘、云/var/lib/geekdash/mysql；凭据仓库外，两端账号独立。本批镜像/备份/恢复归[结案部署](../operations/deployments/2026-10-10-project-close.md)。云business01/02及maint01已改密，分发须用currentPassword；business03/04仍需首次改密，不能重置或打印凭据。
 
 深模块：identity.ts校验可信actor，project-core.ts创建/本人责任，project-save.ts普通保存，project-actions.ts阶段命令，projects.ts一致快照。事务、结果恢复方法只归执行计划；实际协议归api/project-core.md与api/project-actions.md。
 
@@ -29,6 +29,8 @@
 B04新合成项目11当前v13/提案/S1待开始/0%，business01/02负责，当前计划已知、原始未知；13条历史和11个原动作结果在实际app重启后保持。原项目不动，没有未完成云命令。日期深模块新增project-plans.ts，有限命令与投影复用原事务/回执；verify-project-dates.mjs真实隔离验证。B04私有dates-install/public/restart脚本只作受控辅助材料，接手先读取当前事实。
 
 B05新合成公网项目12当前v17/进行中/S2进行中，当前计划+15天、原始+10天，原首次应检依据保持；暂停中最新普通字段和S2实际日期纠错保持，未制造检查。project-lifecycle.ts处理暂缓/恢复/说明投影，project-checks.ts最小只读查询，verify-project-pause.mjs隔离库真实验证。public/restart原会话与14个原动作结果受控存于仓库外，不能打印凭据或重复生成新编号。B05部署辅助脚本在忽略test-results，接手先读取实际状态，不能盲重跑install（旧预期a7d281d）。
+
+B06新合成公网项目13及原动作/原会话受控材料见结案部署；project-closures.ts封装当前结案来源与候选，不加表。原before/after快照和回执不可改写；当前结案来源由currentClosure.auditId核对，历史分页保留多次周期。B07按F08接续，不能把闭案主动检查自动执行。
 
 ## 3. E04-B01历史上下文
 

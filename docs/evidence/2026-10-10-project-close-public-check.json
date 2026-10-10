@@ -1,0 +1,42 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T04:13:12.625514+00:00",
+  "build": {
+    "revision": "21cdfb4ecf2d448bf7c0a8a4452c1952f96f343f",
+    "dirty": false,
+    "builtAt": "2026-10-10T03:50:43.379Z",
+    "stage": "project-close",
+    "schemaVersion": "0002-trial-save"
+  },
+  "projectId": "13",
+  "savedVersion": "21",
+  "syntheticOnly": true,
+  "checks": [
+    "两名可信负责人；提案结案保留实际进度；已结案普通编辑",
+    "结案日明确未知与纠正；结案快照独立于当前计划；维护及相同值无写",
+    "预览后他人保存409；两轮结案旧来源409；原回执按身份隔离",
+    "真实S1→启动→S2→暂缓→终止结案→先重开为暂缓→恢复→再次正常结案",
+    "结案期间纠正最新阶段事实；保留最新普通字段及首次义务；没有制造检查",
+    "新请求详情/三次结案原审计与更正/维护看板及统计消费",
+    "公网固定资源逐字节核对；不是浏览器实点验收"
+  ],
+  "assets": {
+    "index.html": "efbc8909e8302f153c2031375c9d242d09050dbe323128d85458e8f53ed7b21f",
+    "/assets/index-BtijPkX1.js": "cf755d28f729c2ef473809c1d1a63a30e059534b9763bdda67d17f14f792a29d",
+    "/assets/api-DxadrP6N.js": "7b7b84b124b76e8600a1da8ba9cbb576a6fe19ba58bbc486db48a383a7f0a8b6",
+    "/assets/api-CEMtlmAC.css": "f81b99ccd3ef21d4ce6a436d1c1b2a13dae22b52308ed681a5f614d0227e2fa0",
+    "/assets/index-D8NXthWN.css": "5cdef17e18b287780e8197cec16e9d4628b2b7da8036bf90b4c8fbe2a375e3c1",
+    "GeekDash.html": "efbc8909e8302f153c2031375c9d242d09050dbe323128d85458e8f53ed7b21f",
+    "project-detail.html": "b3e7d581011f700949f95a94fc635e5b321fada1b7727b7557f60b2bdb187637",
+    "/assets/project-detail-Ce-Whf12.js": "084d6e0f7cee3f22bb3209bd520eb16170b85a4003fb280551d41780005f6470",
+    "/assets/detail-DYDiBCqo.css": "01e982097fd0e8a5d14ad60181e442a24634e630afae7e91b7148fee651d9ba1",
+    "project-new.html": "7d2f43ce2ffd257de864e71323e866f0e95ffec617a323f42409c83f0c72b0e0",
+    "/assets/project-new-CSN8UUW4.js": "65e5e88d1dac3cabee393e1703931dc1a6514d08302be83b561b331660dcb1b2",
+    "/assets/forms-D9KYl3tU.css": "e179bf8998912737851b88af0bc94aeff622a19313ac40fe5dd626fb3206ece0",
+    "login.html": "f6a2f9e400fe7466ec4d025eb9015774383e20fbbf6ce9dbb6bbd540fb286a24",
+    "/assets/login-DyS5AAmc.js": "40493851bfcfa12aa071220a1c47cf38739cecc9c18df28d232f2d0f1204ec0d",
+    "settings.html": "f74edf4950f51ae809a16e08a027785a16a19f66841a587b6e3084a17568c8fa",
+    "/assets/settings-DzzCFpIZ.js": "21c5ddb37738b2347a7685628d40caed5d4b64630b98545d392c31f4e2684ab1"
+  },
+  "assetCount": 16
+}

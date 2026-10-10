@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T04:00:55.607042+00:00",
+  "build": {
+    "revision": "21cdfb4ecf2d448bf7c0a8a4452c1952f96f343f",
+    "dirty": false,
+    "builtAt": "2026-10-10T03:50:43.379Z",
+    "stage": "project-close",
+    "schemaVersion": "0002-trial-save"
+  },
+  "ready": "ready",
+  "appImageId": "sha256:9d33da0eb8918b09d15ada5a7686767bf8e32db20b7ef42e0ca0001b2fb342a3",
+  "appOomKilled": false,
+  "appRestartCount": 0,
+  "mysqlHealthy": "healthy",
+  "stats": "geekdash-dev-app-1 34.48MiB / 6.664GiB\ngeekdash-dev-mysql-1 552.7MiB / 6.664GiB\n",
+  "noGlobalNodeCleanup": true,
+  "noMigrationOrSeed": true
+}

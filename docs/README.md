@@ -1,14 +1,14 @@
 # GeekDash 文档目录
 
-E04-B06候选结案链路与验证：[结案报告](testing/reports/2026-10-10-project-close.md)、[系统真相39](status/current-system-truth.md#39-e04-b06结案链路2026-10-10候选验收)。尚未固定部署，运行仍归第38节；原生页面保持B09待验。
+E04-B06固定结案链路与验证：[结案报告](testing/reports/2026-10-10-project-close.md)、[系统真相39](status/current-system-truth.md#39-e04-b06结案链路2026-10-10固定部署)。固定部署与公网结果归[结案部署](operations/deployments/2026-10-10-project-close.md)，原生页面保持B09待验。
 
 E04-B05固定代码及真实验证：[暂缓报告](testing/reports/2026-10-10-project-pause.md)、[动作协议](specifications/api/project-actions.md)和[系统真相38](status/current-system-truth.md#38-e04-b05暂缓恢复2026-10-10固定部署)。暂缓/恢复与最小查询已部署，检查写入仍B07，原生页面联验仍B09；实际运行版本须核对系统真相。
 
-E04-B04日期/计划的实际代码协议归[项目动作](specifications/api/project-actions.md)与[读取](specifications/api/projects-read.md)，验收归[日期报告](testing/reports/2026-10-10-project-dates.md)，运行与恢复归[日期部署](operations/deployments/2026-10-10-project-dates.md)。整个E04及原生页面联验仍进行中；当前状态以系统真相38为准。
+E04-B04日期/计划的实际代码协议归[项目动作](specifications/api/project-actions.md)与[读取](specifications/api/projects-read.md)，验收归[日期报告](testing/reports/2026-10-10-project-dates.md)，运行与恢复归[日期部署](operations/deployments/2026-10-10-project-dates.md)。整个E04及原生页面联验仍进行中；当前状态以系统真相39为准。
 
 文档基线：D0.66；更新日期：2026-10-10。当前能力以[系统真相](status/current-system-truth.md)为唯一入口；阶段方法见[执行文档](implementation/execution-plan.md)，Git与测试实例分别按[代码管理](operations/release-maintenance.md#2-代码管理)和实际部署记录核对。
 
-当前目标任务与六阶段计划：[GD-GOAL-001](implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)；E03项目主干已实现并部署，E04-B01～B05已固定交付，继续剩余批次。用户离开期间按完整阶段规划→实施→验收→提交合并main循环，范围不限E04；本次推荐选择与理由见[代决记录](decisions/autonomous-decisions.md)，原2026-10-08汇总保留历史。计划和测试设计不代表功能已实现。
+当前目标任务与六阶段计划：[GD-GOAL-001](implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)；E03项目主干已实现并部署，E04-B01～B06已固定部署，继续剩余批次。用户离开期间按完整阶段规划→实施→验收→提交合并main循环，范围不限E04；本次推荐选择与理由见[代决记录](decisions/autonomous-decisions.md)，原2026-10-08汇总保留历史。计划和测试设计不代表功能已实现。
 
 项目事实及施工准备状态以[当前系统真相](status/current-system-truth.md)为入口。原应用源码在本地核查副本；新工程已接入看板和详情的服务器读取，原六页的完整业务仍在逐单元迁移。运行命令见[本地工程运行](operations/release-maintenance.md#本地工程运行e01-f01)，结果见[验收报告](testing/reports/2026-10-08-e01-f01.md)；Git 推送与服务器部署分别记录。
 
@@ -16,7 +16,7 @@ E04-B04日期/计划的实际代码协议归[项目动作](specifications/api/pr
 
 当前部署逐功能入口：[D01～D07](implementation/execution-plan.md#e12-d01d07首个公网基底的逐功能施工方案)，[Linux 参数与新域名流程](operations/release-maintenance.md#当前首个公网部署单元dec-071)；部署实测入口为系统真相第 26 节，运行命令归运维；未实施业务仍明确为讨论建议。
 
-当前优先级：E03创建/本人负责/实名普通保存已接通，邀请码和完整账号后台后置；E04继续B06结案及其余批次。[项目主干部署](operations/deployments/2026-10-09-project-core.md)记录E03发布，当前固定构建见[B05暂缓部署](operations/deployments/2026-10-10-project-pause.md)，准确能力及未验收范围见[系统真相38](status/current-system-truth.md#38-e04-b05暂缓恢复2026-10-10固定部署)。范围归规格、施工归执行文档、实际部署事实归系统真相与部署记录。
+当前优先级：E03创建/本人负责/实名普通保存已接通，邀请码和完整账号后台后置；E04继续B07检查及其余批次。[项目主干部署](operations/deployments/2026-10-09-project-core.md)记录E03发布，当前固定构建见[B06结案部署](operations/deployments/2026-10-10-project-close.md)，准确能力及未验收范围见[系统真相39](status/current-system-truth.md#39-e04-b06结案链路2026-10-10固定部署)。范围归规格、施工归执行文档、实际部署事实归系统真相与部署记录。
 
 ## 目录结构
 
