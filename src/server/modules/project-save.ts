@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { PoolConnection, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 import { assertActor, type Actor } from './identity.js';
+import { validateRiskOps, riskCandidate, writeRisks, type RiskOperation } from './project-records.js';
 
 export const textColumns = { name: 'name', marketExpectation: 'market_expectation', detailNote: 'detail_note', summaryNote: 'summary_note' } as const;
 const columns = { ...textColumns, signalNote: 'signal_note', chipstatNote: 'chipstat_note', statusDesc: 'status_description', signal: 'signal', priority: 'priority', customerId: 'customer_id', odmCustomerId: 'odm_customer_id', productLineId: 'product_line_id', appId: 'app_id', groupId: 'group_id' } as const;
@@ -11,11 +12,11 @@ const roles = ['pm', 'hardware_owner', 'software_owner', 'participant'];
 type Person = { id: string; role: string };
 type StagePlan = { code: string; plannedDays?: number | null; note?: string };
 export type TextValues = Record<keyof typeof textColumns, string>;
-type Values = TextValues & { signalNote: string; chipstatNote: string; statusDesc: string; signal: string; priority: string; customerId: string | null; odmCustomerId: string | null; productLineId: string | null; appId: string | null; groupId: string | null; chipIds: string[]; tagIds: string[]; people: Person[]; stagePlans?: StagePlan[] };
+type Values = TextValues & { signalNote: string; chipstatNote: string; statusDesc: string; signal: string; priority: string; customerId: string | null; odmCustomerId: string | null; productLineId: string | null; appId: string | null; groupId: string | null; chipIds: string[]; tagIds: string[]; people: Person[]; stagePlans?: StagePlan[]; riskOps?: RiskOperation[] };
 type Field = keyof Values;
-const keys = [...Object.keys(columns), ...collections, 'stagePlans'] as Field[];
+const keys = [...Object.keys(columns), ...collections, 'stagePlans', 'riskOps'] as Field[];
 export type SaveRequest = { expectedVersion: string; idempotencyKey: string; changes: Partial<Values> };
-export type SaveResult = { projectId: string; operationId: string; changed: boolean; savedVersion: string; values: TextValues | Values; savedAt: string | null; display?: Record<string, unknown> };
+export type SaveResult = { projectId: string; operationId: string; changed: boolean; savedVersion: string; values: TextValues | Values; savedAt: string | null; display?: Record<string, unknown>; riskIdMap?: Record<string, string>; risks?: Awaited<ReturnType<typeof riskCandidate>>['rows'] };
 
 export function failure(code: string, status: number, extra: Record<string, unknown> = {}): never {
   throw Object.assign(new Error(code), { code, status, ...extra });
@@ -31,6 +32,7 @@ export function validateSave(value: unknown): SaveRequest {
   const fields: Record<string, string> = {};
   for (const [key, text] of Object.entries(value.changes)) {
     if (!keys.includes(key as Field)) failure('INVALID_SAVE_REQUEST', 400);
+    if (key === 'riskOps') { validateRiskOps(text); continue; }
     if (key === 'stagePlans') {
       if (!Array.isArray(text) || !text.length || text.length > 7) failure('INVALID_SAVE_REQUEST', 400);
       for (const item of text) {
@@ -67,7 +69,7 @@ export function validateSave(value: unknown): SaveRequest {
   }
   if (Object.keys(fields).length) failure('INVALID_PROJECT_FIELDS', 422, { fields });
   const request = value as SaveRequest;
-  return { ...request, changes: { ...request.changes, ...(request.changes.people ? { people: request.changes.people.map(({ id, role }) => ({ id, role })) } : {}), ...(request.changes.stagePlans ? { stagePlans: [...request.changes.stagePlans].sort((a, b) => a.code.localeCompare(b.code)).map(item => ({ code: item.code, ...Object.hasOwn(item, 'plannedDays') ? { plannedDays: item.plannedDays } : {}, ...Object.hasOwn(item, 'note') ? { note: item.note } : {} })) } : {}) } };
+  return { ...request, changes: { ...request.changes, ...(request.changes.riskOps ? { riskOps: validateRiskOps(request.changes.riskOps) } : {}), ...(request.changes.people ? { people: request.changes.people.map(({ id, role }) => ({ id, role })) } : {}), ...(request.changes.stagePlans ? { stagePlans: [...request.changes.stagePlans].sort((a, b) => a.code.localeCompare(b.code)).map(item => ({ code: item.code, ...Object.hasOwn(item, 'plannedDays') ? { plannedDays: item.plannedDays } : {}, ...Object.hasOwn(item, 'note') ? { note: item.note } : {} })) } : {}) } };
 }
 async function query(connection: PoolConnection, sql: string, values: unknown[] = []) {
   return (await connection.query<RowDataPacket[]>({ sql, timeout: 3000 }, values))[0];
@@ -124,6 +126,17 @@ async function displayValues(connection: PoolConnection, values: Values) {
 }
 export function projectSaves(database: RuntimeDatabase) {
   return {
+    preview(id: string, request: SaveRequest, actor: Actor) {
+      return database.readSnapshot(async connection => {
+        await assertActor(connection, actor, false, new Date(), false, false);
+        const current = await project(connection, id, false, true);
+        if (!(await query(connection, 'SELECT user_id FROM project_responsibilities WHERE project_id=? AND user_id=?', [id, actor.id])).length) failure('PROJECT_READ_ONLY', 403);
+        if (current.version !== request.expectedVersion) failure('PROJECT_VERSION_CONFLICT', 409, { currentVersion: current.version });
+        if (!request.changes.riskOps) failure('INVALID_RISK_OPERATIONS', 400);
+        const candidate = await riskCandidate(connection, id, request.changes.riskOps, actor, new Date().toISOString());
+        return { projectId: id, expectedVersion: current.version, events: candidate.events, risks: candidate.rows };
+      });
+    },
     options() {
       return database.readSnapshot(async connection => {
         const result: Record<string, RowDataPacket[]> = {};
@@ -144,6 +157,9 @@ export function projectSaves(database: RuntimeDatabase) {
         if (receipt) return receiptResult(receipt, hash);
         if (actor && !(await query(connection, 'SELECT user_id FROM project_responsibilities WHERE project_id=? AND user_id=?', [id, actor.id])).length) failure('PROJECT_READ_ONLY', 403);
         if (current.version !== request.expectedVersion) failure('PROJECT_VERSION_CONFLICT', 409, { currentVersion: current.version });
+        if (request.changes.riskOps && !actor) failure('AUTH_REQUIRED', 401);
+        const savedAt = new Date().toISOString();
+        const risk = request.changes.riskOps ? await riskCandidate(connection, id, request.changes.riskOps, actor!, savedAt) : undefined;
         if (extended) Object.assign(current, await linkedValues(connection, id));
         let effective = request.changes;
         if (request.changes.stagePlans) {
@@ -161,12 +177,13 @@ export function projectSaves(database: RuntimeDatabase) {
           }
         }
         if (Object.keys(errors).length) failure('INVALID_PROJECT_FIELDS', 422, { fields: errors });
-        const fields = keys.filter(key => Object.hasOwn(effective, key) && JSON.stringify(effective[key]) !== JSON.stringify(current[key]));
-        if (fields.length && current.version === '18446744073709551615') failure('PROJECT_VERSION_EXHAUSTED', 422);
-        const values = Object.fromEntries((extended ? keys : Object.keys(textColumns) as Field[]).filter(key => key !== 'stagePlans' || request.changes.stagePlans).map(key => [key, Object.hasOwn(effective, key) ? effective[key] : current[key]])) as Values;
-        const result: SaveResult = { projectId: id, operationId: request.idempotencyKey, changed: fields.length > 0,
-          savedVersion: fields.length ? String(BigInt(current.version) + 1n) : current.version, values, savedAt: fields.length ? new Date().toISOString() : null };
-        if (fields.length) {
+        const fields = keys.filter(key => key !== 'riskOps' && Object.hasOwn(effective, key) && JSON.stringify(effective[key]) !== JSON.stringify(current[key]));
+        const changed = fields.length > 0 || !!risk?.events.length;
+        if (changed && current.version === '18446744073709551615') failure('PROJECT_VERSION_EXHAUSTED', 422);
+        const values = Object.fromEntries((extended ? keys : Object.keys(textColumns) as Field[]).filter(key => key !== 'riskOps' && (key !== 'stagePlans' || request.changes.stagePlans)).map(key => [key, Object.hasOwn(effective, key) ? effective[key] : current[key]])) as Values;
+        const result: SaveResult = { projectId: id, operationId: request.idempotencyKey, changed,
+          savedVersion: changed ? String(BigInt(current.version) + 1n) : current.version, values, savedAt: changed ? savedAt : null };
+        if (changed) {
           const plain = fields.filter(key => Object.hasOwn(columns, key)) as (keyof typeof columns)[];
           const timestamp = result.savedAt!.slice(0, 23).replace('T', ' ');
           const [updated] = await connection.execute<ResultSetHeader>(`UPDATE projects SET ${plain.map(key => `\`${columns[key]}\`=?,`).join('')}${fields.includes('statusDesc') ? 'status_description_updated_at=?,' : ''}version=version+1,updated_at=? WHERE id=? AND version=?`, [...plain.map(key => values[key]), ...(fields.includes('statusDesc') ? [timestamp] : []), timestamp, id, current.version]);
@@ -182,14 +199,16 @@ export function projectSaves(database: RuntimeDatabase) {
               else await connection.execute(`INSERT INTO ${table} (project_id,${key === 'chipIds' ? 'chip_id' : 'tag_id'},sort_order) VALUES (?,?,?)`, [id, item, order]);
             }
           }
+          if (risk) Object.assign(result, await writeRisks(connection, id, risk, actor!, current.version, result.savedVersion, requestId, timestamp));
           const beforeDisplay = extended ? await displayValues(connection, current as Values) : current;
           const afterDisplay = extended ? await displayValues(connection, values) : values;
           if (extended) result.display = afterDisplay;
           const before = Object.fromEntries(fields.map(key => [key, beforeDisplay[key]]));
           const after = Object.fromEntries(fields.map(key => [key, afterDisplay[key]]));
-          await connection.execute(`INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,version_before,version_after,before_json,after_json,request_id,created_at)
+          if (fields.length) await connection.execute(`INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,version_before,version_after,before_json,after_json,request_id,created_at)
             VALUES (?,?,?,?,'project',?,?,?,?,?,?,?,?)`, [actor?.id ?? null, actor?.name ?? '未认证操作', actor ? 'user' : 'anonymous', extended ? 'project.ordinary.save' : 'project.text.save', id, id, current.version, result.savedVersion, JSON.stringify(before), JSON.stringify(after), requestId, timestamp]);
         }
+        if (risk && !changed) Object.assign(result, { risks: risk.rows, riskIdMap: {} });
         await connection.execute('INSERT INTO command_receipts (actor_id,command_scope,idempotency_key,request_hash,response_code,response_json,committed_at) VALUES (?,?,?,?,?,?,UTC_TIMESTAMP(3))', [actor?.id ?? null, scope(id, request, actor), request.idempotencyKey, hash, 200, JSON.stringify(result)]);
         return result;
       });

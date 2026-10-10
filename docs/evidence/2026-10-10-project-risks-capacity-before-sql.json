@@ -1,0 +1,204 @@
+{
+  "status": "passed",
+  "startedAt": "2026-10-10T06:43:43.234Z",
+  "checkedAt": "2026-10-10T06:45:42.136Z",
+  "projectCount": 500,
+  "stageCount": 3500,
+  "initialAuditCount": 2500,
+  "checkCount": 1580,
+  "initialCorrectionCount": 500,
+  "weekHistoryCount": 1000,
+  "riskCount": 1000,
+  "realRiskAdditions": 500,
+  "riskCorrections": 580,
+  "riskQueryPlan": {
+    "query_block": {
+      "select_id": 1,
+      "cost_info": {
+        "query_cost": "267.35"
+      },
+      "table": {
+        "table_name": "audit_log",
+        "access_type": "ALL",
+        "rows_examined_per_scan": 2431,
+        "rows_produced_per_join": 2431,
+        "filtered": "100.00",
+        "cost_info": {
+          "read_cost": "24.25",
+          "eval_cost": "243.10",
+          "prefix_cost": "267.35",
+          "data_read_per_join": "1M"
+        },
+        "used_columns": [
+          "id",
+          "actor_display_name",
+          "action",
+          "entity_id"
+        ],
+        "attached_condition": "<in_optimizer>(`geekdash_test`.`audit_log`.`id`,<exists>(/* select#2 */ select min(`geekdash_test`.`audit_log`.`id`) from `geekdash_test`.`audit_log` where ((`geekdash_test`.`audit_log`.`action` = 'project.risk.add') and (`geekdash_test`.`audit_log`.`entity_type` = 'project_risk') and (`geekdash_test`.`audit_log`.`entity_id` in (9060,9560))) group by `geekdash_test`.`audit_log`.`entity_id` having (<cache>(`geekdash_test`.`audit_log`.`id`) = <ref_null_helper>(min(`geekdash_test`.`audit_log`.`id`))) union all /* select#3 */ select max(`geekdash_test`.`audit_log`.`id`) from `geekdash_test`.`audit_log` where ((`geekdash_test`.`audit_log`.`action` = 'project.risk.resolve') and (`geekdash_test`.`audit_log`.`entity_type` = 'project_risk') and (`geekdash_test`.`audit_log`.`entity_id` in (9060,9560))) group by `geekdash_test`.`audit_log`.`entity_id` having (<cache>(`geekdash_test`.`audit_log`.`id`) = <ref_null_helper>(max(`geekdash_test`.`audit_log`.`id`)))))",
+        "attached_subqueries": [
+          {
+            "dependent": true,
+            "cacheable": false,
+            "query_block": {
+              "union_result": {
+                "using_temporary_table": false,
+                "query_specifications": [
+                  {
+                    "dependent": true,
+                    "cacheable": false,
+                    "query_block": {
+                      "select_id": 2,
+                      "cost_info": {
+                        "query_cost": "1.86"
+                      },
+                      "grouping_operation": {
+                        "using_filesort": false,
+                        "table": {
+                          "table_name": "audit_log",
+                          "access_type": "range",
+                          "possible_keys": [
+                            "idx_entity_type_entity_id_id"
+                          ],
+                          "key": "idx_entity_type_entity_id_id",
+                          "used_key_parts": [
+                            "entity_type",
+                            "entity_id"
+                          ],
+                          "key_length": "43",
+                          "rows_examined_per_scan": 3,
+                          "rows_produced_per_join": 0,
+                          "filtered": "10.00",
+                          "index_condition": "((`geekdash_test`.`audit_log`.`entity_type` = 'project_risk') and (`geekdash_test`.`audit_log`.`entity_id` in (9060,9560)))",
+                          "cost_info": {
+                            "read_cost": "1.83",
+                            "eval_cost": "0.03",
+                            "prefix_cost": "1.86",
+                            "data_read_per_join": "232"
+                          },
+                          "used_columns": [
+                            "id",
+                            "action",
+                            "entity_type",
+                            "entity_id"
+                          ],
+                          "attached_condition": "(`geekdash_test`.`audit_log`.`action` = 'project.risk.add')"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "dependent": true,
+                    "cacheable": false,
+                    "query_block": {
+                      "select_id": 3,
+                      "cost_info": {
+                        "query_cost": "1.86"
+                      },
+                      "grouping_operation": {
+                        "using_filesort": false,
+                        "table": {
+                          "table_name": "audit_log",
+                          "access_type": "range",
+                          "possible_keys": [
+                            "idx_entity_type_entity_id_id"
+                          ],
+                          "key": "idx_entity_type_entity_id_id",
+                          "used_key_parts": [
+                            "entity_type",
+                            "entity_id"
+                          ],
+                          "key_length": "43",
+                          "rows_examined_per_scan": 3,
+                          "rows_produced_per_join": 0,
+                          "filtered": "10.00",
+                          "index_condition": "((`geekdash_test`.`audit_log`.`entity_type` = 'project_risk') and (`geekdash_test`.`audit_log`.`entity_id` in (9060,9560)))",
+                          "cost_info": {
+                            "read_cost": "1.83",
+                            "eval_cost": "0.03",
+                            "prefix_cost": "1.86",
+                            "data_read_per_join": "232"
+                          },
+                          "used_columns": [
+                            "id",
+                            "action",
+                            "entity_type",
+                            "entity_id"
+                          ],
+                          "attached_condition": "(`geekdash_test`.`audit_log`.`action` = 'project.risk.resolve')"
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "processMemory": {
+    "rss": 231276544,
+    "heapTotal": 37163008,
+    "heapUsed": 28128712,
+    "external": 5564697,
+    "arrayBuffers": 1421836
+  },
+  "workers": 4,
+  "authenticated": true,
+  "rounds": 20,
+  "errorCount": 0,
+  "measurements": {
+    "list": {
+      "requests": 80,
+      "p50Ms": 51,
+      "p95Ms": 114,
+      "maxMs": 123
+    },
+    "detail": {
+      "requests": 80,
+      "p50Ms": 182,
+      "p95Ms": 429,
+      "maxMs": 504
+    },
+    "save": {
+      "requests": 80,
+      "p50Ms": 42,
+      "p95Ms": 78,
+      "maxMs": 127
+    },
+    "audit": {
+      "requests": 80,
+      "p50Ms": 15,
+      "p95Ms": 28,
+      "maxMs": 103
+    },
+    "checkSave": {
+      "requests": 80,
+      "p50Ms": 37,
+      "p95Ms": 75,
+      "maxMs": 91
+    },
+    "checkHistory": {
+      "requests": 80,
+      "p50Ms": 22,
+      "p95Ms": 39,
+      "maxMs": 87
+    },
+    "riskPreview": {
+      "requests": 80,
+      "p50Ms": 166,
+      "p95Ms": 274,
+      "maxMs": 417
+    },
+    "riskSave": {
+      "requests": 80,
+      "p50Ms": 342,
+      "p95Ms": 539,
+      "maxMs": 824
+    }
+  },
+  "noHardProjectLimit": true,
+  "source": "专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时"
+}

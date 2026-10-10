@@ -1,4 +1,5 @@
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
+import { riskRows } from './project-records.js';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 import { stageBlock, startProjectBlock, type StageFact } from './project-actions.js';
 import { businessToday, checkContext, closurePlanKnownExpression, dayDifference, deadlineCondition, deadlineKinds, deadlineResult, type DateFacts, type DeadlineKind } from './project-dates.js';
@@ -133,7 +134,7 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
         if (!project) return null;
         const projectStages = await rows(connection, "SELECT CAST(id AS CHAR) id,stage_code code,state,planned_days plannedDays,note,DATE_FORMAT(started_on,'%Y-%m-%d') startedOn,DATE_FORMAT(completed_on,'%Y-%m-%d') completedOn,DATE_FORMAT(expected_end_on,'%Y-%m-%d') expectedEndOn FROM project_stages WHERE project_id=? ORDER BY stage_code", [id]);
         const nodes = await rows(connection, "SELECT CAST(n.id AS CHAR) id,n.kind,s.stage_code stage,n.title,DATE_FORMAT(n.target_date,'%Y-%m-%d') targetDate,DATE_FORMAT(n.completed_on,'%Y-%m-%d') completedOn,n.output,n.note,CAST(n.previous_node_id AS CHAR) previousNodeId,CAST(n.next_node_id AS CHAR) nextNodeId,n.x,n.y FROM project_nodes n LEFT JOIN project_stages s ON s.id=n.stage_id WHERE n.project_id=? ORDER BY n.sort_order,n.id", [id]);
-        const risks = await rows(connection, 'SELECT CAST(id AS CHAR) id,content,level,resolved,resolution,resolved_at resolvedAt FROM project_risks WHERE project_id=? ORDER BY sort_order,id', [id]);
+        const risks = await riskRows(connection, id);
         const changes = await rows(connection, 'SELECT CAST(id AS CHAR) id,source,content,decision,reason FROM project_changes WHERE project_id=? ORDER BY sort_order,id', [id]);
         const delays = await scheduleRecords(connection, id);
         const actualChanges = delays.filter(item => !item.voided && item.kind === 'reschedule' && item.oldDate && item.newDate && item.oldDate !== item.newDate);

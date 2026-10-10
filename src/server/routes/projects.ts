@@ -65,6 +65,13 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
   }
   app.patch<{ Params: { id: string }; Body: unknown }>('/api/projects/:id', (request, reply) => saveHandler(request, reply, false));
   app.post<{ Params: { id: string }; Body: unknown }>('/api/projects/:id/save-results/query', (request, reply) => saveHandler(request, reply, true));
+  app.post<{ Params: { id: string }; Body: unknown }>('/api/projects/:id/save-preview', async (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    if (!request.actor) return reply.code(401).send({ code: 'AUTH_REQUIRED', outcome: 'not_committed' });
+    if (!validId(request.params.id)) return reply.code(400).send({ code: 'INVALID_PROJECT_ID', outcome: 'not_committed' });
+    if (!saves) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE', outcome: 'not_committed' });
+    return saves.preview(request.params.id, validateSave(request.body), request.actor);
+  });
   app.get<{ Params: { id: string }; Querystring: { pageSize?: number; before?: string } }>('/api/projects/:id/audit', {
     schema: { querystring: { type: 'object', additionalProperties: false, properties: { pageSize: { type: 'integer', minimum: 1, maximum: 100 }, before: { type: 'string', pattern: '^[1-9][0-9]{0,19}$' } } } },
   }, async (request, reply) => {

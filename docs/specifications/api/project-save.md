@@ -21,6 +21,7 @@ id/expectedVersion 范围为1至UINT64_MAX；操作编号为小写 UUID v4。同
 | chipIds/tagIds | 有序、无重复的 ID 字符串数组，[] 清除 |
 | people | 有序 {id,role} 数组；role 为 pm/hardware_owner/software_owner/participant，同 ID/role 不重复 |
 | stagePlans | E04-B03：1～7个不同阶段的 {code,plannedDays?,note?} 精确补丁 |
+| riskOps | E04-B08风险：非空的有限操作数组，详见下节；不是风险全量替换 |
 
 遗漏字段/集合不修改。资料不存在或新增已停用引用返回 422，fields 指出对应字段；原停用引用可保留或移除。人员字段不产生账号权限。
 
@@ -63,3 +64,28 @@ stagePlans补丁code仅S1～S7，plannedDays为null或0～65535整数天，note�
 此字段与普通文字/资料关联同一个项目锁、版本、事务和审计。阶段状态/实际日期、节点成果、项目计划和检查事实保持；阶段事实有旧日期问题也不妨碍无关文字保存。非法工期/评述422 INVALID_PROJECT_FIELDS，fields.stagePlans提示，页面保留输入并返回原卡片。
 
 请求包含stagePlans时，result.values.stagePlans返回最终七阶段工期/评述；没有请求时不新增此返回字段，旧正文指纹不变。审计以stagePlans保存本次前后七项有效值；无变化不推进项目版本。页面跨基本信息/阶段页签暂存编辑，统一点击“保存项目”。独立动作打开前先处理普通编辑，表单期间暂停普通输入，取消后恢复。
+
+## E04-B08 风险统一保存
+
+2026-10-10实际候选代码；行为沿[SPEC-005](../specification.md#spec-005-风险节点变更和检查)，准确运行版本归系统真相。riskOps按数组顺序应用到当前项目候选；对象仅允许下表字段。
+
+| op | 精确输入 |
+|---|---|
+| add | op/tempId/content/level；tempId为小写UUIDv4，不重复 |
+| correct | op/id/changes/reason；changes非空，仅content/level/resolution |
+| resolve | op/id/resolution |
+| undoResolve | op/id/reason |
+
+content/resolution/纠错reason为有效非空文字、UTF-8最多65535字节；level仅high/mid/low。id是正式十进制字符串，或同数组此前add的tempId；不接受actor、createdAt、resolvedAt、resolved、sourceKey或delete。correct的解除说明仅限已解除风险；resolve必须预警中，undoResolve必须已解除。字段省略保持；不提供风险删除。实际时间/人由保存时服务器可信身份生成，创建事实和原来源不因纠错改变。
+
+请求仍只携带expectedVersion/idempotencyKey/changes，可与普通字段、关联、stagePlans混合一次事务。风险实际操作分别追加project_risk目标审计，action为project.risk.add/correct/resolve/undoResolve；同次主字段摘要只记录主字段变化，全部共享项目前后版本和requestId。风险操作不自动修改灯色、阶段、计划或检查。riskOps不放入result.values，结果另外返回risks有效投影及riskIdMap（tempId→正式ID）；无实际风险差异且无普通字段差异时changed=false、savedAt=null，不推进版本/审计，但仍有原回执。
+
+risks在详情和保存结果包含id/content/level/resolved/resolution/resolvedAt/actorId/createdAt/sourceKey/sortOrder/createdByName/resolvedByName；时间为UTC，resolved为0/1。新增/解除的人名消费当时审计快照，后续账号改名不改变事实；旧无审计来源的人保持null，不补造。原创建人actorId和时间不更改，撤销只清当前解除投影，全部原事实从项目审计分页读取。
+
+额外失败：400 INVALID_RISK_OPERATIONS（有限格式/临时引用/重复键）；422 INVALID_PROJECT_FIELDS（fields.riskOps.<序号>.<字段>）；404 RISK_NOT_FOUND（当前项目找不到目标）；422 RISK_ALREADY_RESOLVED / RISK_NOT_RESOLVED / RISK_RESOLUTION_REQUIRES_RESOLVED / RISK_ORDER_EXHAUSTED。任一非法子记录使整次普通保存拒绝/回滚，旧版本/身份/结果未知沿原保存契约。原结果按原账号作用域恢复；他人使用同编号不成为该账号原操作。
+
+### POST /api/projects/:id/save-preview
+
+使用同一SaveRequest输入，当前必须含riskOps；只读一致快照，检查启用身份/负责资格/进入版本，复用实际保存的风险候选。返回projectId/expectedVersion/events/risks，events含op/id/before/after/reason，新增id仍为tempId。当前预览只展示风险候选，普通关联等在正式保存中独立统一核验；不写项目、正式ID、历史或回执，预览时刻不是正式事件时间。
+
+页面预览后“确认加入未保存修改”只改变普通副本；最终点击“保存项目”重算候选、事务校验并正式保存。修改任何输入使预览失效。原生页面验收范围另归报告，不据接口存在称通过。
