@@ -2,11 +2,11 @@
 
 ## 最新接手优先级（2026-10-12 E04前端修正）
 
-用户DEC-110要求复用1051及Figma，已明确继续。先按14.9.21执行，不重跑被取消的B09云installer、不进入E05；完整E04目标保持active。当前分支codex/e04-ui03-detail-structure，基线main/cdeff0a，产品27107d5、固定候选85f3385（dirty=false/0003）。本批源码及证据具名合并远端main，恢复先核查实际refs；文档提交不是运行镜像。
+用户DEC-110要求复用1051及Figma，已明确继续。先按14.9.21执行，不重跑被取消的B09云installer、不进入E05；完整E04目标保持active。UI03-A分支codex/e04-ui03-detail-structure/基线main-cdeff0a，产品27107d5、固定候选85f3385（dirty=false/0003），源码/证据95409e3已合并并回读远端main。新施工分支codex/e04-ui03-context-dialogs，UI03-B计划2f4bbd9已合并并回读main，产品代码尚未开始本单元；恢复先核查实时refs，文档提交不是运行镜像。
 
 UI03-A七页签/单一保存条/同源Flow、节点挂载点及后台读回输入保护已有代码和真实数据链证据，准确范围只查[真相51](../status/current-system-truth.md#51-e04-ui03-a详情结构与实际保存链路2026-10-12)、[报告](../testing/reports/2026-10-12-e04-ui03-a.md)与evidence。未执行原生/视觉验收、未部署；41860本轮新GET仍36d23bc2，云最后03:27UTC仍29ed3d9且本轮未查询。不能把DOM模型称真实浏览器验收。
 
-下一步：规划细化UI03-B的上下文动作/子记录弹窗及输入、预览、正确/错误、取消恢复链；按同一Figma节点与现有API实施，保护普通dirty、固定进入版本与原编号确认。继续UI02高级结果、UI03-C看板及其他入口，再UI04原生/视觉/固定部署和全E04审计；草稿/SSE/公共资料及原版其他页面缺口仍保留完整范围。
+下一步：按已形成全部步骤的[14.9.21.3](../implementation/execution-plan.md#149213-ui03-b-上下文表单与结果反馈)实施上下文动作/子记录弹窗；先读实际Figma动作节点的design context/截图，再复用原form/capture/预览/取消及API，保护普通dirty、固定进入版本与原编号确认。继续UI02高级结果、UI03-C看板及其他入口，再UI04原生/视觉/固定部署和全E04审计；草稿/SSE/公共资料及原版其他页面缺口仍保留完整范围。
 
 验证入口scripts/verify-detail-ui.mjs；jsdom27.0.1只在忽略test-results/ui-dom-tools，实际前端TS/HTML+真实测试API/MySQL。tool的512MiB/Node旧堆256MiB覆盖文件ui-dom-limits.yml仅限验证工具。固定detail-ui四组30请求、169整链及30重建回执已通过，夹具清理后整链空库前置通过。Edge仍nodeRepl.fetch request failed，不换表面/CDP绕过；本轮无OOM，不杀其他Node/重启MySQL/清卷。
 
