@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import ts from 'typescript';
@@ -29,7 +29,7 @@ function client() {
   return { jar, async fetch(path, options = {}) {
     const url = new URL(path, origin).href, headers = new Headers(options.headers);
     headers.set('Cookie', jar.getCookieStringSync(url)); headers.set('Origin', authOrigin);
-    const response = await fetch(url, { ...options, headers }); requestCount++;
+    requestCount++; const response = await fetch(url, { ...options, headers });
     for (const cookie of response.headers.getSetCookie()) jar.setCookieSync(cookie, url);
     return response;
   }, async api(path, method = 'GET', body) {
@@ -48,12 +48,14 @@ async function page(user, projectId, holdCatalog = false) {
   const virtualConsole = new VirtualConsole(); virtualConsole.on('jsdomError', reject);
   const dom = new JSDOM(html, { url: origin + '/project-detail.html?id=' + projectId, cookieJar: user.jar, runScripts: 'outside-only', virtualConsole });
   views.push(dom); const w = dom.window;
+  dom.projectReads = [];
   Object.assign(w, { TextEncoder, TextDecoder, structuredClone, AbortSignal, __GEEKDASH_STAGES__: stages });
   w.BroadcastChannel = class { postMessage() {} };
   w.HTMLDialogElement.prototype.showModal = function() { this.open = true; this.returnValue = ''; };
   w.HTMLDialogElement.prototype.close = function(value = '') { this.returnValue = value; this.open = false; this.dispatchEvent(new w.Event('close')); };
   w.fetch = async (path, options) => {
     const response = await user.fetch(path, options);
+    if (path === '/api/projects/' + projectId && !options?.method && response.ok) dom.projectReads.push(await response.clone().json());
     if (holdCatalog && path === '/api/project-options') {
       await new Promise(resolve => { dom.releaseCatalog = resolve; });
       const json = response.json.bind(response);
@@ -111,7 +113,7 @@ try {
   owner.$('.flow-node').dispatchEvent(new owner.w.KeyboardEvent('keydown', { key: 'Enter' }));
   await waitFor(() => owner.$('#node-edit'), 'Flow节点编辑'); assert(owner.$('[data-tab="flow"]').classList.contains('active'));
   owner.click('#node-cancel'); owner.tab('info'); assert.equal(owner.$('#edit-name').value, prefix + ' 修改'); assert.equal(owner.$('#edit-summaryNote').value, '跨页保留的普通修改');
-  owner.tab('flow'); owner.click('#save'); await waitFor(() => owner.$('#save')?.disabled && /当前内容已保存/.test(owner.$('#edit-state').textContent), '项目保存及新GET回读');
+  owner.tab('flow'); owner.click('#save'); await waitFor(() => owner.$('#save')?.disabled && /当前内容已保存/.test(owner.$('#edit-state').textContent) && owner.dom.projectReads.at(-1)?.project.name === prefix + ' 修改', '项目保存及新GET回读');
   const persisted = await facts(id); assert.equal(persisted.project.name, prefix + ' 修改'); assert.equal(persisted.project.summary_note, '跨页保留的普通修改'); assert.equal(persisted.nodes.length, 1); assert.equal(persisted.nodes[0].title, '同源节点');
   assert.equal(owner.$('.flow-node').dataset.nodeDrag, persisted.nodes[0].id); owner.tab('nodes'); assert.match(owner.$('.node-item').textContent, /同源节点/);
   checks.push('七页签唯一保存；真实前端普通输入与节点副本跨页同源；预览不写库，保存后独立SQL/新GET/Flow与列表一致');
@@ -129,12 +131,12 @@ try {
   checks.push('另一负责人真实保存后旧副本冻结、可复制；明确重新进入后显示新版本，旧输入仍保留供核对');
   const recovering = await page(a, id), beforeUnknown = await facts(id); recovering.tab('info'); recovering.input('#edit-name', '真实提交后丢确认'); recovering.dom.dropSaveAck = true; recovering.click('#save');
   await waitFor(() => recovering.$('#confirm') && !recovering.$('#confirm').disabled, '原保存结果待确认'); assert.equal((await facts(id)).project.name, '真实提交后丢确认');
-  recovering.click('#confirm'); await waitFor(() => recovering.$('#save')?.disabled && /当前内容已保存/.test(recovering.$('#edit-state').textContent), '原编号确认及新读取');
+  recovering.click('#confirm'); await waitFor(() => recovering.$('#save')?.disabled && /当前内容已保存/.test(recovering.$('#edit-state').textContent) && recovering.dom.projectReads.at(-1)?.project.name === '真实提交后丢确认', '原编号确认及新读取');
   assert.equal((await facts(id)).auditCount, beforeUnknown.auditCount + 1); assert.equal(recovering.$('#edit-name').value, '真实提交后丢确认');
   checks.push('真实COMMIT后丢响应，页面保留原请求；确认原结果及新读取仅产生一次审计');
   assert.equal(errors.length, 0);
   const build = (await a.api('/api/health/live')).build;
-  await writeFile('test-results/detail-ui-check.json', JSON.stringify({ status: 'passed', checkedAt: new Date().toISOString(), checks, requestCount, build, frontendSource: 'src/web/detail.ts + shared/api.ts', isolatedTestDatabase: true, syntheticOnly: true, domExecution: 'jsdom 27.0.1; CSS/BroadcastChannel/native dialog behavior not validated', nativeBrowserAcceptance: false, visualAcceptance: false }, null, 2) + '\n');
+  await writeFile('test-results/detail-ui-check.json', JSON.stringify({ status: 'passed', checkedAt: new Date().toISOString(), checks, requestCount, build, frontendSource: 'src/web/detail.ts + shared/api.ts', sourceSha256: Object.fromEntries(Object.entries({ detailSource, apiSource, html }).map(([key, source]) => [key, createHash('sha256').update(source).digest('hex')])), isolatedTestDatabase: true, syntheticOnly: true, domExecution: 'jsdom 27.0.1; CSS/BroadcastChannel/native dialog behavior not validated', nativeBrowserAcceptance: false, visualAcceptance: false }, null, 2) + '\n');
   console.log(JSON.stringify({ status: 'passed', groups: checks.length, requestCount }));
 } finally {
   for (const view of views) view.window.close();
