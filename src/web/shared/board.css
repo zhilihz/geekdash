@@ -1411,3 +1411,28 @@ header .head-actions { display: flex; gap: 8px; align-items: center; flex-wrap: 
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
 ::-webkit-scrollbar-track { background: transparent; }
+
+/* UI03-C：沿原看板图表和紧凑进度视图。 */
+.board-more { margin: 12px 0; color: var(--text-dim); }
+.board-latest { margin: 16px 0; }
+.board-latest summary { cursor: pointer; font-weight: 600; }
+.latest-row { display: grid; grid-template-columns: minmax(120px, 1fr) 2fr; gap: 8px; padding: 12px 0; color: var(--text); text-decoration: none; border-top: 1px solid var(--border-soft); }
+.latest-row small { grid-column: 2; color: var(--text-faint); }
+.pp-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.pp-item { color: var(--text); text-decoration: none; }
+.pp-ring { border-radius: 50%; background: conic-gradient(var(--ring-color) var(--ring-deg), var(--border-soft) 0); }
+.pp-ring::before { content: ''; position: absolute; inset: 4px; border-radius: 50%; background: var(--bg-soft); }
+.pp-ring-pct { color: var(--ring-color); }
+.team-row { display: grid; grid-template-columns: 80px 1fr 28px; gap: 10px; align-items: center; margin: 12px 0; }
+.team-row > div { background: var(--border-soft); height: 10px; border-radius: 6px; overflow: hidden; }
+.team-row i { display: block; height: 100%; border-radius: 6px; }
+.board-donut { width: 180px; height: 180px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; }
+.board-donut > div { width: 94px; height: 94px; background: var(--card); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.board-donut b { font-size: 22px; }
+.legend-filter { color: var(--text); background: transparent; border: 0; font: inherit; cursor: pointer; }
+#distribution { color: var(--text); background: var(--bg-soft); border: 1px solid var(--border); border-radius: 6px; padding: 6px; margin-left: auto; }
+.grid.progress-layout { grid-template-columns: 1fr; }
+.progress-layout .card { display: grid; grid-template-columns: minmax(220px, 1fr) 2fr; gap: 8px 24px; }
+.progress-layout .card-top, .progress-layout .card-stage { grid-column: 1 / -1; }
+.progress-layout .card-info { display: none; }
+@media (max-width: 700px) { .progress-layout .card, .latest-row { grid-template-columns: 1fr; } .latest-row small { grid-column: 1; } .team-row { grid-template-columns: 60px 1fr 24px; } }

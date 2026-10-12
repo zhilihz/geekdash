@@ -19,6 +19,7 @@ const recoveryMode = process.argv.includes('--recovery'), deletedIds = [];
 assert(!recoveryMode || nodeMode && riskMode && checkMode, '恢复容量沿完整节点/风险/检查负载验收');
 const profileMode = process.argv.includes('--sql-profile'), sqlSamples = new Map();
 const compareMode = process.argv.includes('--compare-fixed');
+const dashboardMode = process.argv.includes('--dashboard');
 const fixedDirectory = process.env.GEEKDASH_LIST_FALLBACK_DIR;
 assert(!compareMode || fixedDirectory, '等价验证必须从实际29ed3d9固定镜像导出旧模块');
 let fixedEquivalence;
@@ -38,6 +39,7 @@ const began = new Date().toISOString();
 const accounts = [];
 const password = '四人容量验证 password 2026';
 async function api(path, method = 'GET', body) {
+  if (dashboardMode && path.startsWith('/api/projects?')) path += '&dashboard=1';
   const target = /^\/api\/projects\/([0-9]+)/.exec(path)?.[1];
   const index = target ? Math.max(ids.indexOf(target), 0) % 4 : Number(new URL(path, 'http://localhost').searchParams.get('customer')?.slice(-1) ?? 0);
   const account = accounts[index];
@@ -257,12 +259,12 @@ try {
   }
   const latency=Object.fromEntries(Object.entries(measurements).map(([kind,values])=>{values.sort((a,b)=>a-b);return [kind,{requests:values.length,p50Ms:Math.round(values[Math.ceil(values.length*.5)-1]),p95Ms:Math.round(values[Math.ceil(values.length*.95)-1]),maxMs:Math.round(values.at(-1))}];}));
   await mkdir('test-results',{recursive:true});
-  const result={status:'passed',startedAt:began,checkedAt:new Date().toISOString(),projectCount:500,stageCount:3500,initialAuditCount:(checkMode?1500:500)+(riskMode?1000:0)+(nodeMode?1500:0),...(checkMode?{checkCount:1580,initialCorrectionCount:500,weekHistoryCount:1000}:{}),...(riskMode?{riskCount:1000,realRiskAdditions:500,riskCorrections:580,riskQueryPlan}:{}),...(nodeMode?{nodeCount:2000,realNodeAdditions:1500,nodeMoveCount:80}:{}),processMemory:process.memoryUsage(),workers:4,authenticated:true,rounds:20,errorCount:0,measurements:latency,...(profileMode ? { sqlProfile, diagnosticTimingEnabled: true } : {}),noHardProjectLimit:true,source:'专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时'};
+  const result={dashboardMode,status:'passed',startedAt:began,checkedAt:new Date().toISOString(),projectCount:500,stageCount:3500,initialAuditCount:(checkMode?1500:500)+(riskMode?1000:0)+(nodeMode?1500:0),...(checkMode?{checkCount:1580,initialCorrectionCount:500,weekHistoryCount:1000}:{}),...(riskMode?{riskCount:1000,realRiskAdditions:500,riskCorrections:580,riskQueryPlan}:{}),...(nodeMode?{nodeCount:2000,realNodeAdditions:1500,nodeMoveCount:80}:{}),processMemory:process.memoryUsage(),workers:4,authenticated:true,rounds:20,errorCount:0,measurements:latency,...(profileMode ? { sqlProfile, diagnosticTimingEnabled: true } : {}),noHardProjectLimit:true,source:'专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时'};
   if(recoveryMode)Object.assign(result,{initialAuditCount:result.initialAuditCount+1000,initialActiveNodes:1500,deletedNodeCount:500,realInitialDeletes:500,restoreCount:80,deleteCount:580,deletedQueryPlan});
   if(changeMode)Object.assign(result,{initialAuditCount:result.initialAuditCount+1000,changeCount:1000,realChangeAdditions:500,changeCorrections:580,changeQueryPlan});
   if (profileMode || compareMode) result.build = (await api('/api/health/live')).build;
   if (compareMode) result.fixedEquivalence = fixedEquivalence;
-  await writeFile(compareMode?'test-results/project-list-equivalence-check.json':changeMode?'test-results/project-changes-capacity-check.json':recoveryMode?'test-results/project-node-recovery-capacity-check.json':nodeMode?'test-results/project-nodes-capacity-check.json':riskMode?'test-results/project-risks-capacity-check.json':checkMode?'test-results/project-checks-capacity-check.json':'test-results/project-capacity-check.json',JSON.stringify(result,null,2)+'\n'); console.log(JSON.stringify(result));
+  await writeFile(dashboardMode?'test-results/project-dashboard-capacity-check.json':compareMode?'test-results/project-list-equivalence-check.json':changeMode?'test-results/project-changes-capacity-check.json':recoveryMode?'test-results/project-node-recovery-capacity-check.json':nodeMode?'test-results/project-nodes-capacity-check.json':riskMode?'test-results/project-risks-capacity-check.json':checkMode?'test-results/project-checks-capacity-check.json':'test-results/project-capacity-check.json',JSON.stringify(result,null,2)+'\n'); console.log(JSON.stringify(result));
 } finally {
   await connection.rollback(); await app?.close();
   if (!app) await runtime?.close();

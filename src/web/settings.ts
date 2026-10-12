@@ -1,7 +1,8 @@
 import './shared/detail.css';
 import './shared/read.css';
-import { get, send, requireIdentity, account, esc, SaveError, type CheckRuleContext } from './shared/api';
+import { get, send, requireIdentity, account, esc, SaveError, setupTheme, setupDateZone, type CheckRuleContext } from './shared/api';
 
+setupTheme(); setupDateZone();
 type RuleCommand = { action: 'initializeCheckRule' | 'modifyCheckRule'; deadlineWeekday: number; expectedVersion: string; previewWeek: string; idempotencyKey: string };
 let context: CheckRuleContext | undefined, pending: RuleCommand | undefined, busy = false, frozen = false, weekday = 5;
 const panel = document.getElementById('settings')!, message = document.getElementById('message')!;

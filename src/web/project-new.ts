@@ -1,7 +1,8 @@
 import './shared/read.css';
 import './shared/detail.css';
 import './shared/forms.css';
-import { requireIdentity, send, SaveError, account } from './shared/api';
+import { requireIdentity, send, SaveError, account, setupTheme, setupDateZone } from './shared/api';
+setupTheme(); setupDateZone();
 const form = document.getElementById('create') as HTMLFormElement;
 const message = document.getElementById('message')!;
 type Command = { idempotencyKey: string; fields: Record<string, string> };

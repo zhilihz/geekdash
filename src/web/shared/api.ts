@@ -3,11 +3,12 @@ export type Deadline = { kind: DeadlineKind; asOfDate: string; days: number | nu
 export type Project = {
   id: string; version: string; dataKind: 'business' | 'trial'; name: string; status: string; priority: string; signal: string;
   customer: string | null; odmFactory: string | null; productLine: string | null; app: string | null; projectGroup: string | null;
-  proposalDate: string | null; dueDate: string | null; marketExpectation: string; statusDesc: string;
+  proposalDate: string | null; dueDate: string | null; marketExpectation: string; statusDesc: string; summaryNote?: string;
   deadline: Deadline; checkStatus: CheckStatus; resumeStatus: string | null; maintenanceEnabled: number; updatedAt: string; stage: string; stageState: string; progress: string | number;
   chips: { id: string; name: string }[]; people: { id: string; name: string; role: string }[]; tags: { id: string; name: string }[];
 };
-export type List = { items: Project[]; businessDate: string; stats: Record<string, number>; options: Record<string, string[]>; stageCounts: { value: string; count: string | number }[]; pagination: { page: number; pageSize: number; total: number; pageCount: number }; readOnly: true };
+export type Dashboard = { distributions: Record<string, { value: string; count: number }[]>; focusTotal: number; focus: Pick<Project, 'id' | 'name' | 'status' | 'priority' | 'stage' | 'progress'>[]; latest: Pick<Project, 'id' | 'name' | 'statusDesc' | 'updatedAt'>[]; team: { id: string; name: string; count: number }[] };
+export type List = { items: Project[]; businessDate: string; stats: Record<string, number>; options: Record<string, string[]>; stageCounts: { value: string; count: string | number }[]; pagination: { page: number; pageSize: number; total: number; pageCount: number }; readOnly: true; dashboard?: Dashboard };
 export type Entry = Record<string, string | number | null>;
 export type TextValues = { name: string; marketExpectation: string; detailNote: string; summaryNote: string };
 export type RiskOperation = { op: 'add'; tempId: string; content: string; level: 'high' | 'mid' | 'low' } | { op: 'correct'; id: string; changes: Partial<{ content: string; level: 'high' | 'mid' | 'low'; resolution: string }>; reason: string } | { op: 'resolve'; id: string; resolution: string } | { op: 'undoResolve'; id: string; reason: string };
@@ -101,7 +102,7 @@ export async function requireIdentity() {
   const data = await get<{ account: Account }>('/api/auth/me'); account = data.account;
   if (account.mustChangePassword) { location.replace('/login.html?change=1'); throw new Error('请先修改临时密码。'); }
   const toolbar = document.querySelector('.head-actions');
-  if (toolbar) { const link = document.createElement('a'); link.className = 'head-btn'; link.href = '/login.html?change=1'; link.textContent = account.name + ' · 密码/退出'; toolbar.prepend(link); }
+  if (toolbar && !document.getElementById('account-menu')) { const menu = document.createElement('details'); menu.id = 'account-menu'; menu.className = 'read-nav-menu'; const title = document.createElement('summary'); title.className = 'head-btn'; title.textContent = account.name + ' ▾'; const link = document.createElement('a'); link.className = 'head-btn'; link.href = '/login.html?change=1'; link.textContent = '修改密码 / 退出'; menu.append(title, link); toolbar.prepend(menu); }
   return account;
 }
 export function setAccount(value: Account) { account = value; contextChanged = false; }
@@ -151,6 +152,15 @@ export function setupTheme() {
     apply(button.dataset.theme!);
     try { localStorage.setItem('geekdash_theme', button.dataset.theme!); } catch { /* 本机显示偏好。 */ }
   });
+}
+export function setupDateZone() {
+  const zone = document.getElementById('date-zone'); if (!zone) return;
+  const clock = () => {
+    const now = new Date(), date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(now);
+    const days = Math.round((Date.parse(date.slice(0, 4) + '-12-31') - Date.parse(date)) / 86400000);
+    zone.textContent = new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(now) + '　' + new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(now) + '　距年底 ' + days + ' 天';
+  };
+  clock(); setInterval(clock, 1000);
 }
 
 Object.assign(stageMessages, { INVALID_LIFECYCLE_COMMAND: '暂缓/恢复请求无效，请核对表单。', LIFECYCLE_REASON_REQUIRED: '请填写暂缓或纠错原因。', PROJECT_PAUSE_BLOCKED: '只有提案或进行中项目可以暂缓。', PROJECT_RESUME_BLOCKED: '只有暂缓项目可以恢复。', PROJECT_RESUME_BASIS_UNKNOWN: '暂缓前状态未知，需先核对来源；系统不会猜测恢复状态。', LIFECYCLE_NOTE_NOT_FOUND: '未找到本项目的原暂缓/恢复记录。', LIFECYCLE_NOTE_REQUIRED: '纠正后的暂缓原因仍需非空。' });

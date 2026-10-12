@@ -27,3 +27,16 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .audit-entry h3 { font-size: 13px; margin: 16px 0; }
 .audit-diff { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 @media (max-width: 600px) { .audit-diff { grid-template-columns: 1fr; } }
+
+.read-nav-menu { position: relative; display: inline-block; }
+.read-nav-menu summary { cursor: pointer; list-style: none; }
+.read-nav-menu[open] > a { position: absolute; right: 0; top: 100%; min-width: 180px; z-index: 20; background: var(--card); margin-top: 6px; }
+
+.entry-page { max-width: 880px; }
+.entry-panel { padding: 24px; }
+.entry-panel > h1 { font-size: 22px; text-align: center; margin-bottom: 20px; }
+.auth-page { max-width: 600px; padding-top: 80px; }
+.auth-page header { text-align: center; border: 0; }
+.auth-panel { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+.auth-panel h2 { font-size: 22px; text-align: center; }
+.auth-page form.detail-section button { justify-self: center; }

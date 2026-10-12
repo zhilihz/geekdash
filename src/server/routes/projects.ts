@@ -103,6 +103,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
   const properties: Record<string, unknown> = {};
   for (const key of ['search', 'customer', 'productLine', 'odmFactory', 'app', 'group', 'chip', 'tags', 'owner']) properties[key] = { type: 'string', maxLength: 255 };
   properties.view = { type: 'string', enum: ['active', 'proposal', 'closed', 'maintenance', 'all'] };
+  properties.dashboard = { type: 'string', enum: ['1'] };
   properties.status = { type: 'string', enum: ['proposal', 'ongoing', 'paused', 'closed'] };
   properties.priority = { type: 'string', enum: ['high', 'mid', 'low'] };
   properties.signal = { type: 'string', enum: ['green', 'yellow', 'red'] };

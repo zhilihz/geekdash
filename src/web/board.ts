@@ -1,6 +1,6 @@
 import './shared/board.css';
 import './shared/read.css';
-import { get, esc, label, projectTags, setupTheme, type List, type Project } from './shared/api';
+import { get, esc, label, projectTags, setupTheme, setupDateZone, type Dashboard, type List, type Project } from './shared/api';
 
 const element = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const search = element<HTMLInputElement>('search');
@@ -9,22 +9,47 @@ const filterRows = element<HTMLDivElement>('filter-rows');
 const query = new URLSearchParams(location.search);
 query.set('view', ['active', 'proposal', 'closed', 'maintenance', 'all'].includes(query.get('view') ?? '') ? query.get('view')! : 'active');
 const dimensions = { customer: '客户', productLine: '产品线', odmFactory: 'ODM 工厂', app: 'APP', group: '分组', status: '状态', priority: '优先级', signal: '信号灯', deadline: '计划结果', stage: '当前阶段', progress: '进度', chip: '芯片', tags: '标签', owner: '业务人员' };
-const allowed = new Set(['view', 'search', 'page', ...Object.keys(dimensions)]);
+const allowed = new Set(['view', 'search', 'page', 'layout', ...Object.keys(dimensions)]);
 for (const key of [...query.keys()]) if (!allowed.has(key)) query.delete(key);
 let controller: AbortController | undefined;
 let generation = 0;
 let pagination: List['pagination'] | undefined;
 let hasResult = false;
 let businessDate = '';
-setupTheme();
+let currentData: List | undefined;
+declare const __GEEKDASH_STAGES__: { id: number; name: string; milestone: string }[];
+setupTheme(); setupDateZone();
 search.value = query.get('search') ?? '';
 
+function milestone(stage: string) { return __GEEKDASH_STAGES__.find(item => 'S' + item.id === stage)?.milestone ?? (stage === 'completed' ? '七阶段里程碑已全部完成。' : '阶段事实待核对。'); }
 function card(project: Project) {
-  const people = (role: string) => project.people.filter(person => person.role === role).map(person => person.name).join(' / ') || '—';
-  const fields = [['客户', project.customer], ['产品线', project.productLine], ['ODM 工厂', project.odmFactory], ['APP', project.app], ['芯片', project.chips.map(chip => chip.name).join(' · ')], ['负责人', `${people('hardware_owner')}（硬） · ${people('software_owner')}（软）`], ['项目经理', people('pm')], ['周期', `${project.proposalDate ?? '—'} → ${project.dueDate ?? '—'}`]];
-  const stageName = (project.status === 'paused' ? '暂缓保留 · ' : '') + (project.stage === 'completed' ? '七阶段全部完成' : '当前阶段：' + label(project.stage) + ' · ' + (project.status === 'proposal' && project.stage !== 'S1' ? '需先启动项目' : label(project.stageState)));
-  return `<a class="card ${project.priority === 'high' ? 'pri-border-high' : ''}" href="project-detail.html?id=${project.id}" data-project-id="${project.id}"><div class="card-top"><div class="tags">${projectTags(project)}</div><span class="open-hint">查看详情 ↗</span></div><div class="card-name">${esc(project.name)}</div><ul class="card-info">${fields.map(([key, value]) => `<li><span class="k">${key}</span><span class="v">${esc(value || '—')}</span></li>`).join('')}</ul><div class="card-desc"><span class="d-label">市场预期</span>${esc(project.marketExpectation || '—')}</div><div class="card-desc status-desc"><span class="d-label">状态</span>${esc(project.statusDesc || '—')}</div><div class="card-stage"><div class="stage-bar-top"><span class="stage-bar-name">${esc(stageName)}</span><span class="stage-bar-pct">${project.progress}%</span></div><div class="stage-bar-track"><div class="stage-bar-fill" style="width:${Number(project.progress)}%"></div></div></div></a>`;
+  const fields = [['客户', project.customer], ['产品线', project.productLine], ['ODM 工厂', project.odmFactory], ['APP', project.app], ['芯片', project.chips.map(chip => chip.name).join(' · ')]];
+  const stageName = (project.status === 'paused' ? '暂缓保留 · ' : '') + (project.stage === 'completed' ? '七阶段全部完成' : label(project.stage) + ' · ' + (project.status === 'proposal' && project.stage !== 'S1' ? '需先启动项目' : label(project.stageState)));
+  return `<a class="card ${project.priority === 'high' ? 'pri-border-high' : ''}" href="project-detail.html?id=${project.id}" data-project-id="${project.id}"><div class="card-top"><div class="tags">${projectTags(project)}</div><span class="open-hint">查看详情 ↗</span></div><div class="card-name">${esc(project.name)}</div>${project.summaryNote ? `<div class="card-desc">${esc(project.summaryNote)}</div>` : ''}<ul class="card-info">${fields.map(([key, value]) => `<li><span class="k">${key}</span><span class="v">${esc(value || '—')}</span></li>`).join('')}</ul><div class="card-desc status-desc">${esc(project.statusDesc || '暂无最新状态说明')}</div><div class="card-stage"><div class="stage-bar-top"><span class="stage-bar-name">${esc(stageName)}</span><span class="stage-bar-pct">${project.progress}%</span></div><div class="stage-bar-track"><div class="stage-bar-fill" style="width:${Number(project.progress)}%"></div></div><div class="stage-bar-milestone">里程碑：${esc(milestone(project.stage))}</div></div></a>`;
 }
+function renderProjects() {
+  if (!currentData) return;
+  const progress = query.get('layout') === 'progress';
+  element('card-grid').classList.toggle('progress-layout', progress);
+  element('card-grid').innerHTML = currentData.items.map(card).join('');
+  element('layout-toggle').textContent = progress ? '切换卡片' : '切换驾驶舱';
+}
+function distribution() {
+  if (!currentData?.dashboard) return;
+  const key = element<HTMLSelectElement>('distribution').value, slices = currentData.dashboard.distributions[key], total = currentData.pagination.total;
+  const colors = ['#58a6ff', '#f0883e', '#39c5cf', '#a371f7', '#3fb950', '#f85149']; let angle = 0;
+  const stops = slices.map((slice, i) => { const start = angle; angle += total ? slice.count / total * 360 : 0; return `${colors[i % colors.length]} ${start}deg ${angle}deg`; });
+  element('distribution-chart').innerHTML = `<div class="board-donut" style="background:conic-gradient(${stops.join(',') || 'var(--chart-empty) 0deg 360deg'})" aria-hidden="true"><div><b>${total}</b><span>项目</span></div></div><ul class="legend">${slices.map((slice, i) => `<li><span class="dot" style="background:${colors[i % colors.length]}"></span>${slice.value ? `<button class="legend-filter" data-filter="${key}" data-value="${esc(slice.value)}">${esc(['status','priority','signal','stage'].includes(key) ? label(slice.value) : slice.value)}</button>` : '未选择'}<b>${slice.count}</b> · ${total ? (slice.count / total * 100).toFixed(1) : 0}%</li>`).join('') || '<li>暂无匹配项目</li>'}</ul>`;
+}
+function charts(data: Dashboard) {
+  element('focus-count').textContent = `当前范围 ${data.focusTotal} 个非结案项目 · 优先级/进度排序 · 展示前 ${data.focus.length} 个`;
+  element('focus-projects').innerHTML = data.focus.map(project => `<a class="pp-item" data-project-id="${project.id}" href="project-detail.html?id=${project.id}"><div class="pp-ring" style="--ring-color:var(--p-${project.priority});--ring-deg:${Number(project.progress) * 3.6}deg"><span class="pp-ring-pct">${project.progress}%</span></div><div class="pp-info"><div class="pp-name">${esc(project.name)}</div><div class="pp-meta">${esc(label(project.stage))} · ${esc(label(project.status))}</div></div></a>`).join('') || '<p class="pp-empty">当前范围没有非结案项目</p>';
+  const max = Math.max(1, ...data.team.map(member => member.count));
+  element('team-load').innerHTML = data.team.map(member => `<div class="team-row"><span>${esc(member.name)}</span><div><i style="width:${member.count / max * 100}%;background:var(--p-${member.count / max >= .85 ? 'high' : member.count / max >= .6 ? 'mid' : 'low'})"></i></div><b>${member.count}</b></div>`).join('') || '<p class="pp-empty">暂无业务人员资料</p>';
+  element('latest-status').innerHTML = data.latest.map(project => `<a data-project-id="${project.id}" href="project-detail.html?id=${project.id}" class="latest-row"><b>${esc(project.name)}</b><span>${esc(project.statusDesc || '暂无状态说明')}</span><small>项目更新：${esc(new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', dateStyle: 'short', timeStyle: 'short' }).format(new Date(project.updatedAt)))}</small></a>`).join('') || '<p class="pp-empty">暂无匹配项目</p>';
+  distribution();
+}
+
 function filters(options: List['options']) {
   options.stage = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'completed', 'unconfigured'];
   options.progress = ['0', '5', '10', '20', '60', '80', '90', '100'];
@@ -49,18 +74,20 @@ async function load(active = true) {
   history.replaceState(null, '', location.pathname + '?' + query);
   document.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(button => button.classList.toggle('active', button.dataset.view === query.get('view')));
   try {
-    const data = await get<List>('/api/projects?' + query, controller.signal, active);
+    const requestQuery = new URLSearchParams(query); requestQuery.delete('layout'); requestQuery.set('dashboard', '1');
+    const data = await get<List>('/api/projects?' + requestQuery, controller.signal, active);
     if (current !== generation) return;
-    pagination = data.pagination;
+    if (!data.dashboard) throw new Error('看板统计尚未读取，请刷新。');
+    currentData = data; pagination = data.pagination;
     query.set('page', String(pagination.page));
     history.replaceState(null, '', location.pathname + '?' + query);
     filters(data.options);
     hasResult = true;
     businessDate = data.businessDate;
-    const stats = [['total', '项目总数'], ['high', '高优先级'], ['green', '绿灯'], ['yellow', '黄灯'], ['red', '红灯'], ['overdue', '已超期'], ['due', '今日到期'], ['unset', '计划未定'], ['checkPending', '本周待检查'], ['checkOverdue', '检查逾期'], ['checkUpdated', '检查后更新']];
+    const stats = [['total', '当前项目'], ['high', '高优先级'], ['yellow', '黄灯'], ['red', '红灯'], ['checkPending', '本周待检查']];
+    element('extra-stats').innerHTML = [['green','绿灯'],['overdue','已超期'],['due','今日到期'],['unset','计划未定'],['checkOverdue','检查逾期'],['checkUpdated','检查后更新']].map(([key,title]) => `<div class="stat"><span class="stat-label">${title}</span><b>${data.stats[key]}</b></div>`).join('');
     element('stats-bar').innerHTML = stats.map(([key, title]) => `<div class="stat"><span class="stat-label">${title}</span><b>${data.stats[key]}</b></div>`).join('');
-    element('stage-chart').innerHTML = data.stageCounts.map(item => `<span>${esc(label(item.value))} · ${item.count}</span>`).join('');
-    element('card-grid').innerHTML = data.items.map(card).join('');
+    renderProjects(); charts(data.dashboard);
     element('result-count').textContent = `筛选结果 ${pagination.total} 条 · 统计条与筛选结果一致 · 截至 ${businessDate}`;
     element('page-info').textContent = `${pagination.page} / ${pagination.pageCount} 页`;
     previous.disabled = pagination.page <= 1;
@@ -80,7 +107,7 @@ async function load(active = true) {
 }
 function change(key: string, value: string) { value ? query.set(key, value) : query.delete(key); query.delete('page'); void load(); }
 document.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(button => button.onclick = () => {
-  for (const key of [...query.keys()]) if (key !== 'view') query.delete(key);
+  for (const key of [...query.keys()]) if (key !== 'view' && key !== 'layout') query.delete(key);
   search.value = '';
   change('view', button.dataset.view!);
 });
@@ -91,18 +118,21 @@ filterRows.onclick = event => {
 let searchTimer: ReturnType<typeof setTimeout>;
 search.oninput = () => { clearTimeout(searchTimer); controller?.abort(); generation++; searchTimer = setTimeout(() => change('search', search.value), 200); };
 element('reload').onclick = () => { clearTimeout(searchTimer); search.value ? query.set('search', search.value) : query.delete('search'); void load(); };
-element('clear').onclick = () => { clearTimeout(searchTimer); for (const key of [...query.keys()]) if (key !== 'view') query.delete(key); search.value = ''; void load(); };
+element('clear').onclick = () => { clearTimeout(searchTimer); for (const key of [...query.keys()]) if (key !== 'view' && key !== 'layout') query.delete(key); search.value = ''; void load(); };
 element('previous').onclick = () => { if (pagination) { query.set('page', String(pagination.page - 1)); void load(); } };
 element('next').onclick = () => { if (pagination) { query.set('page', String(pagination.page + 1)); void load(); } };
 element('filter-toggle').onclick = () => { filterRows.hidden = !filterRows.hidden; element('filter-toggle').setAttribute('aria-expanded', String(!filterRows.hidden)); };
-element('card-grid').onclick = event => {
+element('distribution').onchange = distribution;
+element('distribution-chart').onclick = event => { const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-filter]'); if (button) change(button.dataset.filter!, button.dataset.value!); };
+element('layout-toggle').onclick = () => { query.get('layout') === 'progress' ? query.delete('layout') : query.set('layout', 'progress'); history.replaceState(null, '', location.pathname + '?' + query); renderProjects(); };
+document.addEventListener('click', event => {
   if ((event.target as HTMLElement).closest('[data-project-id]')) {
     try { sessionStorage.setItem('geekdash_board_return', JSON.stringify({ url: location.href, scrollY: scrollY })); } catch { /* 无浏览器存储时可正常跳转。 */ }
   }
-};
+});
 window.addEventListener('focus', () => { if (hasResult) void load(); });
 setInterval(() => { if (hasResult && document.visibilityState === 'visible' && businessDate !== new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date())) void load(false); }, 60000);
-void import('./shared/api').then(async ({ requireIdentity }) => { await requireIdentity(); const settings = document.createElement('a'); settings.className = 'head-btn'; settings.href = '/settings.html'; settings.textContent = '公共检查规则'; document.querySelector('.head-actions')?.append(settings); await load(); }).catch(error => {
+void import('./shared/api').then(async ({ requireIdentity }) => { await requireIdentity();  await load(); }).catch(error => {
   element('message').textContent = (error as Error).message;
   const link = document.createElement('a'); link.href = '/login.html'; link.textContent = '登录 GeekDash'; element('message').append(' ', link);
 });

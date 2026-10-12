@@ -18,7 +18,7 @@ export const stages = [
   { code: 'S6', name: 'PVT量产验证', progress: 90 },
   { code: 'S7', name: 'MP量产维护', progress: 100 },
 ];
-export type ProjectQuery = Partial<Record<'view' | 'search' | 'customer' | 'productLine' | 'odmFactory' | 'app' | 'group' | 'status' | 'priority' | 'signal' | 'stage' | 'progress' | 'chip' | 'tags' | 'owner', string>> & { deadline?: DeadlineKind; page?: number; pageSize?: number };
+export type ProjectQuery = Partial<Record<'view' | 'search' | 'customer' | 'productLine' | 'odmFactory' | 'app' | 'group' | 'status' | 'priority' | 'signal' | 'stage' | 'progress' | 'chip' | 'tags' | 'owner', string>> & { deadline?: DeadlineKind; page?: number; pageSize?: number; dashboard?: '1' };
 
 async function rows(connection: PoolConnection, sql: string, values: unknown[] = []) {
   return (await connection.query<RowDataPacket[]>({ sql, timeout: 3000 }, values))[0];
@@ -106,7 +106,7 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
         const pageSize = query.pageSize ?? 24;
         const pageCount = Math.max(1, Math.ceil(total / pageSize));
         const page = Math.min(query.page ?? 1, pageCount);
-        const items = await enrich(connection, await rows(connection, `SELECT ${columns},${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress ${joins} ${filtered.sql} ORDER BY p.id DESC LIMIT ? OFFSET ?`, [...filtered.values, pageSize, (page - 1) * pageSize]));
+        const items = await enrich(connection, await rows(connection, `SELECT ${columns},${query.dashboard ? 'p.summary_note summaryNote,' : ''}${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress ${joins} ${filtered.sql} ORDER BY p.id DESC LIMIT ? OFFSET ?`, [...filtered.values, pageSize, (page - 1) * pageSize]));
         for (const project of items) project.deadline = deadlineResult(project as RowDataPacket & DateFacts, today);
         await enrichChecks(connection, items, checkRule);
         const options: Record<string, string[]> = {};
@@ -121,7 +121,21 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
         }
         for (const option of await rows(connection, optionQueries.join(' UNION ALL ') + ' ORDER BY dimension,value', optionQueries.flatMap(() => base.values))) options[option.dimension].push(option.value);
         const stageCounts = await rows(connection, `SELECT ${stageExpression} value,COUNT(*) count ${joins} ${filtered.sql} GROUP BY value`, filtered.values);
-        return { items, businessDate: today, stats: Object.fromEntries(Object.entries(stats).map(([key, value]) => [key, Number(value)])), stageCounts, options, pagination: { page, pageSize, total, pageCount }, readOnly: true };
+        let dashboard;
+        if (query.dashboard) {
+          const all = await rows(connection, `SELECT CAST(p.id AS CHAR) id,p.name,p.status,p.priority,p.signal,p.status_description statusDesc,p.updated_at updatedAt,c.name customer,pl.name productLine,${stageExpression} stage,${progressExpression} progress ${joins} ${filtered.sql} ORDER BY p.id DESC`, filtered.values);
+          const distributions = Object.fromEntries(['customer', 'productLine', 'status', 'priority', 'signal', 'stage'].map(key => {
+            const counts = new Map<string, number>();
+            for (const project of all) { const value = String(project[key] ?? ''); counts.set(value, (counts.get(value) ?? 0) + 1); }
+            return [key, [...counts].map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, 'zh-CN'))];
+          }));
+          const focus = all.filter(project => project.status !== 'closed');
+          const priorities: Record<string, number> = { high: 0, mid: 1, low: 2 };
+          focus.sort((a, b) => priorities[a.priority] - priorities[b.priority] || Number(b.progress) - Number(a.progress));
+          const team = await rows(connection, "SELECT CAST(e.id AS CHAR) id,e.name,COUNT(DISTINCT CASE WHEN p.status<>'closed' AND pp.role IN ('hardware_owner','software_owner','pm') THEN p.id END) count FROM engineers e LEFT JOIN project_people pp ON pp.engineer_id=e.id LEFT JOIN projects p ON p.id=pp.project_id GROUP BY e.id,e.name ORDER BY count DESC,e.name,e.id");
+          dashboard = { distributions, focusTotal: focus.length, focus: focus.slice(0, 12).map(({ id, name, status, priority, stage, progress }) => ({ id, name, status, priority, stage, progress })), latest: [...all].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 10).map(({ id, name, statusDesc, updatedAt }) => ({ id, name, statusDesc, updatedAt })), team: team.map(member => ({ ...member, count: Number(member.count) })) };
+        }
+        return { items, businessDate: today, stats: Object.fromEntries(Object.entries(stats).map(([key, value]) => [key, Number(value)])), stageCounts, options, pagination: { page, pageSize, total, pageCount }, readOnly: true, ...(dashboard ? { dashboard } : {}) };
       });
     },
     detail(id: string, accountId?: string) {
