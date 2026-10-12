@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { createApp } from '../dist/server/app.js';
 import { connectDatabase } from '../dist/server/infrastructure/db.js';
 import { openRuntimeDatabase } from '../dist/server/infrastructure/runtime-database.js';
-import { addDays, businessToday, businessWeek } from '../dist/server/modules/project-dates.js';
+import { addDays, businessToday, businessWeek, deadlineKinds } from '../dist/server/modules/project-dates.js';
 import { changeRows, riskRows, deletedNodes } from '../dist/server/modules/project-records.js';
 import { hashPassword } from '../dist/server/modules/identity.js';
+import { projectReads } from '../dist/server/modules/projects.js';
 
 const changeMode = process.argv.includes('--changes'), changeIds = [];
 assert(!changeMode || process.argv.includes('--recovery'), '变更容量沿完整已删节点/风险/检查负载验收');
@@ -17,6 +18,10 @@ const nodeMode = process.argv.includes('--nodes'), nodeIds = [];
 const recoveryMode = process.argv.includes('--recovery'), deletedIds = [];
 assert(!recoveryMode || nodeMode && riskMode && checkMode, '恢复容量沿完整节点/风险/检查负载验收');
 const profileMode = process.argv.includes('--sql-profile'), sqlSamples = new Map();
+const compareMode = process.argv.includes('--compare-fixed');
+const fixedDirectory = process.env.GEEKDASH_LIST_FALLBACK_DIR;
+assert(!compareMode || fixedDirectory, '等价验证必须从实际29ed3d9固定镜像导出旧模块');
+let fixedEquivalence;
 let profiling = false;
 function summary(values) { const sorted = [...values].sort((a, b) => a - b); return { requests: sorted.length, p50Ms: Math.round(sorted[Math.ceil(sorted.length * .5) - 1] * 100) / 100, p95Ms: Math.round(sorted[Math.ceil(sorted.length * .95) - 1] * 100) / 100, maxMs: Math.round(sorted.at(-1) * 100) / 100 }; }
 
@@ -27,7 +32,7 @@ const namespace = changeMode ? '__capacity_500_changes_test__' : recoveryMode ? 
 const ids = Array.from({length: 501}, (_, i) => String(9007199254780000n + BigInt(i)));
 const {connection} = await connectDatabase('test_migrator');
 let app, runtime, origin, owned = false, ownConfig = false, checkRule;
-const references = {customers: [], chips: [], engineers: [], tags: []};
+const references = {customers: [], chips: [], engineers: [], tags: [], ...(compareMode ? { product_lines: [], apps: [], project_groups: [] } : {})};
 const measurements = {...(changeMode ? {changePreview: [], changeSave: []} : {}), list: [], detail: [], save: [], audit: [], ...(checkMode ? {checkSave: [], checkHistory: []} : {}), ...(riskMode ? {riskPreview: [], riskSave: []} : {}), ...(nodeMode ? {nodePreview: [], nodeSave: []} : {}), ...(recoveryMode ? {deletedRead: [], restorePreview: [], restoreSave: [], deletePreview: [], deleteSave: []} : {})};
 const began = new Date().toISOString();
 const accounts = [];
@@ -70,7 +75,7 @@ try {
     Object.assign(accounts[index],{cookie:cookies.find(value=>value.startsWith('geekdash_dev=')),csrf:cookies.find(value=>value.startsWith('geekdash_dev_csrf=')).split('=')[1]});
   }
   await connection.beginTransaction();
-  for (const [table, columns] of Object.entries({customers:['contact','background'], chips:['original_model','manufacturer','firmware_version'],engineers:['role'],tags:[]})) {
+  for (const [table, columns] of Object.entries({customers:['contact','background'], chips:['original_model','manufacturer','firmware_version'],engineers:['role'],tags:[], ...(compareMode ? { product_lines: [], apps: ['app_version', 'description'], project_groups: [] } : {})})) {
     for (let index = 0; index < 4; index++) {
       const [created] = await connection.execute(`INSERT INTO ${table} (name,${columns.length ? columns.join(',')+',' : ''}enabled,version,created_at,updated_at) VALUES (?${columns.map(()=>',?').join('')},1,1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))`, ['规模夹具-'+table+'-'+index,...columns.map(()=> '')]);
       references[table].push(String(created.insertId));
@@ -160,6 +165,34 @@ try {
   const last = await api('/api/projects?view=all&search='+encodeURIComponent('规模测试项目')+'&page=21'); assert.equal(last.items.length,20);
   // 预热一轮；记录包含本地 HTTP 与真实事务的实际延时。
   await api('/api/projects?view=all'); await api('/api/projects/'+ids[0]);
+  if (compareMode) {
+    const oldBuild = JSON.parse(await readFile(fixedDirectory + '/build-info.json', 'utf8'));
+    assert.equal(oldBuild.revision, '29ed3d900cadf4140ad9ff149e8b98e23f487e31'); assert.equal(oldBuild.dirty, false);
+    const { projectReads: oldReads } = await import(fixedDirectory + '/server/modules/projects.js');
+    const now = new Date(), current = projectReads(runtime, () => now), previous = oldReads(runtime, () => now);
+    let compared = 0;
+    const compare = async query => { assert.deepEqual(await current.list(query), await previous.list(query), '固定旧版与候选列表不一致：' + JSON.stringify(query)); compared++; };
+    for (let index = 0; index < 4; index++) await connection.execute('UPDATE projects SET odm_customer_id=?,product_line_id=?,app_id=?,group_id=? WHERE customer_id=? AND source_namespace=?', [references.customers[(index + 1) % 4], references.product_lines[index], references.apps[index], references.project_groups[index], references.customers[index], namespace]);
+    for (const query of [{}, { view: 'all' }, { view: 'all', page: 2 }, { view: 'all', page: 999 }, { view: 'all', pageSize: 1 }, { view: 'all', pageSize: 100 }, { view: 'proposal' }, { view: 'closed' }, { view: 'maintenance' }, { view: 'all', search: '不存在的项目' }, { view: 'all', search: '规模测试项目' }, { view: 'all', search: '%_!' }, { view: 'all', customer: '规模夹具-customers-0', search: '1' }, { view: 'all', productLine: '规模夹具-product_lines-0' }, { view: 'all', odmFactory: '规模夹具-customers-1' }, { view: 'all', app: '规模夹具-apps-0' }, { view: 'all', group: '规模夹具-project_groups-0' }, { view: 'all', status: 'ongoing' }, { view: 'all', signal: 'green' }, { view: 'all', priority: 'high' }, { view: 'all', stage: 'S1' }, { view: 'all', progress: '0' }, { view: 'all', progress: '5' }, { view: 'all', chip: '规模夹具-chips-0' }, { view: 'all', tags: '规模夹具-tags-0' }, { view: 'all', owner: '规模夹具-engineers-0' }, ...deadlineKinds.map(deadline => ({ view: 'all', deadline }))]) await compare(query);
+    const columns = ['status', 'priority', 'signal', 'current_due_date', 'closed_on', 'closure_due_date', 'closure_type', 'maintenance_enabled'];
+    const [original] = await connection.query('SELECT id,' + columns.map(key => '`' + key + '`').join(',') + ' FROM projects WHERE id IN (?,?,?,?) ORDER BY id', ids.slice(0, 4));
+    try {
+      for (const [index, name] of ['ÉCLAIR', 'eclair', '中文物料', '中文物料'].entries()) await connection.execute('UPDATE customers SET name=? WHERE id=?', [name, references.customers[index]]);
+      for (const [index, status] of ['proposal', 'paused', 'closed', 'closed'].entries()) await connection.execute("UPDATE projects SET status=?,priority=?,`signal`=?,current_due_date='2020-01-01',closed_on=?,closure_due_date=?,closure_type=?,maintenance_enabled=? WHERE id=?", [status, index % 2 ? 'low' : 'high', index % 2 ? 'red' : 'yellow', index > 1 ? '2020-01-03' : null, index > 1 ? '2020-01-01' : null, index > 1 ? 'normal' : null, index === 3 ? 1 : 0, ids[index]]);
+      for (const query of [{ view: 'all' }, { view: 'active' }, { view: 'proposal' }, { view: 'closed' }, { view: 'maintenance' }, { view: 'all', customer: 'éclair' }, { view: 'all', search: '中文' }, ...deadlineKinds.map(deadline => ({ view: 'all', deadline }))]) await compare(query);
+    } finally {
+      for (const row of original) await connection.execute('UPDATE projects SET ' + columns.map(key => '`' + key + '`=?').join(',') + ' WHERE id=?', [...columns.map(key => row[key]), row.id]);
+      for (const [index, id] of references.customers.entries()) await connection.execute('UPDATE customers SET name=? WHERE id=?', ['规模夹具-customers-' + index, id]);
+    }
+    await Promise.all(ids.slice(0, 4).map(async (id, index) => {
+      const before = await api('/api/projects/' + id);
+      const saved = (await api('/api/projects/' + id, 'PATCH', { expectedVersion: before.project.version, idempotencyKey: randomUUID(), changes: { summaryNote: '等价验证并发保存后的新值' + index } })).result;
+      const after = await api('/api/projects/' + id);
+      assert.equal(after.project.version, saved.savedVersion); assert.equal(after.project.summaryNote, saved.values.summaryNote);
+    }));
+    await compare({ view: 'all', pageSize: 24 });
+    fixedEquivalence = { queryCount: compared, oldBuild, sameDatabaseAndClock: true, completeJsonCompared: true, collationAndLegacyClosureScenarios: true, concurrentSavesAndFreshReadback: 4 };
+  }
   profiling = profileMode;
   for (let round=0;round<20;round++) await Promise.all(Array.from({length:4},async(_,worker)=>{
     const target=ids[worker];
@@ -213,7 +246,8 @@ try {
   assert.equal((await api('/api/projects?view=all&search='+encodeURIComponent('规模测试项目'))).pagination.total,501);
   const sqlProfile = [];
   if (profileMode) {
-    assert.equal(sqlSamples.size, 14, '实际列表的统计/分页/八维度/三关联/阶段分布应全部被计时');
+    const expectedShapes = [...sqlSamples.keys()].some(sql => sql.includes('UNION ALL')) ? 4 : 14;
+    assert.equal(sqlSamples.size, expectedShapes, '实际固定/优化列表各查询形状应全部被计时');
     for (const [sql, sample] of [...sqlSamples].sort((a, b) => summary(b[1].times).p95Ms - summary(a[1].times).p95Ms)) {
       assert.equal(sample.times.length, 80, '四会话二十轮应每形状计时八十次');
       const metrics = summary(sample.times);
@@ -226,8 +260,9 @@ try {
   const result={status:'passed',startedAt:began,checkedAt:new Date().toISOString(),projectCount:500,stageCount:3500,initialAuditCount:(checkMode?1500:500)+(riskMode?1000:0)+(nodeMode?1500:0),...(checkMode?{checkCount:1580,initialCorrectionCount:500,weekHistoryCount:1000}:{}),...(riskMode?{riskCount:1000,realRiskAdditions:500,riskCorrections:580,riskQueryPlan}:{}),...(nodeMode?{nodeCount:2000,realNodeAdditions:1500,nodeMoveCount:80}:{}),processMemory:process.memoryUsage(),workers:4,authenticated:true,rounds:20,errorCount:0,measurements:latency,...(profileMode ? { sqlProfile, diagnosticTimingEnabled: true } : {}),noHardProjectLimit:true,source:'专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时'};
   if(recoveryMode)Object.assign(result,{initialAuditCount:result.initialAuditCount+1000,initialActiveNodes:1500,deletedNodeCount:500,realInitialDeletes:500,restoreCount:80,deleteCount:580,deletedQueryPlan});
   if(changeMode)Object.assign(result,{initialAuditCount:result.initialAuditCount+1000,changeCount:1000,realChangeAdditions:500,changeCorrections:580,changeQueryPlan});
-  if (profileMode) result.build = (await api('/api/health/live')).build;
-  await writeFile(changeMode?'test-results/project-changes-capacity-check.json':recoveryMode?'test-results/project-node-recovery-capacity-check.json':nodeMode?'test-results/project-nodes-capacity-check.json':riskMode?'test-results/project-risks-capacity-check.json':checkMode?'test-results/project-checks-capacity-check.json':'test-results/project-capacity-check.json',JSON.stringify(result,null,2)+'\n'); console.log(JSON.stringify(result));
+  if (profileMode || compareMode) result.build = (await api('/api/health/live')).build;
+  if (compareMode) result.fixedEquivalence = fixedEquivalence;
+  await writeFile(compareMode?'test-results/project-list-equivalence-check.json':changeMode?'test-results/project-changes-capacity-check.json':recoveryMode?'test-results/project-node-recovery-capacity-check.json':nodeMode?'test-results/project-nodes-capacity-check.json':riskMode?'test-results/project-risks-capacity-check.json':checkMode?'test-results/project-checks-capacity-check.json':'test-results/project-capacity-check.json',JSON.stringify(result,null,2)+'\n'); console.log(JSON.stringify(result));
 } finally {
   await connection.rollback(); await app?.close();
   if (!app) await runtime?.close();

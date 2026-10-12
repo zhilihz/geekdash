@@ -110,12 +110,16 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
         for (const project of items) project.deadline = deadlineResult(project as RowDataPacket & DateFacts, today);
         await enrichChecks(connection, items, checkRule);
         const options: Record<string, string[]> = {};
+        const optionQueries: string[] = [];
         for (const [key, column] of Object.entries(dimensionColumns)) {
-          options[key] = (await rows(connection, `SELECT DISTINCT ${column} value ${joins} ${base.sql}${base.sql ? ' AND ' : ' WHERE '}${column} IS NOT NULL ORDER BY value`, base.values)).map(row => row.value);
+          options[key] = [];
+          optionQueries.push(`(SELECT DISTINCT '${key}' dimension,${column} value ${joins} ${base.sql}${base.sql ? ' AND ' : ' WHERE '}${column} IS NOT NULL ORDER BY value)`);
         }
         for (const [key, table, link, reference] of [['chip', 'chips', 'project_chips', 'chip_id'], ['tags', 'tags', 'project_tags', 'tag_id'], ['owner', 'engineers', 'project_people', 'engineer_id']]) {
-          options[key] = (await rows(connection, `SELECT DISTINCT r.name value ${joins} JOIN ${link} l ON l.project_id=p.id JOIN ${table} r ON r.id=l.${reference} ${base.sql} ORDER BY value`, base.values)).map(row => row.value);
+          options[key] = [];
+          optionQueries.push(`(SELECT DISTINCT '${key}' dimension,r.name value ${joins} JOIN ${link} l ON l.project_id=p.id JOIN ${table} r ON r.id=l.${reference} ${base.sql} ORDER BY value)`);
         }
+        for (const option of await rows(connection, optionQueries.join(' UNION ALL ') + ' ORDER BY dimension,value', optionQueries.flatMap(() => base.values))) options[option.dimension].push(option.value);
         const stageCounts = await rows(connection, `SELECT ${stageExpression} value,COUNT(*) count ${joins} ${filtered.sql} GROUP BY value`, filtered.values);
         return { items, businessDate: today, stats: Object.fromEntries(Object.entries(stats).map(([key, value]) => [key, Number(value)])), stageCounts, options, pagination: { page, pageSize, total, pageCount }, readOnly: true };
       });

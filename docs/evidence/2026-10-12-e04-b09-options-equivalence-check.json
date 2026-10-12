@@ -1,0 +1,68 @@
+{
+  "status": "passed",
+  "startedAt": "2026-10-12T02:51:50.118Z",
+  "checkedAt": "2026-10-12T02:52:22.164Z",
+  "projectCount": 500,
+  "stageCount": 3500,
+  "initialAuditCount": 500,
+  "processMemory": {
+    "rss": 232308736,
+    "heapTotal": 36376576,
+    "heapUsed": 28780600,
+    "external": 5744374,
+    "arrayBuffers": 1687176
+  },
+  "workers": 4,
+  "authenticated": true,
+  "rounds": 20,
+  "errorCount": 0,
+  "measurements": {
+    "list": {
+      "requests": 80,
+      "p50Ms": 143,
+      "p95Ms": 166,
+      "maxMs": 204
+    },
+    "detail": {
+      "requests": 80,
+      "p50Ms": 28,
+      "p95Ms": 34,
+      "maxMs": 38
+    },
+    "save": {
+      "requests": 80,
+      "p50Ms": 38,
+      "p95Ms": 49,
+      "maxMs": 67
+    },
+    "audit": {
+      "requests": 80,
+      "p50Ms": 14,
+      "p95Ms": 19,
+      "maxMs": 25
+    }
+  },
+  "noHardProjectLimit": true,
+  "source": "专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时",
+  "build": {
+    "revision": "611ea1e108e56d96f8ce62bc4f72ca7f22f63fb5",
+    "dirty": true,
+    "builtAt": "2026-10-12T02:51:47.254Z",
+    "stage": "project-changes",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "fixedEquivalence": {
+    "queryCount": 52,
+    "oldBuild": {
+      "revision": "29ed3d900cadf4140ad9ff149e8b98e23f487e31",
+      "dirty": false,
+      "builtAt": "2026-10-12T01:36:28.599Z",
+      "stage": "project-changes",
+      "schemaVersion": "0003-node-recovery"
+    },
+    "sameDatabaseAndClock": true,
+    "completeJsonCompared": true,
+    "collationAndLegacyClosureScenarios": true,
+    "concurrentSavesAndFreshReadback": 4
+  }
+}

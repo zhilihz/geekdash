@@ -10,11 +10,11 @@
 
 两端实际运行29ed3d9/project-changes/0003。公网合成项目18/v8、4需求/1风险/1节点/14审计，两原会话及9原结果保存在D:/geekwon/geekdash-data/secrets/changes-public-sessions.json；原项目16/17四会话/25结果保持。只读核对先用原编号正文，不重造命令、初始化或改密；本批install已SUCCESS且release存在，禁止盲重跑。
 
-当前codex/e04-b09-integration，从main/fe56b36施工；计划d43b55d/14.9.19、工具8ee8baf已经实际验证本机/云169整链请求与30重建后原结果，云三轮普通/一轮混合SQL诊断。准确事实归[真相47](../status/current-system-truth.md#47-e04-b09接口整链与sql诊断基线2026-10-12)/[B09报告](../testing/reports/2026-10-12-e04-b09.md)，当前待本记录具名提交main，之后重核最终refs；运行仍29ed3d9。
-+
-+下一步14.9.20/AD-021共同列表候选：先按实际旧固定镜像模块做同库/同日全JSON等价验证，再减少分页展示工作及串行选项查询，正常500三轮/混合一轮重复验收。云普通224/243/192ms、混合210ms仍未稳定200ms，不把某一轮通过称根因修复。没有待处理TAT写操作；b09-cloud已SUCCESS/exit0，受控incoming为8ee8baf，禁止重新发送同一验证；原完整事实文件分段只读取回，PE-20261012-002。
-+
-+原生本轮inventory仍Edge fetch失败，AD-007URL策略限制保留；不能换表面/脚本绕过，也不以API替代。完成E04后才规划下一阶段全部步骤→实施验收→main循环。
+当前codex/e04-b09-list-performance从main/611ea1e施工。B09基线和工具8ee8baf已合并回读；候选14.9.20.1/AD-022保留原分页、原关联与类型，只合并11选项查询。旧固定29ed3d9实际模块52组全JSON、四人保存新读、本机9条命令/169整链及正常500三轮/完整混合通过，准确范围归[真相48](../status/current-system-truth.md#48-e04-b09选项读取候选2026-10-12)/[B09报告](../testing/reports/2026-10-12-e04-b09.md)。本记录待具名提交，接手重核refs；运行仍29ed3d9。
+
+下一步：先本记录/候选具名提交main并干净固定构建；固定等价/整链及两库verify，精确发布包含18个原/新验证脚本，云普通三轮/混合一轮与原公共项目/会话/原结果回读，实际app恢复。部署前只读list-preflight已通过，尚未发送部署TAT；test-results/list-*是本批待执行辅助，不能盲重跑旧changes/b09-cloud。Node未见溢出，只处理自己产生的工具。
+
+原生本轮inventory仍Edge fetch失败，AD-007 URL策略限制保留；不能换表面/脚本绕过，也不以API替代。完整原生联验完成前E04继续active，完成后才进入下一阶段完整规划→实施→main循环。
 
 新完整两库备份/指纹/回退入口归本批部署；长云SQL只用/run/secrets/mysql_health，不共享健康cp临时目标。原0003兼容历史及PE-011/002仍可查询旧报告。真实备份不接、隔离恢复/外部副本未验。Node未见溢出，自有/tmp/geekdash-changes-root.cnf已删除；未全局kill/prune/删卷，云MySQL及其他17容器未重启，无未完成TAT写任务。
 

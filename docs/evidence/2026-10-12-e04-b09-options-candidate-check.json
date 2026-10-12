@@ -1,0 +1,875 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-12T02:57:02.365626+00:00",
+  "build": {
+    "revision": "611ea1e108e56d96f8ce62bc4f72ca7f22f63fb5",
+    "dirty": true,
+    "builtAt": "2026-10-12T02:51:47.254Z",
+    "stage": "project-changes",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "projectReadsSourceSha256": "65a72a12cf9dbb8afa7e7f41817d56a08309e0f099946e97da17f7e7a39c3160",
+  "commands": [
+    {
+      "label": "reads",
+      "report": {
+        "checkedAt": "2026-10-12T02:53:02.337Z",
+        "scope": "专用测试库、真实 HTTP/MySQL；不包含业务保存或公网性能",
+        "checks": [
+          {
+            "check": "actual-http-list-views-filters-pagination-literal-search-id-validation-no-write",
+            "passed": true
+          },
+          {
+            "check": "complete-project-snapshot-with-all-read-collections-and-bigint-precision",
+            "passed": true
+          },
+          {
+            "check": "real-concurrent-commit-does-not-mix-detail-versions-fresh-request-sees-new-version",
+            "passed": true
+          },
+          {
+            "check": "four-concurrent-real-list-reads-and-pool-exhaustion-recovery",
+            "passed": true,
+            "requests": 20,
+            "p95Ms": 34
+          }
+        ]
+      }
+    },
+    {
+      "label": "ordinary",
+      "report": {
+        "status": "passed",
+        "checkedAt": "2026-10-12T02:53:05.686Z",
+        "source": "真实 test MySQL 与 HTTP；合成输入",
+        "checks": [
+          {
+            "check": "ordinary-fields-relations-single-version-fresh-sql-http-filter-stats-audit",
+            "passed": true
+          },
+          {
+            "check": "existing-disabled-kept-new-disabled-rejected-receipt-replay-and-no-change",
+            "passed": true
+          },
+          {
+            "check": "whitelist-reference-validation-relation-and-audit-failure-all-rollback",
+            "passed": true
+          },
+          {
+            "check": "explicit-clear-and-omitted-relations-preserved",
+            "passed": true
+          },
+          {
+            "check": "same-version-conflict-real-commit-lost-ack-reopen-and-exact-replay",
+            "passed": true
+          },
+          {
+            "check": "reference-row-lock-observes-concurrent-disabled-before-new-link",
+            "passed": true
+          },
+          {
+            "check": "four-workers-same-project-five-rounds-one-winner",
+            "passed": true,
+            "requests": 20,
+            "p95Ms": 29,
+            "maxMs": 31
+          }
+        ]
+      }
+    },
+    {
+      "label": "core",
+      "report": {
+        "status": "passed",
+        "checks": [
+          "真实临时登录、强制改密、CSRF、改密后重新登录和旧会话撤销",
+          "创建项目及七阶段、真实创建者、自动负责、重复创建对账、非负责人只读和最后退出拒绝",
+          "本人加入、实名普通保存及新连接回读、回执账号隔离、统一版本冲突及实名历史",
+          "保存及创建审计故障：项目、七阶段、关系、版本和回执整体回滚",
+          "同时退出仅一个成功，提交后丢失响应、应用重建后原责任回执与持久会话接续",
+          "四个真实账号同版本并发保存仅一个成功，其他冲突可恢复",
+          "事务内拒绝已停用身份快照；旧匿名历史保留且只读确认，不伪造实名",
+          "后台请求不续期、真实前台活动续期、到期不可复活、明确退出撤销当前会话"
+        ],
+        "requests": 66,
+        "maxRequestMs": 90.18892899999992,
+        "build": {
+          "revision": "611ea1e108e56d96f8ce62bc4f72ca7f22f63fb5",
+          "dirty": true,
+          "builtAt": "2026-10-12T02:51:47.254Z",
+          "stage": "project-changes",
+          "schemaVersion": "0003-node-recovery"
+        }
+      }
+    },
+    {
+      "label": "integration",
+      "report": {
+        "status": "passed",
+        "checkedAt": "2026-10-12T02:53:14.104Z",
+        "checks": [
+          "四真实负责人、文字工期/风险节点变更统一保存、S1/实际启动/S2/S3与返工、首次义务保持、首次与最新检查消费",
+          "暂缓改计划/普通子记录→恢复→同ID节点恢复→遗留结案/主动检查/维护→可靠重开、实际未知纠错、原检查文字纠正，原创建及首次义务保留",
+          "四会话普通保存竞争一胜三冲突、旧动作/失权/混合非法拒绝；目标审计失败全部回滚、真实COMMIT丢确认重建后原会话及全链原结果、新SQL/看板消费"
+        ],
+        "requestCount": 169,
+        "originalReceiptsAfterRestart": 30,
+        "finalVersion": "32",
+        "build": {
+          "revision": "611ea1e108e56d96f8ce62bc4f72ca7f22f63fb5",
+          "dirty": true,
+          "builtAt": "2026-10-12T02:51:47.254Z",
+          "stage": "project-changes",
+          "schemaVersion": "0003-node-recovery"
+        },
+        "isolatedTestDatabase": true,
+        "syntheticOnly": true,
+        "nativeBrowserAcceptance": false
+      }
+    },
+    {
+      "label": "normal-0",
+      "report": {
+        "status": "passed",
+        "startedAt": "2026-10-12T02:53:16.052Z",
+        "checkedAt": "2026-10-12T02:53:29.862Z",
+        "projectCount": 500,
+        "stageCount": 3500,
+        "initialAuditCount": 500,
+        "processMemory": {
+          "rss": 225087488,
+          "heapTotal": 37425152,
+          "heapUsed": 28296352,
+          "external": 6016377,
+          "arrayBuffers": 1871335
+        },
+        "workers": 4,
+        "authenticated": true,
+        "rounds": 20,
+        "errorCount": 0,
+        "measurements": {
+          "list": {
+            "requests": 80,
+            "p50Ms": 36,
+            "p95Ms": 67,
+            "maxMs": 73
+          },
+          "detail": {
+            "requests": 80,
+            "p50Ms": 28,
+            "p95Ms": 44,
+            "maxMs": 65
+          },
+          "save": {
+            "requests": 80,
+            "p50Ms": 34,
+            "p95Ms": 60,
+            "maxMs": 86
+          },
+          "audit": {
+            "requests": 80,
+            "p50Ms": 14,
+            "p95Ms": 21,
+            "maxMs": 23
+          }
+        },
+        "noHardProjectLimit": true,
+        "source": "专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时"
+      }
+    },
+    {
+      "label": "normal-1",
+      "report": {
+        "status": "passed",
+        "startedAt": "2026-10-12T02:53:32.304Z",
+        "checkedAt": "2026-10-12T02:53:46.661Z",
+        "projectCount": 500,
+        "stageCount": 3500,
+        "initialAuditCount": 500,
+        "processMemory": {
+          "rss": 226365440,
+          "heapTotal": 36638720,
+          "heapUsed": 29730840,
+          "external": 6278958,
+          "arrayBuffers": 2220384
+        },
+        "workers": 4,
+        "authenticated": true,
+        "rounds": 20,
+        "errorCount": 0,
+        "measurements": {
+          "list": {
+            "requests": 80,
+            "p50Ms": 37,
+            "p95Ms": 60,
+            "maxMs": 68
+          },
+          "detail": {
+            "requests": 80,
+            "p50Ms": 29,
+            "p95Ms": 40,
+            "maxMs": 45
+          },
+          "save": {
+            "requests": 80,
+            "p50Ms": 38,
+            "p95Ms": 57,
+            "maxMs": 71
+          },
+          "audit": {
+            "requests": 80,
+            "p50Ms": 18,
+            "p95Ms": 26,
+            "maxMs": 33
+          }
+        },
+        "noHardProjectLimit": true,
+        "source": "专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时"
+      }
+    },
+    {
+      "label": "normal-2",
+      "report": {
+        "status": "passed",
+        "startedAt": "2026-10-12T02:53:49.101Z",
+        "checkedAt": "2026-10-12T02:54:03.264Z",
+        "projectCount": 500,
+        "stageCount": 3500,
+        "initialAuditCount": 500,
+        "processMemory": {
+          "rss": 226013184,
+          "heapTotal": 37425152,
+          "heapUsed": 28955184,
+          "external": 6113703,
+          "arrayBuffers": 2056505
+        },
+        "workers": 4,
+        "authenticated": true,
+        "rounds": 20,
+        "errorCount": 0,
+        "measurements": {
+          "list": {
+            "requests": 80,
+            "p50Ms": 37,
+            "p95Ms": 41,
+            "maxMs": 62
+          },
+          "detail": {
+            "requests": 80,
+            "p50Ms": 30,
+            "p95Ms": 38,
+            "maxMs": 44
+          },
+          "save": {
+            "requests": 80,
+            "p50Ms": 37,
+            "p95Ms": 47,
+            "maxMs": 58
+          },
+          "audit": {
+            "requests": 80,
+            "p50Ms": 17,
+            "p95Ms": 20,
+            "maxMs": 24
+          }
+        },
+        "noHardProjectLimit": true,
+        "source": "专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时"
+      }
+    },
+    {
+      "label": "profile",
+      "report": {
+        "status": "passed",
+        "startedAt": "2026-10-12T02:54:05.760Z",
+        "checkedAt": "2026-10-12T02:54:20.068Z",
+        "projectCount": 500,
+        "stageCount": 3500,
+        "initialAuditCount": 500,
+        "processMemory": {
+          "rss": 225513472,
+          "heapTotal": 37163008,
+          "heapUsed": 30753160,
+          "external": 6809338,
+          "arrayBuffers": 2750764
+        },
+        "workers": 4,
+        "authenticated": true,
+        "rounds": 20,
+        "errorCount": 0,
+        "measurements": {
+          "list": {
+            "requests": 80,
+            "p50Ms": 35,
+            "p95Ms": 41,
+            "maxMs": 56
+          },
+          "detail": {
+            "requests": 80,
+            "p50Ms": 29,
+            "p95Ms": 39,
+            "maxMs": 50
+          },
+          "save": {
+            "requests": 80,
+            "p50Ms": 37,
+            "p95Ms": 43,
+            "maxMs": 45
+          },
+          "audit": {
+            "requests": 80,
+            "p50Ms": 16,
+            "p95Ms": 21,
+            "maxMs": 25
+          }
+        },
+        "sqlProfile": [
+          {
+            "sql": "(SELECT DISTINCT 'customer' dimension,c.name value FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id WHERE c.name IS NOT NULL ORDER BY value) UNION ALL (SELECT DISTINCT 'productLine' dimension,pl.name value FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id WHERE pl.name IS NOT NULL ORDER BY value) UNION ALL (SELECT DISTINCT 'odmFactory' dimension,odm.name value FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id WHERE odm.name IS NOT NULL ORDER BY value) UNION ALL (SELECT DISTINCT 'app' dimension,a.name value FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id WHERE a.name IS NOT NULL ORDER BY value) UNION ALL (SELECT DISTINCT 'group' dimension,g.name value FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id WHERE g.name IS NOT NULL ORDER BY value) UNION ALL (SELECT DISTINCT 'status' dimension,p.status value FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id WHERE p.status IS NOT NULL ORDER BY value) UNION ALL (SELECT DISTINCT 'priority' dimension,p.priority value FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id WHERE p.priority IS NOT NULL ORDER BY value) UNION ALL (SELECT DISTINCT 'signal' dimension,p.signal value FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id WHERE p.signal IS NOT NULL ORDER BY value) UNION ALL (SELECT DISTINCT 'chip' dimension,r.name value FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id JOIN project_chips l ON l.project_id=p.id JOIN chips r ON r.id=l.chip_id ORDER BY value) UNION ALL (SELECT DISTINCT 'tags' dimension,r.name value FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id JOIN project_tags l ON l.project_id=p.id JOIN tags r ON r.id=l.tag_id ORDER BY value) UNION ALL (SELECT DISTINCT 'owner' dimension,r.name value FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id JOIN project_people l ON l.project_id=p.id JOIN engineers r ON r.id=l.engineer_id ORDER BY value) ORDER BY dimension,value",
+            "requests": 80,
+            "p50Ms": 7.14,
+            "p95Ms": 10.22,
+            "maxMs": 10.9,
+            "explainAnalyze": "-> Sort: dimension, `value`  (cost=18143..18143 rows=5258) (actual time=8.42..8.42 rows=21 loops=1)\n    -> Table scan on <union temporary>  (cost=11051..11119 rows=5258) (actual time=8.38..8.38 rows=21 loops=1)\n        -> Union all materialize  (cost=11051..11051 rows=5258) (actual time=8.37..8.37 rows=21 loops=1)\n            -> Table scan on <temporary>  (cost=639..647 rows=376) (actual time=0.902..0.903 rows=4 loops=1)\n                -> Temporary table with deduplication  (cost=639..639 rows=376) (actual time=0.901..0.901 rows=4 loops=1)\n                    -> Nested loop left join  (cost=602 rows=376) (actual time=0.0537..0.76 rows=500 loops=1)\n                        -> Nested loop left join  (cost=470 rows=376) (actual time=0.0525..0.691 rows=500 loops=1)\n                            -> Nested loop left join  (cost=339 rows=376) (actual time=0.0512..0.595 rows=500 loops=1)\n                                -> Nested loop left join  (cost=207 rows=376) (actual time=0.05..0.509 rows=500 loops=1)\n                                    -> Nested loop inner join  (cost=75.8 rows=376) (actual time=0.0482..0.437 rows=500 loops=1)\n                                        -> Filter: ((c.`name` is not null) and (c.id is not null))  (cost=0.65 rows=3) (actual time=0.0128..0.0145 rows=4 loops=1)\n                                            -> Covering index scan on c using idx_enabled_name_id  (cost=0.65 rows=4) (actual time=0.0116..0.0127 rows=4 loops=1)\n                                        -> Index lookup on p using idx_customer_id_status_id (customer_id=c.id)  (cost=16.7 rows=125) (actual time=0.0209..0.0998 rows=125 loops=4)\n                                    -> Single-row covering index lookup on odm using PRIMARY (id=p.odm_customer_id)  (cost=0.25 rows=1) (actual time=56.2e-6..56.2e-6 rows=0 loops=500)\n                                -> Single-row covering index lookup on pl using PRIMARY (id=p.product_line_id)  (cost=0.25 rows=1) (actual time=84.3e-6..84.3e-6 rows=0 loops=500)\n                            -> Single-row covering index lookup on a using PRIMARY (id=p.app_id)  (cost=0.25 rows=1) (actual time=105e-6..105e-6 rows=0 loops=500)\n                        -> Single-row covering index lookup on g using PRIMARY (id=p.group_id)  (cost=0.25 rows=1) (actual time=50.7e-6..50.7e-6 rows=0 loops=500)\n            -> Table scan on <temporary>  (cost=807..815 rows=501) (actual time=0.051..0.051 rows=0 loops=1)\n                -> Temporary table with deduplication  (cost=807..807 rows=501) (actual time=0.0506..0.0506 rows=0 loops=1)\n                    -> Nested loop left join  (cost=757 rows=501) (actual time=0.045..0.045 rows=0 loops=1)\n                        -> Nested loop left join  (cost=581 rows=501) (actual time=0.0449..0.0449 rows=0 loops=1)\n                            -> Nested loop left join  (cost=406 rows=501) (actual time=0.0448..0.0448 rows=0 loops=1)\n                                -> Nested loop left join  (cost=231 rows=501) (actual time=0.0447..0.0447 rows=0 loops=1)\n                                    -> Inner hash join (p.product_line_id = pl.id)  (cost=55.2 rows=501) (actual time=0.00891..0.00891 rows=0 loops=1)\n                                        -> Table scan on p  (cost=54.9 rows=501) (never executed)\n                                        -> Hash\n                                            -> Filter: (pl.`name` is not null)  (cost=0.35 rows=1) (actual time=0.00415..0.00415 rows=0 loops=1)\n                                                -> Covering index scan on pl using idx_enabled_name_id  (cost=0.35 rows=1) (actual time=0.004..0.004 rows=0 loops=1)\n                                    -> Single-row covering index lookup on a using PRIMARY (id=p.app_id)  (cost=0.25 rows=1) (never executed)\n                                -> Single-row covering index lookup on g using PRIMARY (id=p.group_id)  (cost=0.25 rows=1) (never executed)\n                            -> Single-row covering index lookup on c using PRIMARY (id=p.customer_id)  (cost=0.25 rows=1) (never executed)\n                        -> Single-row covering index lookup on odm using PRIMARY (id=p.odm_customer_id)  (cost=0.25 rows=1) (never executed)\n            -> Table scan on <temporary>  (cost=969..976 rows=376) (actual time=0.749..0.749 rows=0 loops=1)\n                -> Temporary table with deduplication  (cost=969..969 rows=376) (actual time=0.749..0.749 rows=0 loops=1)\n                    -> Nested loop inner join  (cost=932 rows=376) (actual time=0.746..0.746 rows=0 loops=1)\n                        -> Nested loop left join  (cost=756 rows=501) (actual time=0.0653..0.641 rows=501 loops=1)\n                            -> Nested loop left join  (cost=581 rows=501) (actual time=0.0619..0.391 rows=501 loops=1)\n                                -> Nested loop left join  (cost=406 rows=501) (actual time=0.0608..0.322 rows=501 loops=1)\n                                    -> Nested loop left join  (cost=230 rows=501) (actual time=0.0553..0.249 rows=501 loops=1)\n                                        -> Table scan on p  (cost=54.9 rows=501) (actual time=0.0536..0.161 rows=501 loops=1)\n                                        -> Single-row covering index lookup on pl using PRIMARY (id=p.product_line_id)  (cost=0.25 rows=1) (actual time=53.7e-6..53.7e-6 rows=0 loops=501)\n                                    -> Single-row covering index lookup on a using PRIMARY (id=p.app_id)  (cost=0.25 rows=1) (actual time=59.5e-6..59.5e-6 rows=0 loops=501)\n                                -> Single-row covering index lookup on g using PRIMARY (id=p.group_id)  (cost=0.25 rows=1) (actual time=50.8e-6..50.8e-6 rows=0 loops=501)\n                            -> Single-row covering index lookup on c using PRIMARY (id=p.customer_id)  (cost=0.25 rows=1) (actual time=370e-6..390e-6 rows=0.998 loops=501)\n                        -> Filter: (odm.`name` is not null)  (cost=0.25 rows=0.75) (actual time=141e-6..141e-6 rows=0 loops=501)\n                            -> Single-row index lookup on odm using PRIMARY (id=p.odm_customer_id)  (cost=0.25 rows=1) (actual time=56.9e-6..56.9e-6 rows=0 loops=501)\n            -> Table scan on <temporary>  (cost=807..815 rows=501) (actual time=0.0214..0.0214 rows=0 loops=1)\n                -> Temporary table with deduplication  (cost=807..807 rows=501) (actual time=0.0211..0.0211 rows=0 loops=1)\n                    -> Nested loop left join  (cost=757 rows=501) (actual time=0.0168..0.0168 rows=0 loops=1)\n                        -> Nested loop left join  (cost=581 rows=501) (actual time=0.0166..0.0166 rows=0 loops=1)\n                            -> Nested loop left join  (cost=406 rows=501) (actual time=0.0165..0.0165 rows=0 loops=1)\n                                -> Nested loop left join  (cost=231 rows=501) (actual time=0.0163..0.0163 rows=0 loops=1)\n                                    -> Inner hash join (p.app_id = a.id)  (cost=55.2 rows=501) (actual time=0.0162..0.0162 rows=0 loops=1)\n                                        -> Table scan on p  (cost=54.9 rows=501) (never executed)\n                                        -> Hash\n                                            -> Filter: (a.`name` is not null)  (cost=0.35 rows=1) (actual time=0.0131..0.0131 rows=0 loops=1)\n                                                -> Covering index scan on a using idx_enabled_name_id  (cost=0.35 rows=1) (actual time=0.0129..0.0129 rows=0 loops=1)\n                                    -> Single-row covering index lookup on c using PRIMARY (id=p.customer_id)  (cost=0.25 rows=1) (never executed)\n                                -> Single-row covering index lookup on odm using PRIMARY (id=p.odm_customer_id)  (cost=0.25 rows=1) (never executed)\n                            -> Single-row covering index lookup on pl using PRIMARY (id=p.product_line_id)  (cost=0.25 rows=1) (never executed)\n                        -> Single-row covering index lookup on g using PRIMARY (id=p.group_id)  (cost=0.25 rows=1) (never executed)\n            -> Table scan on <temporary>  (cost=807..815 rows=501) (actual time=0.00725..0.00725 rows=0 loops=1)\n                -> Temporary table with deduplication  (cost=807..807 rows=501) (actual time=0.00706..0.00706 rows=0 loops=1)\n                    -> Nested loop left join  (cost=757 rows=501) (actual time=0.00485..0.00485 rows=0 loops=1)\n                        -> Nested loop left join  (cost=581 rows=501) (actual time=0.00476..0.00476 rows=0 loops=1)\n                            -> Nested loop left join  (cost=406 rows=501) (actual time=0.00466..0.00466 rows=0 loops=1)\n                                -> Nested loop left join  (cost=231 rows=501) (actual time=0.00457..0.00457 rows=0 loops=1)\n                                    -> Inner hash join (p.group_id = g.id)  (cost=55.2 rows=501) (actual time=0.00439..0.00439 rows=0 loops=1)\n                                        -> Table scan on p  (cost=54.9 rows=501) (never executed)\n                                        -> Hash\n                                            -> Filter: (g.`name` is not null)  (cost=0.35 rows=1) (actual time=0.00228..0.00228 rows=0 loops=1)\n                                                -> Covering index scan on g using idx_enabled_name_id  (cost=0.35 rows=1) (actual time=0.00219..0.00219 rows=0 loops=1)\n                                    -> Single-row covering index lookup on c using PRIMARY (id=p.customer_id)  (cost=0.25 rows=1) (never executed)\n                                -> Single-row covering index lookup on odm using PRIMARY (id=p.odm_customer_id)  (cost=0.25 rows=1) (never executed)\n                            -> Single-row covering index lookup on pl using PRIMARY (id=p.product_line_id)  (cost=0.25 rows=1) (never executed)\n                        -> Single-row covering index lookup on a using PRIMARY (id=p.app_id)  (cost=0.25 rows=1) (never executed)\n            -> Table scan on <temporary>  (cost=982..990 rows=501) (actual time=0.87..0.87 rows=1 loops=1)\n                -> Temporary table with deduplication  (cost=982..982 rows=501) (actual time=0.869..0.869 rows=1 loops=1)\n                    -> Nested loop left join  (cost=932 rows=501) (actual time=0.1..0.794 rows=501 loops=1)\n                        -> Nested loop left join  (cost=756 rows=501) (actual time=0.0989..0.726 rows=501 loops=1)\n                            -> Nested loop left join  (cost=581 rows=501) (actual time=0.0976..0.642 rows=501 loops=1)\n                                -> Nested loop left join  (cost=406 rows=501) (actual time=0.0966..0.572 rows=501 loops=1)\n                                    -> Nested loop left join  (cost=230 rows=501) (actual time=0.0956..0.502 rows=501 loops=1)\n                                        -> Table scan on p  (cost=54.9 rows=501) (actual time=0.0923..0.2 rows=501 loops=1)\n                                        -> Single-row covering index lookup on c using PRIMARY (id=p.customer_id)  (cost=0.25 rows=1) (actual time=470e-6..491e-6 rows=0.998 loops=501)\n                                    -> Single-row covering index lookup on odm using PRIMARY (id=p.odm_customer_id)  (cost=0.25 rows=1) (actual time=53.7e-6..53.7e-6 rows=0 loops=501)\n                                -> Single-row covering index lookup on pl using PRIMARY (id=p.product_line_id)  (cost=0.25 rows=1) (actual time=52.9e-6..52.9e-6 rows=0 loops=501)\n                            -> Single-row covering index lookup on a using PRIMARY (id=p.app_id)  (cost=0.25 rows=1) (actual time=52.9e-6..52.9e-6 rows=0 loops=501)\n                        -> Single-row covering index lookup on g using PRIMARY (id=p.group_id)  (cost=0.25 rows=1) (actual time=49.7e-6..49.7e-6 rows=0 loops=501)\n            -> Table scan on <temporary>  (cost=982..990 rows=501) (actual time=0.843..0.843 rows=2 loops=1)\n                -> Temporary table with deduplication  (cost=982..982 rows=501) (actual time=0.843..0.843 rows=2 loops=1)\n                    -> Nested loop left join  (cost=932 rows=501) (actual time=0.0786..0.751 rows=501 loops=1)\n                        -> Nested loop left join  (cost=756 rows=501) (actual time=0.0776..0.683 rows=501 loops=1)\n                            -> Nested loop left join  (cost=581 rows=501) (actual time=0.0768..0.615 rows=501 loops=1)\n                                -> Nested loop left join  (cost=406 rows=501) (actual time=0.0759..0.531 rows=501 loops=1)\n                                    -> Nested loop left join  (cost=230 rows=501) (actual time=0.0711..0.457 rows=501 loops=1)\n                                        -> Table scan on p  (cost=54.9 rows=501) (actual time=0.0685..0.176 rows=501 loops=1)\n                                        -> Single-row covering index lookup on c using PRIMARY (id=p.customer_id)  (cost=0.25 rows=1) (actual time=436e-6..456e-6 rows=0.998 loops=501)\n                                    -> Single-row covering index lookup on odm using PRIMARY (id=p.odm_customer_id)  (cost=0.25 rows=1) (actual time=62.2e-6..62.2e-6 rows=0 loops=501)\n                                -> Single-row covering index lookup on pl using PRIMARY (id=p.product_line_id)  (cost=0.25 rows=1) (actual time=51.3e-6..51.3e-6 rows=0 loops=501)\n                            -> Single-row covering index lookup on a using PRIMARY (id=p.app_id)  (cost=0.25 rows=1) (actual time=51.7e-6..51.7e-6 rows=0 loops=501)\n                        -> Single-row covering index lookup on g using PRIMARY (id=p.group_id)  (cost=0.25 rows=1) (actual time=50.2e-6..50.2e-6 rows=0 loops=501)\n            -> Table scan on <temporary>  (cost=982..990 rows=501) (actual time=0.796..0.796 rows=2 loops=1)\n                -> Temporary table with deduplication  (cost=982..982 rows=501) (actual time=0.795..0.795 rows=2 loops=1)\n                    -> Nested loop left join  (cost=932 rows=501) (actual time=0.0745..0.72 rows=501 loops=1)\n                        -> Nested loop left join  (cost=756 rows=501) (actual time=0.0737..0.652 rows=501 loops=1)\n                            -> Nested loop left join  (cost=581 rows=501) (actual time=0.0728..0.585 rows=501 loops=1)\n                                -> Nested loop left join  (cost=406 rows=501) (actual time=0.0714..0.516 rows=501 loops=1)\n                                    -> Nested loop left join  (cost=230 rows=501) (actual time=0.0706..0.447 rows=501 loops=1)\n                                        -> Table scan on p  (cost=54.9 rows=501) (actual time=0.0647..0.169 rows=501 loops=1)\n                                        -> Single-row covering index lookup on c using PRIMARY (id=p.customer_id)  (cost=0.25 rows=1) (actual time=429e-6..450e-6 rows=0.998 loops=501)\n                                    -> Single-row covering index lookup on odm using PRIMARY (id=p.odm_customer_id)  (cost=0.25 rows=1) (actual time=52e-6..52e-6 rows=0 loops=501)\n                                -> Single-row covering index lookup on pl using PRIMARY (id=p.product_line_id)  (cost=0.25 rows=1) (actual time=52.4e-6..52.4e-6 rows=0 loops=501)\n                            -> Single-row covering index lookup on a using PRIMARY (id=p.app_id)  (cost=0.25 rows=1) (actual time=50.1e-6..50.1e-6 rows=0 loops=501)\n                        -> Single-row covering index lookup on g using PRIMARY (id=p.group_id)  (cost=0.25 rows=1) (actual time=49.5e-6..49.5e-6 rows=0 loops=501)\n            -> Table scan on <temporary>  (cost=1152..1161 rows=500) (actual time=1.15..1.15 rows=4 loops=1)\n                -> Temporary table with deduplication  (cost=1152..1152 rows=500) (actual time=1.15..1.15 rows=4 loops=1)\n                    -> Nested loop left join  (cost=1102 rows=500) (actual time=0.051..1 rows=500 loops=1)\n                        -> Nested loop left join  (cost=927 rows=500) (actual time=0.0501..0.933 rows=500 loops=1)\n                            -> Nested loop left join  (cost=752 rows=500) (actual time=0.0452..0.862 rows=500 loops=1)\n                                -> Nested loop left join  (cost=577 rows=500) (actual time=0.0441..0.793 rows=500 loops=1)\n                                    -> Nested loop left join  (cost=402 rows=500) (actual time=0.0428..0.724 rows=500 loops=1)\n                                        -> Nested loop inner join  (cost=227 rows=500) (actual time=0.0403..0.602 rows=500 loops=1)\n                                            -> Nested loop inner join  (cost=52.1 rows=500) (actual time=0.0303..0.11 rows=500 loops=1)\n                                                -> Covering index scan on r using idx_enabled_name_id  (cost=0.65 rows=4) (actual time=0.0135..0.0146 rows=4 loops=1)\n                                                -> Covering index lookup on l using idx_chip_id_project_id (chip_id=r.id)  (cost=3.5 rows=125) (actual time=0.0103..0.0186 rows=125 loops=4)\n                                            -> Single-row index lookup on p using PRIMARY (id=l.project_id)  (cost=0.25 rows=1) (actual time=836e-6..856e-6 rows=1 loops=500)\n                                        -> Single-row covering index lookup on c using PRIMARY (id=p.customer_id)  (cost=0.25 rows=1) (actual time=79.6e-6..100e-6 rows=1 loops=500)\n                                    -> Single-row covering index lookup on odm using PRIMARY (id=p.odm_customer_id)  (cost=0.25 rows=1) (actual time=52.2e-6..52.2e-6 rows=0 loops=500)\n                                -> Single-row covering index lookup on pl using PRIMARY (id=p.product_line_id)  (cost=0.25 rows=1) (actual time=51.5e-6..51.5e-6 rows=0 loops=500)\n                            -> Single-row covering index lookup on a using PRIMARY (id=p.app_id)  (cost=0.25 rows=1) (actual time=57.8e-6..57.8e-6 rows=0 loops=500)\n                        -> Single-row covering index lookup on g using PRIMARY (id=p.group_id)  (cost=0.25 rows=1) (actual time=50.1e-6..50.1e-6 rows=0 loops=500)\n            -> Table scan on <temporary>  (cost=1152..1161 rows=500) (actual time=1.61..1.61 rows=4 loops=1)\n                -> Temporary table with deduplication  (cost=1152..1152 rows=500) (actual time=1.61..1.61 rows=4 loops=1)\n                    -> Nested loop left join  (cost=1102 rows=500) (actual time=0.248..1.45 rows=500 loops=1)\n                        -> Nested loop left join  (cost=927 rows=500) (actual time=0.238..1.37 rows=500 loops=1)\n                            -> Nested loop left join  (cost=752 rows=500) (actual time=0.235..1.22 rows=500 loops=1)\n                                -> Nested loop left join  (cost=577 rows=500) (actual time=0.231..1.15 rows=500 loops=1)\n                                    -> Nested loop left join  (cost=402 rows=500) (actual time=0.229..1.07 rows=500 loops=1)\n                                        -> Nested loop inner join  (cost=227 rows=500) (actual time=0.216..0.945 rows=500 loops=1)\n                                            -> Nested loop inner join  (cost=52.1 rows=500) (actual time=0.188..0.286 rows=500 loops=1)\n                                                -> Covering index scan on r using idx_enabled_name_id  (cost=0.65 rows=4) (actual time=0.012..0.0158 rows=4 loops=1)\n                                                -> Covering index lookup on l using idx_tag_id_project_id (tag_id=r.id)  (cost=3.5 rows=125) (actual time=0.0504..0.0618 rows=125 loops=4)\n                                            -> Single-row index lookup on p using PRIMARY (id=l.project_id)  (cost=0.25 rows=1) (actual time=0.00119..0.00121 rows=1 loops=500)\n                                        -> Single-row covering index lookup on c using PRIMARY (id=p.customer_id)  (cost=0.25 rows=1) (actual time=114e-6..135e-6 rows=1 loops=500)\n                                    -> Single-row covering index lookup on odm using PRIMARY (id=p.odm_customer_id)  (cost=0.25 rows=1) (actual time=63.7e-6..63.7e-6 rows=0 loops=500)\n                                -> Single-row covering index lookup on pl using PRIMARY (id=p.product_line_id)  (cost=0.25 rows=1) (actual time=65.1e-6..65.1e-6 rows=0 loops=500)\n                            -> Single-row covering index lookup on a using PRIMARY (id=p.app_id)  (cost=0.25 rows=1) (actual time=61.2e-6..61.2e-6 rows=0 loops=500)\n                        -> Single-row covering index lookup on g using PRIMARY (id=p.group_id)  (cost=0.25 rows=1) (actual time=73.4e-6..73.4e-6 rows=0 loops=500)\n            -> Table scan on <temporary>  (cost=1154..1163 rows=500) (actual time=1.36..1.36 rows=4 loops=1)\n                -> Temporary table with deduplication  (cost=1154..1154 rows=500) (actual time=1.36..1.36 rows=4 loops=1)\n                    -> Nested loop left join  (cost=1104 rows=500) (actual time=0.0888..1.18 rows=500 loops=1)\n                        -> Nested loop left join  (cost=929 rows=500) (actual time=0.0847..1.08 rows=500 loops=1)\n                            -> Nested loop left join  (cost=754 rows=500) (actual time=0.0815..1.01 rows=500 loops=1)\n                                -> Nested loop left join  (cost=579 rows=500) (actual time=0.0788..0.934 rows=500 loops=1)\n                                    -> Nested loop left join  (cost=404 rows=500) (actual time=0.0708..0.825 rows=500 loops=1)\n                                        -> Nested loop inner join  (cost=229 rows=500) (actual time=0.0654..0.716 rows=500 loops=1)\n                                            -> Nested loop inner join  (cost=54.1 rows=500) (actual time=0.0443..0.151 rows=500 loops=1)\n                                                -> Covering index scan on r using idx_enabled_name_id  (cost=0.65 rows=4) (actual time=0.0273..0.0292 rows=4 loops=1)\n                                                -> Covering index lookup on l using idx_engineer_id_project_id (engineer_id=r.id)  (cost=3.98 rows=125) (actual time=0.00653..0.0249 rows=125 loops=4)\n                                            -> Single-row index lookup on p using PRIMARY (id=l.project_id)  (cost=0.25 rows=1) (actual time=1e-3..0.00102 rows=1 loops=500)\n                                        -> Single-row covering index lookup on c using PRIMARY (id=p.customer_id)  (cost=0.25 rows=1) (actual time=88.1e-6..109e-6 rows=1 loops=500)\n                                    -> Single-row covering index lookup on odm using PRIMARY (id=p.odm_customer_id)  (cost=0.25 rows=1) (actual time=132e-6..132e-6 rows=0 loops=500)\n                                -> Single-row covering index lookup on pl using PRIMARY (id=p.product_line_id)  (cost=0.25 rows=1) (actual time=58.9e-6..58.9e-6 rows=0 loops=500)\n                            -> Single-row covering index lookup on a using PRIMARY (id=p.app_id)  (cost=0.25 rows=1) (actual time=59.2e-6..59.2e-6 rows=0 loops=500)\n                        -> Single-row covering index lookup on g using PRIMARY (id=p.group_id)  (cost=0.25 rows=1) (actual time=61.1e-6..61.1e-6 rows=0 loops=500)\n"
+          },
+          {
+            "sql": "SELECT COALESCE((SELECT MIN(s.stage_code) FROM project_stages s WHERE s.project_id=p.id AND s.state<>'completed'), IF((SELECT COUNT(*) FROM project_stages s WHERE s.project_id=p.id)=7,'completed','unconfigured')) value,COUNT(*) count FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id WHERE c.name=? GROUP BY value",
+            "requests": 80,
+            "p50Ms": 2.67,
+            "p95Ms": 3.62,
+            "maxMs": 4.48,
+            "explainAnalyze": "-> Table scan on <temporary>  (actual time=1.25..1.25 rows=1 loops=1)\n    -> Aggregate using temporary table  (actual time=1.24..1.24 rows=1 loops=1)\n        -> Nested loop left join  (cost=201 rows=125) (actual time=0.0656..0.274 rows=125 loops=1)\n            -> Nested loop left join  (cost=157 rows=125) (actual time=0.0645..0.253 rows=125 loops=1)\n                -> Nested loop left join  (cost=113 rows=125) (actual time=0.0634..0.233 rows=125 loops=1)\n                    -> Nested loop left join  (cost=69.5 rows=125) (actual time=0.062..0.213 rows=125 loops=1)\n                        -> Nested loop inner join  (cost=25.7 rows=125) (actual time=0.0605..0.19 rows=125 loops=1)\n                            -> Filter: ((c.`name` = '规模夹具-customers-0') and (c.id is not null))  (cost=0.65 rows=1) (actual time=0.0311..0.035 rows=1 loops=1)\n                                -> Covering index scan on c using idx_enabled_name_id  (cost=0.65 rows=4) (actual time=0.0279..0.0297 rows=4 loops=1)\n                            -> Index lookup on p using idx_customer_id_status_id (customer_id=c.id)  (cost=25.1 rows=125) (actual time=0.0283..0.148 rows=125 loops=1)\n                        -> Single-row covering index lookup on odm using PRIMARY (id=p.odm_customer_id)  (cost=0.251 rows=1) (actual time=87.2e-6..87.2e-6 rows=0 loops=125)\n                    -> Single-row covering index lookup on pl using PRIMARY (id=p.product_line_id)  (cost=0.251 rows=1) (actual time=70.8e-6..70.8e-6 rows=0 loops=125)\n                -> Single-row covering index lookup on a using PRIMARY (id=p.app_id)  (cost=0.251 rows=1) (actual time=69.8e-6..69.8e-6 rows=0 loops=125)\n            -> Single-row covering index lookup on g using PRIMARY (id=p.group_id)  (cost=0.251 rows=1) (actual time=60.2e-6..60.2e-6 rows=0 loops=125)\n"
+          },
+          {
+            "sql": "SELECT COUNT(*) total,COALESCE(SUM(p.priority='high'),0) high,COALESCE(SUM(p.signal='green'),0) green,COALESCE(SUM(p.signal='yellow'),0) yellow,COALESCE(SUM(p.signal='red'),0) red,COALESCE(SUM(p.status<>'closed' AND p.current_due_date>?),0) `upcoming`,COALESCE(SUM(p.status<>'closed' AND p.current_due_date=?),0) `due`,COALESCE(SUM(p.status<>'closed' AND p.current_due_date<?),0) `overdue`,COALESCE(SUM(p.status<>'closed' AND p.current_due_date IS NULL),0) `unset`,COALESCE(SUM(p.status='closed' AND p.closure_type='normal' AND p.closed_on<=p.closure_due_date),0) `closed_on_time`,COALESCE(SUM(p.status='closed' AND p.closure_type='normal' AND p.closed_on>p.closure_due_date),0) `closed_late`,COALESCE(SUM(p.status='closed' AND p.closure_type='normal' AND p.closed_on IS NOT NULL AND p.closure_due_date IS NULL AND (p.created_by IS NOT NULL AND p.source_import_item_id IS NULL OR EXISTS (SELECT 1 FROM audit_log ac WHERE ac.project_id=p.id AND ac.action='project.close'))),0) `closed_unplanned`,COALESCE(SUM(p.status='closed' AND (p.closure_type IS NULL OR p.closure_type<>'terminated' AND (p.closure_type<>'normal' OR p.closed_on IS NULL OR p.closure_due_date IS NULL AND NOT (p.created_by IS NOT NULL AND p.source_import_item_id IS NULL OR EXISTS (SELECT 1 FROM audit_log ac WHERE ac.project_id=p.id AND ac.action='project.close'))))),0) `closed_unknown`,COALESCE(SUM(p.status='closed' AND p.closure_type='terminated'),0) `terminated`,COALESCE(SUM(FALSE),0) `checkRequired`,COALESCE(SUM(FALSE),0) `checkPending`,COALESCE(SUM(FALSE),0) `checkOverdue`,COALESCE(SUM(FALSE AND EXISTS (SELECT 1 FROM project_checks ck WHERE ck.project_id=p.id AND ck.week_start=?)),0) `checkDone`,COALESCE(SUM(FALSE AND p.version>(SELECT ck.result_version FROM project_checks ck WHERE ck.project_id=p.id AND ck.week_start=? ORDER BY ck.id DESC LIMIT 1)),0) `checkUpdated` FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id WHERE c.name=?",
+            "requests": 80,
+            "p50Ms": 1.39,
+            "p95Ms": 2.36,
+            "maxMs": 2.87,
+            "explainAnalyze": "-> Aggregate: sum((false and (p.version > (select #5)))), sum((false and exists(select #4))), sum(false), sum(false), sum(false), sum(((p.`status` = 'closed') and (p.closure_type = 'terminated'))), sum(((p.`status` = 'closed') and ((p.closure_type is null) or ((p.closure_type <> 'terminated') and ((p.closure_type <> 'normal') or (p.closed_on is null) or ((p.closure_due_date is null) and ((p.created_by is null) or (p.source_import_item_id is not null)) and (not exists(select #3)))))))), sum(((p.`status` = 'closed') and (p.closure_type = 'normal') and (p.closed_on is not null) and (p.closure_due_date is null) and (((p.created_by is not null) and (p.source_import_item_id is null)) or exists(select #2)))), sum(((p.`status` = 'closed') and (p.closure_type = 'normal') and (p.closed_on > p.closure_due_date))), sum(((p.`status` = 'closed') and (p.closure_type = 'normal') and (p.closed_on <= p.closure_due_date))), sum(((p.`status` <> 'closed') and (p.current_due_date is null))), sum(((p.`status` <> 'closed') and (p.current_due_date < '2026-10-12'))), sum(((p.`status` <> 'closed') and (p.current_due_date = '2026-10-12'))), sum(((p.`status` <> 'closed') and (p.current_due_date > '2026-10-12'))), sum((p.`signal` = 'red')), sum((p.`signal` = 'yellow')), sum((p.`signal` = 'green')), sum((p.priority = 'high')), count(0)  (cost=214 rows=1) (actual time=0.353..0.353 rows=1 loops=1)\n    -> Nested loop left join  (cost=201 rows=125) (actual time=0.0418..0.247 rows=125 loops=1)\n        -> Nested loop left join  (cost=157 rows=125) (actual time=0.0408..0.225 rows=125 loops=1)\n            -> Nested loop left join  (cost=113 rows=125) (actual time=0.0396..0.203 rows=125 loops=1)\n                -> Nested loop left join  (cost=69.5 rows=125) (actual time=0.0385..0.181 rows=125 loops=1)\n                    -> Nested loop inner join  (cost=25.7 rows=125) (actual time=0.0372..0.158 rows=125 loops=1)\n                        -> Filter: ((c.`name` = '规模夹具-customers-0') and (c.id is not null))  (cost=0.65 rows=1) (actual time=0.00792..0.00992 rows=1 loops=1)\n                            -> Covering index scan on c using idx_enabled_name_id  (cost=0.65 rows=4) (actual time=0.00635..0.00707 rows=4 loops=1)\n                        -> Index lookup on p using idx_customer_id_status_id (customer_id=c.id)  (cost=25.1 rows=125) (actual time=0.0286..0.141 rows=125 loops=1)\n                    -> Single-row covering index lookup on odm using PRIMARY (id=p.odm_customer_id)  (cost=0.251 rows=1) (actual time=84.1e-6..84.1e-6 rows=0 loops=125)\n                -> Single-row covering index lookup on pl using PRIMARY (id=p.product_line_id)  (cost=0.251 rows=1) (actual time=67.8e-6..67.8e-6 rows=0 loops=125)\n            -> Single-row covering index lookup on a using PRIMARY (id=p.app_id)  (cost=0.251 rows=1) (actual time=73.6e-6..73.6e-6 rows=0 loops=125)\n        -> Single-row covering index lookup on g using PRIMARY (id=p.group_id)  (cost=0.251 rows=1) (actual time=66.9e-6..66.9e-6 rows=0 loops=125)\n-> Select #2 (subquery in projection; dependent)\n    -> Limit: 1 row(s)  (cost=0.858 rows=1) (never executed)\n        -> Filter: (ac.`action` = 'project.close')  (cost=0.858 rows=1.08) (never executed)\n            -> Index lookup on ac using idx_project_id_id (project_id=p.id)  (cost=0.858 rows=10.8) (never executed)\n-> Select #3 (subquery in projection; dependent)\n    -> Limit: 1 row(s)  (cost=0.858 rows=1) (never executed)\n        -> Filter: (ac.`action` = 'project.close')  (cost=0.858 rows=1.08) (never executed)\n            -> Index lookup on ac using idx_project_id_id (project_id=p.id)  (cost=0.858 rows=10.8) (never executed)\n-> Select #4 (subquery in projection; dependent)\n    -> Limit: 1 row(s)  (cost=0.35 rows=1) (never executed)\n        -> Covering index lookup on ck using idx_project_id_week_start_id (project_id=p.id, week_start=DATE'2026-10-12')  (cost=0.35 rows=1) (never executed)\n-> Select #5 (subquery in projection; dependent)\n    -> Limit: 1 row(s)  (cost=0.35 rows=1) (never executed)\n        -> Filter: ((ck.week_start = DATE'2026-10-12') and (ck.project_id = p.id))  (cost=0.35 rows=1) (never executed)\n            -> Index scan on ck using PRIMARY (reverse)  (cost=0.35 rows=1) (never executed)\n"
+          },
+          {
+            "sql": "SELECT CAST(p.id AS CHAR) id, CAST(p.version AS CHAR) version, p.data_kind dataKind, p.name, p.status, p.priority, p.signal, c.name customer, odm.name odmFactory, pl.name productLine, a.name app, g.name projectGroup, DATE_FORMAT(p.proposed_on,'%Y-%m-%d') proposalDate, DATE_FORMAT(p.current_due_date,'%Y-%m-%d') dueDate, DATE_FORMAT(p.closed_on,'%Y-%m-%d') closedOn,DATE_FORMAT(p.closure_due_date,'%Y-%m-%d') closureDueDate,p.closure_type closureType,(p.created_by IS NOT NULL AND p.source_import_item_id IS NULL OR EXISTS (SELECT 1 FROM audit_log ac WHERE ac.project_id=p.id AND ac.action='project.close')) closurePlanKnown, p.market_expectation marketExpectation, p.status_description statusDesc, p.maintenance_enabled maintenanceEnabled, p.updated_at updatedAt,p.resume_status resumeStatus,DATE_FORMAT(p.first_check_week,'%Y-%m-%d') firstCheckWeek,COALESCE((SELECT MIN(s.stage_code) FROM project_stages s WHERE s.project_id=p.id AND s.state<>'completed'), IF((SELECT COUNT(*) FROM project_stages s WHERE s.project_id=p.id)=7,'completed','unconfigured')) stage,COALESCE((SELECT s.state FROM project_stages s WHERE s.project_id=p.id AND s.state<>'completed' ORDER BY s.stage_code LIMIT 1), IF((SELECT COUNT(*) FROM project_stages s WHERE s.project_id=p.id)=7,'completed','unconfigured')) stageState,ELT(1+(SELECT COUNT(*) FROM project_stages s WHERE s.project_id=p.id AND s.state='completed'),0,5,10,20,60,80,90,100) progress FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN customers odm ON odm.id=p.odm_customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id LEFT JOIN apps a ON a.id=p.app_id LEFT JOIN project_groups g ON g.id=p.group_id WHERE c.name=? ORDER BY p.id DESC LIMIT ? OFFSET ?",
+            "requests": 80,
+            "p50Ms": 1.64,
+            "p95Ms": 2.11,
+            "maxMs": 2.58,
+            "explainAnalyze": "-> Limit: 24 row(s)  (actual time=2.84..2.84 rows=24 loops=1)\n    -> Sort: p.id DESC, limit input to 24 row(s) per chunk  (actual time=2.84..2.84 rows=24 loops=1)\n        -> Stream results  (cost=201 rows=125) (actual time=0.124..2.8 rows=125 loops=1)\n            -> Nested loop left join  (cost=201 rows=125) (actual time=0.026..0.264 rows=125 loops=1)\n                -> Nested loop left join  (cost=157 rows=125) (actual time=0.025..0.246 rows=125 loops=1)\n                    -> Nested loop left join  (cost=113 rows=125) (actual time=0.0242..0.227 rows=125 loops=1)\n                        -> Nested loop left join  (cost=69.5 rows=125) (actual time=0.0232..0.208 rows=125 loops=1)\n                            -> Nested loop inner join  (cost=25.7 rows=125) (actual time=0.0215..0.187 rows=125 loops=1)\n                                -> Filter: (c.`name` = '规模夹具-customers-0')  (cost=0.65 rows=1) (actual time=0.00844..0.0112 rows=1 loops=1)\n                                    -> Covering index scan on c using idx_enabled_name_id  (cost=0.65 rows=4) (actual time=0.00717..0.00859 rows=4 loops=1)\n                                -> Index lookup on p using idx_customer_id_status_id (customer_id=c.id)  (cost=25.1 rows=125) (actual time=0.0127..0.17 rows=125 loops=1)\n                            -> Single-row index lookup on odm using PRIMARY (id=p.odm_customer_id)  (cost=0.251 rows=1) (actual time=82.2e-6..82.2e-6 rows=0 loops=125)\n                        -> Single-row index lookup on pl using PRIMARY (id=p.product_line_id)  (cost=0.251 rows=1) (actual time=65.8e-6..65.8e-6 rows=0 loops=125)\n                    -> Single-row index lookup on a using PRIMARY (id=p.app_id)  (cost=0.251 rows=1) (actual time=63.4e-6..63.4e-6 rows=0 loops=125)\n                -> Single-row index lookup on g using PRIMARY (id=p.group_id)  (cost=0.251 rows=1) (actual time=56.2e-6..56.2e-6 rows=0 loops=125)\n"
+          }
+        ],
+        "diagnosticTimingEnabled": true,
+        "noHardProjectLimit": true,
+        "source": "专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时",
+        "build": {
+          "revision": "611ea1e108e56d96f8ce62bc4f72ca7f22f63fb5",
+          "dirty": true,
+          "builtAt": "2026-10-12T02:51:47.254Z",
+          "stage": "project-changes",
+          "schemaVersion": "0003-node-recovery"
+        }
+      }
+    },
+    {
+      "label": "mixed",
+      "report": {
+        "status": "passed",
+        "startedAt": "2026-10-12T02:54:22.606Z",
+        "checkedAt": "2026-10-12T02:56:58.860Z",
+        "projectCount": 500,
+        "stageCount": 3500,
+        "initialAuditCount": 6000,
+        "checkCount": 1580,
+        "initialCorrectionCount": 500,
+        "weekHistoryCount": 1000,
+        "riskCount": 1000,
+        "realRiskAdditions": 500,
+        "riskCorrections": 580,
+        "riskQueryPlan": {
+          "query_block": {
+            "select_id": 1,
+            "cost_info": {
+              "query_cost": "4.35"
+            },
+            "nested_loop": [
+              {
+                "table": {
+                  "table_name": "targets",
+                  "access_type": "ALL",
+                  "rows_examined_per_scan": 4,
+                  "rows_produced_per_join": 4,
+                  "filtered": "100.00",
+                  "cost_info": {
+                    "read_cost": "2.55",
+                    "eval_cost": "0.40",
+                    "prefix_cost": "2.95",
+                    "data_read_per_join": "64"
+                  },
+                  "used_columns": [
+                    "id"
+                  ],
+                  "attached_condition": "(`targets`.`id` is not null)",
+                  "materialized_from_subquery": {
+                    "using_temporary_table": true,
+                    "dependent": false,
+                    "cacheable": true,
+                    "query_block": {
+                      "union_result": {
+                        "using_temporary_table": false,
+                        "query_specifications": [
+                          {
+                            "dependent": false,
+                            "cacheable": true,
+                            "query_block": {
+                              "select_id": 2,
+                              "cost_info": {
+                                "query_cost": "1.86"
+                              },
+                              "grouping_operation": {
+                                "using_filesort": false,
+                                "table": {
+                                  "table_name": "audit_log",
+                                  "access_type": "range",
+                                  "possible_keys": [
+                                    "idx_entity_type_entity_id_id"
+                                  ],
+                                  "key": "idx_entity_type_entity_id_id",
+                                  "used_key_parts": [
+                                    "entity_type",
+                                    "entity_id"
+                                  ],
+                                  "key_length": "43",
+                                  "rows_examined_per_scan": 3,
+                                  "rows_produced_per_join": 0,
+                                  "filtered": "10.00",
+                                  "index_condition": "((`geekdash_test`.`audit_log`.`entity_type` = 'project_risk') and (`geekdash_test`.`audit_log`.`entity_id` in (24622,25122)))",
+                                  "cost_info": {
+                                    "read_cost": "1.83",
+                                    "eval_cost": "0.03",
+                                    "prefix_cost": "1.86",
+                                    "data_read_per_join": "232"
+                                  },
+                                  "used_columns": [
+                                    "id",
+                                    "action",
+                                    "entity_type",
+                                    "entity_id"
+                                  ],
+                                  "attached_condition": "(`geekdash_test`.`audit_log`.`action` = 'project.risk.add')"
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "dependent": false,
+                            "cacheable": true,
+                            "query_block": {
+                              "select_id": 3,
+                              "cost_info": {
+                                "query_cost": "1.86"
+                              },
+                              "grouping_operation": {
+                                "using_filesort": false,
+                                "table": {
+                                  "table_name": "audit_log",
+                                  "access_type": "range",
+                                  "possible_keys": [
+                                    "idx_entity_type_entity_id_id"
+                                  ],
+                                  "key": "idx_entity_type_entity_id_id",
+                                  "used_key_parts": [
+                                    "entity_type",
+                                    "entity_id"
+                                  ],
+                                  "key_length": "43",
+                                  "rows_examined_per_scan": 3,
+                                  "rows_produced_per_join": 0,
+                                  "filtered": "10.00",
+                                  "index_condition": "((`geekdash_test`.`audit_log`.`entity_type` = 'project_risk') and (`geekdash_test`.`audit_log`.`entity_id` in (24622,25122)))",
+                                  "cost_info": {
+                                    "read_cost": "1.83",
+                                    "eval_cost": "0.03",
+                                    "prefix_cost": "1.86",
+                                    "data_read_per_join": "232"
+                                  },
+                                  "used_columns": [
+                                    "id",
+                                    "action",
+                                    "entity_type",
+                                    "entity_id"
+                                  ],
+                                  "attached_condition": "(`geekdash_test`.`audit_log`.`action` = 'project.risk.resolve')"
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "table": {
+                  "table_name": "a",
+                  "access_type": "eq_ref",
+                  "possible_keys": [
+                    "PRIMARY"
+                  ],
+                  "key": "PRIMARY",
+                  "used_key_parts": [
+                    "id"
+                  ],
+                  "key_length": "8",
+                  "ref": [
+                    "targets.id"
+                  ],
+                  "rows_examined_per_scan": 1,
+                  "rows_produced_per_join": 4,
+                  "filtered": "100.00",
+                  "cost_info": {
+                    "read_cost": "1.00",
+                    "eval_cost": "0.40",
+                    "prefix_cost": "4.35",
+                    "data_read_per_join": "3K"
+                  },
+                  "used_columns": [
+                    "id",
+                    "actor_display_name",
+                    "action",
+                    "entity_id"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "nodeCount": 2000,
+        "realNodeAdditions": 1500,
+        "nodeMoveCount": 80,
+        "processMemory": {
+          "rss": 239718400,
+          "heapTotal": 38998016,
+          "heapUsed": 28547224,
+          "external": 4857038,
+          "arrayBuffers": 799840
+        },
+        "workers": 4,
+        "authenticated": true,
+        "rounds": 20,
+        "errorCount": 0,
+        "measurements": {
+          "changePreview": {
+            "requests": 80,
+            "p50Ms": 21,
+            "p95Ms": 28,
+            "maxMs": 53
+          },
+          "changeSave": {
+            "requests": 80,
+            "p50Ms": 38,
+            "p95Ms": 52,
+            "maxMs": 78
+          },
+          "list": {
+            "requests": 80,
+            "p50Ms": 44,
+            "p95Ms": 53,
+            "maxMs": 63
+          },
+          "detail": {
+            "requests": 80,
+            "p50Ms": 30,
+            "p95Ms": 36,
+            "maxMs": 40
+          },
+          "save": {
+            "requests": 80,
+            "p50Ms": 35,
+            "p95Ms": 54,
+            "maxMs": 65
+          },
+          "audit": {
+            "requests": 80,
+            "p50Ms": 15,
+            "p95Ms": 21,
+            "maxMs": 25
+          },
+          "checkSave": {
+            "requests": 80,
+            "p50Ms": 33,
+            "p95Ms": 40,
+            "maxMs": 53
+          },
+          "checkHistory": {
+            "requests": 80,
+            "p50Ms": 22,
+            "p95Ms": 26,
+            "maxMs": 30
+          },
+          "riskPreview": {
+            "requests": 80,
+            "p50Ms": 20,
+            "p95Ms": 25,
+            "maxMs": 32
+          },
+          "riskSave": {
+            "requests": 80,
+            "p50Ms": 37,
+            "p95Ms": 49,
+            "maxMs": 64
+          },
+          "nodePreview": {
+            "requests": 80,
+            "p50Ms": 20,
+            "p95Ms": 26,
+            "maxMs": 30
+          },
+          "nodeSave": {
+            "requests": 80,
+            "p50Ms": 36,
+            "p95Ms": 45,
+            "maxMs": 49
+          },
+          "deletedRead": {
+            "requests": 80,
+            "p50Ms": 18,
+            "p95Ms": 24,
+            "maxMs": 30
+          },
+          "restorePreview": {
+            "requests": 80,
+            "p50Ms": 21,
+            "p95Ms": 31,
+            "maxMs": 41
+          },
+          "restoreSave": {
+            "requests": 80,
+            "p50Ms": 37,
+            "p95Ms": 54,
+            "maxMs": 59
+          },
+          "deletePreview": {
+            "requests": 80,
+            "p50Ms": 20,
+            "p95Ms": 28,
+            "maxMs": 57
+          },
+          "deleteSave": {
+            "requests": 80,
+            "p50Ms": 39,
+            "p95Ms": 69,
+            "maxMs": 85
+          }
+        },
+        "noHardProjectLimit": true,
+        "source": "专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时",
+        "initialActiveNodes": 1500,
+        "deletedNodeCount": 500,
+        "realInitialDeletes": 500,
+        "restoreCount": 80,
+        "deleteCount": 580,
+        "deletedQueryPlan": {
+          "query_block": {
+            "select_id": 1,
+            "cost_info": {
+              "query_cost": "2.66"
+            },
+            "ordering_operation": {
+              "using_filesort": false,
+              "nested_loop": [
+                {
+                  "table": {
+                    "table_name": "n",
+                    "access_type": "ref",
+                    "possible_keys": [
+                      "uk_project_id_id",
+                      "idx_project_id_kind_sort_order_id",
+                      "idx_fk_stage_id",
+                      "idx_fk_previous_node_id",
+                      "idx_fk_next_node_id"
+                    ],
+                    "key": "uk_project_id_id",
+                    "used_key_parts": [
+                      "project_id"
+                    ],
+                    "key_length": "8",
+                    "ref": [
+                      "const"
+                    ],
+                    "rows_examined_per_scan": 4,
+                    "rows_produced_per_join": 3,
+                    "filtered": "90.00",
+                    "backward_index_scan": true,
+                    "cost_info": {
+                      "read_cost": "1.00",
+                      "eval_cost": "0.36",
+                      "prefix_cost": "1.40",
+                      "data_read_per_join": "5K"
+                    },
+                    "used_columns": [
+                      "id",
+                      "project_id",
+                      "kind",
+                      "stage_id",
+                      "title",
+                      "target_date",
+                      "completed_on",
+                      "output",
+                      "note",
+                      "previous_node_id",
+                      "next_node_id",
+                      "x",
+                      "y",
+                      "sort_order",
+                      "source_key",
+                      "deleted_at"
+                    ],
+                    "attached_condition": "((`geekdash_test`.`n`.`project_id` = 9007199254780000) and (`geekdash_test`.`n`.`deleted_at` is not null))"
+                  }
+                },
+                {
+                  "table": {
+                    "table_name": "s",
+                    "access_type": "eq_ref",
+                    "possible_keys": [
+                      "PRIMARY"
+                    ],
+                    "key": "PRIMARY",
+                    "used_key_parts": [
+                      "id"
+                    ],
+                    "key_length": "8",
+                    "ref": [
+                      "geekdash_test.n.stage_id"
+                    ],
+                    "rows_examined_per_scan": 1,
+                    "rows_produced_per_join": 3,
+                    "filtered": "100.00",
+                    "cost_info": {
+                      "read_cost": "0.90",
+                      "eval_cost": "0.36",
+                      "prefix_cost": "2.66",
+                      "data_read_per_join": "230"
+                    },
+                    "used_columns": [
+                      "id",
+                      "stage_code"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "changeCount": 1000,
+        "realChangeAdditions": 500,
+        "changeCorrections": 580,
+        "changeQueryPlan": {
+          "query_block": {
+            "select_id": 1,
+            "cost_info": {
+              "query_cost": "3.42"
+            },
+            "nested_loop": [
+              {
+                "table": {
+                  "table_name": "targets",
+                  "access_type": "ALL",
+                  "rows_examined_per_scan": 2,
+                  "rows_produced_per_join": 2,
+                  "filtered": "100.00",
+                  "cost_info": {
+                    "read_cost": "2.52",
+                    "eval_cost": "0.20",
+                    "prefix_cost": "2.73",
+                    "data_read_per_join": "32"
+                  },
+                  "used_columns": [
+                    "id"
+                  ],
+                  "attached_condition": "(`targets`.`id` is not null)",
+                  "materialized_from_subquery": {
+                    "using_temporary_table": true,
+                    "dependent": false,
+                    "cacheable": true,
+                    "query_block": {
+                      "select_id": 2,
+                      "cost_info": {
+                        "query_cost": "1.86"
+                      },
+                      "grouping_operation": {
+                        "using_filesort": false,
+                        "table": {
+                          "table_name": "audit_log",
+                          "access_type": "range",
+                          "possible_keys": [
+                            "idx_entity_type_entity_id_id"
+                          ],
+                          "key": "idx_entity_type_entity_id_id",
+                          "used_key_parts": [
+                            "entity_type",
+                            "entity_id"
+                          ],
+                          "key_length": "43",
+                          "rows_examined_per_scan": 3,
+                          "rows_produced_per_join": 0,
+                          "filtered": "10.00",
+                          "index_condition": "((`geekdash_test`.`audit_log`.`entity_type` = 'project_change') and (`geekdash_test`.`audit_log`.`entity_id` in (2068,2568)))",
+                          "cost_info": {
+                            "read_cost": "1.83",
+                            "eval_cost": "0.03",
+                            "prefix_cost": "1.86",
+                            "data_read_per_join": "232"
+                          },
+                          "used_columns": [
+                            "id",
+                            "action",
+                            "entity_type",
+                            "entity_id"
+                          ],
+                          "attached_condition": "(`geekdash_test`.`audit_log`.`action` = 'project.change.add')"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "table": {
+                  "table_name": "a",
+                  "access_type": "eq_ref",
+                  "possible_keys": [
+                    "PRIMARY"
+                  ],
+                  "key": "PRIMARY",
+                  "used_key_parts": [
+                    "id"
+                  ],
+                  "key_length": "8",
+                  "ref": [
+                    "targets.id"
+                  ],
+                  "rows_examined_per_scan": 1,
+                  "rows_produced_per_join": 2,
+                  "filtered": "100.00",
+                  "cost_info": {
+                    "read_cost": "0.50",
+                    "eval_cost": "0.20",
+                    "prefix_cost": "3.43",
+                    "data_read_per_join": "1K"
+                  },
+                  "used_columns": [
+                    "id",
+                    "actor_display_name",
+                    "entity_id"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
