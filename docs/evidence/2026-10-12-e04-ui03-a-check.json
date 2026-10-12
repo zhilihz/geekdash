@@ -1,0 +1,72 @@
+{
+  "detailDom": {
+    "status": "passed",
+    "checkedAt": "2026-10-12T07:26:30.296Z",
+    "checks": [
+      "七页签唯一保存；真实前端普通输入与节点副本跨页同源；预览不写库，保存后独立SQL/新GET/Flow与列表一致",
+      "非负责人只读，七页签共享责任判断，无普通或节点写入口",
+      "另一负责人真实保存后旧副本冻结、可复制；明确重新进入后显示新版本，旧输入仍保留供核对",
+      "真实COMMIT后丢响应，页面保留原请求；确认原结果及新读取仅产生一次审计"
+    ],
+    "requestCount": 30,
+    "build": {
+      "revision": "85f33853954db590ddfb1de4c97e1a97fcc22c3d",
+      "dirty": false,
+      "builtAt": "2026-10-12T07:24:38.070Z",
+      "stage": "project-list",
+      "schemaVersion": "0003-node-recovery"
+    },
+    "frontendSource": "src/web/detail.ts + shared/api.ts",
+    "sourceSha256": {
+      "detailSource": "32d3edbbaea0122a297dc822b80feaaf3e7049cc9c6bc081145530540919625e",
+      "apiSource": "64c7be9825079894d9a074653565869153dfbdc8c456307053e735c8741221e0",
+      "html": "c30e9461a0bb9e95b3df682ce1f3aa2c8703eeba9d019424989236c20f7c1f1f"
+    },
+    "isolatedTestDatabase": true,
+    "syntheticOnly": true,
+    "domExecution": "jsdom 27.0.1; CSS/BroadcastChannel/native dialog behavior not validated",
+    "nativeBrowserAcceptance": false,
+    "visualAcceptance": false
+  },
+  "integration": {
+    "status": "passed",
+    "checkedAt": "2026-10-12T07:26:35.652Z",
+    "checks": [
+      "四真实负责人、文字工期/风险节点变更统一保存、S1/实际启动/S2/S3与返工、首次义务保持、首次与最新检查消费",
+      "暂缓改计划/普通子记录→恢复→同ID节点恢复→遗留结案/主动检查/维护→可靠重开、实际未知纠错、原检查文字纠正，原创建及首次义务保留",
+      "四会话普通保存竞争一胜三冲突、旧动作/失权/混合非法拒绝；目标审计失败全部回滚、真实COMMIT丢确认重建后原会话及全链原结果、新SQL/看板消费"
+    ],
+    "requestCount": 169,
+    "originalReceiptsAfterRestart": 30,
+    "finalVersion": "32",
+    "build": {
+      "revision": "85f33853954db590ddfb1de4c97e1a97fcc22c3d",
+      "dirty": false,
+      "builtAt": "2026-10-12T07:24:38.070Z",
+      "stage": "project-list",
+      "schemaVersion": "0003-node-recovery"
+    },
+    "isolatedTestDatabase": true,
+    "syntheticOnly": true,
+    "nativeBrowserAcceptance": false
+  },
+  "oldSourceReproduction": {
+    "sourceRevision": "cdeff0a18d211f3e4032a779dfce1a04bee10ebe",
+    "sourceFiles": [
+      "src/web/detail.ts",
+      "src/web/project-detail.html"
+    ],
+    "mode": "--baseline-node-mount",
+    "expectedFailure": "节点编辑目标pane必须真实存在",
+    "actual": "null",
+    "exitCode": 1,
+    "nativeBrowserAcceptance": false
+  },
+  "nativeBrowser": {
+    "checkedAt": "2026-10-12",
+    "surface": "Edge",
+    "result": "nodeRepl.fetch request failed",
+    "visualAcceptance": false
+  },
+  "deploymentThisBatch": false
+}

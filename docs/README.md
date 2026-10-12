@@ -4,10 +4,10 @@
 
 ## 本轮阅读入口
 
-1. [交接](handoff/handoff.md)与[当前系统真相](status/current-system-truth.md#50-e04-ui01原版结构修正及核心原型核查2026-10-12)：当前状态、证据边界和接续工作。
+1. [交接](handoff/handoff.md)与[当前系统真相](status/current-system-truth.md#51-e04-ui03-a详情结构与实际保存链路2026-10-12)：当前状态、证据边界和接续工作。
 2. [PRD页面来源与用途](product/PRD.md#8-页面来源用途与结构复核2026-10-12)及[Figma实际文件](https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF)：核对原版结构和候选体验。
 3. [E04前端固定施工](implementation/execution-plan.md#14921-e04前端固定与流程修正2026-10-12)：实现方法；准确业务规则仍查[规格书](specifications/specification.md)。
-4. [设计核查报告](testing/reports/2026-10-12-e04-ui01-design.md)及[实际设计回读](evidence/2026-10-12-e04-ui01-design-audit.json)：已核查子集与未测范围。
+4. [详情代码与数据链报告](testing/reports/2026-10-12-e04-ui03-a.md)、[设计核查报告](testing/reports/2026-10-12-e04-ui01-design.md)及[实际设计回读](evidence/2026-10-12-e04-ui01-design-audit.json)：分别核查实现、设计子集与未测范围。
 5. [六阶段目标任务](implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)、[代决记录](decisions/autonomous-decisions.md)、[代码管理](operations/release-maintenance.md#2-代码管理)：持续施工和交付入口。
 
 运行事实只查系统真相与实际部署记录，计划、设计和Git推送各有自己的证据范围。初次运行及公网基底方法见[本地运行](operations/release-maintenance.md#本地工程运行e01-f01)、[D01～D07](implementation/execution-plan.md#e12-d01d07首个公网基底的逐功能施工方案)及[Linux/新域名流程](operations/release-maintenance.md#当前首个公网部署单元dec-071)。
