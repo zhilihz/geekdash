@@ -1,0 +1,770 @@
+{
+  "stage": "E04-UI03-C",
+  "build": {
+    "revision": "b32cd92838e8027e8bbec893d49effe6ef099c9d",
+    "dirty": false,
+    "builtAt": "2026-10-12T09:28:12.737Z",
+    "stage": "project-list",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "board": {
+    "status": "passed",
+    "checkedAt": "2026-10-12T09:29:25.511Z",
+    "checks": [
+      "31项完整筛选投影与24/7分页；分布/重点跨页相同，真实重复职责按项目去重且结案排除；空范围与非法查询准确",
+      "普通保存真实事务后新GET/独立SQL/卡片简介及最近状态消费同一项目",
+      "实际board.ts事件与API：卡片/驾驶舱切换不重取，分页和图例联动、账号唯一、读取失败完整旧结果保留；CSS/原生未验"
+    ],
+    "requestCount": 47,
+    "build": {
+      "revision": "b32cd92838e8027e8bbec893d49effe6ef099c9d",
+      "dirty": false,
+      "builtAt": "2026-10-12T09:28:12.737Z",
+      "stage": "project-list",
+      "schemaVersion": "0003-node-recovery"
+    },
+    "sourceHashes": {
+      "src/web/index.html": "3c34e0eaaf4a121dc9b7d4f0c1e332e84ac723906556dd4903b2b901d1068926",
+      "src/web/board.ts": "82e1debe34e1dc8a38440a764b61ca93ff603cfc47c858282e7e62377b000cc8",
+      "src/web/shared/api.ts": "2a2cf7e484ef0b45229aabb5fc7800254fc2646224773955a0d69bca5671cae1"
+    },
+    "isolatedTestDatabase": true,
+    "syntheticOnly": true,
+    "domExecution": true,
+    "nativeBrowserAcceptance": false,
+    "visualAcceptance": false
+  },
+  "detail": {
+    "status": "passed",
+    "checkedAt": "2026-10-12T09:29:49.753Z",
+    "checks": [
+      "七页签唯一保存；真实前端普通输入与节点副本跨页同源；预览不写库，保存后独立SQL/新GET/Flow与列表一致",
+      "非负责人只读，七页签共享责任判断，无普通或节点写入口",
+      "另一负责人真实保存后旧副本冻结、可复制；明确重新进入后显示新版本，旧输入仍保留供核对",
+      "真实COMMIT后丢响应，页面保留原请求；确认原结果及新读取仅产生一次审计",
+      "风险/需求/客户节点同次普通保存；弹窗暂停主编辑，取消与ESC不入库且保留其他已确认副本；预览后改输入必须重做；人可读节点预览",
+      "阶段未来日期失败保留输入与库原值；开始/完成独立保存，真实动作COMMIT丢响应用原编号确认；S1完成仍提案，人工启动后S2待开始",
+      "计划/检查在原Flow上下文保存及新读取；暂缓/恢复留在风险页，首次检查义务及原检查保持，无自动检查或开工",
+      "结案/维护/重开在原上下文保存，真实进度与遗留保持；回退当前有效完成阶段，后续锁定，历史/启动与检查依据保持",
+      "Flow节点弹窗直接进入实际完成操作，明确字段纠错后才编辑；节点完成不自动完成阶段；他人更新时弹窗冻结、可复制，关闭仍保留旧副本"
+    ],
+    "requestCount": 99,
+    "build": {
+      "revision": "b32cd92838e8027e8bbec893d49effe6ef099c9d",
+      "dirty": false,
+      "builtAt": "2026-10-12T09:28:12.737Z",
+      "stage": "project-list",
+      "schemaVersion": "0003-node-recovery"
+    },
+    "frontendSource": "src/web/detail.ts + shared/api.ts",
+    "sourceSha256": {
+      "detailSource": "9957664820ef338a645bdbc82c9e5a1566660eca723dd2fc8cfee3298c1a163a",
+      "apiSource": "2a2cf7e484ef0b45229aabb5fc7800254fc2646224773955a0d69bca5671cae1",
+      "html": "807f19c113eb3df49e1f4c6917bc8a49d5c9174b370ea84957904dca226ab4e2"
+    },
+    "isolatedTestDatabase": true,
+    "syntheticOnly": true,
+    "domExecution": "jsdom 27.0.1; CSS/BroadcastChannel/native dialog behavior not validated",
+    "nativeBrowserAcceptance": false,
+    "visualAcceptance": false
+  },
+  "integration": {
+    "status": "passed",
+    "checkedAt": "2026-10-12T09:29:55.447Z",
+    "checks": [
+      "四真实负责人、文字工期/风险节点变更统一保存、S1/实际启动/S2/S3与返工、首次义务保持、首次与最新检查消费",
+      "暂缓改计划/普通子记录→恢复→同ID节点恢复→遗留结案/主动检查/维护→可靠重开、实际未知纠错、原检查文字纠正，原创建及首次义务保留",
+      "四会话普通保存竞争一胜三冲突、旧动作/失权/混合非法拒绝；目标审计失败全部回滚、真实COMMIT丢确认重建后原会话及全链原结果、新SQL/看板消费"
+    ],
+    "requestCount": 169,
+    "originalReceiptsAfterRestart": 30,
+    "finalVersion": "32",
+    "build": {
+      "revision": "b32cd92838e8027e8bbec893d49effe6ef099c9d",
+      "dirty": false,
+      "builtAt": "2026-10-12T09:28:12.737Z",
+      "stage": "project-list",
+      "schemaVersion": "0003-node-recovery"
+    },
+    "isolatedTestDatabase": true,
+    "syntheticOnly": true,
+    "nativeBrowserAcceptance": false
+  },
+  "capacity": [
+    {
+      "dashboardMode": true,
+      "status": "passed",
+      "startedAt": "2026-10-12T09:30:58.944Z",
+      "checkedAt": "2026-10-12T09:31:12.838Z",
+      "projectCount": 500,
+      "stageCount": 3500,
+      "initialAuditCount": 500,
+      "processMemory": {
+        "rss": 230199296,
+        "heapTotal": 38473728,
+        "heapUsed": 27766160,
+        "external": 5404868,
+        "arrayBuffers": 1347670
+      },
+      "workers": 4,
+      "authenticated": true,
+      "rounds": 20,
+      "errorCount": 0,
+      "measurements": {
+        "list": {
+          "requests": 80,
+          "p50Ms": 43,
+          "p95Ms": 52,
+          "maxMs": 138
+        },
+        "detail": {
+          "requests": 80,
+          "p50Ms": 26,
+          "p95Ms": 39,
+          "maxMs": 70
+        },
+        "save": {
+          "requests": 80,
+          "p50Ms": 32,
+          "p95Ms": 43,
+          "maxMs": 52
+        },
+        "audit": {
+          "requests": 80,
+          "p50Ms": 14,
+          "p95Ms": 17,
+          "maxMs": 20
+        }
+      },
+      "noHardProjectLimit": true,
+      "source": "专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时"
+    },
+    {
+      "dashboardMode": true,
+      "status": "passed",
+      "startedAt": "2026-10-12T09:31:15.659Z",
+      "checkedAt": "2026-10-12T09:31:29.586Z",
+      "projectCount": 500,
+      "stageCount": 3500,
+      "initialAuditCount": 500,
+      "processMemory": {
+        "rss": 229306368,
+        "heapTotal": 37949440,
+        "heapUsed": 26993184,
+        "external": 5238480,
+        "arrayBuffers": 1181282
+      },
+      "workers": 4,
+      "authenticated": true,
+      "rounds": 20,
+      "errorCount": 0,
+      "measurements": {
+        "list": {
+          "requests": 80,
+          "p50Ms": 44,
+          "p95Ms": 49,
+          "maxMs": 135
+        },
+        "detail": {
+          "requests": 80,
+          "p50Ms": 27,
+          "p95Ms": 34,
+          "maxMs": 40
+        },
+        "save": {
+          "requests": 80,
+          "p50Ms": 31,
+          "p95Ms": 41,
+          "maxMs": 43
+        },
+        "audit": {
+          "requests": 80,
+          "p50Ms": 14,
+          "p95Ms": 17,
+          "maxMs": 19
+        }
+      },
+      "noHardProjectLimit": true,
+      "source": "专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时"
+    },
+    {
+      "dashboardMode": true,
+      "status": "passed",
+      "startedAt": "2026-10-12T09:31:32.396Z",
+      "checkedAt": "2026-10-12T09:31:46.109Z",
+      "projectCount": 500,
+      "stageCount": 3500,
+      "initialAuditCount": 500,
+      "processMemory": {
+        "rss": 228597760,
+        "heapTotal": 38473728,
+        "heapUsed": 28355816,
+        "external": 5733498,
+        "arrayBuffers": 1676300
+      },
+      "workers": 4,
+      "authenticated": true,
+      "rounds": 20,
+      "errorCount": 0,
+      "measurements": {
+        "list": {
+          "requests": 80,
+          "p50Ms": 44,
+          "p95Ms": 50,
+          "maxMs": 69
+        },
+        "detail": {
+          "requests": 80,
+          "p50Ms": 27,
+          "p95Ms": 38,
+          "maxMs": 47
+        },
+        "save": {
+          "requests": 80,
+          "p50Ms": 32,
+          "p95Ms": 39,
+          "maxMs": 41
+        },
+        "audit": {
+          "requests": 80,
+          "p50Ms": 14,
+          "p95Ms": 20,
+          "maxMs": 25
+        }
+      },
+      "noHardProjectLimit": true,
+      "source": "专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时"
+    }
+  ],
+  "mixedCapacity": {
+    "dashboardMode": true,
+    "status": "passed",
+    "startedAt": "2026-10-12T09:31:48.883Z",
+    "checkedAt": "2026-10-12T09:34:23.764Z",
+    "projectCount": 500,
+    "stageCount": 3500,
+    "initialAuditCount": 6000,
+    "checkCount": 1580,
+    "initialCorrectionCount": 500,
+    "weekHistoryCount": 1000,
+    "riskCount": 1000,
+    "realRiskAdditions": 500,
+    "riskCorrections": 580,
+    "riskQueryPlan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "4.35"
+        },
+        "nested_loop": [
+          {
+            "table": {
+              "table_name": "targets",
+              "access_type": "ALL",
+              "rows_examined_per_scan": 4,
+              "rows_produced_per_join": 4,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "2.55",
+                "eval_cost": "0.40",
+                "prefix_cost": "2.95",
+                "data_read_per_join": "64"
+              },
+              "used_columns": [
+                "id"
+              ],
+              "attached_condition": "(`targets`.`id` is not null)",
+              "materialized_from_subquery": {
+                "using_temporary_table": true,
+                "dependent": false,
+                "cacheable": true,
+                "query_block": {
+                  "union_result": {
+                    "using_temporary_table": false,
+                    "query_specifications": [
+                      {
+                        "dependent": false,
+                        "cacheable": true,
+                        "query_block": {
+                          "select_id": 2,
+                          "cost_info": {
+                            "query_cost": "1.86"
+                          },
+                          "grouping_operation": {
+                            "using_filesort": false,
+                            "table": {
+                              "table_name": "audit_log",
+                              "access_type": "range",
+                              "possible_keys": [
+                                "idx_entity_type_entity_id_id"
+                              ],
+                              "key": "idx_entity_type_entity_id_id",
+                              "used_key_parts": [
+                                "entity_type",
+                                "entity_id"
+                              ],
+                              "key_length": "43",
+                              "rows_examined_per_scan": 3,
+                              "rows_produced_per_join": 0,
+                              "filtered": "10.00",
+                              "index_condition": "((`geekdash_test`.`audit_log`.`entity_type` = 'project_risk') and (`geekdash_test`.`audit_log`.`entity_id` in (29131,29631)))",
+                              "cost_info": {
+                                "read_cost": "1.83",
+                                "eval_cost": "0.03",
+                                "prefix_cost": "1.86",
+                                "data_read_per_join": "232"
+                              },
+                              "used_columns": [
+                                "id",
+                                "action",
+                                "entity_type",
+                                "entity_id"
+                              ],
+                              "attached_condition": "(`geekdash_test`.`audit_log`.`action` = 'project.risk.add')"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "dependent": false,
+                        "cacheable": true,
+                        "query_block": {
+                          "select_id": 3,
+                          "cost_info": {
+                            "query_cost": "1.86"
+                          },
+                          "grouping_operation": {
+                            "using_filesort": false,
+                            "table": {
+                              "table_name": "audit_log",
+                              "access_type": "range",
+                              "possible_keys": [
+                                "idx_entity_type_entity_id_id"
+                              ],
+                              "key": "idx_entity_type_entity_id_id",
+                              "used_key_parts": [
+                                "entity_type",
+                                "entity_id"
+                              ],
+                              "key_length": "43",
+                              "rows_examined_per_scan": 3,
+                              "rows_produced_per_join": 0,
+                              "filtered": "10.00",
+                              "index_condition": "((`geekdash_test`.`audit_log`.`entity_type` = 'project_risk') and (`geekdash_test`.`audit_log`.`entity_id` in (29131,29631)))",
+                              "cost_info": {
+                                "read_cost": "1.83",
+                                "eval_cost": "0.03",
+                                "prefix_cost": "1.86",
+                                "data_read_per_join": "232"
+                              },
+                              "used_columns": [
+                                "id",
+                                "action",
+                                "entity_type",
+                                "entity_id"
+                              ],
+                              "attached_condition": "(`geekdash_test`.`audit_log`.`action` = 'project.risk.resolve')"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "table": {
+              "table_name": "a",
+              "access_type": "eq_ref",
+              "possible_keys": [
+                "PRIMARY"
+              ],
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "id"
+              ],
+              "key_length": "8",
+              "ref": [
+                "targets.id"
+              ],
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 4,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "1.00",
+                "eval_cost": "0.40",
+                "prefix_cost": "4.35",
+                "data_read_per_join": "3K"
+              },
+              "used_columns": [
+                "id",
+                "actor_display_name",
+                "action",
+                "entity_id"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "nodeCount": 2000,
+    "realNodeAdditions": 1500,
+    "nodeMoveCount": 80,
+    "processMemory": {
+      "rss": 241311744,
+      "heapTotal": 39260160,
+      "heapUsed": 31337872,
+      "external": 6524930,
+      "arrayBuffers": 2383280
+    },
+    "workers": 4,
+    "authenticated": true,
+    "rounds": 20,
+    "errorCount": 0,
+    "measurements": {
+      "changePreview": {
+        "requests": 80,
+        "p50Ms": 19,
+        "p95Ms": 28,
+        "maxMs": 38
+      },
+      "changeSave": {
+        "requests": 80,
+        "p50Ms": 36,
+        "p95Ms": 45,
+        "maxMs": 49
+      },
+      "list": {
+        "requests": 80,
+        "p50Ms": 50,
+        "p95Ms": 84,
+        "maxMs": 95
+      },
+      "detail": {
+        "requests": 80,
+        "p50Ms": 30,
+        "p95Ms": 41,
+        "maxMs": 43
+      },
+      "save": {
+        "requests": 80,
+        "p50Ms": 35,
+        "p95Ms": 47,
+        "maxMs": 51
+      },
+      "audit": {
+        "requests": 80,
+        "p50Ms": 15,
+        "p95Ms": 25,
+        "maxMs": 70
+      },
+      "checkSave": {
+        "requests": 80,
+        "p50Ms": 32,
+        "p95Ms": 38,
+        "maxMs": 49
+      },
+      "checkHistory": {
+        "requests": 80,
+        "p50Ms": 20,
+        "p95Ms": 27,
+        "maxMs": 31
+      },
+      "riskPreview": {
+        "requests": 80,
+        "p50Ms": 20,
+        "p95Ms": 25,
+        "maxMs": 29
+      },
+      "riskSave": {
+        "requests": 80,
+        "p50Ms": 37,
+        "p95Ms": 46,
+        "maxMs": 54
+      },
+      "nodePreview": {
+        "requests": 80,
+        "p50Ms": 19,
+        "p95Ms": 26,
+        "maxMs": 27
+      },
+      "nodeSave": {
+        "requests": 80,
+        "p50Ms": 36,
+        "p95Ms": 46,
+        "maxMs": 71
+      },
+      "deletedRead": {
+        "requests": 80,
+        "p50Ms": 18,
+        "p95Ms": 24,
+        "maxMs": 45
+      },
+      "restorePreview": {
+        "requests": 80,
+        "p50Ms": 21,
+        "p95Ms": 26,
+        "maxMs": 47
+      },
+      "restoreSave": {
+        "requests": 80,
+        "p50Ms": 38,
+        "p95Ms": 52,
+        "maxMs": 78
+      },
+      "deletePreview": {
+        "requests": 80,
+        "p50Ms": 20,
+        "p95Ms": 27,
+        "maxMs": 31
+      },
+      "deleteSave": {
+        "requests": 80,
+        "p50Ms": 36,
+        "p95Ms": 49,
+        "maxMs": 65
+      }
+    },
+    "noHardProjectLimit": true,
+    "source": "专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时",
+    "initialActiveNodes": 1500,
+    "deletedNodeCount": 500,
+    "realInitialDeletes": 500,
+    "restoreCount": 80,
+    "deleteCount": 580,
+    "deletedQueryPlan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "2.66"
+        },
+        "ordering_operation": {
+          "using_filesort": false,
+          "nested_loop": [
+            {
+              "table": {
+                "table_name": "n",
+                "access_type": "ref",
+                "possible_keys": [
+                  "uk_project_id_id",
+                  "idx_project_id_kind_sort_order_id",
+                  "idx_fk_stage_id",
+                  "idx_fk_previous_node_id",
+                  "idx_fk_next_node_id"
+                ],
+                "key": "uk_project_id_id",
+                "used_key_parts": [
+                  "project_id"
+                ],
+                "key_length": "8",
+                "ref": [
+                  "const"
+                ],
+                "rows_examined_per_scan": 4,
+                "rows_produced_per_join": 3,
+                "filtered": "90.00",
+                "backward_index_scan": true,
+                "cost_info": {
+                  "read_cost": "1.00",
+                  "eval_cost": "0.36",
+                  "prefix_cost": "1.40",
+                  "data_read_per_join": "5K"
+                },
+                "used_columns": [
+                  "id",
+                  "project_id",
+                  "kind",
+                  "stage_id",
+                  "title",
+                  "target_date",
+                  "completed_on",
+                  "output",
+                  "note",
+                  "previous_node_id",
+                  "next_node_id",
+                  "x",
+                  "y",
+                  "sort_order",
+                  "source_key",
+                  "deleted_at"
+                ],
+                "attached_condition": "((`geekdash_test`.`n`.`project_id` = 9007199254780000) and (`geekdash_test`.`n`.`deleted_at` is not null))"
+              }
+            },
+            {
+              "table": {
+                "table_name": "s",
+                "access_type": "eq_ref",
+                "possible_keys": [
+                  "PRIMARY"
+                ],
+                "key": "PRIMARY",
+                "used_key_parts": [
+                  "id"
+                ],
+                "key_length": "8",
+                "ref": [
+                  "geekdash_test.n.stage_id"
+                ],
+                "rows_examined_per_scan": 1,
+                "rows_produced_per_join": 3,
+                "filtered": "100.00",
+                "cost_info": {
+                  "read_cost": "0.90",
+                  "eval_cost": "0.36",
+                  "prefix_cost": "2.66",
+                  "data_read_per_join": "230"
+                },
+                "used_columns": [
+                  "id",
+                  "stage_code"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "changeCount": 1000,
+    "realChangeAdditions": 500,
+    "changeCorrections": 580,
+    "changeQueryPlan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "3.42"
+        },
+        "nested_loop": [
+          {
+            "table": {
+              "table_name": "targets",
+              "access_type": "ALL",
+              "rows_examined_per_scan": 2,
+              "rows_produced_per_join": 2,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "2.52",
+                "eval_cost": "0.20",
+                "prefix_cost": "2.73",
+                "data_read_per_join": "32"
+              },
+              "used_columns": [
+                "id"
+              ],
+              "attached_condition": "(`targets`.`id` is not null)",
+              "materialized_from_subquery": {
+                "using_temporary_table": true,
+                "dependent": false,
+                "cacheable": true,
+                "query_block": {
+                  "select_id": 2,
+                  "cost_info": {
+                    "query_cost": "1.86"
+                  },
+                  "grouping_operation": {
+                    "using_filesort": false,
+                    "table": {
+                      "table_name": "audit_log",
+                      "access_type": "range",
+                      "possible_keys": [
+                        "idx_entity_type_entity_id_id"
+                      ],
+                      "key": "idx_entity_type_entity_id_id",
+                      "used_key_parts": [
+                        "entity_type",
+                        "entity_id"
+                      ],
+                      "key_length": "43",
+                      "rows_examined_per_scan": 3,
+                      "rows_produced_per_join": 0,
+                      "filtered": "10.00",
+                      "index_condition": "((`geekdash_test`.`audit_log`.`entity_type` = 'project_change') and (`geekdash_test`.`audit_log`.`entity_id` in (4077,4577)))",
+                      "cost_info": {
+                        "read_cost": "1.83",
+                        "eval_cost": "0.03",
+                        "prefix_cost": "1.86",
+                        "data_read_per_join": "232"
+                      },
+                      "used_columns": [
+                        "id",
+                        "action",
+                        "entity_type",
+                        "entity_id"
+                      ],
+                      "attached_condition": "(`geekdash_test`.`audit_log`.`action` = 'project.change.add')"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "table": {
+              "table_name": "a",
+              "access_type": "eq_ref",
+              "possible_keys": [
+                "PRIMARY"
+              ],
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "id"
+              ],
+              "key_length": "8",
+              "ref": [
+                "targets.id"
+              ],
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 2,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "0.50",
+                "eval_cost": "0.20",
+                "prefix_cost": "3.43",
+                "data_read_per_join": "1K"
+              },
+              "used_columns": [
+                "id",
+                "actor_display_name",
+                "entity_id"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "capacityBuildScope": "容量工具从执行期间未变化的此固定dist加载API；其原结果未单独输出build字段。后续纯报告不改变产品源码。",
+  "sourceHashes": {
+    "src/server/modules/projects.ts": "bd9d07f1597a82a80241f01e7a6241ddd3455e7b5acef574a8d138d034794468",
+    "src/server/routes/projects.ts": "3da7a3e1398baf404e086f4515979e2ad6e3677de4ffa5ad35895c53fbb3fdcf",
+    "src/web/board.ts": "82e1debe34e1dc8a38440a764b61ca93ff603cfc47c858282e7e62377b000cc8",
+    "src/web/index.html": "3c34e0eaaf4a121dc9b7d4f0c1e332e84ac723906556dd4903b2b901d1068926",
+    "src/web/shared/api.ts": "2a2cf7e484ef0b45229aabb5fc7800254fc2646224773955a0d69bca5671cae1",
+    "scripts/verify-board-ui.mjs": "32b6d65e6cc1c2f6615690d29d611173db4f7db297b58815ff30d68d7e87ee64",
+    "scripts/verify-project-capacity.mjs": "917c857d1b8f8162a7ad97e605e71405a8e707c6d9688807fdd1ff816f4bb2c1"
+  },
+  "candidateDeployed": false,
+  "nativeBrowserAcceptance": false,
+  "visualAcceptance": false,
+  "realBackupImported": false,
+  "figmaSampleCorrections": {
+    "createdNodeIds": [
+      "55:1536",
+      "55:1537",
+      "55:1538",
+      "55:1539"
+    ],
+    "mutatedNodeIds": [
+      "16:1258",
+      "4:2",
+      "11:1080"
+    ],
+    "screenshotsRead": [
+      "4:2",
+      "11:1061"
+    ],
+    "scope": "PM计数与星期说明样例；未完成37项高级结果或Presentation"
+  }
+}

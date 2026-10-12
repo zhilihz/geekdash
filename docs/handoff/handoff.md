@@ -1,20 +1,22 @@
 # 未完成任务交接
 
-## 最新接手优先级（2026-10-12 E04前端修正）
+## 最新接手优先级（2026-10-12 E04测试版）
 
-用户DEC-110要求复用1051及Figma，已明确继续。当前E04未验收，先接UI03-C及UI02/UI04，不重跑被取消的B09云installer、不进入E05。本轮get_goal返回无活动工具目标，恢复时核对，不能沿旧交接宣称工具active。
+用户明确继续完成E04并交付一版测试，get_goal本轮确认active，原目标不缩减。当前按原阶段表审计，E05草稿/E06 SSE/E07资料/E08后续页面明确保留；取舍只归AD-027/028。先完成UI02/UI04，不进入下一阶段，不重跑已取消B09 installer。
 
-本批施工分支codex/e04-ui03-context-dialogs，基线main/661813e；产品及工具f5315568121c2d9b262e950468a6144d0ddfa96f，干净固定dist同SHA/0003。UI03-A此前已合并main；UI03-B源码f5315568及报告1009fee5已合并推送，实际远端main回读1009fee5b1ba2f59af046ce6708a84c596a6d1c8。当时工作区干净，本节随纯交接提交收尾，后续SHA不改变已测产品代码；接手核对实际refs和git status，不把文档SHA当运行镜像。
+施工分支codex/e04-ui03-board，基线main/e80288c；完整UI03-C计划7b05b58先行，产品/工具b32cd92838e8027e8bbec893d49effe6ef099c9d，干净固定dist同SHA/0003。代码/报告按本批具名提交合并main，恢复核对实际refs和git status；文档SHA不代替镜像。
 
-已完成及边界只查[真相52](../status/current-system-truth.md#52-e04-ui03-b上下文动作候选2026-10-12)、[UI03-B报告](../testing/reports/2026-10-12-e04-ui03-b.md)、[证据](../evidence/2026-10-12-e04-ui03-b-check.json)及[UI03-A报告](../testing/reports/2026-10-12-e04-ui03-a.md)。九组99 HTTP和已有整链169 HTTP、服务重建后30原结果/原会话通过；未执行原生/视觉验收，未部署。本机41860本轮新GET仍36d23bc2；云本轮未查询，最后实际回读沿真相49的03:27:38UTC，不能当实时状态。
+已做及限制只查[真相53](../status/current-system-truth.md#53-e04-ui03-c看板固定候选2026-10-12)、[UI03-C报告](../testing/reports/2026-10-12-e04-ui03-c.md)与[证据](../evidence/2026-10-12-e04-ui03-c-check.json)。固定看板47、详情99、整链169 HTTP及重建30原结果通过；500四会话三轮52/49/50ms、完整混合84ms，零错误。没有原生/视觉/Presentation或公网体感验收，本批未部署。
 
-下一步：核对实际状态后从最新main开施工分支；按[14.9.21](../implementation/execution-plan.md#14921-e04前端固定与流程修正2026-10-12)先写完整UI03-C各功能八项实施步骤，再迁移看板与其他入口。使用1051及同一Figma真实design context，统计须消费全部筛选范围，不能以本页24张卡片冒充全量统计。继续UI02的37个高级结果，再UI04原生/视觉/固定部署和完整E04审计；草稿/SSE/公共资料及原版其他页面缺口仍在完整范围。没有新的待决业务问题，本批技术取舍只归AD-025/026，不能把代决称用户逐项批准。
+下一步：UI02实际37项操作清单在忽略figma-ui01-prototype-wiring-20261012.json的unhandled，不用全页323个未连状态标签冒充37项。文件leQy2Be9GaTXPvZeooQuIF，主page0:1；Figma PM行及星期说明已修正并截图回读，created55:1536～1539、mutated16:1258/4:2/11:1080。仍须补实际前后结果/取消/错误/返回；不能盲重跑原clone构造。设计脚本保留本批全部受影响ID，超过20,480回执上限沿全局GE-20261009-004缩小只读清单/分批构造，不截断写入ID。
 
-验证入口scripts/verify-detail-ui.mjs --actions；jsdom27.0.1只在忽略test-results/ui-dom-tools，实际前端TS/HTML+真实测试API/MySQL。ui-dom-limits.yml限工具512MiB/Node旧堆256MiB，不改常驻配置。证据对应干净固定f5315568；夹具仅按自身ID清理后完整回归空库前置通过。没有OOM，不全局杀Node/重启MySQL/清卷。原生验证沿AD-007策略范围，不能换表面/CDP绕过；本轮没有新的浏览器核查。
+UI04新只读前置inv-i9smdv0itv已SUCCESS/exit0，脱敏结果归docs/evidence/2026-10-12-ui04-cloud-preflight.json；云仍29ed3d9/ready，MySQL启动保持，其他17服务运行。原任务已终结，不再重发/等待。原CLI --Region错误发生在发出前，已用官方help核对--region修正；不能把旧installer重新当作本批。云具体版本与MySQL/其他服务状态依新只读结果，不沿旧时点推断。新固定包/完整备份/指纹/受控发布/公网与实际app恢复需独立详细步骤和证据。
 
-Figma文件leQy2Be9GaTXPvZeooQuIF，入口28:1385；resume读取实际节点记录，不能盲重跑clone构造；来源ZIP及设计修复沿真相50。已有结构和核心连线不代表完整Presentation/字体或使用者验收。
+验证入口scripts/verify-board-ui.mjs（--api仅接口）、verify-detail-ui.mjs --actions、verify-project-integration.mjs及capacity --dashboard。jsdom27.0.1只在忽略工具目录，CSS/原生dialog/广播仍未验；Edge本轮fetch失败，沿AD-007不换表面/CDP绕过。工具限512MiB/旧堆256MiB，结束正常，无OOM，仅自身合成夹具清理；MySQL/其他服务未因本地验证重启，不清卷、不导入真实备份。
 
-旧TAT本批已取消TERMINATED，禁止盲重跑list-install或初始化/改密。以下旧章节仅为历史接手参考，优先级以本节及真相52为准。
+本轮长测试会话均已退出0：35755构建、59683固定三链、77729容量三正常/混合。恢复若会话缺失不重造任务，以实际产物/构建SHA核查；未提交报告/evidence随本批收口，具体文件重新git status。
+
+以下旧章节仅为历史接手参考，优先级以本节及真相53为准。
 
 ## 0. 历史接手：E04原批次及发布恢复参考
 
