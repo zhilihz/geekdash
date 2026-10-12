@@ -16,6 +16,9 @@ const riskMode = process.argv.includes('--risks');
 const nodeMode = process.argv.includes('--nodes'), nodeIds = [];
 const recoveryMode = process.argv.includes('--recovery'), deletedIds = [];
 assert(!recoveryMode || nodeMode && riskMode && checkMode, '恢复容量沿完整节点/风险/检查负载验收');
+const profileMode = process.argv.includes('--sql-profile'), sqlSamples = new Map();
+let profiling = false;
+function summary(values) { const sorted = [...values].sort((a, b) => a - b); return { requests: sorted.length, p50Ms: Math.round(sorted[Math.ceil(sorted.length * .5) - 1] * 100) / 100, p95Ms: Math.round(sorted[Math.ceil(sorted.length * .95) - 1] * 100) / 100, maxMs: Math.round(sorted.at(-1) * 100) / 100 }; }
 
 const riskIds = [];
 let riskQueryPlan;
@@ -41,6 +44,20 @@ try {
   const [existing] = await connection.execute('SELECT id FROM projects WHERE source_namespace=? OR id BETWEEN ? AND ?', [namespace,ids[0],ids.at(-1)]);
   assert.equal(existing.length, 0, '自己的夹具存在；先核对，不能覆盖');
   runtime = await openRuntimeDatabase('test_app');
+  if (profileMode) {
+    const snapshot = runtime.readSnapshot;
+    runtime.readSnapshot = work => snapshot(async lease => {
+      const query = lease.query;
+      lease.query = async function(statement, params) {
+        const sql = (typeof statement === 'string' ? statement : statement.sql).replace(/\s+/g, ' ').trim();
+        if (!profiling || !sql.includes('FROM projects p') || sql.includes('WHERE p.id=?')) return query.call(this, statement, params);
+        const began = performance.now(), result = await query.call(this, statement, params);
+        const sample = sqlSamples.get(sql) ?? { times: [], params }; sample.times.push(performance.now() - began); sqlSamples.set(sql, sample);
+        return result;
+      };
+      try { return await work(lease); } finally { lease.query = query; }
+    });
+  }
   app = await createApp(runtime, {origin:'http://localhost',secure:false}); origin = await app.listen({host: '127.0.0.1',port: 0});
   const hash = await hashPassword(password);
   for (let index=0;index<4;index++) {
@@ -143,6 +160,7 @@ try {
   const last = await api('/api/projects?view=all&search='+encodeURIComponent('规模测试项目')+'&page=21'); assert.equal(last.items.length,20);
   // 预热一轮；记录包含本地 HTTP 与真实事务的实际延时。
   await api('/api/projects?view=all'); await api('/api/projects/'+ids[0]);
+  profiling = profileMode;
   for (let round=0;round<20;round++) await Promise.all(Array.from({length:4},async(_,worker)=>{
     const target=ids[worker];
     const list=await measured('list','/api/projects?view=all&customer='+encodeURIComponent('规模夹具-customers-'+worker)); assert.equal(list.pagination.total,125);
@@ -188,15 +206,27 @@ try {
     }
     const audit=await measured('audit' ,'/api/projects/'+target+'/audit'); assert.equal(audit.items[0].versionAfter,finalVersion);
   }));
+  profiling = false;
   // 第 501 个项目可入库和查询，500 是验收规模，不是结构或读取总量上限。
   await connection.execute(`INSERT INTO projects (id,name,data_kind,source_namespace,source_key,status,signal_note,market_expectation,status_description,detail_note,summary_note,chipstat_note,closure_note,remaining_work_note,created_at,updated_at)
     VALUES (?,'规模测试项目500','trial',?,'500','ongoing','','','','','','','','',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))`,[ids[500],namespace]);
   assert.equal((await api('/api/projects?view=all&search='+encodeURIComponent('规模测试项目'))).pagination.total,501);
-  const summary=Object.fromEntries(Object.entries(measurements).map(([kind,values])=>{values.sort((a,b)=>a-b);return [kind,{requests:values.length,p50Ms:Math.round(values[Math.ceil(values.length*.5)-1]),p95Ms:Math.round(values[Math.ceil(values.length*.95)-1]),maxMs:Math.round(values.at(-1))}];}));
+  const sqlProfile = [];
+  if (profileMode) {
+    assert.equal(sqlSamples.size, 14, '实际列表的统计/分页/八维度/三关联/阶段分布应全部被计时');
+    for (const [sql, sample] of [...sqlSamples].sort((a, b) => summary(b[1].times).p95Ms - summary(a[1].times).p95Ms)) {
+      assert.equal(sample.times.length, 80, '四会话二十轮应每形状计时八十次');
+      const metrics = summary(sample.times);
+      const [plan] = await connection.query({ sql: 'EXPLAIN ANALYZE ' + sql, timeout: 3000 }, sample.params);
+      sqlProfile.push({ sql, ...metrics, explainAnalyze: plan[0].EXPLAIN });
+    }
+  }
+  const latency=Object.fromEntries(Object.entries(measurements).map(([kind,values])=>{values.sort((a,b)=>a-b);return [kind,{requests:values.length,p50Ms:Math.round(values[Math.ceil(values.length*.5)-1]),p95Ms:Math.round(values[Math.ceil(values.length*.95)-1]),maxMs:Math.round(values.at(-1))}];}));
   await mkdir('test-results',{recursive:true});
-  const result={status:'passed',startedAt:began,checkedAt:new Date().toISOString(),projectCount:500,stageCount:3500,initialAuditCount:(checkMode?1500:500)+(riskMode?1000:0)+(nodeMode?1500:0),...(checkMode?{checkCount:1580,initialCorrectionCount:500,weekHistoryCount:1000}:{}),...(riskMode?{riskCount:1000,realRiskAdditions:500,riskCorrections:580,riskQueryPlan}:{}),...(nodeMode?{nodeCount:2000,realNodeAdditions:1500,nodeMoveCount:80}:{}),processMemory:process.memoryUsage(),workers:4,authenticated:true,rounds:20,errorCount:0,measurements:summary,noHardProjectLimit:true,source:'专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时'};
+  const result={status:'passed',startedAt:began,checkedAt:new Date().toISOString(),projectCount:500,stageCount:3500,initialAuditCount:(checkMode?1500:500)+(riskMode?1000:0)+(nodeMode?1500:0),...(checkMode?{checkCount:1580,initialCorrectionCount:500,weekHistoryCount:1000}:{}),...(riskMode?{riskCount:1000,realRiskAdditions:500,riskCorrections:580,riskQueryPlan}:{}),...(nodeMode?{nodeCount:2000,realNodeAdditions:1500,nodeMoveCount:80}:{}),processMemory:process.memoryUsage(),workers:4,authenticated:true,rounds:20,errorCount:0,measurements:latency,...(profileMode ? { sqlProfile, diagnosticTimingEnabled: true } : {}),noHardProjectLimit:true,source:'专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时'};
   if(recoveryMode)Object.assign(result,{initialAuditCount:result.initialAuditCount+1000,initialActiveNodes:1500,deletedNodeCount:500,realInitialDeletes:500,restoreCount:80,deleteCount:580,deletedQueryPlan});
   if(changeMode)Object.assign(result,{initialAuditCount:result.initialAuditCount+1000,changeCount:1000,realChangeAdditions:500,changeCorrections:580,changeQueryPlan});
+  if (profileMode) result.build = (await api('/api/health/live')).build;
   await writeFile(changeMode?'test-results/project-changes-capacity-check.json':recoveryMode?'test-results/project-node-recovery-capacity-check.json':nodeMode?'test-results/project-nodes-capacity-check.json':riskMode?'test-results/project-risks-capacity-check.json':checkMode?'test-results/project-checks-capacity-check.json':'test-results/project-capacity-check.json',JSON.stringify(result,null,2)+'\n'); console.log(JSON.stringify(result));
 } finally {
   await connection.rollback(); await app?.close();
