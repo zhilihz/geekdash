@@ -107,5 +107,13 @@
   "nativeBrowserAcceptance": false,
   "visualAcceptance": false,
   "productDependenciesChanged": false,
-  "schemaChanged": false
+  "schemaChanged": false,
+  "gitDelivery": {
+    "productCommit": "f5315568121c2d9b262e950468a6144d0ddfa96f",
+    "reportCommit": "1009fee5b1ba2f59af046ce6708a84c596a6d1c8",
+    "remoteMainReadback": "1009fee5b1ba2f59af046ce6708a84c596a6d1c8",
+    "recordedAt": "2026-10-12T08:53:03.974468+00:00",
+    "testedProductDiffAtReportCommit": "empty; src/scripts/migrations/package.json/package-lock.json",
+    "laterHandoffDoesNotChangeProductCode": true
+  }
 }

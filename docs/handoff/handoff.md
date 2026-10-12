@@ -4,11 +4,11 @@
 
 用户DEC-110要求复用1051及Figma，已明确继续。当前E04未验收，先接UI03-C及UI02/UI04，不重跑被取消的B09云installer、不进入E05。本轮get_goal返回无活动工具目标，恢复时核对，不能沿旧交接宣称工具active。
 
-当前分支codex/e04-ui03-context-dialogs，基线main/661813e；产品及工具f5315568121c2d9b262e950468a6144d0ddfa96f，干净固定dist同SHA/0003。UI03-A结构此前已合并main；UI03-B代码/报告收口按本批具名提交回main，接手核对实际refs和git status，不把文档SHA当运行镜像。本节随报告提交，当前未提交文档/evidence由git status精确核查。
+本批施工分支codex/e04-ui03-context-dialogs，基线main/661813e；产品及工具f5315568121c2d9b262e950468a6144d0ddfa96f，干净固定dist同SHA/0003。UI03-A此前已合并main；UI03-B源码f5315568及报告1009fee5已合并推送，实际远端main回读1009fee5b1ba2f59af046ce6708a84c596a6d1c8。当时工作区干净，本节随纯交接提交收尾，后续SHA不改变已测产品代码；接手核对实际refs和git status，不把文档SHA当运行镜像。
 
 已完成及边界只查[真相52](../status/current-system-truth.md#52-e04-ui03-b上下文动作候选2026-10-12)、[UI03-B报告](../testing/reports/2026-10-12-e04-ui03-b.md)、[证据](../evidence/2026-10-12-e04-ui03-b-check.json)及[UI03-A报告](../testing/reports/2026-10-12-e04-ui03-a.md)。九组99 HTTP和已有整链169 HTTP、服务重建后30原结果/原会话通过；未执行原生/视觉验收，未部署。本机41860本轮新GET仍36d23bc2；云本轮未查询，最后实际回读沿真相49的03:27:38UTC，不能当实时状态。
 
-下一步：先核对本批remote main/readback；按[14.9.21](../implementation/execution-plan.md#14921-e04前端固定与流程修正2026-10-12)先写完整UI03-C各功能八项实施步骤，再迁移看板与其他入口。使用1051及同一Figma真实design context，统计须消费全部筛选范围，不能以本页24张卡片冒充全量统计。继续UI02的37个高级结果，再UI04原生/视觉/固定部署和完整E04审计；草稿/SSE/公共资料及原版其他页面缺口仍在完整范围。没有新的待决业务问题，本批技术取舍只归AD-025/026，不能把代决称用户逐项批准。
+下一步：核对实际状态后从最新main开施工分支；按[14.9.21](../implementation/execution-plan.md#14921-e04前端固定与流程修正2026-10-12)先写完整UI03-C各功能八项实施步骤，再迁移看板与其他入口。使用1051及同一Figma真实design context，统计须消费全部筛选范围，不能以本页24张卡片冒充全量统计。继续UI02的37个高级结果，再UI04原生/视觉/固定部署和完整E04审计；草稿/SSE/公共资料及原版其他页面缺口仍在完整范围。没有新的待决业务问题，本批技术取舍只归AD-025/026，不能把代决称用户逐项批准。
 
 验证入口scripts/verify-detail-ui.mjs --actions；jsdom27.0.1只在忽略test-results/ui-dom-tools，实际前端TS/HTML+真实测试API/MySQL。ui-dom-limits.yml限工具512MiB/Node旧堆256MiB，不改常驻配置。证据对应干净固定f5315568；夹具仅按自身ID清理后完整回归空库前置通过。没有OOM，不全局杀Node/重启MySQL/清卷。原生验证沿AD-007策略范围，不能换表面/CDP绕过；本轮没有新的浏览器核查。
 

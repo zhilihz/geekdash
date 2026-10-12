@@ -1,8 +1,8 @@
 {
   "status": "passed",
-  "checkedAt": "2026-10-12T08:49:07.880653+00:00",
+  "checkedAt": "2026-10-12T08:53:47.382236+00:00",
   "markdownFiles": 11,
-  "localLinks": 282,
+  "localLinks": 283,
   "anchors": 49,
   "unchangedMigrations": {
     "migrations/0001-foundation.json": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
