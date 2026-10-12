@@ -1,0 +1,60 @@
+{
+  "checkedAt": "2026-10-12T11:00:53.718Z",
+  "status": "passed-with-native-acceptance-pending",
+  "build": {
+    "revision": "17b4ea5edf52300d5fcdc5a159fdd01fd428aa00",
+    "dirty": false,
+    "builtAt": "2026-10-12T10:54:42.695Z",
+    "stage": "project-list",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "board": {
+    "status": "passed",
+    "checkedAt": "2026-10-12T10:56:08.734Z",
+    "checks": [
+      "31项完整筛选投影与24/7分页；分布/重点跨页相同，真实重复职责按项目去重且结案排除；空范围与非法查询准确",
+      "普通保存真实事务后新GET/独立SQL/卡片简介及最近状态消费同一项目",
+      "实际board.ts事件与API：筛选默认收起/展开/当前条件；切换布局不重取；分页/图例联动、账号唯一；迟到旧响应不覆盖新卡片/条件/统计，读取失败保留完整旧结果；CSS/原生未验"
+    ],
+    "requestCount": 49,
+    "build": {
+      "revision": "17b4ea5edf52300d5fcdc5a159fdd01fd428aa00",
+      "dirty": false,
+      "builtAt": "2026-10-12T10:54:42.695Z",
+      "stage": "project-list",
+      "schemaVersion": "0003-node-recovery"
+    },
+    "sourceHashes": {
+      "src/web/index.html": "f9da49b8bc8eb9dc338ed054650b6a8a0567d8eea2fbf8560594013f49279984",
+      "src/web/board.ts": "31145b4aa4ac8ceb4e7bde959e954c8cc82e717832da32a7f5e93cbd03949751",
+      "src/web/shared/api.ts": "2a2cf7e484ef0b45229aabb5fc7800254fc2646224773955a0d69bca5671cae1"
+    },
+    "isolatedTestDatabase": true,
+    "syntheticOnly": true,
+    "domExecution": true,
+    "nativeBrowserAcceptance": false,
+    "visualAcceptance": false
+  },
+  "design": {
+    "fileKey": "leQy2Be9GaTXPvZeooQuIF",
+    "sceneCount": 36,
+    "actionMatches": 37,
+    "pendingSavePaths": 7,
+    "source": "GeekDash1051, confirmed SPEC, existing server contracts",
+    "editableCounts": {
+      "text": 1889,
+      "instances": 898
+    },
+    "screenshotReviewed": true,
+    "nativePresentation": false,
+    "nativeWebAcceptance": false
+  },
+  "browser": {
+    "route": "web-access --browser edge",
+    "nodeVersion": "24.19.0",
+    "edgeDebugPort": 9222,
+    "result": "connection timed out",
+    "targetPageOpened": false
+  },
+  "deployed": false
+}

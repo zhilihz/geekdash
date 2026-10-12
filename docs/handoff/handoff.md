@@ -2,21 +2,15 @@
 
 ## 最新接手优先级（2026-10-12 E04测试版）
 
-用户明确继续完成E04并交付一版测试，get_goal本轮确认active，原目标不缩减。当前按原阶段表审计，E05草稿/E06 SSE/E07资料/E08后续页面明确保留；取舍只归AD-027/028。先完成UI02/UI04，不进入下一阶段，不重跑已取消B09 installer。
+目标active，用户要完成E04并给一版测试。codex/e04-ui02-results/main d771478基线；计划3ea9a04、产品17b4ea5及干净dist/0003。报告/evidence待本批具名合并远端main，接手重核refs和git status，保留已有产物。
 
-施工分支codex/e04-ui03-board，基线main/e80288c；完整UI03-C计划7b05b58先行，产品/工具b32cd92838e8027e8bbec893d49effe6ef099c9d，干净固定dist同SHA/0003。代码/报告按本批具名提交合并main，恢复核对实际refs和git status；文档SHA不代替镜像。
+已做/未验只查[真相54](../status/current-system-truth.md#54-e04-ui02结果与筛选候选2026-10-12)、[报告](../testing/reports/2026-10-12-e04-ui02.md)、[代码证据](../evidence/2026-10-12-e04-ui02-check.json)与[设计证据](../evidence/2026-10-12-e04-ui02-design-check.json)。Figma文件leQy2Be9GaTXPvZeooQuIF/page0:1；36场景准确ID及变动在正式证据，不盲重跑旧构造脚本。原37操作/7候选保存已回读，Presentation/原生未执行。
 
-已做及限制只查[真相53](../status/current-system-truth.md#53-e04-ui03-c看板固定候选2026-10-12)、[UI03-C报告](../testing/reports/2026-10-12-e04-ui03-c.md)与[证据](../evidence/2026-10-12-e04-ui03-c-check.json)。固定看板47、详情99、整链169 HTTP及重建30原结果通过；500四会话三轮52/49/50ms、完整混合84ms，零错误。没有原生/视觉/Presentation或公网体感验收，本批未部署。
+下一步UI04：先写固定包/备份/两端切换/公网新读/app实际恢复及原生联验完整步骤，再生成本批专用流程。不重跑取消B09 installer、不初始化/改密、不导入真实备份。云只读前置inv-i9smdv0itv已SUCCESS/exit0，29ed3d9/ready及MySQL/其他17服务保持，见53节/前置证据；原任务已终结，不重发/等待。本地和云未被本批构建替换。
 
-下一步：UI02实际37项操作清单在忽略figma-ui01-prototype-wiring-20261012.json的unhandled，不用全页323个未连状态标签冒充37项。文件leQy2Be9GaTXPvZeooQuIF，主page0:1；Figma PM行及星期说明已修正并截图回读，created55:1536～1539、mutated16:1258/4:2/11:1080。仍须补实际前后结果/取消/错误/返回；不能盲重跑原clone构造。设计脚本保留本批全部受影响ID，超过20,480回执上限沿全局GE-20261009-004缩小只读清单/分批构造，不截断写入ID。
+用户指定web-access，Node/Edge9222已发现，授权等待后超时退出1；未取得目标页。授权弹窗答复待返回；CUA fetch及AD-007边界保留，不能绕过已拒URL。可以继续独立授权HTTP/MySQL/测试实例发布，原生/视觉保持未验；E04不complete、不进入E05。没有Node OOM，不全局清理进程/容器。
 
-UI04新只读前置inv-i9smdv0itv已SUCCESS/exit0，脱敏结果归docs/evidence/2026-10-12-ui04-cloud-preflight.json；云仍29ed3d9/ready，MySQL启动保持，其他17服务运行。原任务已终结，不再重发/等待。原CLI --Region错误发生在发出前，已用官方help核对--region修正；不能把旧installer重新当作本批。云具体版本与MySQL/其他服务状态依新只读结果，不沿旧时点推断。新固定包/完整备份/指纹/受控发布/公网与实际app恢复需独立详细步骤和证据。
-
-验证入口scripts/verify-board-ui.mjs（--api仅接口）、verify-detail-ui.mjs --actions、verify-project-integration.mjs及capacity --dashboard。jsdom27.0.1只在忽略工具目录，CSS/原生dialog/广播仍未验；Edge本轮fetch失败，沿AD-007不换表面/CDP绕过。工具限512MiB/旧堆256MiB，结束正常，无OOM，仅自身合成夹具清理；MySQL/其他服务未因本地验证重启，不清卷、不导入真实备份。
-
-本轮长测试会话均已退出0：35755构建、59683固定三链、77729容量三正常/混合。恢复若会话缺失不重造任务，以实际产物/构建SHA核查；未提交报告/evidence随本批收口，具体文件重新git status。
-
-以下旧章节仅为历史接手参考，优先级以本节及真相53为准。
+以下旧章节仅供历史接手参考，以本节及真相54为准。
 
 ## 0. 历史接手：E04原批次及发布恢复参考
 
