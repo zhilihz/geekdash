@@ -11,6 +11,7 @@ import { hashPassword } from '../dist/server/modules/identity.js';
 // DOM执行模型用于检查真实前端代码的状态与接口链路，不替代浏览器布局/指针验收。
 const { JSDOM, CookieJar, VirtualConsole } = await import(process.env.GEEKDASH_DOM_LIBRARY ?? '../test-results/ui-dom-tools/node_modules/jsdom/lib/api.js');
 const users = [], projects = [], views = [], errors = [], checks = [];
+const actionsMode = process.argv.includes('--actions'); let ownConfig = false;
 const prefix = 'detail_ui_' + randomUUID().slice(0, 8), password = '页面整链测试 长短语 password 2026';
 const authOrigin = 'http://localhost';
 const html = await readFile(process.env.GEEKDASH_DETAIL_HTML ?? 'src/web/project-detail.html', 'utf8');
@@ -62,6 +63,7 @@ async function page(user, projectId, holdCatalog = false) {
       response.json = async () => { const data = await json(); setTimeout(() => { dom.catalogConsumed = true; }, 0); return data; };
     }
     if (dom.dropSaveAck && options?.method === 'PATCH') { dom.dropSaveAck = false; await response.arrayBuffer(); throw new Error('模拟真实COMMIT后的确认丢失'); }
+    if (dom.dropActionAck && path === '/api/projects/' + projectId + '/actions' && options?.method === 'POST') { dom.dropActionAck = false; await response.arrayBuffer(); throw new Error('模拟真实动作COMMIT后的确认丢失'); }
     return response;
   };
   const context = dom.getInternalVMContext(); context.exports = {}; context.module = { exports: context.exports };
@@ -85,7 +87,7 @@ async function facts(id) {
 try {
   assert.equal((await c.query('SELECT DATABASE() db'))[0][0].db, 'geekdash_test');
   const hash = await hashPassword(password);
-  for (let i = 0; i < 2; i++) { const loginName = prefix + '_' + i; await c.execute('INSERT INTO users (login_name,password_hash,display_name,must_change_password,created_at,updated_at) VALUES (?,?,?,0,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))', [loginName, hash, '页面合成账号' + i]); users.push({ loginName, id: (await c.query('SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0][0].id }); }
+  for (let i = 0; i < (actionsMode ? 3 : 2); i++) { const loginName = prefix + '_' + i; await c.execute('INSERT INTO users (login_name,password_hash,display_name,must_change_password,created_at,updated_at) VALUES (?,?,?,0,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))', [loginName, hash, '页面合成账号' + i]); users.push({ loginName, id: (await c.query('SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0][0].id }); }
   app = await createApp(await openRuntimeDatabase('test_app'), { origin: authOrigin, secure: false });
   origin = await app.listen({ host: '127.0.0.1', port: 0 });
   const a = client(), b = client(); await a.login(0); await b.login(1);
@@ -134,14 +136,63 @@ try {
   recovering.click('#confirm'); await waitFor(() => recovering.$('#save')?.disabled && /当前内容已保存/.test(recovering.$('#edit-state').textContent) && recovering.dom.projectReads.at(-1)?.project.name === '真实提交后丢确认', '原编号确认及新读取');
   assert.equal((await facts(id)).auditCount, beforeUnknown.auditCount + 1); assert.equal(recovering.$('#edit-name').value, '真实提交后丢确认');
   checks.push('真实COMMIT后丢响应，页面保留原请求；确认原结果及新读取仅产生一次审计');
+  if (actionsMode) {
+    assert.equal(Number((await c.query('SELECT COUNT(*) n FROM system_configuration'))[0][0].n), 0, '保留其他配置，不覆盖');
+    await c.execute("INSERT INTO system_configuration (id,maintenance_user_id,full_name,short_name,manager_text,name_prefix,updated_by,updated_at) VALUES (1,?,'','','','',?,UTC_TIMESTAMP(3))", [users[2].id, users[2].id]); ownConfig = true;
+    const maint = client(); await maint.login(2); const rule = await maint.api('/api/settings/check-rule');
+    await maint.api('/api/settings/check-rule', 'POST', { action: 'initializeCheckRule', deadlineWeekday: 5, expectedVersion: rule.configVersion, previewWeek: rule.weekStart, idempotencyKey: randomUUID() });
+    const panel = await page(a, id), read = () => a.api(path), submit = selector => panel.$(selector).dispatchEvent(new panel.w.Event('submit', { bubbles: true, cancelable: true }));
+    const mounted = selector => { assert(panel.$('#action-dialog').open); assert(panel.$('#action-fields').contains(panel.$(selector))); assert(panel.$('#save').disabled); };
+    const done = async (predicate, label) => { await waitFor(() => !panel.$('#action-dialog').open && !panel.$('#reload').disabled && predicate(panel.dom.projectReads.at(-1)), label); return read(); };
+    const preview = async (form, save) => { submit(form); await waitFor(() => !panel.$(save).disabled && !panel.$('#action-fields').disabled, form + '实际预览'); };
+    panel.tab('risk'); panel.click('[data-risk="add"]'); await waitFor(() => panel.$('#risk-edit'), '风险弹窗'); mounted('#risk-edit'); panel.input('#risk-content', '取消的风险');
+    panel.$('#action-dialog').dispatchEvent(new panel.w.Event('cancel', { cancelable: true })); assert.equal(panel.$('#action-dialog').open, false); assert.equal((await read()).risks.length, 0);
+    panel.click('[data-risk="add"]'); await waitFor(() => panel.$('#risk-edit'), '重新录入风险'); panel.input('#risk-content', '硬件风险'); await preview('#risk-edit', '#risk-accept'); panel.input('#risk-content', '硬件风险补充'); assert(panel.$('#risk-accept').disabled); await preview('#risk-edit', '#risk-accept'); panel.click('#risk-accept');
+    panel.click('[data-change="add"]'); await waitFor(() => panel.$('#change-edit'), '需求弹窗'); mounted('#change-edit'); panel.input('#chg-content', '取消的变更'); panel.click('#action-close'); assert.match(panel.$('.risk-item').textContent, /硬件风险补充/);
+    panel.click('[data-change="add"]'); await waitFor(() => panel.$('#change-edit'), '重填变更'); panel.input('#chg-content', '低功耗接口'); panel.input('#chg-reason', '可复用接口，人工接受'); await preview('#change-edit', '#change-accept'); panel.click('#change-accept');
+    panel.tab('custnodes'); panel.click('[data-node="add"]'); await waitFor(() => panel.$('#node-edit'), '客户节点弹窗'); mounted('#node-edit'); panel.input('[data-node-field="title"]', '客户核对'); panel.input('[data-node-field="note"]', '沟通记录'); await preview('#node-edit', '#node-accept'); assert(!panel.$('#node-preview').textContent.includes('previousNodeId')); panel.click('#node-accept');
+    panel.click('#save'); await done(data => data?.risks.length === 1 && data?.changes.length === 1 && data?.nodes.some(n => n.kind === 'customer'), '三类副本统一保存及新GET');
+    assert.equal(Number((await c.query('SELECT COUNT(*) n FROM project_risks WHERE project_id=?', [id]))[0][0].n), 1); assert.equal(Number((await c.query('SELECT COUNT(*) n FROM project_changes WHERE project_id=?', [id]))[0][0].n), 1);
+    checks.push('风险/需求/客户节点同次普通保存；弹窗暂停主编辑，取消与ESC不入库且保留其他已确认副本；预览后改输入必须重做；人可读节点预览');
+    let d = await read(); const today = d.businessDate, date = days => new Date(Date.parse(today) + days * 86400000).toISOString().slice(0, 10);
+    panel.tab('stages'); panel.click('[data-stage="S1"][data-stage-action="startStage"]'); await waitFor(() => panel.$('#stage-form'), '阶段开始弹窗'); mounted('#stage-form');
+    panel.input('#stage-date', '2099-01-01'); const beforeReject = await facts(id); submit('#stage-form'); await waitFor(() => !panel.$('#action-fields').disabled && /日期/.test(panel.$('#action-message').textContent), '未来实际日拒绝'); assert.equal(panel.$('#stage-date').value, '2099-01-01'); assert.deepEqual(await facts(id), beforeReject);
+    panel.input('#stage-date', today); submit('#stage-form'); await done(data => data?.stages[0].state === 'active', '开始新GET');
+    panel.click('[data-stage="S1"][data-stage-action="completeStage"]'); await waitFor(() => panel.$('#stage-form'), '完成弹窗'); panel.input('#stage-note', '负责人已核对'); panel.dom.dropActionAck = true; submit('#stage-form');
+    await waitFor(() => !panel.$('#action-recovery').hidden && !panel.$('#action-confirm').disabled, '动作真实COMMIT后未知'); assert(panel.$('#action-fields').disabled); const afterCommit = await facts(id); panel.click('#action-confirm');
+    d = await done(data => data?.stages[0].state === 'completed', '完成原结果及新GET'); assert.equal((await facts(id)).auditCount, afterCommit.auditCount); assert.equal(d.project.status, 'proposal'); assert.equal(d.stages[1].state, 'ready');
+    panel.click('#project-start'); await waitFor(() => panel.$('#start-form'), '项目启动弹窗'); panel.input('#start-date', today); panel.input('#start-due', date(10)); submit('#start-form'); d = await done(data => data?.project.status === 'ongoing', '启动新GET'); const obligation = d.project.firstCheckWeek; assert.equal(d.stages[1].state, 'ready');
+    checks.push('阶段未来日期失败保留输入与库原值；开始/完成独立保存，真实动作COMMIT丢响应用原编号确认；S1完成仍提案，人工启动后S2待开始');
+    panel.tab('flow'); panel.click('[data-plan="reschedulePlan"]'); await waitFor(() => panel.$('#plan-edit'), 'Flow中的计划弹窗'); mounted('#plan-edit'); assert(panel.$('[data-tab="flow"]').classList.contains('active'));
+    panel.input('#plan-date', date(14)); panel.input('#plan-reason', '客户窗口调整'); await preview('#plan-edit', '#plan-save'); panel.input('#plan-date', date(15)); assert(panel.$('#plan-save').disabled); await preview('#plan-edit', '#plan-save'); panel.click('#plan-save'); d = await done(data => data?.project.dueDate === date(15), '计划新GET'); assert(panel.$('[data-tab="flow"]').classList.contains('active'));
+    panel.click('[data-check="saveCheck"]'); await waitFor(() => panel.$('#check-edit'), 'Flow中的检查弹窗'); panel.input('#check-note', '按实际版本核对'); await preview('#check-edit', '#check-save'); panel.click('#check-save'); d = await done(data => data?.project.checkStatus.latest, '检查新GET'); assert(panel.$('[data-tab="flow"]').classList.contains('active'));
+    panel.tab('risk'); panel.click('[data-lifecycle="pauseProject"]'); await waitFor(() => panel.$('#lifecycle-edit'), '暂缓弹窗'); panel.input('#lifecycle-reason', '等待客户'); await preview('#lifecycle-edit', '#lifecycle-save'); panel.click('#lifecycle-save'); await done(data => data?.project.status === 'paused', '暂缓新GET');
+    panel.click('[data-lifecycle="resumeProject"]'); await waitFor(() => panel.$('#lifecycle-edit'), '恢复弹窗'); panel.input('#lifecycle-note', '客户已确认'); await preview('#lifecycle-edit', '#lifecycle-save'); panel.click('#lifecycle-save'); d = await done(data => data?.project.status === 'ongoing', '恢复新GET'); assert.equal(d.project.firstCheckWeek, obligation); assert.equal(Number((await c.query('SELECT COUNT(*) n FROM project_checks WHERE project_id=?', [id]))[0][0].n), 1);
+    checks.push('计划/检查在原Flow上下文保存及新读取；暂缓/恢复留在风险页，首次检查义务及原检查保持，无自动检查或开工');
+    const progress = d.project.progress; panel.tab('flow'); panel.click('[data-closure="closeProject"]'); await waitFor(() => panel.$('#closure-edit'), '结案弹窗');
+    panel.input('#closure-closedOn', today); panel.input('#closure-closureNote', '本轮交付结束'); panel.input('#closure-remainingWorkNote', '剩余节点及风险由后续安排接续'); await preview('#closure-edit', '#closure-save'); panel.click('#closure-save'); d = await done(data => data?.project.status === 'closed', '结案新GET'); assert.equal(d.project.progress, progress);
+    panel.click('[data-closure="setMaintenance"]'); await waitFor(() => panel.$('#closure-edit'), '维护弹窗'); panel.input('#closure-reason', '进入后续维护'); await preview('#closure-edit', '#closure-save'); panel.click('#closure-save'); await done(data => Number(data?.project.maintenanceEnabled) === 1, '维护新GET');
+    panel.click('[data-closure="reopenProject"]'); await waitFor(() => panel.$('#closure-edit'), '重开弹窗'); panel.input('#closure-reason', '继续下一轮'); await preview('#closure-edit', '#closure-save'); panel.click('#closure-save'); d = await done(data => data?.project.status === 'ongoing', '重开新GET'); assert.equal(d.project.progress, progress); assert.equal(Number(d.project.maintenanceEnabled), 0); assert.equal(d.project.firstCheckWeek, obligation);
+    panel.tab('stages'); panel.click('[data-correction="rollbackStage"][data-stage="S1"]'); await waitFor(() => panel.$('#correction-edit'), '回退弹窗'); panel.input('#correction-reason', '真实返工重新核对'); await preview('#correction-edit', '#correction-save'); panel.click('#correction-save'); d = await done(data => data?.stages[0].state === 'ready', '回退新GET'); assert.equal(d.stages[1].state, 'locked'); assert.equal(d.project.status, 'ongoing'); assert.equal(d.project.firstCheckWeek, obligation);
+    checks.push('结案/维护/重开在原上下文保存，真实进度与遗留保持；回退当前有效完成阶段，后续锁定，历史/启动与检查依据保持');
+    panel.tab('flow'); panel.$('.flow-node').dispatchEvent(new panel.w.KeyboardEvent('keydown', { key: 'Enter' })); await waitFor(() => panel.$('#node-edit'), 'Flow节点上下文'); assert(panel.$('[data-node-field="title"]').disabled);
+    panel.click('[data-node-form-action="complete"]'); await waitFor(() => panel.$('#node-completed'), '同上下文填写完成日'); panel.input('#node-completed', today); await preview('#node-edit', '#node-accept'); panel.click('#node-accept'); panel.click('#save'); d = await done(data => data?.nodes.find(n => n.kind === 'project')?.completedOn === today, 'Flow节点完成正式新读'); assert(panel.$('[data-tab="flow"]').classList.contains('active')); assert.equal(d.stages[0].state, 'ready');
+    panel.$('.flow-node').dispatchEvent(new panel.w.KeyboardEvent('keydown', { key: 'Enter' })); await waitFor(() => panel.$('#node-edit'), '节点更正弹窗'); panel.click('[data-node-select="title"]'); panel.input('[data-node-field="title"]', '旧节点输入供复制'); panel.input('#node-reason', '名称误录');
+    const concurrent = await b.api(path); await b.api(path, 'PATCH', { expectedVersion: concurrent.project.version, idempotencyKey: randomUUID(), changes: { summaryNote: '另一个负责人已经核对' } });
+    panel.w.dispatchEvent(new panel.w.Event('focus')); await waitFor(() => panel.$('#action-fields').disabled && /他人更新/.test(panel.$('#action-message').textContent), '弹窗旧版本冻结'); panel.click('#action-copy'); assert.match(panel.$('.copy-text').value, /旧节点输入供复制/); panel.click('[data-choice="cancel"]'); assert(panel.$('#action-dialog').open);
+    panel.click('#action-close'); assert.equal(panel.$('#action-dialog').open, false); panel.click('#copy'); assert.match(panel.$('.copy-text').value, /旧节点输入供复制/); panel.click('[data-choice="cancel"]');
+    checks.push('Flow节点弹窗直接进入实际完成操作，明确字段纠错后才编辑；节点完成不自动完成阶段；他人更新时弹窗冻结、可复制，关闭仍保留旧副本');
+  }
   assert.equal(errors.length, 0);
   const build = (await a.api('/api/health/live')).build;
-  await writeFile('test-results/detail-ui-check.json', JSON.stringify({ status: 'passed', checkedAt: new Date().toISOString(), checks, requestCount, build, frontendSource: 'src/web/detail.ts + shared/api.ts', sourceSha256: Object.fromEntries(Object.entries({ detailSource, apiSource, html }).map(([key, source]) => [key, createHash('sha256').update(source).digest('hex')])), isolatedTestDatabase: true, syntheticOnly: true, domExecution: 'jsdom 27.0.1; CSS/BroadcastChannel/native dialog behavior not validated', nativeBrowserAcceptance: false, visualAcceptance: false }, null, 2) + '\n');
+  await writeFile('test-results/' + (actionsMode ? 'context-ui-check.json' : 'detail-ui-check.json'), JSON.stringify({ status: 'passed', checkedAt: new Date().toISOString(), checks, requestCount, build, frontendSource: 'src/web/detail.ts + shared/api.ts', sourceSha256: Object.fromEntries(Object.entries({ detailSource, apiSource, html }).map(([key, source]) => [key, createHash('sha256').update(source).digest('hex')])), isolatedTestDatabase: true, syntheticOnly: true, domExecution: 'jsdom 27.0.1; CSS/BroadcastChannel/native dialog behavior not validated', nativeBrowserAcceptance: false, visualAcceptance: false }, null, 2) + '\n');
   console.log(JSON.stringify({ status: 'passed', groups: checks.length, requestCount }));
 } finally {
   for (const view of views) view.window.close();
   if (app) await app.close();
   for (const id of projects) { await c.execute('UPDATE project_nodes SET previous_node_id=NULL,next_node_id=NULL WHERE project_id=?', [id]); for (const table of ['project_changes', 'project_risks', 'project_nodes', 'project_checks', 'schedule_changes', 'audit_log', 'project_stages', 'project_responsibilities']) await c.execute('DELETE FROM ' + table + ' WHERE project_id=?', [id]); await c.execute("DELETE FROM command_receipts WHERE command_scope LIKE CONCAT('user:%:project:',?,':%')", [id]); await c.execute('DELETE FROM projects WHERE id=?', [id]); }
-  for (const user of users) { await c.execute('DELETE FROM command_receipts WHERE actor_id=?', [user.id]); await c.execute('DELETE FROM audit_log WHERE actor_id=?', [user.id]); await c.execute('DELETE FROM sessions WHERE user_id=?', [user.id]); await c.execute('DELETE FROM users WHERE id=?', [user.id]); }
+  for (const user of users) { await c.execute('DELETE FROM command_receipts WHERE actor_id=?', [user.id]); await c.execute('DELETE FROM audit_log WHERE actor_id=?', [user.id]); await c.execute('DELETE FROM sessions WHERE user_id=?', [user.id]); }
+  if (ownConfig) { await c.execute('DELETE FROM system_configuration WHERE id=1 AND maintenance_user_id=?', [users[2].id]); await c.execute('DELETE FROM check_rule_revisions WHERE saved_by=?', [users[2].id]); }
+  for (const user of users) await c.execute('DELETE FROM users WHERE id=?', [user.id]);
   await c.end(); process.off('unhandledRejection', reject);
 }

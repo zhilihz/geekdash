@@ -404,6 +404,17 @@ html, body {
 .date-zone { margin-bottom: 20px; }
 .date-zone .dz-date { font-size: 16px; }
 .date-zone .dz-time { font-size: 22px; }
+.action-dialog { color: var(--text); background: var(--card); border: 1px solid var(--border); border-radius: 14px; width: calc(100% - 40px); max-width: 640px; max-height: calc(100dvh - 40px); padding: 24px; margin: auto; }
+.action-dialog::backdrop { background: #0009; }
+.action-dialog-tools { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px; }
+.action-dialog fieldset { border: 0; min-width: 0; padding: 0; margin: 0; }
+.action-dialog h2, .action-dialog h3:first-child { font-size: 22px; margin-bottom: 12px; }
+.action-dialog .stage-card, .action-dialog .risk-item, .action-dialog .node-form, .action-dialog .chg-form { border: 0; background: transparent; padding: 0; margin: 0; }
+.action-dialog label { display: block; color: var(--text-dim); font-size: 13px; margin: 12px 0 6px; }
+.action-dialog input:not([type="checkbox"]), .action-dialog select, .action-dialog textarea { width: 100%; background: var(--bg-soft); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px; font: inherit; }
+.action-dialog textarea { min-height: 76px; resize: vertical; }
+.action-dialog [id$="-preview"] { white-space: pre-wrap; margin: 16px 0; }
+.action-dialog #action-message:empty, .action-dialog #action-recovery[hidden], .action-dialog #action-reload[hidden] { display: none; }
 
 /* ==========================================================================
    基本信息表单

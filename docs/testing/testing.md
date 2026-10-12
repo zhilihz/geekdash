@@ -253,4 +253,4 @@ E04-B09接口整链/SQL诊断的实际范围见[B09报告](reports/2026-10-12-e0
 
 行为引用SPEC-002/005/014，页面依据PRD第8节，施工方法归14.9.21.2。执行实际detail.ts/shared/api.ts和HTML，在专用MySQL创建合成账号及项目：七页签仅有一处普通保存、输入跨页保持、节点列表/Flow消费同一副本；预览失败保留表单，受控释放后台候选请求后输入仍在；统一保存后独立SQL/新GET及两个视图一致。另一负责人保存使原视图冻结且可复制，明确重新进入保留旧副本；真实COMMIT后丢响应用原编号确认，审计只增加一次。非负责人没有写入口。
 
-入口scripts/verify-detail-ui.mjs；jsdom只作为隔离工具，适配范围按AD-024明确记录。旧源--baseline-node-mount应复现缺容器失败。CSS/实际dialog/鼠标拖动、浏览器身份广播、Figma Presentation与公网实际使用仍需原生验收；本检查通过不关闭TEST-038/039或E04。
+入口scripts/verify-detail-ui.mjs；jsdom只作为隔离工具，适配范围按AD-024明确记录。旧源--baseline-node-mount应复现缺容器失败。UI03-B使用--actions扩展风险/需求/客户节点同次保存、上下文弹窗取消/预览失效、阶段失败保留输入与原结果恢复、计划/检查/暂缓恢复/结案维护重开/回退的实际保存和同页新GET；Flow节点弹窗直接完成、选定字段纠错、冲突冻结复制及关闭后保留副本。CSS/实际dialog/鼠标拖动、浏览器身份广播、Figma Presentation与公网实际使用仍需原生验收；本检查通过不关闭TEST-038/039或E04。
