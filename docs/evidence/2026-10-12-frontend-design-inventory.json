@@ -1,0 +1,41 @@
+{
+  "recordedOn": "2026-10-12",
+  "snapshotNote": "本清单记录逐页来源说明时点；后续Figma修正和核查见2026-10-12-e04-ui01-design-audit.json及系统真相50",
+  "scope": "文件与设计来源核查；不是浏览器验收或设计定稿",
+  "codeBaseline": "36d23bc2c7f6573841ecc4ad8aca1402743a65b2",
+  "branch": "codex/e04-frontend-figma",
+  "original": {
+    "path": "D:/geekwon/geekdash-local-releases/GeekDash1051.zip",
+    "sha256": "3c8bc91974a137b82e3b96df5020e479339c3bd4ecd2e01e931afb6d3cd5c8c8",
+    "pages": ["GeekDash.html", "project-detail.html", "data-manage.html", "project-status-summary.html", "chip-statistics.html", "settings.html"],
+    "detailTabs": ["基本信息", "项目阶段", "项目节点", "项目 Flow", "客户节点", "项目风险与变更", "更新历史"]
+  },
+  "serverSource": {
+    "pages": ["src/web/index.html", "src/web/project-detail.html", "src/web/project-new.html", "src/web/login.html", "src/web/settings.html"],
+    "detailTabs": ["基本信息", "项目阶段", "项目节点", "客户节点", "项目风险与变更", "更新历史"],
+    "flowPlacement": "项目节点同屏图表，无独立Flow页签",
+    "temporaryInputStorage": "sessionStorage；没有服务器个人草稿或跨设备恢复",
+    "settingsScope": "公共周检查规则",
+    "productCodeChangedInThisDesignReview": false
+  },
+  "figma": {
+    "fileKey": "leQy2Be9GaTXPvZeooQuIF",
+    "url": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF",
+    "pages": {"01 页面与连续操作": "0:1", "02 原版组件与主题": "2:2"},
+    "mainFrames": {
+      "P01 看板": "4:2", "P02 基本信息": "4:159", "P03 阶段": "4:311", "P04 节点": "4:449",
+      "P05 Flow": "5:271", "P06 客户节点": "5:387", "P07 风险与变更": "5:466", "P08 历史": "5:569",
+      "P09 新建": "11:928", "P10 登录": "11:1022", "P11 本人改密": "11:1040", "P12 公共检查规则": "11:1061"
+    },
+    "resultStateCount": 8,
+    "dialogCount": 27,
+    "reusableComponentCount": 10,
+    "editable": true,
+    "prototypeConnectionsCompleted": false,
+    "userAccepted": false,
+    "unresolved": ["原版图表结构未完整对齐", "Flow依赖线未完成", "示例日期和表单/结果需一致性核查", "底稿已同步文案超过现有能力", "基础资料/状态简要/芯片统计/完整设置尚无本轮主画面"]
+  },
+  "authoritativeExplanation": "docs/product/PRD.md#8",
+  "browserAcceptancePerformedInThisReview": false,
+  "deployedInThisReview": false
+}

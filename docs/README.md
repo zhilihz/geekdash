@@ -1,28 +1,32 @@
-E04-B08节点0003兼容固定部署：[报告](testing/reports/2026-10-10-node-migration.md)、[系统真相44](status/current-system-truth.md#44-e04-b08节点0003兼容固定部署2026-10-10)、[部署与恢复](operations/deployments/2026-10-10-node-compatible.md)；两端运行2dfb17c/0003，继续节点D/E及需求变更。
-
-E04-B08风险A～D固定部署及未完成范围：[风险报告](testing/reports/2026-10-10-project-risks.md)、[系统真相41](status/current-system-truth.md#41-e04-b08风险ad2026-10-10固定部署)；整包落位见[八步计划](implementation/execution-plan.md#14914-b08整包施工落位与验收顺序2026-10-10)。本批历史固定5ae7ecc的结果与恢复归[风险部署](operations/deployments/2026-10-10-project-risks.md)；节点/0003/变更继续施工。
-
 # GeekDash 文档目录
 
-E04-B07检查代码与真实验证：[检查报告](testing/reports/2026-10-10-project-checks.md)、[系统真相40](status/current-system-truth.md#40-e04-b07检查与共同截止2026-10-10固定部署)。固定4974e0f已合并main并部署，本机/云内/公网/真实app恢复结果归[检查部署](operations/deployments/2026-10-10-project-checks.md)；原生页面保持B09待验。
+导航更新：2026-10-12。项目仓库：[zhilihz/geekdash](https://github.com/zhilihz/geekdash)。全部项目文档在本目录；协作与分类规则只维护于根目录[AGENTS.md](../AGENTS.md)。
 
-E04-B06固定结案链路与验证：[结案报告](testing/reports/2026-10-10-project-close.md)、[系统真相39](status/current-system-truth.md#39-e04-b06结案链路2026-10-10固定部署)。固定部署与公网结果归[结案部署](operations/deployments/2026-10-10-project-close.md)，原生页面保持B09待验。
+## 本轮阅读入口
 
-E04-B05固定代码及真实验证：[暂缓报告](testing/reports/2026-10-10-project-pause.md)、[动作协议](specifications/api/project-actions.md)和[系统真相38](status/current-system-truth.md#38-e04-b05暂缓恢复2026-10-10固定部署)。暂缓/恢复与最小查询已部署，检查写入仍B07，原生页面联验仍B09；实际运行版本须核对系统真相。
+1. [交接](handoff/handoff.md)与[当前系统真相](status/current-system-truth.md#50-e04-ui01原版结构修正及核心原型核查2026-10-12)：当前状态、证据边界和接续工作。
+2. [PRD页面来源与用途](product/PRD.md#8-页面来源用途与结构复核2026-10-12)及[Figma实际文件](https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF)：核对原版结构和候选体验。
+3. [E04前端固定施工](implementation/execution-plan.md#14921-e04前端固定与流程修正2026-10-12)：实现方法；准确业务规则仍查[规格书](specifications/specification.md)。
+4. [设计核查报告](testing/reports/2026-10-12-e04-ui01-design.md)及[实际设计回读](evidence/2026-10-12-e04-ui01-design-audit.json)：已核查子集与未测范围。
+5. [六阶段目标任务](implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)、[代决记录](decisions/autonomous-decisions.md)、[代码管理](operations/release-maintenance.md#2-代码管理)：持续施工和交付入口。
 
-E04-B04日期/计划的实际代码协议归[项目动作](specifications/api/project-actions.md)与[读取](specifications/api/projects-read.md)，验收归[日期报告](testing/reports/2026-10-10-project-dates.md)，运行与恢复归[日期部署](operations/deployments/2026-10-10-project-dates.md)。整个E04及原生页面联验仍进行中；当前状态以系统真相44为准。
+运行事实只查系统真相与实际部署记录，计划、设计和Git推送各有自己的证据范围。初次运行及公网基底方法见[本地运行](operations/release-maintenance.md#本地工程运行e01-f01)、[D01～D07](implementation/execution-plan.md#e12-d01d07首个公网基底的逐功能施工方案)及[Linux/新域名流程](operations/release-maintenance.md#当前首个公网部署单元dec-071)。
 
-文档基线：D0.73；更新日期：2026-10-10。当前能力以[系统真相](status/current-system-truth.md)为唯一入口；阶段方法见[执行文档](implementation/execution-plan.md)，Git与测试实例分别按[代码管理](operations/release-maintenance.md#2-代码管理)和实际部署记录核对。
+## 既有阶段证据入口
 
-当前目标任务与六阶段计划：[GD-GOAL-001](implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)；E03项目主干已实现并部署，E04-B01～B07已固定部署，继续剩余批次。用户离开期间按完整阶段规划→实施→验收→提交合并main循环，范围不限E04；本次推荐选择与理由见[代决记录](decisions/autonomous-decisions.md)，原2026-10-08汇总保留历史。计划和测试设计不代表功能已实现。
+以下用于追溯对应单元，不表示当前运行版本。
 
-项目事实及施工准备状态以[当前系统真相](status/current-system-truth.md)为入口。原应用源码在本地核查副本；新工程已接入看板和详情的服务器读取，原六页的完整业务仍在逐单元迁移。运行命令见[本地工程运行](operations/release-maintenance.md#本地工程运行e01-f01)，结果见[验收报告](testing/reports/2026-10-08-e01-f01.md)；Git 推送与服务器部署分别记录。
-
-项目仓库：https://github.com/zhilihz/geekdash 。全部项目文档集中于本目录；协作与文档分类规则只在根目录 [AGENTS.md](../AGENTS.md) 维护。
-
-当前部署逐功能入口：[D01～D07](implementation/execution-plan.md#e12-d01d07首个公网基底的逐功能施工方案)，[Linux 参数与新域名流程](operations/release-maintenance.md#当前首个公网部署单元dec-071)；部署实测入口为系统真相第 26 节，运行命令归运维；未实施业务仍明确为讨论建议。
-
-当前优先级：E03创建/本人负责/实名普通保存已接通，邀请码和完整账号后台后置；E04继续B08子记录及B09联验。[项目主干部署](operations/deployments/2026-10-09-project-core.md)记录E03发布，当前固定构建见[0003兼容部署](operations/deployments/2026-10-10-node-compatible.md)，准确能力及未验收范围见[系统真相44](status/current-system-truth.md#44-e04-b08节点0003兼容固定部署2026-10-10)。范围归规格、施工归执行文档、实际部署事实归系统真相与部署记录。
+| 单元 | 报告 | 部署及恢复 |
+|---|---|---|
+| E04-B04日期/计划 | [日期报告](testing/reports/2026-10-10-project-dates.md) | [日期部署](operations/deployments/2026-10-10-project-dates.md) |
+| E04-B05暂缓/恢复 | [暂缓报告](testing/reports/2026-10-10-project-pause.md) | [暂缓部署](operations/deployments/2026-10-10-project-pause.md) |
+| E04-B06结案 | [结案报告](testing/reports/2026-10-10-project-close.md) | [结案部署](operations/deployments/2026-10-10-project-close.md) |
+| E04-B07检查 | [检查报告](testing/reports/2026-10-10-project-checks.md) | [检查部署](operations/deployments/2026-10-10-project-checks.md) |
+| E04-B08风险 | [风险报告](testing/reports/2026-10-10-project-risks.md) | [风险部署](operations/deployments/2026-10-10-project-risks.md) |
+| E04-B08节点兼容 | [节点迁移报告](testing/reports/2026-10-10-node-migration.md) | [兼容部署](operations/deployments/2026-10-10-node-compatible.md) |
+| E04-B08节点删除恢复 | [恢复报告](testing/reports/2026-10-10-project-node-recovery.md) | [恢复部署](operations/deployments/2026-10-10-project-node-recovery.md) |
+| E04-B08需求变更 | [变更报告](testing/reports/2026-10-12-project-changes.md) | [变更部署](operations/deployments/2026-10-12-project-changes.md) |
+| E04-B09列表与整链 | [B09报告](testing/reports/2026-10-12-e04-b09.md) | 核对系统真相中的实际运行时点 |
 
 ## 目录结构
 

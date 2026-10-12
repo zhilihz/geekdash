@@ -1,0 +1,18 @@
+{
+  "checkedAt": "2026-10-12T03:27:38.065893+00:00",
+  "runtimeBuild": {
+    "revision": "29ed3d900cadf4140ad9ff149e8b98e23f487e31",
+    "dirty": false,
+    "builtAt": "2026-10-12T01:36:28.599Z",
+    "stage": "project-changes",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "ready": {"status": "ready"},
+  "currentLink": "/opt/geekdash/releases/29ed3d900cadf4140ad9ff149e8b98e23f487e31",
+  "deploymentFactsExist": false,
+  "predeploymentFactsExist": false,
+  "ownRunningVerificationContainers": [],
+  "ownCapacityFixtureProjectsRemaining": 0,
+  "testBusinessDataMatchesCheckpoint": true,
+  "mysqlStartedAt": "2026-10-08T09:37:05.989838304Z"
+}

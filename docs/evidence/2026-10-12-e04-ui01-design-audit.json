@@ -1,0 +1,1670 @@
+{
+  "checkedAt": "2026-10-12 06:08:18 UTC",
+  "fileKey": "leQy2Be9GaTXPvZeooQuIF",
+  "url": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF",
+  "baseline": "36d23bc2c7f6573841ecc4ad8aca1402743a65b2",
+  "scope": "E04-UI01：原版结构修正和核心原型连线回读；设计工作稿",
+  "mutatedNodeIds": [
+    "4:99",
+    "4:100",
+    "4:119",
+    "4:135",
+    "10:1072",
+    "10:1073",
+    "10:1074",
+    "10:1075",
+    "30:1519",
+    "30:1520",
+    "30:1521",
+    "30:1522",
+    "32:1587",
+    "32:1588",
+    "32:1589",
+    "32:1590"
+  ],
+  "frames": [
+    {
+      "id": "4:2",
+      "name": "P01 看板 · 原四范围与卡片",
+      "width": 1440,
+      "height": 1596,
+      "descendantCount": 187,
+      "typeCounts": {
+        "FRAME": 48,
+        "TEXT": 94,
+        "INSTANCE": 36,
+        "VECTOR": 9
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "4:159",
+      "name": "P02 项目详情 · 基本信息",
+      "width": 1440,
+      "height": 1972,
+      "descendantCount": 147,
+      "typeCounts": {
+        "FRAME": 38,
+        "INSTANCE": 40,
+        "TEXT": 69
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "4:311",
+      "name": "P03 项目阶段 · 原七卡片",
+      "width": 1440,
+      "height": 2123,
+      "descendantCount": 137,
+      "typeCounts": {
+        "FRAME": 27,
+        "INSTANCE": 25,
+        "TEXT": 85
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "4:449",
+      "name": "P04 项目节点 · 依赖与列表",
+      "width": 1440,
+      "height": 1273,
+      "descendantCount": 88,
+      "typeCounts": {
+        "FRAME": 19,
+        "INSTANCE": 26,
+        "TEXT": 43
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "5:271",
+      "name": "P05 项目Flow · 原七阶段泳道",
+      "width": 1440,
+      "height": 1671,
+      "descendantCount": 117,
+      "typeCounts": {
+        "FRAME": 32,
+        "INSTANCE": 22,
+        "TEXT": 61,
+        "VECTOR": 2
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "5:387",
+      "name": "P06 客户节点 · 日期与沟通",
+      "width": 1440,
+      "height": 1010,
+      "descendantCount": 76,
+      "typeCounts": {
+        "FRAME": 16,
+        "INSTANCE": 23,
+        "TEXT": 37
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "5:466",
+      "name": "P07 风险与需求变更 · 原入口统一保存",
+      "width": 1440,
+      "height": 1365,
+      "descendantCount": 100,
+      "typeCounts": {
+        "FRAME": 22,
+        "INSTANCE": 29,
+        "TEXT": 49
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "5:569",
+      "name": "P08 更新历史 · 人工操作与字段变化",
+      "width": 1440,
+      "height": 1475,
+      "descendantCount": 109,
+      "typeCounts": {
+        "FRAME": 20,
+        "INSTANCE": 28,
+        "TEXT": 61
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "11:928",
+      "name": "P09 新建项目 · 沿用详情字段",
+      "width": 1440,
+      "height": 1418,
+      "descendantCount": 93,
+      "typeCounts": {
+        "FRAME": 27,
+        "INSTANCE": 22,
+        "TEXT": 44
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "11:1022",
+      "name": "P10 登录 · 身份入口",
+      "width": 1440,
+      "height": 654,
+      "descendantCount": 17,
+      "typeCounts": {
+        "TEXT": 10,
+        "FRAME": 3,
+        "INSTANCE": 4
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "11:1040",
+      "name": "P11 首次改密 / 本人改密",
+      "width": 1440,
+      "height": 711,
+      "descendantCount": 20,
+      "typeCounts": {
+        "TEXT": 11,
+        "FRAME": 5,
+        "INSTANCE": 4
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "11:1061",
+      "name": "P12 系统维护 · 公共检查规则",
+      "width": 1440,
+      "height": 661,
+      "descendantCount": 26,
+      "typeCounts": {
+        "FRAME": 6,
+        "INSTANCE": 7,
+        "TEXT": 13
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "10:383",
+      "name": "S01 普通编辑 · 同一项目修改集合",
+      "width": 1440,
+      "height": 2039,
+      "descendantCount": 151,
+      "typeCounts": {
+        "FRAME": 39,
+        "INSTANCE": 41,
+        "TEXT": 71
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "10:536",
+      "name": "S02 保存成功 · 同项目回读结果",
+      "width": 1440,
+      "height": 2039,
+      "descendantCount": 149,
+      "typeCounts": {
+        "FRAME": 39,
+        "INSTANCE": 40,
+        "TEXT": 70
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "10:688",
+      "name": "S03 他人更新 · 保留输入并禁止覆盖",
+      "width": 1440,
+      "height": 2039,
+      "descendantCount": 153,
+      "typeCounts": {
+        "FRAME": 39,
+        "INSTANCE": 42,
+        "TEXT": 72
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "10:845",
+      "name": "S04 重新进入 · 最新正式版本",
+      "width": 1440,
+      "height": 2039,
+      "descendantCount": 149,
+      "typeCounts": {
+        "FRAME": 39,
+        "INSTANCE": 40,
+        "TEXT": 70
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "10:997",
+      "name": "S05 看板消费已保存状态",
+      "width": 1440,
+      "height": 1663,
+      "descendantCount": 189,
+      "typeCounts": {
+        "FRAME": 49,
+        "TEXT": 95,
+        "INSTANCE": 36,
+        "VECTOR": 9
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "10:1153",
+      "name": "S06 完成EVT · 下一阶段待开始",
+      "width": 1440,
+      "height": 2190,
+      "descendantCount": 139,
+      "typeCounts": {
+        "FRAME": 28,
+        "INSTANCE": 25,
+        "TEXT": 86
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "10:1293",
+      "name": "S07 子记录已加入修改 · 等待保存项目",
+      "width": 1440,
+      "height": 1428,
+      "descendantCount": 104,
+      "typeCounts": {
+        "FRAME": 23,
+        "INSTANCE": 30,
+        "TEXT": 51
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "10:1399",
+      "name": "S08 风险已保存 · 同页结果与历史",
+      "width": 1440,
+      "height": 1432,
+      "descendantCount": 102,
+      "typeCounts": {
+        "FRAME": 23,
+        "INSTANCE": 29,
+        "TEXT": 50
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "26:1359",
+      "name": "S09 普通保存 · 更新历史消费",
+      "width": 1440,
+      "height": 1517,
+      "descendantCount": 105,
+      "typeCounts": {
+        "FRAME": 19,
+        "INSTANCE": 28,
+        "TEXT": 58
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "26:1453",
+      "name": "S10 普通账号 · 查看公共规则",
+      "width": 1440,
+      "height": 440,
+      "descendantCount": 20,
+      "typeCounts": {
+        "FRAME": 5,
+        "INSTANCE": 5,
+        "TEXT": 10
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "26:1480",
+      "name": "S11 下一阶段已开始 · 保留已完成进度",
+      "width": 1440,
+      "height": 2190,
+      "descendantCount": 139,
+      "typeCounts": {
+        "FRAME": 28,
+        "INSTANCE": 25,
+        "TEXT": 86
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "30:1413",
+      "name": "S12 阶段保存 · 看板消费60%进度",
+      "width": 1440,
+      "height": 1596,
+      "descendantCount": 187,
+      "typeCounts": {
+        "FRAME": 48,
+        "TEXT": 94,
+        "INSTANCE": 36,
+        "VECTOR": 9
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    },
+    {
+      "id": "32:1481",
+      "name": "S13 DVT开始 · 看板保留60%进度",
+      "width": 1440,
+      "height": 1596,
+      "descendantCount": 187,
+      "typeCounts": {
+        "FRAME": 48,
+        "TEXT": 94,
+        "INSTANCE": 36,
+        "VECTOR": 9
+      },
+      "imageFilledNodes": [],
+      "fontFamilies": [
+        "Noto Sans SC"
+      ]
+    }
+  ],
+  "reactions": [
+    {
+      "id": "4:100",
+      "name": "卡片/智能终端演示项目",
+      "reactions": [
+        {
+          "action": {
+            "type": "NODE",
+            "destinationId": "4:159",
+            "navigation": "NAVIGATE",
+            "transition": null,
+            "resetVideoPosition": false,
+            "resetScrollPosition": false
+          },
+          "actions": [
+            {
+              "type": "NODE",
+              "destinationId": "4:159",
+              "navigation": "NAVIGATE",
+              "transition": null,
+              "resetVideoPosition": false,
+              "resetScrollPosition": false
+            }
+          ],
+          "trigger": {
+            "type": "ON_CLICK"
+          }
+        }
+      ]
+    },
+    {
+      "id": "4:297",
+      "name": "字段/项目简介",
+      "reactions": [
+        {
+          "action": {
+            "type": "NODE",
+            "destinationId": "10:383",
+            "navigation": "NAVIGATE",
+            "transition": null,
+            "resetVideoPosition": false,
+            "resetScrollPosition": false
+          },
+          "actions": [
+            {
+              "type": "NODE",
+              "destinationId": "10:383",
+              "navigation": "NAVIGATE",
+              "transition": null,
+              "resetVideoPosition": false,
+              "resetScrollPosition": false
+            }
+          ],
+          "trigger": {
+            "type": "ON_CLICK"
+          }
+        }
+      ]
+    },
+    {
+      "id": "10:451",
+      "name": "操作/保存项目",
+      "reactions": [
+        {
+          "action": {
+            "type": "SET_VARIABLE",
+            "variableId": "VariableID:30:1403",
+            "variableValue": {
+              "value": "整机EVT样机联调，准备下一轮可靠性验证。",
+              "type": "STRING",
+              "resolvedType": "STRING"
+            }
+          },
+          "actions": [
+            {
+              "type": "SET_VARIABLE",
+              "variableId": "VariableID:30:1403",
+              "variableValue": {
+                "value": "整机EVT样机联调，准备下一轮可靠性验证。",
+                "type": "STRING",
+                "resolvedType": "STRING"
+              }
+            },
+            {
+              "type": "SET_VARIABLE",
+              "variableId": "VariableID:30:1404",
+              "variableValue": {
+                "value": "@张工 EVT样机联调完成，电源验证开始。",
+                "type": "STRING",
+                "resolvedType": "STRING"
+              }
+            },
+            {
+              "type": "SET_VARIABLE",
+              "variableId": "VariableID:30:1409",
+              "variableValue": {
+                "value": true,
+                "type": "BOOLEAN",
+                "resolvedType": "BOOLEAN"
+              }
+            },
+            {
+              "type": "NODE",
+              "destinationId": "10:536",
+              "navigation": "NAVIGATE",
+              "transition": null,
+              "resetVideoPosition": false,
+              "resetScrollPosition": false
+            }
+          ],
+          "trigger": {
+            "type": "ON_CLICK"
+          }
+        }
+      ]
+    },
+    {
+      "id": "10:841",
+      "name": "操作/复制未保存文字",
+      "reactions": [
+        {
+          "action": {
+            "type": "NODE",
+            "destinationId": "26:1298",
+            "navigation": "OVERLAY",
+            "transition": null,
+            "resetVideoPosition": false,
+            "resetScrollPosition": false
+          },
+          "actions": [
+            {
+              "type": "NODE",
+              "destinationId": "26:1298",
+              "navigation": "OVERLAY",
+              "transition": null,
+              "resetVideoPosition": false,
+              "resetScrollPosition": false
+            }
+          ],
+          "trigger": {
+            "type": "ON_CLICK"
+          }
+        }
+      ]
+    },
+    {
+      "id": "10:843",
+      "name": "操作/重新进入项目",
+      "reactions": [
+        {
+          "action": {
+            "type": "SET_VARIABLE",
+            "variableId": "VariableID:30:1403",
+            "variableValue": {
+              "value": "智能硬件与配套软件方案验证。",
+              "type": "STRING",
+              "resolvedType": "STRING"
+            }
+          },
+          "actions": [
+            {
+              "type": "SET_VARIABLE",
+              "variableId": "VariableID:30:1403",
+              "variableValue": {
+                "value": "智能硬件与配套软件方案验证。",
+                "type": "STRING",
+                "resolvedType": "STRING"
+              }
+            },
+            {
+              "type": "SET_VARIABLE",
+              "variableId": "VariableID:30:1404",
+              "variableValue": {
+                "value": "李工：客户已确认EVT样机，下周继续电源验证。",
+                "type": "STRING",
+                "resolvedType": "STRING"
+              }
+            },
+            {
+              "type": "SET_VARIABLE",
+              "variableId": "VariableID:30:1409",
+              "variableValue": {
+                "value": false,
+                "type": "BOOLEAN",
+                "resolvedType": "BOOLEAN"
+              }
+            },
+            {
+              "type": "NODE",
+              "destinationId": "10:845",
+              "navigation": "NAVIGATE",
+              "transition": null,
+              "resetVideoPosition": false,
+              "resetScrollPosition": false
+            }
+          ],
+          "trigger": {
+            "type": "ON_CLICK"
+          }
+        }
+      ]
+    },
+    {
+      "id": "12:1025",
+      "name": "操作/保存完成",
+      "reactions": [
+        {
+          "action": {
+            "type": "SET_VARIABLE",
+            "variableId": "VariableID:30:1407",
+            "variableValue": {
+              "value": "completed",
+              "type": "STRING",
+              "resolvedType": "STRING"
+            }
+          },
+          "actions": [
+            {
+              "type": "SET_VARIABLE",
+              "variableId": "VariableID:30:1407",
+              "variableValue": {
+                "value": "completed",
+                "type": "STRING",
+                "resolvedType": "STRING"
+              }
+            },
+            {
+              "type": "SET_VARIABLE",
+              "variableId": "VariableID:30:1410",
+              "variableValue": {
+                "value": true,
+                "type": "BOOLEAN",
+                "resolvedType": "BOOLEAN"
+              }
+            },
+            {
+              "type": "SET_VARIABLE",
+              "variableId": "VariableID:30:1411",
+              "variableValue": {
+                "value": false,
+                "type": "BOOLEAN",
+                "resolvedType": "BOOLEAN"
+              }
+            },
+            {
+              "type": "SET_VARIABLE",
+              "variableId": "VariableID:30:1405",
+              "variableValue": {
+                "value": "S5 DVT可靠性验证 · 待开始 · 进度60% · 预计结案11-20 · 本周待检查",
+                "type": "STRING",
+                "resolvedType": "STRING"
+              }
+            },
+            {
+              "type": "NODE",
+              "destinationId": "10:1153",
+              "navigation": "NAVIGATE",
+              "transition": null,
+              "resetVideoPosition": false,
+              "resetScrollPosition": false
+            }
+          ],
+          "trigger": {
+            "type": "ON_CLICK"
+          }
+        }
+      ]
+    },
+    {
+      "id": "I10:1195;3:11",
+      "name": "阶段主要操作",
+      "reactions": [
+        {
+          "action": {
+            "type": "NODE",
+            "destinationId": "12:1027",
+            "navigation": "OVERLAY",
+            "transition": null,
+            "resetVideoPosition": false,
+            "resetScrollPosition": false
+          },
+          "actions": [
+            {
+              "type": "NODE",
+              "destinationId": "12:1027",
+              "navigation": "OVERLAY",
+              "transition": null,
+              "resetVideoPosition": false,
+              "resetScrollPosition": false
+            }
+          ],
+          "trigger": {
+            "type": "ON_CLICK"
+          }
+        }
+      ]
+    },
+    {
+      "id": "12:1039",
+      "name": "操作/保存开始",
+      "reactions": [
+        {
+          "action": {
+            "type": "SET_VARIABLE",
+            "variableId": "VariableID:30:1407",
+            "variableValue": {
+              "value": "started",
+              "type": "STRING",
+              "resolvedType": "STRING"
+            }
+          },
+          "actions": [
+            {
+              "type": "SET_VARIABLE",
+              "variableId": "VariableID:30:1407",
+              "variableValue": {
+                "value": "started",
+                "type": "STRING",
+                "resolvedType": "STRING"
+              }
+            },
+            {
+              "type": "SET_VARIABLE",
+              "variableId": "VariableID:30:1411",
+              "variableValue": {
+                "value": true,
+                "type": "BOOLEAN",
+                "resolvedType": "BOOLEAN"
+              }
+            },
+            {
+              "type": "SET_VARIABLE",
+              "variableId": "VariableID:30:1405",
+              "variableValue": {
+                "value": "S5 DVT可靠性验证 · 进行中 · 进度60% · 预计结案11-20 · 本周待检查",
+                "type": "STRING",
+                "resolvedType": "STRING"
+              }
+            },
+            {
+              "type": "NODE",
+              "destinationId": "26:1480",
+              "navigation": "NAVIGATE",
+              "transition": null,
+              "resetVideoPosition": false,
+              "resetScrollPosition": false
+            }
+          ],
+          "trigger": {
+            "type": "ON_CLICK"
+          }
+        }
+      ]
+    },
+    {
+      "id": "5:547",
+      "name": "操作/编辑",
+      "reactions": [
+        {
+          "action": {
+            "type": "NODE",
+            "destinationId": "12:1161",
+            "navigation": "OVERLAY",
+            "transition": null,
+            "resetVideoPosition": false,
+            "resetScrollPosition": false
+          },
+          "actions": [
+            {
+              "type": "NODE",
+              "destinationId": "12:1161",
+              "navigation": "OVERLAY",
+              "transition": null,
+              "resetVideoPosition": false,
+              "resetScrollPosition": false
+            }
+          ],
+          "trigger": {
+            "type": "ON_CLICK"
+          }
+        }
+      ]
+    },
+    {
+      "id": "12:1181",
+      "name": "操作/加入本次修改",
+      "reactions": [
+        {
+          "action": {
+            "type": "SET_VARIABLE",
+            "variableId": "VariableID:30:1408",
+            "variableValue": {
+              "value": "pending",
+              "type": "STRING",
+              "resolvedType": "STRING"
+            }
+          },
+          "actions": [
+            {
+              "type": "SET_VARIABLE",
+              "variableId": "VariableID:30:1408",
+              "variableValue": {
+                "value": "pending",
+                "type": "STRING",
+                "resolvedType": "STRING"
+              }
+            },
+            {
+              "type": "NODE",
+              "destinationId": "10:1293",
+              "navigation": "NAVIGATE",
+              "transition": null,
+              "resetVideoPosition": false,
+              "resetScrollPosition": false
+            }
+          ],
+          "trigger": {
+            "type": "ON_CLICK"
+          }
+        }
+      ]
+    },
+    {
+      "id": "10:1359",
+      "name": "操作/保存项目",
+      "reactions": [
+        {
+          "action": {
+            "type": "SET_VARIABLE",
+            "variableId": "VariableID:30:1408",
+            "variableValue": {
+              "value": "saved",
+              "type": "STRING",
+              "resolvedType": "STRING"
+            }
+          },
+          "actions": [
+            {
+              "type": "SET_VARIABLE",
+              "variableId": "VariableID:30:1408",
+              "variableValue": {
+                "value": "saved",
+                "type": "STRING",
+                "resolvedType": "STRING"
+              }
+            },
+            {
+              "type": "SET_VARIABLE",
+              "variableId": "VariableID:30:1412",
+              "variableValue": {
+                "value": true,
+                "type": "BOOLEAN",
+                "resolvedType": "BOOLEAN"
+              }
+            },
+            {
+              "type": "NODE",
+              "destinationId": "10:1399",
+              "navigation": "NAVIGATE",
+              "transition": null,
+              "resetVideoPosition": false,
+              "resetScrollPosition": false
+            }
+          ],
+          "trigger": {
+            "type": "ON_CLICK"
+          }
+        }
+      ]
+    }
+  ],
+  "textBindings": [
+    {
+      "id": "I4:297;2:122",
+      "text": "智能硬件与配套软件方案验证。",
+      "bound": {
+        "characters": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:30:1403"
+        },
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:35"
+          }
+        ]
+      }
+    },
+    {
+      "id": "I4:301;2:122",
+      "text": "@张工 EVT样机联调中，电源验证待完成。",
+      "bound": {
+        "characters": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:30:1404"
+        },
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:35"
+          }
+        ]
+      }
+    }
+  ],
+  "flowStartingPoints": [
+    {
+      "nodeId": "28:1385",
+      "name": "来源与核心流程复核"
+    },
+    {
+      "nodeId": "4:2",
+      "name": "看板进入项目"
+    },
+    {
+      "nodeId": "10:383",
+      "name": "普通编辑与保存"
+    },
+    {
+      "nodeId": "4:311",
+      "name": "阶段完成与开始"
+    },
+    {
+      "nodeId": "10:688",
+      "name": "他人更新冲突"
+    }
+  ],
+  "opacitySample": {
+    "type": "SOLID",
+    "visible": true,
+    "opacity": 1,
+    "blendMode": "NORMAL",
+    "color": {
+      "r": 0.18886274099349976,
+      "g": 0.15717647969722748,
+      "b": 0.1465098112821579
+    },
+    "boundVariables": {
+      "color": {
+        "type": "VARIABLE_ALIAS",
+        "id": "VariableID:41:1556"
+      }
+    }
+  },
+  "nativePresentationClicksPerformed": false,
+  "originalSystemFontsMatched": false,
+  "fontFallback": "Noto Sans SC",
+  "productCodeModified": false,
+  "unhandledPrototypeActions": [
+    {
+      "id": "4:20",
+      "key": "board-proposal"
+    },
+    {
+      "id": "4:24",
+      "key": "board-closed"
+    },
+    {
+      "id": "4:26",
+      "key": "board-maintenance"
+    },
+    {
+      "id": "4:28",
+      "key": "cockpit"
+    },
+    {
+      "id": "4:53",
+      "key": "board-recent"
+    },
+    {
+      "id": "4:84",
+      "key": "filters"
+    },
+    {
+      "id": "4:86",
+      "key": "scope"
+    },
+    {
+      "id": "4:88",
+      "key": "filters"
+    },
+    {
+      "id": "4:90",
+      "key": "filters"
+    },
+    {
+      "id": "4:92",
+      "key": "filters"
+    },
+    {
+      "id": "4:94",
+      "key": "filters"
+    },
+    {
+      "id": "4:96",
+      "key": "filters"
+    },
+    {
+      "id": "5:335",
+      "key": "flow-preview"
+    },
+    {
+      "id": "5:337",
+      "key": "export"
+    },
+    {
+      "id": "5:536",
+      "key": "signal-reference"
+    },
+    {
+      "id": "5:643",
+      "key": "history-detail"
+    },
+    {
+      "id": "5:649",
+      "key": "history-detail"
+    },
+    {
+      "id": "5:655",
+      "key": "history-detail"
+    },
+    {
+      "id": "5:661",
+      "key": "history-detail"
+    },
+    {
+      "id": "11:1018",
+      "key": "new-saved"
+    },
+    {
+      "id": "11:1038",
+      "key": "login-error"
+    },
+    {
+      "id": "11:1059",
+      "key": "password-saved"
+    },
+    {
+      "id": "11:1083",
+      "key": "settings-saved"
+    },
+    {
+      "id": "11:1085",
+      "key": "settings"
+    },
+    {
+      "id": "12:1057",
+      "key": "rollback-saved"
+    },
+    {
+      "id": "12:1083",
+      "key": "plan-saved"
+    },
+    {
+      "id": "12:1105",
+      "key": "plan-unknown"
+    },
+    {
+      "id": "12:1123",
+      "key": "check-saved"
+    },
+    {
+      "id": "12:1137",
+      "key": "pause-saved"
+    },
+    {
+      "id": "12:1159",
+      "key": "closed-saved"
+    },
+    {
+      "id": "12:1195",
+      "key": "risk-pending"
+    },
+    {
+      "id": "12:1225",
+      "key": "risk-pending"
+    },
+    {
+      "id": "12:1259",
+      "key": "nodes-pending"
+    },
+    {
+      "id": "12:1303",
+      "key": "nodes-pending"
+    },
+    {
+      "id": "12:1325",
+      "key": "flow-pending"
+    },
+    {
+      "id": "12:1427",
+      "key": "customer-pending"
+    },
+    {
+      "id": "12:1449",
+      "key": "nodes-pending"
+    }
+  ],
+  "frameGrid": [
+    {
+      "id": "4:2",
+      "name": "P01 看板 · 原四范围与卡片",
+      "x": 200,
+      "y": 200,
+      "width": 1440,
+      "height": 1596
+    },
+    {
+      "id": "4:159",
+      "name": "P02 项目详情 · 基本信息",
+      "x": 1840,
+      "y": 200,
+      "width": 1440,
+      "height": 1972
+    },
+    {
+      "id": "4:311",
+      "name": "P03 项目阶段 · 原七卡片",
+      "x": 3480,
+      "y": 200,
+      "width": 1440,
+      "height": 2123
+    },
+    {
+      "id": "4:449",
+      "name": "P04 项目节点 · 依赖与列表",
+      "x": 5120,
+      "y": 200,
+      "width": 1440,
+      "height": 1273
+    },
+    {
+      "id": "5:271",
+      "name": "P05 项目Flow · 原七阶段泳道",
+      "x": 200,
+      "y": 2543,
+      "width": 1440,
+      "height": 1671
+    },
+    {
+      "id": "5:387",
+      "name": "P06 客户节点 · 日期与沟通",
+      "x": 1840,
+      "y": 2543,
+      "width": 1440,
+      "height": 1010
+    },
+    {
+      "id": "5:466",
+      "name": "P07 风险与需求变更 · 原入口统一保存",
+      "x": 3480,
+      "y": 2543,
+      "width": 1440,
+      "height": 1365
+    },
+    {
+      "id": "5:569",
+      "name": "P08 更新历史 · 人工操作与字段变化",
+      "x": 5120,
+      "y": 2543,
+      "width": 1440,
+      "height": 1475
+    },
+    {
+      "id": "11:928",
+      "name": "P09 新建项目 · 沿用详情字段",
+      "x": 200,
+      "y": 4434,
+      "width": 1440,
+      "height": 1418
+    },
+    {
+      "id": "11:1022",
+      "name": "P10 登录 · 身份入口",
+      "x": 1840,
+      "y": 4434,
+      "width": 1440,
+      "height": 654
+    },
+    {
+      "id": "11:1040",
+      "name": "P11 首次改密 / 本人改密",
+      "x": 3480,
+      "y": 4434,
+      "width": 1440,
+      "height": 711
+    },
+    {
+      "id": "11:1061",
+      "name": "P12 系统维护 · 公共检查规则",
+      "x": 5120,
+      "y": 4434,
+      "width": 1440,
+      "height": 661
+    },
+    {
+      "id": "10:383",
+      "name": "S01 普通编辑 · 同一项目修改集合",
+      "x": 200,
+      "y": 6072,
+      "width": 1440,
+      "height": 2039
+    },
+    {
+      "id": "10:536",
+      "name": "S02 保存成功 · 同项目回读结果",
+      "x": 1840,
+      "y": 6072,
+      "width": 1440,
+      "height": 2039
+    },
+    {
+      "id": "10:688",
+      "name": "S03 他人更新 · 保留输入并禁止覆盖",
+      "x": 3480,
+      "y": 6072,
+      "width": 1440,
+      "height": 2039
+    },
+    {
+      "id": "10:845",
+      "name": "S04 重新进入 · 最新正式版本",
+      "x": 5120,
+      "y": 6072,
+      "width": 1440,
+      "height": 2039
+    },
+    {
+      "id": "10:997",
+      "name": "S05 看板消费已保存状态",
+      "x": 200,
+      "y": 8331,
+      "width": 1440,
+      "height": 1663
+    },
+    {
+      "id": "10:1153",
+      "name": "S06 完成EVT · 下一阶段待开始",
+      "x": 1840,
+      "y": 8331,
+      "width": 1440,
+      "height": 2190
+    },
+    {
+      "id": "10:1293",
+      "name": "S07 子记录已加入修改 · 等待保存项目",
+      "x": 3480,
+      "y": 8331,
+      "width": 1440,
+      "height": 1428
+    },
+    {
+      "id": "10:1399",
+      "name": "S08 风险已保存 · 同页结果与历史",
+      "x": 5120,
+      "y": 8331,
+      "width": 1440,
+      "height": 1432
+    },
+    {
+      "id": "26:1359",
+      "name": "S09 普通保存 · 更新历史消费",
+      "x": 200,
+      "y": 10741,
+      "width": 1440,
+      "height": 1517
+    },
+    {
+      "id": "26:1453",
+      "name": "S10 普通账号 · 查看公共规则",
+      "x": 1840,
+      "y": 10741,
+      "width": 1440,
+      "height": 440
+    },
+    {
+      "id": "26:1480",
+      "name": "S11 下一阶段已开始 · 保留已完成进度",
+      "x": 3480,
+      "y": 10741,
+      "width": 1440,
+      "height": 2190
+    },
+    {
+      "id": "30:1413",
+      "name": "S12 阶段保存 · 看板消费60%进度",
+      "x": 5120,
+      "y": 10741,
+      "width": 1440,
+      "height": 1596
+    },
+    {
+      "id": "32:1481",
+      "name": "S13 DVT开始 · 看板保留60%进度",
+      "x": 200,
+      "y": 13151,
+      "width": 1440,
+      "height": 1596
+    },
+    {
+      "id": "12:1009",
+      "name": "D/完成EVT集成验证",
+      "x": 200,
+      "y": 14967,
+      "width": 640,
+      "height": 417
+    },
+    {
+      "id": "12:1027",
+      "name": "D/开始DVT可靠性验证",
+      "x": 1020,
+      "y": 14967,
+      "width": 640,
+      "height": 326
+    },
+    {
+      "id": "12:1041",
+      "name": "D/回退项目阶段",
+      "x": 1840,
+      "y": 14967,
+      "width": 640,
+      "height": 417
+    },
+    {
+      "id": "12:1059",
+      "name": "D/调整当前计划",
+      "x": 2660,
+      "y": 14967,
+      "width": 640,
+      "height": 599
+    },
+    {
+      "id": "12:1085",
+      "name": "D/纠正日期信息",
+      "x": 200,
+      "y": 15726,
+      "width": 640,
+      "height": 508
+    },
+    {
+      "id": "12:1107",
+      "name": "D/保存本次检查",
+      "x": 1020,
+      "y": 15726,
+      "width": 640,
+      "height": 417
+    },
+    {
+      "id": "12:1125",
+      "name": "D/暂缓项目",
+      "x": 1840,
+      "y": 15726,
+      "width": 640,
+      "height": 326
+    },
+    {
+      "id": "12:1139",
+      "name": "D/结案项目",
+      "x": 2660,
+      "y": 15726,
+      "width": 640,
+      "height": 508
+    },
+    {
+      "id": "12:1161",
+      "name": "D/编辑项目风险",
+      "x": 200,
+      "y": 16394,
+      "width": 640,
+      "height": 508
+    },
+    {
+      "id": "12:1183",
+      "name": "D/解除当前风险",
+      "x": 1020,
+      "y": 16394,
+      "width": 640,
+      "height": 326
+    },
+    {
+      "id": "12:1197",
+      "name": "D/编辑需求变更",
+      "x": 1840,
+      "y": 16394,
+      "width": 640,
+      "height": 690
+    },
+    {
+      "id": "12:1227",
+      "name": "D/编辑项目节点",
+      "x": 2660,
+      "y": 16394,
+      "width": 640,
+      "height": 781
+    },
+    {
+      "id": "12:1261",
+      "name": "D/前置节点尚未完成",
+      "x": 200,
+      "y": 17335,
+      "width": 640,
+      "height": 417
+    },
+    {
+      "id": "12:1279",
+      "name": "D/纠正节点完成与依赖影响",
+      "x": 1020,
+      "y": 17335,
+      "width": 640,
+      "height": 599
+    },
+    {
+      "id": "12:1305",
+      "name": "D/编辑前后节点关系",
+      "x": 1840,
+      "y": 17335,
+      "width": 640,
+      "height": 508
+    },
+    {
+      "id": "12:1327",
+      "name": "D/管理负责范围",
+      "x": 2660,
+      "y": 17335,
+      "width": 640,
+      "height": 417
+    },
+    {
+      "id": "12:1345",
+      "name": "D/先处理未保存的修改",
+      "x": 200,
+      "y": 18094,
+      "width": 640,
+      "height": 235
+    },
+    {
+      "id": "12:1355",
+      "name": "D/项目保存失败",
+      "x": 1020,
+      "y": 18094,
+      "width": 640,
+      "height": 235
+    },
+    {
+      "id": "12:1365",
+      "name": "D/正在确认保存结果",
+      "x": 1840,
+      "y": 18094,
+      "width": 640,
+      "height": 235
+    },
+    {
+      "id": "12:1375",
+      "name": "D/发现本人未保存底稿",
+      "x": 2660,
+      "y": 18094,
+      "width": 640,
+      "height": 326
+    },
+    {
+      "id": "12:1389",
+      "name": "D/你尚未负责此项目",
+      "x": 200,
+      "y": 18580,
+      "width": 640,
+      "height": 235
+    },
+    {
+      "id": "12:1399",
+      "name": "D/编辑客户节点",
+      "x": 1020,
+      "y": 18580,
+      "width": 640,
+      "height": 690
+    },
+    {
+      "id": "12:1429",
+      "name": "D/恢复已删除节点",
+      "x": 1840,
+      "y": 18580,
+      "width": 640,
+      "height": 508
+    },
+    {
+      "id": "12:1451",
+      "name": "D/连线形成循环",
+      "x": 2660,
+      "y": 18580,
+      "width": 640,
+      "height": 235
+    },
+    {
+      "id": "12:1461",
+      "name": "D/登录未成功",
+      "x": 200,
+      "y": 19430,
+      "width": 640,
+      "height": 235
+    },
+    {
+      "id": "12:1471",
+      "name": "D/登录已失效",
+      "x": 1020,
+      "y": 19430,
+      "width": 640,
+      "height": 235
+    },
+    {
+      "id": "12:1481",
+      "name": "D/该入口尚待后续施工",
+      "x": 1840,
+      "y": 19430,
+      "width": 640,
+      "height": 235
+    },
+    {
+      "id": "26:1221",
+      "name": "D/S1 需求立项 · 三线工作要点",
+      "x": 2660,
+      "y": 19430,
+      "width": 640,
+      "height": 418
+    },
+    {
+      "id": "26:1232",
+      "name": "D/S2 项目预启动 · 三线工作要点",
+      "x": 200,
+      "y": 20008,
+      "width": 640,
+      "height": 418
+    },
+    {
+      "id": "26:1243",
+      "name": "D/S3 PEVT技术预研 · 三线工作要点",
+      "x": 1020,
+      "y": 20008,
+      "width": 640,
+      "height": 418
+    },
+    {
+      "id": "26:1254",
+      "name": "D/S4 EVT集成验证 · 三线工作要点",
+      "x": 1840,
+      "y": 20008,
+      "width": 640,
+      "height": 462
+    },
+    {
+      "id": "26:1265",
+      "name": "D/S5 DVT可靠性验证 · 三线工作要点",
+      "x": 2660,
+      "y": 20008,
+      "width": 640,
+      "height": 440
+    },
+    {
+      "id": "26:1276",
+      "name": "D/S6 PVT量产验证 · 三线工作要点",
+      "x": 200,
+      "y": 20630,
+      "width": 640,
+      "height": 440
+    },
+    {
+      "id": "26:1287",
+      "name": "D/S7 MP量产维护 · 三线工作要点",
+      "x": 1020,
+      "y": 20630,
+      "width": 640,
+      "height": 440
+    },
+    {
+      "id": "26:1298",
+      "name": "D/复制未保存内容",
+      "x": 1840,
+      "y": 20630,
+      "width": 640,
+      "height": 360
+    },
+    {
+      "id": "26:1311",
+      "name": "D/项目操作",
+      "x": 2660,
+      "y": 20630,
+      "width": 640,
+      "height": 415
+    },
+    {
+      "id": "26:1325",
+      "name": "D/我的账号",
+      "x": 200,
+      "y": 21230,
+      "width": 640,
+      "height": 288
+    },
+    {
+      "id": "26:1334",
+      "name": "D/系统设置与资料",
+      "x": 1020,
+      "y": 21230,
+      "width": 640,
+      "height": 360
+    },
+    {
+      "id": "26:1346",
+      "name": "D/原型异常场景",
+      "x": 1840,
+      "y": 21230,
+      "width": 640,
+      "height": 398
+    }
+  ],
+  "gridOverlaps": [],
+  "stageBoardIds": {
+    "completed": "30:1413",
+    "started": "32:1481"
+  },
+  "tagColorTokens": {
+    "VariableID:2:50": {
+      "fill": "VariableID:41:1536",
+      "border": "VariableID:41:1541"
+    },
+    "VariableID:2:59": {
+      "fill": "VariableID:41:1546",
+      "border": "VariableID:41:1551"
+    },
+    "VariableID:2:64": {
+      "fill": "VariableID:41:1556",
+      "border": "VariableID:41:1561"
+    },
+    "VariableID:2:69": {
+      "fill": "VariableID:41:1566",
+      "border": "VariableID:41:1571"
+    }
+  },
+  "userDesignAccepted": false,
+  "productBrowserAcceptancePerformed": false,
+  "newDeploymentPerformed": false
+}

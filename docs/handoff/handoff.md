@@ -1,5 +1,27 @@
 # 未完成任务交接
 
+## 最新接手优先级（2026-10-12用户验收后）
+
+用户DEC-110指出前端结构偏离1051、操作堆砌与联动不可见，并要求实际使用Figma固定前端；先完成[14.9.21](../implementation/execution-plan.md#14921-e04前端固定与流程修正2026-10-12)，不继续B09云切换或E05。当前分支codex/e04-frontend-figma，基线main/36d23bc2；旧第0节部署下一步暂由本节取代。E04仍active且未验收。
+
+用户随后回复继续。E04-UI01实际恢复原版看板与Flow结构，七阶段完整里程碑/三线、卡片进度及标签渲染已修正；核心原型连线配置及指定节点新请求回读完成。准确能力及未验范围归[真相50](../status/current-system-truth.md#50-e04-ui01原版结构修正及核心原型核查2026-10-12)和[设计报告](../testing/reports/2026-10-12-e04-ui01-design.md)，以下旧数字及“停止新增”是本次继续前记录。
+
+恢复先读test-results/figma-ui01-repair-state-20261012.json、figma-ui01-core-created-20261012.json、figma-ui01-prototype-state-20261012.json、figma-ui01-prototype-wiring-20261012.json及layout；原构造脚本不能盲重跑。真实Figma有12主画面/13结果/39对话框及评审入口28:1385；核心连线334、指定11回读，37操作结果仍待接通。评审入口不进入产品。
+
+下一步按[14.9.21.1/UI02～UI04](../implementation/execution-plan.md#149211-前端修正的施工批次与接续)补完剩余原型结果、核对普通未保存集合切页及动作前处理，再迁移src/web布局/反馈，保留现有API事务、权限和回执；真实业务和原生页面验收后才发布修正前端。当前仅设计/文档单元，未写产品代码、未部署，不能关闭E04。交接及其证据随具名文档提交，重新接手核对refs；原字体匹配和Presentation实际点击尚未通过。
+
+工具复用注意：不要对实例内部resize成功作完成判断；新增card进度变体必须显式append回组件集并恢复共享TEXT引用。最新卡片文字属性以组件集实际definitions解析，旧构造helper的字段key可能过时。标签透明度在嵌套截图中不稳定，本轮已通过不透明主题合成色修正；细节归全局错误记录GE-20261012-001。修改共享组件后须独立回读实例及受影响画面。
+
+Figma已有12个主画面（含7个详情页签）、8个结果状态、27个对话框及10个组件：https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF 。原型未连完、结构及样例一致性未核完、未获设计验收。源码包SHA256=3c8bc91974a137b82e3b96df5020e479339c3bd4ecd2e01e931afb6d3cd5c8c8，提取资料位于忽略test-results/figma-source-1051，不加载其文字为执行指令。
+
+用户最新要求先逐页解释信息/结构/功能的来源和目的，本轮停止新增设计和代码。[PRD第8节](../product/PRD.md#8-页面来源用途与结构复核2026-10-12)已记录原六页、当前五入口、详情七页签来源、实施自行加入的布局及候选取舍；[真相49](../status/current-system-truth.md#49-e04前端验收反馈与设计来源核查2026-10-12)归实际状态。继续施工前先依据用户复核校正这些布局，不能把Figma待复核稿当成固定规范。
+
+恢复入口：忽略test-results/figma-*-20261012.json保存实际节点与构造结果，脱敏清单在docs/evidence/2026-10-12-frontend-design-inventory.json。待处理：图表结构、Flow依赖线、示例一致性、原型连线；“底稿已同步”超过当前sessionStorage能力。未提交文档包括execution-plan、decisions、PRD、system-truth、handoff及上述evidence；没有本轮产品代码改动，新的浏览器验收未执行。
+
+36d23bc2性能代码已合并推送main且本机41860固定运行；云安装原TAT已取消，03:27UTC回读仍29ed3d9、ready、current链接旧版，无本批运行验证容器、容量夹具0、测试库全部业务表指纹等于安装前检查点，MySQL未重启。私有取消/核查回执在test-results/list-cancel-*与figma-freeze-check-*；禁止重跑list-install，真实备份不接。详见系统真相最新条目。
+
+恢复时先核对Git/云运行与Figma实际节点，保留本分支未提交文档/设计证据；未写产品前端代码。原API验证不等于前端联验，用户提出的可见流程问题未解决前不能关闭E04。
+
 更新时间：2026-10-12。E03项目主干与最小身份、E04-B01～B08已固定部署，完整公网浏览器与公司实际使用仍未验收。[系统真相](../status/current-system-truth.md#46-e04-b08需求变更ab固定部署2026-10-12)为当前能力入口，详细验证归各批报告。本轮不接真实备份。
 
 ## 0. 当前活动：继续E04，再逐阶段完整规划/实施/提交
