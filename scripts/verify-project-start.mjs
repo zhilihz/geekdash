@@ -7,7 +7,7 @@ import { openRuntimeDatabase } from '../dist/server/infrastructure/runtime-datab
 import { hashPassword, identities } from '../dist/server/modules/identity.js';
 import { projectActions, validateAction } from '../dist/server/modules/project-actions.js';
 import { publicSettings, validateRule } from '../dist/server/modules/public-settings.js';
-import { businessToday, weekContext } from '../dist/server/modules/project-dates.js';
+import { addDays, businessToday, weekContext } from '../dist/server/modules/project-dates.js';
 
 const { connection: c } = await connectDatabase('test_migrator');
 const prefix = 'start_' + randomUUID().slice(0, 8), password = '启动验收 password 长短语 2026';
@@ -106,9 +106,10 @@ try {
   assert.equal(weekContext(new Date('2026-10-09T16:00:00.000Z'), 5).firstCheckWeek, '2026-10-12');
   assert.equal(weekContext(new Date('2026-10-11T15:59:59.999Z'), 7).firstCheckWeek, '2026-10-05');
   assert.equal(weekContext(new Date('2026-10-11T16:00:00.000Z'), 7).firstCheckWeek, '2026-10-12');
-  const actor = await identities(runtime).resolve(a.cookie.split('=')[1]); const clockId = await proposal(a); const saturday = new Date('2026-10-09T16:00:00.000Z'); const late = body(await a.api('/api/projects/' + clockId), { previewFirstCheckWeek: '2026-10-12' });
-  await projectActions(runtime, () => saturday).run(actor, clockId, validateAction(late), randomUUID(), false); assert.equal((await fresh(clockId)).p.firstCheckWeek, '2026-10-12');
-  const maintActor = await identities(runtime).resolve(maint.cookie.split('=')[1]); await assert.rejects(publicSettings(runtime, () => new Date('2026-10-12T00:00:00Z')).save(maintActor, validateRule({ ...initialize, expectedVersion: '2', previewWeek: '2026-10-05', idempotencyKey: randomUUID() }), randomUUID(), false), e => e.code === 'CHECK_RULE_ALREADY_INITIALIZED');
+  const week = initialize.previewWeek, nextWeek = addDays(week, 7);
+  const actor = await identities(runtime).resolve(a.cookie.split('=')[1]); const clockId = await proposal(a); const saturday = new Date(addDays(week, 5) + 'T00:00:00+08:00'); const late = body(await a.api('/api/projects/' + clockId), { previewWeek: week, previewFirstCheckWeek: nextWeek });
+  await projectActions(runtime, () => saturday).run(actor, clockId, validateAction(late), randomUUID(), false); assert.equal((await fresh(clockId)).p.firstCheckWeek, nextWeek);
+  const maintActor = await identities(runtime).resolve(maint.cookie.split('=')[1]); await assert.rejects(publicSettings(runtime, () => new Date(week + 'T00:00:00Z')).save(maintActor, validateRule({ ...initialize, expectedVersion: '2', previewWeek: week, idempotencyKey: randomUUID() }), randomUUID(), false), e => e.code === 'CHECK_RULE_ALREADY_INITIALIZED');
   checks.push('业务周五全天/次日/周日到下一周的边界、补录过去启动仍按保存周建立义务，真实库受控时钟验证');
   const build = (await a.api('/api/health/live')).build;
   const report = { status: 'passed', checkedAt: new Date().toISOString(), checks, requests: measurements.length, build, measurements };

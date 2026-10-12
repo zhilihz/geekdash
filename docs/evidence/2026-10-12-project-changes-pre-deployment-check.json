@@ -1,0 +1,29 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-12T01:33:52.548438+00:00",
+  "source": "两个实际HTTP入口新请求；尚未切换候选",
+  "live": {
+    "http://127.0.0.1:41860/api/health/live": {
+      "status": "alive",
+      "stage": "project-nodes-recovery",
+      "build": {
+        "revision": "2a342d66bee15248ad382d2c0050ebe01730a6e7",
+        "dirty": false,
+        "builtAt": "2026-10-10T09:49:08.536Z",
+        "stage": "project-nodes-recovery",
+        "schemaVersion": "0003-node-recovery"
+      }
+    },
+    "https://geekdash.zhiluan.cool/api/health/live": {
+      "status": "alive",
+      "stage": "project-nodes-recovery",
+      "build": {
+        "revision": "2a342d66bee15248ad382d2c0050ebe01730a6e7",
+        "dirty": false,
+        "builtAt": "2026-10-10T09:49:08.536Z",
+        "stage": "project-nodes-recovery",
+        "schemaVersion": "0003-node-recovery"
+      }
+    }
+  }
+}

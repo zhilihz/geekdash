@@ -1,0 +1,27 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T10:34:00.468Z",
+  "checks": [
+    "两来源/两决定与文字同一版本/事务，预览不写、正式ID/实名/新SQL与详情/历史；原正文键顺序重投无二次写入，无计划/阶段/灯色/检查联动",
+    "四字段/误选决定明确纠错、原创建事实/同值/临时引用；28次历史与创建姓名快照保持，未知旧来源空理由仅校验触及字段，排序上限整份拒绝",
+    "有限白名单/类型/UTF/字节/原因/未知/跨项目/重复临时引用逐项不写；四真实会话同版一胜三冲突，CSRF/失权/事务内停用不可绕过",
+    "文字/风险/节点/变更原子保存，各写点含第二对象失败完整SQL回滚；真实COMMIT丢确认/应用重建后原会话、映射、原结果及新请求保持",
+    "实际2a342d6兼容D/E同库回退，旧会话/文字结果/当前变更保持；新changeOps窗口未知保留正文，升级后原结果确认无重写"
+  ],
+  "requestCount": 284,
+  "build": {
+    "revision": "22d6d8af2a4fe9107ea19daec60f05506e83fb1c",
+    "dirty": true,
+    "builtAt": "2026-10-10T10:33:24.138Z",
+    "stage": "project-changes",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "fallbackBuild": {
+    "revision": "2a342d66bee15248ad382d2c0050ebe01730a6e7",
+    "dirty": false,
+    "builtAt": "2026-10-10T09:49:08.536Z",
+    "stage": "project-nodes-recovery",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "isolatedTestDatabase": true
+}

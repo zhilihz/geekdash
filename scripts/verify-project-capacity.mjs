@@ -5,9 +5,12 @@ import { createApp } from '../dist/server/app.js';
 import { connectDatabase } from '../dist/server/infrastructure/db.js';
 import { openRuntimeDatabase } from '../dist/server/infrastructure/runtime-database.js';
 import { addDays, businessToday, businessWeek } from '../dist/server/modules/project-dates.js';
-import { riskRows, deletedNodes } from '../dist/server/modules/project-records.js';
+import { changeRows, riskRows, deletedNodes } from '../dist/server/modules/project-records.js';
 import { hashPassword } from '../dist/server/modules/identity.js';
 
+const changeMode = process.argv.includes('--changes'), changeIds = [];
+assert(!changeMode || process.argv.includes('--recovery'), '变更容量沿完整已删节点/风险/检查负载验收');
+let changeQueryPlan;
 const checkMode = process.argv.includes('--checks');
 const riskMode = process.argv.includes('--risks');
 const nodeMode = process.argv.includes('--nodes'), nodeIds = [];
@@ -17,12 +20,12 @@ assert(!recoveryMode || nodeMode && riskMode && checkMode, '恢复容量沿完�
 const riskIds = [];
 let riskQueryPlan;
 let deletedQueryPlan;
-const namespace = recoveryMode ? '__capacity_500_recovery_test__' : nodeMode ? '__capacity_500_nodes_test__' : riskMode ? '__capacity_500_risks_test__' : checkMode ? '__capacity_500_checks_test__' : '__capacity_500_test__';
+const namespace = changeMode ? '__capacity_500_changes_test__' : recoveryMode ? '__capacity_500_recovery_test__' : nodeMode ? '__capacity_500_nodes_test__' : riskMode ? '__capacity_500_risks_test__' : checkMode ? '__capacity_500_checks_test__' : '__capacity_500_test__';
 const ids = Array.from({length: 501}, (_, i) => String(9007199254780000n + BigInt(i)));
 const {connection} = await connectDatabase('test_migrator');
 let app, runtime, origin, owned = false, ownConfig = false, checkRule;
 const references = {customers: [], chips: [], engineers: [], tags: []};
-const measurements = {list: [], detail: [], save: [], audit: [], ...(checkMode ? {checkSave: [], checkHistory: []} : {}), ...(riskMode ? {riskPreview: [], riskSave: []} : {}), ...(nodeMode ? {nodePreview: [], nodeSave: []} : {}), ...(recoveryMode ? {deletedRead: [], restorePreview: [], restoreSave: [], deletePreview: [], deleteSave: []} : {})};
+const measurements = {...(changeMode ? {changePreview: [], changeSave: []} : {}), list: [], detail: [], save: [], audit: [], ...(checkMode ? {checkSave: [], checkHistory: []} : {}), ...(riskMode ? {riskPreview: [], riskSave: []} : {}), ...(nodeMode ? {nodePreview: [], nodeSave: []} : {}), ...(recoveryMode ? {deletedRead: [], restorePreview: [], restoreSave: [], deletePreview: [], deleteSave: []} : {})};
 const began = new Date().toISOString();
 const accounts = [];
 const password = '四人容量验证 password 2026';
@@ -67,6 +70,7 @@ try {
     await connection.execute("INSERT INTO project_people (project_id,engineer_id,role,sort_order) VALUES (?,?,'hardware_owner',0)",[projectId,references.engineers[index%4]]);
     await connection.execute('INSERT INTO project_tags (project_id,tag_id,sort_order) VALUES (?,?,0)',[projectId,references.tags[index%4]]);
     await connection.execute("INSERT INTO project_nodes (project_id,kind,title,output,note,sort_order) VALUES (?,'project','验证节点','输入和输出','合成记录',0)",[projectId]);
+    if(changeMode) await connection.execute("INSERT INTO project_changes (project_id,source,content,decision,reason,created_at,source_key,sort_order) VALUES (?,'旧来源待核对','合成旧变更','accept','','2020-01-01','容量旧来源',0)",[projectId]);
     await connection.execute("INSERT INTO project_risks (project_id,content,level,resolved,resolution,created_at,sort_order) VALUES (?,'试用风险','mid',0,'',UTC_TIMESTAMP(3),0)",[projectId]);
   }
   await connection.commit(); owned = true;
@@ -118,6 +122,19 @@ try {
     const findNodeScan = value => value && typeof value === 'object' ? value.table_name === 'n' ? value : Object.values(value).map(findNodeScan).find(Boolean) : undefined;
     const scan = findNodeScan(deletedQueryPlan); assert(scan && scan.access_type !== 'ALL' && scan.used_key_parts.includes('project_id'), '500项目已删读取必须使用项目范围索引');
   }
+  if(changeMode) {
+    for(let index=0;index<500;index++) {
+      const path='/api/projects/'+ids[index], tempId=randomUUID();
+      const saved=(await api(path,'PATCH',{expectedVersion:(await api(path)).project.version,idempotencyKey:randomUUID(),changes:{changeOps:[{op:'add',tempId,source:index%2?'业务':'客户',content:'真实容量变更'+index,decision:index%2?'reject':'accept',reason:'人工决定理由'}]}})).result;
+      changeIds.push(saved.changeIdMap[tempId]);
+      await api(path,'PATCH',{expectedVersion:saved.savedVersion,idempotencyKey:randomUUID(),changes:{changeOps:[{op:'correct',id:changeIds[index],changes:{content:'有效变更更正'+index},correctionReason:'规模验收明确纠错'}]}});
+    }
+    const originalQuery=connection.query;
+    connection.query=async function(statement,params) {const sql=typeof statement==='string'?statement:statement.sql;if(sql.includes('project.change.add')&&sql.includes('MIN(id)')) changeQueryPlan=JSON.parse((await originalQuery.call(this,{sql:'EXPLAIN FORMAT=JSON '+sql,timeout:3000},params))[0][0].EXPLAIN);return originalQuery.call(this,statement,params);};
+    try {await changeRows(connection,ids[0]);} finally {connection.query=originalQuery;}
+    const keyed=changeQueryPlan.query_block.nested_loop.find(item=>item.table.table_name==='a').table;assert.equal(keyed.key,'PRIMARY');assert.equal(keyed.access_type,'eq_ref');assert.equal(keyed.rows_examined_per_scan,1);
+    const scans=[];const collect=value=>{if(value&&typeof value==='object'){if(value.table_name==='audit_log')scans.push(value);for(const child of Object.values(value))collect(child);}};collect(changeQueryPlan);assert(scans.length>0&&scans.every(scan=>scan.access_type!=='ALL'&&scan.used_key_parts.includes('entity_id')),'创建人快照必须用目标索引，不能全审计扫描');
+  }
   const initial = await api('/api/projects?view=all&search='+encodeURIComponent('规模测试项目'));
   assert.equal(initial.pagination.total,500); assert.equal(initial.stats.total,500); assert.equal(initial.items.length,24);
   const filtered = await api('/api/projects?view=all&customer='+encodeURIComponent('规模夹具-customers-0'));
@@ -163,7 +180,13 @@ try {
       finalVersion=(await measured('deleteSave','/api/projects/'+target,'PATCH',remove)).result.savedVersion;
       const removed=await api('/api/projects/'+target);assert.equal(removed.project.version,finalVersion);assert.equal(removed.nodes.length,3);assert(!removed.nodes.some(n=>n.id===deletedIds[worker]));
     }
-    const audit=await measured('audit','/api/projects/'+target+'/audit'); assert.equal(audit.items[0].versionAfter,finalVersion);
+    if(changeMode) {
+      const body={expectedVersion:finalVersion,idempotencyKey:randomUUID(),changes:{changeOps:[{op:'correct',id:changeIds[worker],changes:{content:`四人变更${worker}轮次${round}`,decision:round%2?'reject':'accept'},correctionReason:'规模真实纠错'}]}};
+      assert.equal((await measured('changePreview','/api/projects/'+target+'/save-preview','POST',body)).changeEvents.length,1);
+      const saved=(await measured('changeSave','/api/projects/'+target,'PATCH',body)).result;finalVersion=saved.savedVersion;
+      const after=await api('/api/projects/'+target);assert.equal(after.project.version,finalVersion);assert.equal(after.changes.length,2);assert.equal(after.changes.find(row=>row.id===changeIds[worker]).content,body.changes.changeOps[0].changes.content);assert.equal(after.changes.find(row=>row.id===changeIds[worker]).createdByName,'合成容量账号'+worker);assert.equal(after.changes[0].source,'旧来源待核对');assert.equal(after.changes[0].reason,'');
+    }
+    const audit=await measured('audit' ,'/api/projects/'+target+'/audit'); assert.equal(audit.items[0].versionAfter,finalVersion);
   }));
   // 第 501 个项目可入库和查询，500 是验收规模，不是结构或读取总量上限。
   await connection.execute(`INSERT INTO projects (id,name,data_kind,source_namespace,source_key,status,signal_note,market_expectation,status_description,detail_note,summary_note,chipstat_note,closure_note,remaining_work_note,created_at,updated_at)
@@ -173,13 +196,14 @@ try {
   await mkdir('test-results',{recursive:true});
   const result={status:'passed',startedAt:began,checkedAt:new Date().toISOString(),projectCount:500,stageCount:3500,initialAuditCount:(checkMode?1500:500)+(riskMode?1000:0)+(nodeMode?1500:0),...(checkMode?{checkCount:1580,initialCorrectionCount:500,weekHistoryCount:1000}:{}),...(riskMode?{riskCount:1000,realRiskAdditions:500,riskCorrections:580,riskQueryPlan}:{}),...(nodeMode?{nodeCount:2000,realNodeAdditions:1500,nodeMoveCount:80}:{}),processMemory:process.memoryUsage(),workers:4,authenticated:true,rounds:20,errorCount:0,measurements:summary,noHardProjectLimit:true,source:'专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时'};
   if(recoveryMode)Object.assign(result,{initialAuditCount:result.initialAuditCount+1000,initialActiveNodes:1500,deletedNodeCount:500,realInitialDeletes:500,restoreCount:80,deleteCount:580,deletedQueryPlan});
-  await writeFile(recoveryMode?'test-results/project-node-recovery-capacity-check.json':nodeMode?'test-results/project-nodes-capacity-check.json':riskMode?'test-results/project-risks-capacity-check.json':checkMode?'test-results/project-checks-capacity-check.json':'test-results/project-capacity-check.json',JSON.stringify(result,null,2)+'\n'); console.log(JSON.stringify(result));
+  if(changeMode)Object.assign(result,{initialAuditCount:result.initialAuditCount+1000,changeCount:1000,realChangeAdditions:500,changeCorrections:580,changeQueryPlan});
+  await writeFile(changeMode?'test-results/project-changes-capacity-check.json':recoveryMode?'test-results/project-node-recovery-capacity-check.json':nodeMode?'test-results/project-nodes-capacity-check.json':riskMode?'test-results/project-risks-capacity-check.json':checkMode?'test-results/project-checks-capacity-check.json':'test-results/project-capacity-check.json',JSON.stringify(result,null,2)+'\n'); console.log(JSON.stringify(result));
 } finally {
   await connection.rollback(); await app?.close();
   if (!app) await runtime?.close();
   if (owned) {
     await connection.execute('UPDATE project_nodes SET previous_node_id=NULL,next_node_id=NULL WHERE project_id IN (SELECT id FROM projects WHERE source_namespace=?)',[namespace]);
-    for (const table of ['audit_log','project_checks','project_risks','project_nodes','project_chips','project_people','project_tags','project_stages','project_responsibilities']) await connection.execute(`DELETE FROM ${table} WHERE project_id IN (SELECT id FROM projects WHERE source_namespace=?)`,[namespace]);
+    for (const table of ['project_changes','audit_log','project_checks','project_risks','project_nodes','project_chips','project_people','project_tags','project_stages','project_responsibilities']) await connection.execute(`DELETE FROM ${table} WHERE project_id IN (SELECT id FROM projects WHERE source_namespace=?)`,[namespace]);
     const scopes=ids.flatMap(id=>['text','ordinary'].map(mode=>'anonymous:project:'+id+':'+mode));
     await connection.execute('DELETE FROM command_receipts WHERE command_scope IN ('+scopes.map(()=>'?').join(',')+')',scopes);
     await connection.execute('DELETE FROM projects WHERE source_namespace=?',[namespace]);

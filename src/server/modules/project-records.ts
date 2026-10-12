@@ -101,6 +101,79 @@ export async function writeRisks(connection: PoolConnection, id: string, candida
   return { riskIdMap: idMap, risks: await riskRows(connection, id) };
 }
 
+type ChangeFields = { source: string; content: string; decision: 'accept' | 'reject'; reason: string };
+export type ChangeOperation = { op: 'add'; tempId: string } & ChangeFields | { op: 'correct'; id: string; changes: Partial<ChangeFields>; correctionReason: string };
+type Change = RowDataPacket & ChangeFields & { id: string; actorId: string | null; createdAt: string; sourceKey: string | null; sortOrder: number; createdByName: string | null };
+type ChangeEvent = { op: ChangeOperation['op']; id: string; before: Change | null; after: Change; correctionReason: string };
+const changeFieldKeys = ['source', 'content', 'decision', 'reason'] as const;
+export function validateChangeOps(value: unknown): ChangeOperation[] {
+  if (!Array.isArray(value) || !value.length) failure('INVALID_CHANGE_OPERATIONS', 400);
+  const fields: Record<string, string> = {}, added = new Set<string>();
+  const text = (value: unknown, key: string) => {
+    if (typeof value !== 'string') failure('INVALID_CHANGE_OPERATIONS', 400);
+    if (!value.trim() || !value.isWellFormed() || Buffer.byteLength(value, 'utf8') > 65535) fields[key] = '请填写有效的非空文字，最多65535字节';
+  };
+  const operations = value.map((item, index) => {
+    if (!object(item)) failure('INVALID_CHANGE_OPERATIONS', 400);
+    const keys = item.op === 'add' ? ['op', 'tempId', ...changeFieldKeys] : item.op === 'correct' ? ['op', 'id', 'changes', 'correctionReason'] : [];
+    if (!keys.length || keys.length !== Object.keys(item).length || keys.some(key => !Object.hasOwn(item, key))) failure('INVALID_CHANGE_OPERATIONS', 400);
+    if (item.op === 'add') {
+      if (!uuid(item.tempId) || added.has(item.tempId)) failure('INVALID_CHANGE_OPERATIONS', 400);
+      added.add(item.tempId);
+    } else if (!validId(item.id) && !(uuid(item.id) && added.has(item.id))) failure('INVALID_CHANGE_OPERATIONS', 400);
+    const prefix = 'changeOps.' + index + '.', data = item.op === 'correct' ? item.changes : Object.fromEntries(changeFieldKeys.map(key => [key, item[key]]));
+    if (!object(data) || !Object.keys(data).length || Object.keys(data).some(key => !changeFieldKeys.includes(key as typeof changeFieldKeys[number]))) failure('INVALID_CHANGE_OPERATIONS', 400);
+    if (item.op === 'correct') text(item.correctionReason, prefix + 'correctionReason');
+    for (const [key, value] of Object.entries(data)) {
+      if (key === 'source' || key === 'decision') { if (!(key === 'source' ? ['客户', '业务'] : ['accept', 'reject']).includes(value as string)) fields[prefix + key] = '请选择原面板的有效选项'; }
+      else text(value, prefix + key);
+    }
+    return Object.fromEntries(keys.map(key => [key, key === 'changes' ? Object.fromEntries(changeFieldKeys.filter(field => Object.hasOwn(data, field)).map(field => [field, data[field]])) : item[key]])) as ChangeOperation;
+  });
+  if (Object.keys(fields).length) failure('INVALID_PROJECT_FIELDS', 422, { fields });
+  return operations;
+}
+export async function changeRows(connection: PoolConnection, id: string): Promise<Change[]> {
+  const rows = await query(connection, "SELECT CAST(id AS CHAR) id,source,content,decision,reason,CAST(actor_id AS CHAR) actorId,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%s.%fZ') createdAt,source_key sourceKey,sort_order sortOrder FROM project_changes WHERE project_id=? ORDER BY sort_order,project_changes.id", [id]) as Change[];
+  if (!rows.length) return rows;
+  const facts = await query(connection, `SELECT CAST(a.entity_id AS CHAR) id,a.actor_display_name name FROM (
+    SELECT MIN(id) id FROM audit_log WHERE entity_type='project_change' AND entity_id IN (${rows.map(() => '?').join(',')}) AND action='project.change.add' GROUP BY entity_id
+    ) targets JOIN audit_log a ON a.id=targets.id`, rows.map(row => row.id));
+  const names = new Map(facts.map(fact => [fact.id, fact.name]));
+  for (const row of rows) row.createdByName = names.get(row.id) ?? null;
+  return rows;
+}
+export async function changeCandidate(connection: PoolConnection, id: string, operations: ChangeOperation[], actor: Actor, timestamp: string) {
+  const rows = await changeRows(connection, id), candidates = structuredClone(rows), events: ChangeEvent[] = [], targets = new Map(candidates.map(row => [row.id, row]));
+  let order = rows.reduce((max, row) => Math.max(max, row.sortOrder + 1), 0);
+  for (const operation of operations) {
+    if (operation.op === 'add') {
+      if (order > 4294967295) failure('CHANGE_ORDER_EXHAUSTED', 422);
+      const row = { id: operation.tempId, source: operation.source, content: operation.content, decision: operation.decision, reason: operation.reason, actorId: actor.id, createdAt: timestamp, sourceKey: null, sortOrder: order++, createdByName: actor.name } as Change;
+      candidates.push(row); targets.set(row.id, row); events.push({ op: 'add', id: row.id, before: null, after: structuredClone(row), correctionReason: '' });
+    } else {
+      const row = targets.get(operation.id); if (!row) failure('CHANGE_NOT_FOUND', 404);
+      const before = structuredClone(row); Object.assign(row, operation.changes);
+      if (JSON.stringify(before) !== JSON.stringify(row)) events.push({ op: 'correct', id: row.id, before, after: structuredClone(row), correctionReason: operation.correctionReason });
+    }
+  }
+  return { rows: candidates, events };
+}
+export async function writeChanges(connection: PoolConnection, id: string, candidate: Awaited<ReturnType<typeof changeCandidate>>, actor: Actor, versionBefore: string, versionAfter: string, requestId: string, timestamp: string) {
+  const idMap: Record<string, string> = {};
+  for (const event of candidate.events) {
+    const after = event.after;
+    if (event.op === 'add') {
+      await connection.execute('INSERT INTO project_changes (project_id,source,content,decision,reason,actor_id,created_at,sort_order) VALUES (?,?,?,?,?,?,?,?)', [id, after.source, after.content, after.decision, after.reason, actor.id, timestamp, after.sortOrder]);
+      idMap[event.id] = (await query(connection, 'SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0].id;
+    } else await connection.execute('UPDATE project_changes SET source=?,content=?,decision=?,reason=? WHERE project_id=? AND id=?', [after.source, after.content, after.decision, after.reason, id, idMap[event.id] ?? event.id]);
+    const stableId = idMap[event.id] ?? event.id;
+    await connection.execute(`INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,version_before,version_after,before_json,after_json,request_id,created_at)
+      VALUES (?,?,'user',?,'project_change',?,?,?,?,?,?,?,?)`, [actor.id, actor.name, 'project.change.' + event.op, stableId, id, versionBefore, versionAfter, JSON.stringify({ change: event.before ? { ...event.before, id: stableId } : null }), JSON.stringify({ change: { ...after, id: stableId }, correctionReason: event.correctionReason }), requestId, timestamp]);
+  }
+  return { changeIdMap: idMap, changes: await changeRows(connection, id) };
+}
+
 type NodeFields = { title: string; stage: string | null; targetDate: string | null; output: string; note: string };
 type Edge = { from: string; to: string };
 export type NodeOperation =

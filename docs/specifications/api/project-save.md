@@ -87,7 +87,7 @@ risks在详情和保存结果包含id/content/level/resolved/resolution/resolved
 
 ### POST /api/projects/:id/save-preview
 
-使用同一SaveRequest输入，当前必须含riskOps或nodeOps；只读一致快照，检查启用身份/负责资格/进入版本，复用实际保存的风险候选。返回projectId/expectedVersion/events/risks及nodeEvents/nodes/requiredUncompleteIds/confirmed；risk events含op/id/before/after/reason，新增id仍为tempId。当前预览只展示风险候选，普通关联等在正式保存中独立统一核验；不写项目、正式ID、历史或回执，预览时刻不是正式事件时间。
+使用同一SaveRequest输入，当前必须含riskOps、nodeOps或changeOps；只读一致快照，检查启用身份/负责资格/进入版本，复用实际保存的风险候选。返回projectId/expectedVersion/events/risks及nodeEvents/nodes/requiredUncompleteIds/confirmed；risk events含op/id/before/after/reason，新增id仍为tempId。预览按实际包含的有限意图展示对应子记录候选，普通关联等在正式保存中独立统一核验；不写项目、正式ID、历史或回执，预览时刻不是正式事件时间。
 
 页面预览后“确认加入未保存修改”只改变普通副本；最终点击“保存项目”重算候选、事务校验并正式保存。修改任何输入使预览失效。原生页面验收范围另归报告，不据接口存在称通过。
 
@@ -133,3 +133,22 @@ removeEdges必须精确覆盖当前目标的前后引用及有效邻居指向它
 新增错误：422 NODE_DELETE_LINKS_CHANGED（必须重新核对全部旧线）、NODE_ALREADY_DELETED、NODE_NOT_DELETED；跨项目或无目标404 NODE_NOT_FOUND，非法额外字段/UUID正式目标400 INVALID_NODE_OPERATIONS，恢复原因/阶段/实际日及最终图错误沿既有字段/节点契约。任何子操作错误，整份普通文字和节点都不部分写；409冻结旧版并保留副本，SQL失败回滚，COMMIT未知沿原编号确认。
 
 兼容回退2dfb17c能读取0003有效节点、保持原A～C结果和会话，但不理解新D/E正文。回退窗口内以新D/E正文确认会返回400/未知，不能据此宣布原保存失败或换编号；保留原正文，重新升级D/E版后再确认。本限制由实际旧镜像导出服务/同库验证，不以迁移兼容冒充协议兼容。
+
+## E04-B08 需求变更A/B统一保存
+
+2026-10-12候选代码协议；行为归SPEC-005，当前运行与验收只查系统真相。复用PATCH普通保存、save-preview及save-results/query；不新增表或独立写路由。
+
+| op | 精确输入 |
+|---|---|
+| add | op/tempId/source/content/decision/reason；小写UUIDv4临时ID不可重复 |
+| correct | op/id/changes/correctionReason；changes非空，只含明确选择的source/content/decision/reason |
+
+新增及明确纠正source只客户/业务，decision只accept/reject，对应原面板接受/拒绝；content、业务reason、correctionReason为非空完整Unicode、UTF-8最多65535字节。正式ID为十进制字符串，或同数组此前add的tempId。未知字段、身份/时间/来源ID注入、delete或审批操作400；旧未触碰字段保留，不默认成业务/拒绝，不因空理由拦截无关文字保存。原创建actorId/createdAt/sourceKey/sortOrder不随纠正改写。
+
+changeOps按顺序构建编辑候选，同份临时新增后可纠正；正式保存复用可信身份/负责资格/进入版本与项目锁，和文字、关联、阶段工期、风险及节点同一事务。实际目标事件为project_change的project.change.add/correct，beforeValues.change及afterValues.change/correctionReason记录原决定与新值、当时人名、同一前后版本/requestId；不自动更改计划、阶段、灯色、检查。任一写点失败整份回滚。
+
+result另含changes和changeIdMap，不把意图放入result.values；changes含id/source/content/decision/reason/actorId/createdAt/sourceKey/sortOrder/createdByName，详情消费同一投影。createdByName取目标最早创建审计快照，不随账号改名变化；未知来源保持null。仅同值时不推进版本或审计，原回执仍存在。没有changeOps的旧请求正文指纹/结果格式保持。
+
+save-preview另返回changeEvents/changes，每个事件含op/id/before/after/correctionReason；新id仍为tempId，预览不写正式数据、历史或回执。表单确认只加入副本，保存项目才写。修改输入使预览失效。
+
+失败包括400 INVALID_CHANGE_OPERATIONS、422 INVALID_PROJECT_FIELDS（fields.changeOps.<序号>.<字段>）、404 CHANGE_NOT_FOUND、422 CHANGE_ORDER_EXHAUSTED；版本/身份/权限/结果未知沿原普通保存。真实COMMIT后失去确认须保留原编号正文查询结果。旧固定D/E版不识别changeOps，在回退窗口返回400不能据此认定原保存失败；再升级后确认原结果，不能另造替代记录。原生页面验收另记，接口通过不能代替。

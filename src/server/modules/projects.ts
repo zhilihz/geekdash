@@ -1,5 +1,5 @@
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
-import { riskRows, nodeRows } from './project-records.js';
+import { changeRows, riskRows, nodeRows } from './project-records.js';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 import { stageBlock, startProjectBlock, type StageFact } from './project-actions.js';
 import { businessToday, checkContext, closurePlanKnownExpression, dayDifference, deadlineCondition, deadlineKinds, deadlineResult, type DateFacts, type DeadlineKind } from './project-dates.js';
@@ -135,7 +135,7 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
         const projectStages = await rows(connection, "SELECT CAST(id AS CHAR) id,stage_code code,state,planned_days plannedDays,note,DATE_FORMAT(started_on,'%Y-%m-%d') startedOn,DATE_FORMAT(completed_on,'%Y-%m-%d') completedOn,DATE_FORMAT(expected_end_on,'%Y-%m-%d') expectedEndOn FROM project_stages WHERE project_id=? ORDER BY stage_code", [id]);
         const nodes = await nodeRows(connection, id);
         const risks = await riskRows(connection, id);
-        const changes = await rows(connection, 'SELECT CAST(id AS CHAR) id,source,content,decision,reason FROM project_changes WHERE project_id=? ORDER BY sort_order,project_changes.id', [id]);
+        const changes = await changeRows(connection, id);
         const delays = await scheduleRecords(connection, id);
         const actualChanges = delays.filter(item => !item.voided && item.kind === 'reschedule' && item.oldDate && item.newDate && item.oldDate !== item.newDate);
         const planSummary = { reschedules: actualChanges.length, laterAdjustments: actualChanges.filter(item => item.newDate! > item.oldDate!).length, unknownAdjustments: delays.filter(item => !item.voided && item.kind === 'reschedule' && (!item.oldDate || !item.newDate)).length, netDays: project.originalDueDate && project.dueDate ? dayDifference(project.originalDueDate, project.dueDate) : null };

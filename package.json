@@ -38,6 +38,8 @@
     "test:checks-capacity": "node scripts/verify-project-capacity.mjs --checks",
     "test:nodes": "node scripts/verify-project-nodes.mjs",
     "test:nodes-capacity": "node scripts/verify-project-capacity.mjs --checks --risks --nodes",
+    "test:changes": "node scripts/verify-project-changes.mjs",
+    "test:changes-capacity": "node scripts/verify-project-capacity.mjs --checks --risks --nodes --recovery --changes",
     "test:node-recovery": "node scripts/verify-project-node-recovery.mjs",
     "test:node-recovery-capacity": "node scripts/verify-project-capacity.mjs --checks --risks --nodes --recovery"
   },

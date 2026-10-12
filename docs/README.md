@@ -102,3 +102,5 @@ docs/
 - 后续0003兼容候选：[系统真相43](status/current-system-truth.md#43-e04-b08节点0003兼容候选2026-10-10)、执行文档14.9.15；候选不代表常驻两库已迁移。
 
 - 节点D/E固定部署与后续缺口：[恢复报告](testing/reports/2026-10-10-project-node-recovery.md)、[系统真相45](status/current-system-truth.md#45-e04-b08节点de删除恢复固定部署2026-10-10)。0003兼容当前运行状态归第44节，不按历史候选文字猜常驻结构。
+
+- E04-B08需求变更A/B候选及未发布范围：[需求变更报告](testing/reports/2026-10-12-project-changes.md)、[系统真相46](status/current-system-truth.md#46-e04-b08需求变更ab候选2026-10-12)。

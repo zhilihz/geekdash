@@ -1,0 +1,91 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-12T01:29:59.001455+00:00",
+  "startedAt": "2026-10-12T01:29:19.005626+00:00",
+  "units": {
+    "node-recovery": {
+      "exitCode": 0,
+      "report": "project-node-recovery-check.json",
+      "requestCount": 217,
+      "resumedFromExistingPassedRun": true
+    },
+    "nodes": {
+      "exitCode": 0,
+      "report": "project-nodes-check.json",
+      "requestCount": 164,
+      "resumedFromExistingPassedRun": true
+    },
+    "risks": {
+      "exitCode": 0,
+      "report": "project-risks-check.json",
+      "requestCount": 120,
+      "resumedFromExistingPassedRun": true
+    },
+    "checks": {
+      "exitCode": 0,
+      "report": "project-checks-check.json",
+      "requestCount": 253,
+      "resumedFromExistingPassedRun": true
+    },
+    "close": {
+      "exitCode": 0,
+      "report": "project-close-check.json",
+      "requestCount": 299,
+      "resumedFromExistingPassedRun": true
+    },
+    "pause": {
+      "exitCode": 0,
+      "report": "project-pause-check.json",
+      "requestCount": 124,
+      "resumedFromExistingPassedRun": true
+    },
+    "dates": {
+      "exitCode": 0,
+      "report": "project-dates-check.json",
+      "requestCount": 287,
+      "resumedFromExistingPassedRun": true
+    },
+    "corrections": {
+      "exitCode": 0,
+      "report": "stage-corrections-check.json",
+      "requestCount": 87,
+      "resumedFromExistingPassedRun": true
+    },
+    "start": {
+      "exitCode": 0,
+      "report": "project-start-check.json",
+      "requestCount": 76
+    },
+    "stages": {
+      "exitCode": 0,
+      "report": "stage-actions-check.json",
+      "requestCount": 58
+    },
+    "core": {
+      "exitCode": 0,
+      "report": "project-core-report.json",
+      "requestCount": 66
+    },
+    "ordinary": {
+      "exitCode": 0,
+      "report": "project-ordinary-check.json",
+      "requestCount": null
+    },
+    "saves": {
+      "exitCode": 0,
+      "report": "project-saves-check.json",
+      "requestCount": null
+    },
+    "projects": {
+      "exitCode": 0,
+      "report": "project-reads-check.json",
+      "requestCount": null
+    }
+  },
+  "testCountsPreserved": true,
+  "schemaVersion": "0003-node-recovery",
+  "toolMemoryLimitBytes": 268435456,
+  "nodeOldHeapMiB": 96,
+  "source": "真实MySQL/HTTP串行专项；自有合成输入及新连接回读",
+  "resumeNote": "前八类实际exit0保留；人工启动固定过去时钟早于本次规则，改为初始化周后只接续失败项及剩余五类，产品规则保持"
+}

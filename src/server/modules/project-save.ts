@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import type { PoolConnection, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 import { assertActor, type Actor } from './identity.js';
-import { validateRiskOps, riskCandidate, writeRisks, validateNodeOps, nodeCandidate, writeNodes, type NodeOperation, type RiskOperation } from './project-records.js';
+import { validateChangeOps, changeCandidate, writeChanges, type ChangeOperation, validateRiskOps, riskCandidate, writeRisks, validateNodeOps, nodeCandidate, writeNodes, type NodeOperation, type RiskOperation } from './project-records.js';
 
 export const textColumns = { name: 'name', marketExpectation: 'market_expectation', detailNote: 'detail_note', summaryNote: 'summary_note' } as const;
 const columns = { ...textColumns, signalNote: 'signal_note', chipstatNote: 'chipstat_note', statusDesc: 'status_description', signal: 'signal', priority: 'priority', customerId: 'customer_id', odmCustomerId: 'odm_customer_id', productLineId: 'product_line_id', appId: 'app_id', groupId: 'group_id' } as const;
@@ -12,11 +12,11 @@ const roles = ['pm', 'hardware_owner', 'software_owner', 'participant'];
 type Person = { id: string; role: string };
 type StagePlan = { code: string; plannedDays?: number | null; note?: string };
 export type TextValues = Record<keyof typeof textColumns, string>;
-type Values = TextValues & { signalNote: string; chipstatNote: string; statusDesc: string; signal: string; priority: string; customerId: string | null; odmCustomerId: string | null; productLineId: string | null; appId: string | null; groupId: string | null; chipIds: string[]; tagIds: string[]; people: Person[]; stagePlans?: StagePlan[]; riskOps?: RiskOperation[]; nodeOps?: NodeOperation[] };
+type Values = TextValues & { signalNote: string; chipstatNote: string; statusDesc: string; signal: string; priority: string; customerId: string | null; odmCustomerId: string | null; productLineId: string | null; appId: string | null; groupId: string | null; chipIds: string[]; tagIds: string[]; people: Person[]; stagePlans?: StagePlan[]; riskOps?: RiskOperation[]; nodeOps?: NodeOperation[]; changeOps?: ChangeOperation[] };
 type Field = keyof Values;
-const keys = [...Object.keys(columns), ...collections, 'stagePlans', 'riskOps', 'nodeOps'] as Field[];
+const keys = [...Object.keys(columns), ...collections, 'stagePlans', 'riskOps', 'nodeOps', 'changeOps'] as Field[];
 export type SaveRequest = { expectedVersion: string; idempotencyKey: string; changes: Partial<Values> };
-export type SaveResult = { projectId: string; operationId: string; changed: boolean; savedVersion: string; values: TextValues | Values; savedAt: string | null; display?: Record<string, unknown>; riskIdMap?: Record<string, string>; risks?: Awaited<ReturnType<typeof riskCandidate>>['rows']; nodeIdMap?: Record<string, string>; nodes?: Awaited<ReturnType<typeof nodeCandidate>>['rows'] };
+export type SaveResult = { projectId: string; operationId: string; changed: boolean; savedVersion: string; values: TextValues | Values; savedAt: string | null; display?: Record<string, unknown>; riskIdMap?: Record<string, string>; risks?: Awaited<ReturnType<typeof riskCandidate>>['rows']; nodeIdMap?: Record<string, string>; nodes?: Awaited<ReturnType<typeof nodeCandidate>>['rows']; changeIdMap?: Record<string, string>; changes?: Awaited<ReturnType<typeof changeCandidate>>['rows'] };
 
 export function failure(code: string, status: number, extra: Record<string, unknown> = {}): never {
   throw Object.assign(new Error(code), { code, status, ...extra });
@@ -32,6 +32,7 @@ export function validateSave(value: unknown): SaveRequest {
   const fields: Record<string, string> = {};
   for (const [key, text] of Object.entries(value.changes)) {
     if (!keys.includes(key as Field)) failure('INVALID_SAVE_REQUEST', 400);
+    if (key === 'changeOps') { validateChangeOps(text); continue; }
     if (key === 'nodeOps') { validateNodeOps(text); continue; }
     if (key === 'riskOps') { validateRiskOps(text); continue; }
     if (key === 'stagePlans') {
@@ -70,7 +71,7 @@ export function validateSave(value: unknown): SaveRequest {
   }
   if (Object.keys(fields).length) failure('INVALID_PROJECT_FIELDS', 422, { fields });
   const request = value as SaveRequest;
-  return { ...request, changes: { ...request.changes, ...(request.changes.nodeOps ? { nodeOps: validateNodeOps(request.changes.nodeOps) } : {}), ...(request.changes.riskOps ? { riskOps: validateRiskOps(request.changes.riskOps) } : {}), ...(request.changes.people ? { people: request.changes.people.map(({ id, role }) => ({ id, role })) } : {}), ...(request.changes.stagePlans ? { stagePlans: [...request.changes.stagePlans].sort((a, b) => a.code.localeCompare(b.code)).map(item => ({ code: item.code, ...Object.hasOwn(item, 'plannedDays') ? { plannedDays: item.plannedDays } : {}, ...Object.hasOwn(item, 'note') ? { note: item.note } : {} })) } : {}) } };
+  return { ...request, changes: { ...request.changes, ...(request.changes.changeOps ? { changeOps: validateChangeOps(request.changes.changeOps) } : {}), ...(request.changes.nodeOps ? { nodeOps: validateNodeOps(request.changes.nodeOps) } : {}), ...(request.changes.riskOps ? { riskOps: validateRiskOps(request.changes.riskOps) } : {}), ...(request.changes.people ? { people: request.changes.people.map(({ id, role }) => ({ id, role })) } : {}), ...(request.changes.stagePlans ? { stagePlans: [...request.changes.stagePlans].sort((a, b) => a.code.localeCompare(b.code)).map(item => ({ code: item.code, ...Object.hasOwn(item, 'plannedDays') ? { plannedDays: item.plannedDays } : {}, ...Object.hasOwn(item, 'note') ? { note: item.note } : {} })) } : {}) } };
 }
 async function query(connection: PoolConnection, sql: string, values: unknown[] = []) {
   return (await connection.query<RowDataPacket[]>({ sql, timeout: 3000 }, values))[0];
@@ -133,11 +134,12 @@ export function projectSaves(database: RuntimeDatabase) {
         const current = await project(connection, id, false, true);
         if (!(await query(connection, 'SELECT user_id FROM project_responsibilities WHERE project_id=? AND user_id=?', [id, actor.id])).length) failure('PROJECT_READ_ONLY', 403);
         if (current.version !== request.expectedVersion) failure('PROJECT_VERSION_CONFLICT', 409, { currentVersion: current.version });
-        if (!request.changes.riskOps && !request.changes.nodeOps) failure('INVALID_SAVE_REQUEST', 400);
+        if (!request.changes.riskOps && !request.changes.nodeOps && !request.changes.changeOps) failure('INVALID_SAVE_REQUEST', 400);
         const timestamp = new Date().toISOString();
+        const change = request.changes.changeOps ? await changeCandidate(connection, id, request.changes.changeOps, actor, timestamp) : undefined;
         const risk = request.changes.riskOps ? await riskCandidate(connection, id, request.changes.riskOps, actor, timestamp) : undefined;
         const node = request.changes.nodeOps ? await nodeCandidate(connection, id, request.changes.nodeOps, timestamp, true) : undefined;
-        return { projectId: id, expectedVersion: current.version, ...(risk ? { events: risk.events, risks: risk.rows } : {}), ...(node ? { nodeEvents: node.events, nodes: node.rows, requiredUncompleteIds: node.requiredUncompleteIds, confirmed: node.confirmed } : {}) };
+        return { projectId: id, expectedVersion: current.version, ...(change ? { changeEvents: change.events, changes: change.rows } : {}), ...(risk ? { events: risk.events, risks: risk.rows } : {}), ...(node ? { nodeEvents: node.events, nodes: node.rows, requiredUncompleteIds: node.requiredUncompleteIds, confirmed: node.confirmed } : {}) };
       });
     },
     options() {
@@ -160,8 +162,9 @@ export function projectSaves(database: RuntimeDatabase) {
         if (receipt) return receiptResult(receipt, hash);
         if (actor && !(await query(connection, 'SELECT user_id FROM project_responsibilities WHERE project_id=? AND user_id=?', [id, actor.id])).length) failure('PROJECT_READ_ONLY', 403);
         if (current.version !== request.expectedVersion) failure('PROJECT_VERSION_CONFLICT', 409, { currentVersion: current.version });
-        if ((request.changes.riskOps || request.changes.nodeOps) && !actor) failure('AUTH_REQUIRED', 401);
+        if ((request.changes.riskOps || request.changes.nodeOps || request.changes.changeOps) && !actor) failure('AUTH_REQUIRED', 401);
         const savedAt = new Date().toISOString();
+        const change = request.changes.changeOps ? await changeCandidate(connection, id, request.changes.changeOps, actor!, savedAt) : undefined;
         const risk = request.changes.riskOps ? await riskCandidate(connection, id, request.changes.riskOps, actor!, savedAt) : undefined;
         const node = request.changes.nodeOps ? await nodeCandidate(connection, id, request.changes.nodeOps, savedAt) : undefined;
         if (extended) Object.assign(current, await linkedValues(connection, id));
@@ -181,10 +184,10 @@ export function projectSaves(database: RuntimeDatabase) {
           }
         }
         if (Object.keys(errors).length) failure('INVALID_PROJECT_FIELDS', 422, { fields: errors });
-        const fields = keys.filter(key => key !== 'riskOps' && key !== 'nodeOps' && Object.hasOwn(effective, key) && JSON.stringify(effective[key]) !== JSON.stringify(current[key]));
-        const changed = fields.length > 0 || !!risk?.events.length || !!node?.events.length;
+        const fields = keys.filter(key => key !== 'riskOps' && key !== 'nodeOps' && key !== 'changeOps' && Object.hasOwn(effective, key) && JSON.stringify(effective[key]) !== JSON.stringify(current[key]));
+        const changed = fields.length > 0 || !!risk?.events.length || !!node?.events.length || !!change?.events.length;
         if (changed && current.version === '18446744073709551615') failure('PROJECT_VERSION_EXHAUSTED', 422);
-        const values = Object.fromEntries((extended ? keys : Object.keys(textColumns) as Field[]).filter(key => key !== 'riskOps' && key !== 'nodeOps' && (key !== 'stagePlans' || request.changes.stagePlans)).map(key => [key, Object.hasOwn(effective, key) ? effective[key] : current[key]])) as Values;
+        const values = Object.fromEntries((extended ? keys : Object.keys(textColumns) as Field[]).filter(key => key !== 'riskOps' && key !== 'nodeOps' && key !== 'changeOps' && (key !== 'stagePlans' || request.changes.stagePlans)).map(key => [key, Object.hasOwn(effective, key) ? effective[key] : current[key]])) as Values;
         const result: SaveResult = { projectId: id, operationId: request.idempotencyKey, changed,
           savedVersion: changed ? String(BigInt(current.version) + 1n) : current.version, values, savedAt: changed ? savedAt : null };
         if (changed) {
@@ -205,6 +208,7 @@ export function projectSaves(database: RuntimeDatabase) {
           }
           if (risk) Object.assign(result, await writeRisks(connection, id, risk, actor!, current.version, result.savedVersion, requestId, timestamp));
           if (node) Object.assign(result, await writeNodes(connection, id, node, actor!, current.version, result.savedVersion, requestId, timestamp));
+          if (change) Object.assign(result, await writeChanges(connection, id, change, actor!, current.version, result.savedVersion, requestId, timestamp));
           const beforeDisplay = extended ? await displayValues(connection, current as Values) : current;
           const afterDisplay = extended ? await displayValues(connection, values) : values;
           if (extended) result.display = afterDisplay;
@@ -215,6 +219,7 @@ export function projectSaves(database: RuntimeDatabase) {
         }
         if (risk && !changed) Object.assign(result, { risks: risk.rows, riskIdMap: {} });
         if (node && !changed) Object.assign(result, { nodes: node.rows, nodeIdMap: {} });
+        if (change && !changed) Object.assign(result, { changes: change.rows, changeIdMap: {} });
         await connection.execute('INSERT INTO command_receipts (actor_id,command_scope,idempotency_key,request_hash,response_code,response_json,committed_at) VALUES (?,?,?,?,?,?,UTC_TIMESTAMP(3))', [actor?.id ?? null, scope(id, request, actor), request.idempotencyKey, hash, 200, JSON.stringify(result)]);
         return result;
       });

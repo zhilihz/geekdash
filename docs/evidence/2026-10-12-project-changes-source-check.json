@@ -1,0 +1,30 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-12T01:33:52.548438+00:00",
+  "sourceBase": "22d6d8af2a4fe9107ea19daec60f05506e83fb1c",
+  "candidateDirty": true,
+  "stagePanelComparedTo": "2a342d66bee15248ad382d2c0050ebe01730a6e7",
+  "stagePanelUnchanged": true,
+  "stagePanelSliceSha256": "f7074a1a180acf6f5d1ab84c8adc659247d141a6ab01fc188ac68ed56b424461",
+  "offline1051Sha256": "3c8bc91974a137b82e3b96df5020e479339c3bd4ecd2e01e931afb6d3cd5c8c8",
+  "sourceHashes": {
+    "src/server/modules/project-records.ts": "b8b97c9602da250db91f68b69d061d25260d91998bc36781328aee93e5e1c628",
+    "src/server/modules/project-save.ts": "4b567f24504fad2e523ff678f02e229c29550134b81db548539b3fa49b73e24f",
+    "src/server/modules/projects.ts": "3ff9805d0080f4108090323de0a3c0d6b11ae97d33177f22cbc940fdff96ff9f",
+    "src/web/detail.ts": "26167c5427554dc7cb62495872e8903ce12615b27f40e51a08e3739cc087402f",
+    "src/web/shared/api.ts": "64c7be9825079894d9a074653565869153dfbdc8c456307053e735c8741221e0",
+    "scripts/verify-project-changes.mjs": "7ea3dfa7c15e3c1cfb93000e6651fd1baf24625cab17f99d7207f81d0f4d096b",
+    "scripts/verify-project-capacity.mjs": "1094679bfed46109f0e446d8443204dd2b8f402e62b5904586e414248c280b57",
+    "scripts/verify-project-start.mjs": "59b459d248a02eacd0bce150d414bc750051c5f854905c72bdd5239878971453"
+  },
+  "foundationExitCode": 0,
+  "databaseVerifyProfiles": [
+    "dev_migrator",
+    "test_migrator"
+  ],
+  "schemaChanged": false,
+  "nativeBrowserAcceptance": false,
+  "realBackupImported": false,
+  "apiAndCapacityExecutedAt": "2026-10-10",
+  "regressionExecutedAt": "2026-10-12"
+}
