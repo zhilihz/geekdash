@@ -62,8 +62,14 @@ try {
     const stageSource = (await readFile('geekdashdesktop/projects-data.js','utf8')).match(/const STAGES = (\[[\s\S]*?\n  \]);/); assert(stageSource);
     Object.assign(w, { TextEncoder, TextDecoder, AbortController, AbortSignal, __GEEKDASH_STAGES__: vm.runInNewContext(stageSource[1], Object.create(null), { timeout: 1000 }) });
     w.BroadcastChannel = class { postMessage() {} }; w.scrollTo = () => {};
-    let fail = false;
-    w.fetch = async (path, options) => { if (fail && path.startsWith('/api/projects?')) { fail = false; return new Response(JSON.stringify({ code: 'DATABASE_UNAVAILABLE' }), { status: 503 }); } const response = await request(path, options); if (path.startsWith('/api/projects?') && response.ok) reads.push(await response.clone().json()); return response; };
+    let fail = false, holdNext = false, releaseOld, heldData;
+    w.fetch = async (path, options) => {
+      if (fail && path.startsWith('/api/projects?')) { fail = false; return new Response(JSON.stringify({ code: 'DATABASE_UNAVAILABLE' }), { status: 503 }); }
+      const hold = holdNext && path.startsWith('/api/projects?'); if (hold) holdNext = false;
+      const response = await request(path, options);
+      if (path.startsWith('/api/projects?') && response.ok) { const data = await response.clone().json(); reads.push(data); if (hold) { heldData = data; await new Promise(resolve => { releaseOld = resolve; }); } }
+      return response;
+    };
     const context = dom.getInternalVMContext(), transpile = source => ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.CommonJS } }).outputText;
     context.exports = {}; context.module = { exports: context.exports }; vm.runInContext('(function(exports,module){' + transpile(sources['src/web/shared/api.ts']) + '\n})(exports,module)', context);
     const shared = context.module.exports; context.require = name => { if (name === './shared/api') return shared; if (name.endsWith('.css')) return {}; throw new Error(name); };
@@ -72,11 +78,18 @@ try {
     await wait(() => $('#card-grid').getAttribute('aria-busy') === 'false' && reads.length);
     assert.equal(w.document.querySelectorAll('#card-grid .card').length,24); assert.match($('#card-grid').textContent,/真实保存的新简介/); assert.match($('#focus-projects').textContent,new RegExp(prefix+'_0'));
     assert.match($('#date-zone').textContent,/2026年/); assert.equal(w.document.querySelectorAll('#account-menu').length,1);
+    assert($('#filter-rows').hidden); assert.equal($('#filter-toggle').getAttribute('aria-expanded'),'false'); assert.match($('#result-count').textContent,new RegExp(prefix));
+    $('#filter-toggle').click(); assert.equal($('#filter-rows').hidden,false); assert.equal($('#filter-toggle').getAttribute('aria-expanded'),'true');
     const before = requestCount; $('#layout-toggle').click(); assert($('#card-grid').classList.contains('progress-layout')); assert.equal(requestCount,before);
     $('#next').click(); await wait(() => reads.at(-1).pagination.page === 2 && $('#card-grid').getAttribute('aria-busy') === 'false'); assert.equal(w.document.querySelectorAll('#card-grid .card').length,7);
     const legend = $('#distribution-chart [data-value="'+prefix+'_产品甲"]'); assert(legend); legend.click(); await wait(() => reads.at(-1).pagination.total===16 && $('#card-grid').getAttribute('aria-busy')==='false'); assert($('#card-grid').classList.contains('progress-layout'));
+    $('#filter-toggle').click(); assert($('#filter-rows').hidden); assert.match($('#result-count').textContent,new RegExp('产品线：'+prefix+'_产品甲'));
+    holdNext=true; $('#reload').click(); await wait(() => releaseOld); assert.equal(heldData.pagination.total,16);
+    const previousReads=reads.length; $('#filter-toggle').click(); const other=$('#filter-rows [data-value="'+prefix+'_产品乙"]'); assert(other); other.click();
+    await wait(() => reads.length>previousReads && reads.at(-1).pagination.total===15 && $('#card-grid').getAttribute('aria-busy')==='false');
+    const newest=$('#card-grid').innerHTML; releaseOld(); await new Promise(resolve=>setTimeout(resolve,50)); assert.equal($('#card-grid').innerHTML,newest); assert.match($('#result-count').textContent,new RegExp('产品线：'+prefix+'_产品乙')); assert.match($('#stats-bar').textContent,/15/);
     const preserved = $('#card-grid').innerHTML; fail=true; $('#reload').click(); await wait(() => $('#message').classList.contains('error')); assert.equal($('#card-grid').innerHTML,preserved); assert.match($('#message').textContent,/旧结果/);
-    assert.equal(errors.length,0); checks.push('实际board.ts事件与API：卡片/驾驶舱切换不重取，分页和图例联动、账号唯一、读取失败完整旧结果保留；CSS/原生未验');
+    assert.equal(errors.length,0); checks.push('实际board.ts事件与API：筛选默认收起/展开/当前条件；切换布局不重取；分页/图例联动、账号唯一；迟到旧响应不覆盖新卡片/条件/统计，读取失败保留完整旧结果；CSS/原生未验');
   }
   const build = (await api('/api/health/live')).build;
   const result = { status:'passed', checkedAt:new Date().toISOString(), checks, requestCount, build, ...(sourceHashes ? { sourceHashes } : {}), isolatedTestDatabase:true, syntheticOnly:true, domExecution:!apiOnly, nativeBrowserAcceptance:false, visualAcceptance:false };

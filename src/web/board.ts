@@ -88,7 +88,9 @@ async function load(active = true) {
     element('extra-stats').innerHTML = [['green','绿灯'],['overdue','已超期'],['due','今日到期'],['unset','计划未定'],['checkOverdue','检查逾期'],['checkUpdated','检查后更新']].map(([key,title]) => `<div class="stat"><span class="stat-label">${title}</span><b>${data.stats[key]}</b></div>`).join('');
     element('stats-bar').innerHTML = stats.map(([key, title]) => `<div class="stat"><span class="stat-label">${title}</span><b>${data.stats[key]}</b></div>`).join('');
     renderProjects(); charts(data.dashboard);
-    element('result-count').textContent = `筛选结果 ${pagination.total} 条 · 统计条与筛选结果一致 · 截至 ${businessDate}`;
+    const selected = Object.entries(dimensions).filter(([key]) => query.has(key)).map(([key, title]) => `${title}：${['status','priority','signal','stage','deadline'].includes(key) ? label(query.get(key)!) : key === 'progress' ? query.get(key) + '%' : query.get(key)}`);
+    if (query.get('search')) selected.unshift(`搜索：${query.get('search')}`);
+    element('result-count').textContent = `筛选结果 ${pagination.total} 条 · ${selected.join(' · ') || '未设置筛选'} · 截至 ${businessDate}`;
     element('page-info').textContent = `${pagination.page} / ${pagination.pageCount} 页`;
     previous.disabled = pagination.page <= 1;
     next.disabled = pagination.page >= pagination.pageCount;
@@ -121,7 +123,7 @@ element('reload').onclick = () => { clearTimeout(searchTimer); search.value ? qu
 element('clear').onclick = () => { clearTimeout(searchTimer); for (const key of [...query.keys()]) if (key !== 'view' && key !== 'layout') query.delete(key); search.value = ''; void load(); };
 element('previous').onclick = () => { if (pagination) { query.set('page', String(pagination.page - 1)); void load(); } };
 element('next').onclick = () => { if (pagination) { query.set('page', String(pagination.page + 1)); void load(); } };
-element('filter-toggle').onclick = () => { filterRows.hidden = !filterRows.hidden; element('filter-toggle').setAttribute('aria-expanded', String(!filterRows.hidden)); };
+element('filter-toggle').onclick = () => { filterRows.hidden = !filterRows.hidden; element('filter-toggle').setAttribute('aria-expanded', String(!filterRows.hidden)); element('filter-toggle').textContent = filterRows.hidden ? '筛选 ▸' : '筛选 ▾'; };
 element('distribution').onchange = distribution;
 element('distribution-chart').onclick = event => { const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-filter]'); if (button) change(button.dataset.filter!, button.dataset.value!); };
 element('layout-toggle').onclick = () => { query.get('layout') === 'progress' ? query.delete('layout') : query.set('layout', 'progress'); history.replaceState(null, '', location.pathname + '?' + query); renderProjects(); };
