@@ -1,0 +1,10 @@
+{
+  "status": "not_accepted",
+  "checkedAt": "2026-10-12T02:27:53.740368+00:00",
+  "source": "cua.getState read-only inventory",
+  "edgeConnection": "nodeRepl.fetch request failed",
+  "nativeAcceptance": false,
+  "iabTabs": 0,
+  "noAlternateUrlAccessAttempted": true,
+  "priorUrlPolicyRestriction": "AD-007"
+}

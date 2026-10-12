@@ -104,3 +104,5 @@ docs/
 - 节点D/E固定部署与后续缺口：[恢复报告](testing/reports/2026-10-10-project-node-recovery.md)、[系统真相45](status/current-system-truth.md#45-e04-b08节点de删除恢复固定部署2026-10-10)。0003兼容当前运行状态归第44节，不按历史候选文字猜常驻结构。
 
 - E04-B08需求变更A/B固定部署及B09待验范围：[需求变更报告](testing/reports/2026-10-12-project-changes.md)、[系统真相46](status/current-system-truth.md#46-e04-b08需求变更ab固定部署2026-10-12)。
+
+- E04-B09接口整链及SQL诊断基线：[B09报告](testing/reports/2026-10-12-e04-b09.md)、[系统真相47](status/current-system-truth.md#47-e04-b09接口整链与sql诊断基线2026-10-12)。原生和稳定性能仍待验，不按API通过关闭E04。

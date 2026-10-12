@@ -1,0 +1,22 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-12T02:15:11.485Z",
+  "checks": [
+    "四真实负责人、文字工期/风险节点变更统一保存、S1/实际启动/S2/S3与返工、首次义务保持、首次与最新检查消费",
+    "暂缓改计划/普通子记录→恢复→同ID节点恢复→遗留结案/主动检查/维护→可靠重开、实际未知纠错、原检查文字纠正，原创建及首次义务保留",
+    "四会话普通保存竞争一胜三冲突、旧动作/失权/混合非法拒绝；目标审计失败全部回滚、真实COMMIT丢确认重建后原会话及全链原结果、新SQL/看板消费"
+  ],
+  "requestCount": 169,
+  "originalReceiptsAfterRestart": 30,
+  "finalVersion": "32",
+  "build": {
+    "revision": "29ed3d900cadf4140ad9ff149e8b98e23f487e31",
+    "dirty": false,
+    "builtAt": "2026-10-12T01:36:28.599Z",
+    "stage": "project-changes",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "isolatedTestDatabase": true,
+  "syntheticOnly": true,
+  "nativeBrowserAcceptance": false
+}
