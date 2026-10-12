@@ -1,0 +1,111 @@
+{
+  "stage": "E04-UI03-B",
+  "contextDom": {
+    "status": "passed",
+    "checkedAt": "2026-10-12T08:43:43.226Z",
+    "checks": [
+      "七页签唯一保存；真实前端普通输入与节点副本跨页同源；预览不写库，保存后独立SQL/新GET/Flow与列表一致",
+      "非负责人只读，七页签共享责任判断，无普通或节点写入口",
+      "另一负责人真实保存后旧副本冻结、可复制；明确重新进入后显示新版本，旧输入仍保留供核对",
+      "真实COMMIT后丢响应，页面保留原请求；确认原结果及新读取仅产生一次审计",
+      "风险/需求/客户节点同次普通保存；弹窗暂停主编辑，取消与ESC不入库且保留其他已确认副本；预览后改输入必须重做；人可读节点预览",
+      "阶段未来日期失败保留输入与库原值；开始/完成独立保存，真实动作COMMIT丢响应用原编号确认；S1完成仍提案，人工启动后S2待开始",
+      "计划/检查在原Flow上下文保存及新读取；暂缓/恢复留在风险页，首次检查义务及原检查保持，无自动检查或开工",
+      "结案/维护/重开在原上下文保存，真实进度与遗留保持；回退当前有效完成阶段，后续锁定，历史/启动与检查依据保持",
+      "Flow节点弹窗直接进入实际完成操作，明确字段纠错后才编辑；节点完成不自动完成阶段；他人更新时弹窗冻结、可复制，关闭仍保留旧副本"
+    ],
+    "requestCount": 99,
+    "build": {
+      "revision": "f5315568121c2d9b262e950468a6144d0ddfa96f",
+      "dirty": false,
+      "builtAt": "2026-10-12T08:42:35.050Z",
+      "stage": "project-list",
+      "schemaVersion": "0003-node-recovery"
+    },
+    "frontendSource": "src/web/detail.ts + shared/api.ts",
+    "sourceSha256": {
+      "detailSource": "f97573ee3d11dc91fe5f9ffc68910b8348fec3ba5eba6fad5a8972b717cda27e",
+      "apiSource": "64c7be9825079894d9a074653565869153dfbdc8c456307053e735c8741221e0",
+      "html": "807f19c113eb3df49e1f4c6917bc8a49d5c9174b370ea84957904dca226ab4e2"
+    },
+    "isolatedTestDatabase": true,
+    "syntheticOnly": true,
+    "domExecution": "jsdom 27.0.1; CSS/BroadcastChannel/native dialog behavior not validated",
+    "nativeBrowserAcceptance": false,
+    "visualAcceptance": false
+  },
+  "integration": {
+    "status": "passed",
+    "checkedAt": "2026-10-12T08:44:09.163Z",
+    "checks": [
+      "四真实负责人、文字工期/风险节点变更统一保存、S1/实际启动/S2/S3与返工、首次义务保持、首次与最新检查消费",
+      "暂缓改计划/普通子记录→恢复→同ID节点恢复→遗留结案/主动检查/维护→可靠重开、实际未知纠错、原检查文字纠正，原创建及首次义务保留",
+      "四会话普通保存竞争一胜三冲突、旧动作/失权/混合非法拒绝；目标审计失败全部回滚、真实COMMIT丢确认重建后原会话及全链原结果、新SQL/看板消费"
+    ],
+    "requestCount": 169,
+    "originalReceiptsAfterRestart": 30,
+    "finalVersion": "32",
+    "build": {
+      "revision": "f5315568121c2d9b262e950468a6144d0ddfa96f",
+      "dirty": false,
+      "builtAt": "2026-10-12T08:42:35.050Z",
+      "stage": "project-list",
+      "schemaVersion": "0003-node-recovery"
+    },
+    "isolatedTestDatabase": true,
+    "syntheticOnly": true,
+    "nativeBrowserAcceptance": false
+  },
+  "build": {
+    "revision": "f5315568121c2d9b262e950468a6144d0ddfa96f",
+    "dirty": false,
+    "builtAt": "2026-10-12T08:42:35.050Z",
+    "stage": "project-list",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "sourceHashes": {
+    "src/web/detail.ts": "f97573ee3d11dc91fe5f9ffc68910b8348fec3ba5eba6fad5a8972b717cda27e",
+    "src/web/project-detail.html": "807f19c113eb3df49e1f4c6917bc8a49d5c9174b370ea84957904dca226ab4e2",
+    "src/web/shared/detail.css": "0f51834ffbeccdf8fc46e4eae6be428d728549103f1c95902e85e8aaa8d6d6e6",
+    "scripts/verify-detail-ui.mjs": "8817f7cddd8f1c341723b74ce958cde11658cf479df55baefaa08994c3aa77a5"
+  },
+  "unchangedMigrations": {
+    "migrations/0001-foundation.json": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+    "migrations/0002-trial-save.json": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695",
+    "migrations/0003-node-recovery.json": "4a5b38bd7c84ea230d9d2b1b0b7f93c575107f20c5df9968109901c09296e578"
+  },
+  "figmaReference": {
+    "fileKey": "leQy2Be9GaTXPvZeooQuIF",
+    "nodes": [
+      "12:1227",
+      "12:1161",
+      "12:1197",
+      "12:1009",
+      "12:1041",
+      "12:1059",
+      "12:1107",
+      "12:1125",
+      "12:1139"
+    ],
+    "scope": "本单元实施前已读取实际design context及截图；不代表Presentation或像素验收"
+  },
+  "runtimeReadback": {
+    "checkedAt": "2026-10-12T08:46:22.394071+00:00",
+    "local": {
+      "origin": "http://127.0.0.1:41860",
+      "build": {
+        "revision": "36d23bc2c7f6573841ecc4ad8aca1402743a65b2",
+        "dirty": false,
+        "builtAt": "2026-10-12T03:00:34.115Z",
+        "stage": "project-list",
+        "schemaVersion": "0003-node-recovery"
+      }
+    },
+    "cloud": "本轮未查询；最后实际运行回读沿系统真相49的2026-10-12T03:27:38UTC"
+  },
+  "candidateDeployed": false,
+  "nativeBrowserAcceptance": false,
+  "visualAcceptance": false,
+  "productDependenciesChanged": false,
+  "schemaChanged": false
+}

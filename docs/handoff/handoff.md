@@ -2,17 +2,19 @@
 
 ## 最新接手优先级（2026-10-12 E04前端修正）
 
-用户DEC-110要求复用1051及Figma，已明确继续。先按14.9.21执行，不重跑被取消的B09云installer、不进入E05；完整E04目标保持active。UI03-A分支codex/e04-ui03-detail-structure/基线main-cdeff0a，产品27107d5、固定候选85f3385（dirty=false/0003），源码/证据95409e3已合并并回读远端main。新施工分支codex/e04-ui03-context-dialogs，UI03-B计划2f4bbd9已合并并回读main，产品代码尚未开始本单元；恢复先核查实时refs，文档提交不是运行镜像。
+用户DEC-110要求复用1051及Figma，已明确继续。当前E04未验收，先接UI03-C及UI02/UI04，不重跑被取消的B09云installer、不进入E05。本轮get_goal返回无活动工具目标，恢复时核对，不能沿旧交接宣称工具active。
 
-UI03-A七页签/单一保存条/同源Flow、节点挂载点及后台读回输入保护已有代码和真实数据链证据，准确范围只查[真相51](../status/current-system-truth.md#51-e04-ui03-a详情结构与实际保存链路2026-10-12)、[报告](../testing/reports/2026-10-12-e04-ui03-a.md)与evidence。未执行原生/视觉验收、未部署；41860本轮新GET仍36d23bc2，云最后03:27UTC仍29ed3d9且本轮未查询。不能把DOM模型称真实浏览器验收。
+当前分支codex/e04-ui03-context-dialogs，基线main/661813e；产品及工具f5315568121c2d9b262e950468a6144d0ddfa96f，干净固定dist同SHA/0003。UI03-A结构此前已合并main；UI03-B代码/报告收口按本批具名提交回main，接手核对实际refs和git status，不把文档SHA当运行镜像。本节随报告提交，当前未提交文档/evidence由git status精确核查。
 
-下一步：按已形成全部步骤的[14.9.21.3](../implementation/execution-plan.md#149213-ui03-b-上下文表单与结果反馈)实施上下文动作/子记录弹窗；先读实际Figma动作节点的design context/截图，再复用原form/capture/预览/取消及API，保护普通dirty、固定进入版本与原编号确认。继续UI02高级结果、UI03-C看板及其他入口，再UI04原生/视觉/固定部署和全E04审计；草稿/SSE/公共资料及原版其他页面缺口仍保留完整范围。
+已完成及边界只查[真相52](../status/current-system-truth.md#52-e04-ui03-b上下文动作候选2026-10-12)、[UI03-B报告](../testing/reports/2026-10-12-e04-ui03-b.md)、[证据](../evidence/2026-10-12-e04-ui03-b-check.json)及[UI03-A报告](../testing/reports/2026-10-12-e04-ui03-a.md)。九组99 HTTP和已有整链169 HTTP、服务重建后30原结果/原会话通过；未执行原生/视觉验收，未部署。本机41860本轮新GET仍36d23bc2；云本轮未查询，最后实际回读沿真相49的03:27:38UTC，不能当实时状态。
 
-验证入口scripts/verify-detail-ui.mjs；jsdom27.0.1只在忽略test-results/ui-dom-tools，实际前端TS/HTML+真实测试API/MySQL。tool的512MiB/Node旧堆256MiB覆盖文件ui-dom-limits.yml仅限验证工具。固定detail-ui四组30请求、169整链及30重建回执已通过，夹具清理后整链空库前置通过。Edge仍nodeRepl.fetch request failed，不换表面/CDP绕过；本轮无OOM，不杀其他Node/重启MySQL/清卷。
+下一步：先核对本批remote main/readback；按[14.9.21](../implementation/execution-plan.md#14921-e04前端固定与流程修正2026-10-12)先写完整UI03-C各功能八项实施步骤，再迁移看板与其他入口。使用1051及同一Figma真实design context，统计须消费全部筛选范围，不能以本页24张卡片冒充全量统计。继续UI02的37个高级结果，再UI04原生/视觉/固定部署和完整E04审计；草稿/SSE/公共资料及原版其他页面缺口仍在完整范围。没有新的待决业务问题，本批技术取舍只归AD-025/026，不能把代决称用户逐项批准。
 
-Figma文件leQy2Be9GaTXPvZeooQuIF，入口28:1385；已有12主画面/13结果/39对话框，37操作结果未接。resume用忽略figma-ui01-*实际节点记录，不能盲重跑clone构造；卡片变体需append原组件集并恢复共享TEXT引用。来源ZIP及两项全局Figma修复沿真相50/GE-20261012-001。原字体/Presentation仍未验。
+验证入口scripts/verify-detail-ui.mjs --actions；jsdom27.0.1只在忽略test-results/ui-dom-tools，实际前端TS/HTML+真实测试API/MySQL。ui-dom-limits.yml限工具512MiB/Node旧堆256MiB，不改常驻配置。证据对应干净固定f5315568；夹具仅按自身ID清理后完整回归空库前置通过。没有OOM，不全局杀Node/重启MySQL/清卷。原生验证沿AD-007策略范围，不能换表面/CDP绕过；本轮没有新的浏览器核查。
 
-本轮仅部署前源码候选；未提交文件恢复时重新git status核查，保留他人工作。旧TAT本批已取消TERMINATED，禁止盲重跑list-install或初始化/改密。以下旧章节为历史接手参考，优先级以本节及真相51为准。
+Figma文件leQy2Be9GaTXPvZeooQuIF，入口28:1385；resume读取实际节点记录，不能盲重跑clone构造；来源ZIP及设计修复沿真相50。已有结构和核心连线不代表完整Presentation/字体或使用者验收。
+
+旧TAT本批已取消TERMINATED，禁止盲重跑list-install或初始化/改密。以下旧章节仅为历史接手参考，优先级以本节及真相52为准。
 
 ## 0. 历史接手：E04原批次及发布恢复参考
 
