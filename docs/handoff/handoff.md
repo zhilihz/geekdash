@@ -2,11 +2,11 @@
 
 ## 最新接手优先级（2026-10-12 E04测试版）
 
-目标active，用户要完成E04并给一版测试。codex/e04-ui02-results/main d771478基线；计划3ea9a04、产品17b4ea5及干净dist/0003。报告/evidence待本批具名合并远端main，接手重核refs和git status，保留已有产物。
+目标active，用户要完成E04并给一版测试。codex/e04-ui02-results/main d771478基线；计划3ea9a04、产品17b4ea5及干净dist/0003。UI02报告/evidence已合并并实际回读远端main/032f38113bd0db447ad7c59147902a56748ecc91，接手重核refs和git status，保留已有产物。
 
 已做/未验只查[真相54](../status/current-system-truth.md#54-e04-ui02结果与筛选候选2026-10-12)、[报告](../testing/reports/2026-10-12-e04-ui02.md)、[代码证据](../evidence/2026-10-12-e04-ui02-check.json)与[设计证据](../evidence/2026-10-12-e04-ui02-design-check.json)。Figma文件leQy2Be9GaTXPvZeooQuIF/page0:1；36场景准确ID及变动在正式证据，不盲重跑旧构造脚本。原37操作/7候选保存已回读，Presentation/原生未执行。
 
-下一步UI04：先写固定包/备份/两端切换/公网新读/app实际恢复及原生联验完整步骤，再生成本批专用流程。不重跑取消B09 installer、不初始化/改密、不导入真实备份。云只读前置inv-i9smdv0itv已SUCCESS/exit0，29ed3d9/ready及MySQL/其他17服务保持，见53节/前置证据；原任务已终结，不重发/等待。本地和云未被本批构建替换。
+当前进入codex/e04-ui04-delivery，从main/032f381施工。UI04完整步骤已写14.9.21.6，先提交计划，再生成本批专用包与流程。不重跑取消B09 installer、不初始化/改密、不导入真实备份。云只读前置inv-i9smdv0itv已SUCCESS/exit0，29ed3d9/ready及MySQL/其他17服务保持，见53节/前置证据；原任务已终结，不重发/等待。本地和云未被本批构建替换。
 
 用户指定web-access，Node/Edge9222已发现，授权等待后超时退出1；未取得目标页。授权弹窗答复待返回；CUA fetch及AD-007边界保留，不能绕过已拒URL。可以继续独立授权HTTP/MySQL/测试实例发布，原生/视觉保持未验；E04不complete、不进入E05。没有Node OOM，不全局清理进程/容器。
 
