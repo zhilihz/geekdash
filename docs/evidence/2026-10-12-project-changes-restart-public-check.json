@@ -1,0 +1,42 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-12T02:01:25.376716+00:00",
+  "mode": "after",
+  "build": {
+    "revision": "29ed3d900cadf4140ad9ff149e8b98e23f487e31",
+    "dirty": false,
+    "builtAt": "2026-10-12T01:36:28.599Z",
+    "stage": "project-changes",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "projectId": "18",
+  "savedVersion": "8",
+  "changes": 4,
+  "risks": 1,
+  "nodes": 1,
+  "auditCount": 14,
+  "originalResultsConfirmed": 9,
+  "originalSessions": 2,
+  "syntheticOnly": true,
+  "noBusinessAutomation": true,
+  "assets": {
+    "index.html": "28324acacf0cbfd492d342ec3d3176a0024bee45fd904b83b47eaed3f68d4569",
+    "/assets/index-BC1oqmQo.js": "1b484bdea408f4c7225b12909f4e0759defd4f2e308275fc411fd2b3a4983541",
+    "/assets/api-BC1BC6ZQ.js": "ce98ed02dadf293daf9cc3e664ad8ab2ff8506ba4b36053a405afa64ea1b231f",
+    "/assets/api-CEMtlmAC.css": "f81b99ccd3ef21d4ce6a436d1c1b2a13dae22b52308ed681a5f614d0227e2fa0",
+    "/assets/index-D8NXthWN.css": "5cdef17e18b287780e8197cec16e9d4628b2b7da8036bf90b4c8fbe2a375e3c1",
+    "GeekDash.html": "28324acacf0cbfd492d342ec3d3176a0024bee45fd904b83b47eaed3f68d4569",
+    "project-detail.html": "7a1b63db539818efb52efd640f0afb24bbda8777a103eeec75103834cfdb2eeb",
+    "/assets/project-detail-oZ7Ich-x.js": "63939efc9ef81a8576eedfd1d8741974d42d592d13f40d7a98d7227851f3b8ce",
+    "/assets/detail-DYDiBCqo.css": "01e982097fd0e8a5d14ad60181e442a24634e630afae7e91b7148fee651d9ba1",
+    "project-new.html": "6c84601229ebcf7f2da6d0658b269b3d4c379b6629af0c7b3f612fd3d8b66fc4",
+    "/assets/project-new-zAITQAQz.js": "a967145b33c652145bf1c081f95917ff4785814f0bf1e3a64dc7f091a6571aba",
+    "/assets/forms-D9KYl3tU.css": "e179bf8998912737851b88af0bc94aeff622a19313ac40fe5dd626fb3206ece0",
+    "login.html": "5577340ec097494161fc10cce8e65624698b2c01035c2b2c2ecc6fda6373f8bc",
+    "/assets/login-4yGhQuCs.js": "0d52d75678dd7262f8cbf14176589d1e8d579100148d105cbe94cdff99befd89",
+    "settings.html": "663e3a21b7cc2be03e861f8b0868b64a95a717332a6496389bb6d7e392d825a2",
+    "/assets/settings-DSLocrFK.js": "25380c8c803fceda0abd79238a7c9c3c9c7d8ced6220f5822b91ae38d0226af6"
+  },
+  "assetCount": 16,
+  "nativeBrowserAcceptance": false
+}

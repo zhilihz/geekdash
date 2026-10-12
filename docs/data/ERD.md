@@ -1019,4 +1019,4 @@ DEC-108复用projects.proposed_on/filed_on/started_on/closed_on及project_stages
 
 ### 5.9 需求变更现有实体的施工核对
 
-需求变更A/B复用第3节project_changes的10列及既有FK/CHECK/项目排序索引，不新增表或列；actor_id/created_at/source_key/sort_order保留最初来源。有效文字和人工decision/理由可改，原值与纠错人归audit_log，command_receipts保留原操作结果，不把姓名再加列。创建姓名以目标最早创建审计和PK取回；真实500规模索引验证与无DDL范围归[需求变更报告](../testing/reports/2026-10-12-project-changes.md)。34/315/55结构仍为0003现有模型，候选测试不表示常驻已发布。
+需求变更A/B复用第3节project_changes的10列及既有FK/CHECK/项目排序索引，不新增表或列；actor_id/created_at/source_key/sort_order保留最初来源。有效文字和人工decision/理由可改，原值与纠错人归audit_log，command_receipts保留原操作结果，不把姓名再加列。创建姓名以目标最早创建审计和PK取回；真实500规模索引验证与无DDL范围归[需求变更报告](../testing/reports/2026-10-12-project-changes.md)。34/315/55结构仍为0003现有模型；固定两端无DDL验证与部署状态见报告和系统真相。

@@ -1,22 +1,20 @@
 # 未完成任务交接
 
-更新时间：2026-10-12。E03项目主干与最小身份、E04-B01～B07及B08风险/节点A～C/0003兼容已固定部署，完整公网浏览器与公司实际使用仍未验收。[系统真相](../status/current-system-truth.md#44-e04-b08节点0003兼容固定部署2026-10-10)为当前能力入口，详细验证归各批报告。本轮不接真实备份。
+更新时间：2026-10-12。E03项目主干与最小身份、E04-B01～B08已固定部署，完整公网浏览器与公司实际使用仍未验收。[系统真相](../status/current-system-truth.md#46-e04-b08需求变更ab固定部署2026-10-12)为当前能力入口，详细验证归各批报告。本轮不接真实备份。
 
 ## 0. 当前活动：继续E04，再逐阶段完整规划/实施/提交
 
 用户DEC-109授权离开期间持续施工，范围不限E04：规划完整阶段→实施/验收→提交合并远端main→下一阶段，当前E04仍未完成。方法归[GD-GOAL-001](../implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)，代决只归[autonomous-decisions](../decisions/autonomous-decisions.md)；先核对1051及已确认SPEC，缺口推荐选择记录理由/选项/影响。工具目标保持E04 active，不能将B07完成称整个E04完成。
 
-当前codex/e04-b08-project-changes，从远端main/5640686施工；D/E源码2a342d6和收尾5640686已合并推送回读，两端仍运行干净2a342d6/0003。当前changeOps、同普通事务及原控件/副本已编码未提交；10月10日284专项/1360容量、10月12日14类回归/工程/两库verify通过，[候选报告](../testing/reports/2026-10-12-project-changes.md)与真相46为本批事实。真实D/E事实归[真相45](../status/current-system-truth.md#45-e04-b08节点de删除恢复固定部署2026-10-10)、[恢复报告](../testing/reports/2026-10-10-project-node-recovery.md)和[部署](../operations/deployments/2026-10-10-project-node-recovery.md)。
+当前main含实现29ed3d9，codex/e04-b08-project-changes同实现；计划22d6d8a/14.9.18和AD-019先行。需求变更A/B完成具名提交、远端main回读、干净固定构建/两端部署及公网原结果/实际app恢复，详见[真相46](../status/current-system-truth.md#46-e04-b08需求变更ab固定部署2026-10-12)、[报告](../testing/reports/2026-10-12-project-changes.md)与[部署](../operations/deployments/2026-10-12-project-changes.md)。本记录随发布收尾具名提交；接手重新核对最终refs，文档SHA不是运行镜像。
 
-下一入口14.9.14步骤7/14.9.11～12：原1051 addChange已支持四字段编辑，renderChangeList有编辑按钮，现有14.9.12“原版没有纠错入口”应修正；继续复用原来源客户/业务、内容、人工accept/reject/理由，有限changeOps及同普通事务/目标历史，补纠错原因/副本。不新增审批/删除/自动计划或阶段。具体八步已归14.9.18/AD-019且计划22d6d8a已提交；下一步候选证据/源码具名提交main后干净固定验证、打包两端部署/公网原结果及真实app恢复；之后B09及后续阶段按完整规划→实施验收→main循环，E04仍active。
+两端实际运行29ed3d9/project-changes/0003。公网合成项目18/v8、4需求/1风险/1节点/14审计，两原会话及9原结果保存在D:/geekwon/geekdash-data/secrets/changes-public-sessions.json；原项目16/17四会话/25结果保持。只读核对先用原编号正文，不重造命令、初始化或改密；本批install已SUCCESS且release存在，禁止盲重跑。
 
-公网新合成项目17/v11/四有效节点/0已删/25历史，两原会话/11原结果受控在D:/geekwon/geekdash-data/secrets/recovery-public-sessions.json；原项目16/两会话/14结果保持。正式删除后实际旧2dfb17c回退过滤/旧结果、新D/E未知→再升级恢复同ID→真实app stop/up新结果保持，current最终2a342d6。初次回退辅助后半指纹1045/NO，应用已旧且ready、链接仍新；先实际核对并同步链接再升级，不能盲重跑原fallback/install。
+下一步先补B09全部步骤的八项粒度计划，再实施跨功能/实际SQL及500四会话重复性能核验、原生联验。历史列表波动仍未诊断；本次云混合200ms/普通281ms不称稳定200ms。原生URL策略拒绝沿AD-007，不能用其他表面/脚本绕过，也不以API替代。完成E04后才规划下一阶段全部步骤→实施验收→main循环。
 
-后续长云指纹读取/run/secrets/mysql_health稳定640，禁与健康cp共享/tmp临时目标；原竞态推断/独立机制复现及续验归PE-011。切换前受控incoming存自身完整checkpoint；recovery-reupgrade已成功结束，不再重放。cloudinstall任务SUCCESS/exit0但输出截断，完整36851字节原事实只读压缩取回，PE-002；辅助/私有日志不纳Git，不重迁移/初始化/改密。
+新完整两库备份/指纹/回退入口归本批部署；长云SQL只用/run/secrets/mysql_health，不共享健康cp临时目标。原0003兼容历史及PE-011/002仍可查询旧报告。真实备份不接、隔离恢复/外部副本未验。Node未见溢出，自有/tmp/geekdash-changes-root.cnf已删除；未全局kill/prune/删卷，云MySQL及其他17容器未重启，无未完成TAT写任务。
 
-固定回归含test:node-recovery，显式fallbackDir从实际2dfb17c镜像dist导出；本机test-results/node-recovery-fallback，云/app/test-results/node-recovery-fallback均受控，GEEKDASH_NODE_RECOVERY_FALLBACK_DIR必填。0003保持过滤；以后回退到D/E版不认识新changeOps时仍保留原编号/正文，再升级确认，不能误判失败或造替代记录。
-
-云列表混合283ms/普通227ms及旧1929/196ms波动仍B09，原生URL策略拒绝沿AD-007不能换表面/脚本绕过。Node未见溢出，仅自身工具/夹具正常清理，无全局kill/prune/删卷；真实备份未接、隔离恢复/外部副本未验。所有TAT写任务已结束，云MySQL及其他17容器不重启。10月12日本机Desktop恢复后已有MySQL/app健康，测试容量已结束且夹具0；既有回归前8通过后固定旧时钟早于本周规则失败，只续失败及剩余5类后14类全部通过，PE-20261012-001。自有根查询配置/tmp/geekdash-changes-root.cnf用于本批长读，不与健康cp共目标；结束仅删此自有文件。接手须重核Git/实际运行及剩余单元。
+专项仍必须从实际固定镜像导出两个不同fallbackDir：node-recovery-fallback对应2dfb17c，changes-fallback对应2a342d6；分别传GEEKDASH_NODE_RECOVERY_FALLBACK_DIR/GEEKDASH_CHANGES_FALLBACK_DIR，不能把同一旧产物误充两种兼容证明。本机test-results和云本批verification-results均已有实际导出，接手先读build-info核验。
 
 B08风险私有install已成功结束，目标5ae7ecc目录已存在、旧预期4974e0f，不盲重跑。公网合成项目15/v11、3风险/13历史及2原会话/12原结果受控保存，原项目7～14保持；准确产物/备份/恢复归[风险部署](../operations/deployments/2026-10-10-project-risks.md)。没有迁移；云13项验证/混合容量及实际app恢复通过，云列表2843ms仍需B09实际SQL定位。验证工具256MiB/旧堆96MiB结束正常，本项目未发现Node溢出，未全局杀进程/删卷。
 
@@ -26,13 +24,13 @@ B07私有install目标4974目录已存在、旧预期21cdfb4，禁止盲重跑�
 
 ## 1. 位置、基线与授权
 
-- D:/geekwon/geekdash；当前分支/基线见第0节；常驻B08节点兼容固定2dfb17c。后续文档SHA不是运行镜像，E03/B01～B03历史归系统真相31/34/35/36。
+- D:/geekwon/geekdash；当前分支/基线见第0节；常驻B08需求变更固定29ed3d9。后续文档SHA不是运行镜像，E03/B01～B03历史归系统真相31/34/35/36。
 - 用户DEC-090明确恢复最小登录/首次改密/会话完成E03，邀请码与完整账号后台后置；CLI/Git/test部署授权有效。不是重新开发替换原系统，也没有批准导入真实备份。
 - 500为整体性能规模、不设创建硬上限；推荐方案取舍只归[决策](../decisions/decisions.md)。阶段提交、main合并与发布分别按[代码管理](../operations/release-maintenance.md#2-代码管理)。代码用ponytail full，纯文档/讨论不延续。
 
 ## 2. 运行与恢复入口
 
-本机41860/新加坡https://geekdash.zhiluan.cool 同2dfb17c / project-nodes-compatible /0003；两库34表/315列/55外键，本轮只加deleted_at，准确备份与恢复归兼容部署。风险产物/备份/恢复归[风险部署](../operations/deployments/2026-10-10-project-risks.md)。MySQL本机D盘、云/var/lib/geekdash/mysql；凭据仓库外，两端账号独立。本批镜像/备份/恢复归[检查部署](../operations/deployments/2026-10-10-project-checks.md)。云business01/02及maint01已改密，分发须用currentPassword；business03/04仍需首次改密，不能重置或打印凭据。
+本机41860/新加坡https://geekdash.zhiluan.cool同29ed3d9 / project-changes /0003；两库34表/315列/55外键，三迁移历史保持。本批准确产物/备份/恢复归需求变更部署。MySQL本机D盘、云/var/lib/geekdash/mysql；凭据仓库外，两端账号独立，不能重置或打印凭据。云business01/02及maint01已改密，分发使用currentPassword，business03/04仍需首次改密。
 
 深模块：identity.ts校验可信actor，project-core.ts创建/本人责任，project-save.ts普通保存，project-actions.ts阶段命令，projects.ts一致快照。事务、结果恢复方法只归执行计划；实际协议归api/project-core.md与api/project-actions.md。
 

@@ -1,0 +1,580 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-12T01:40:59.399698+00:00",
+  "build": {
+    "revision": "29ed3d900cadf4140ad9ff149e8b98e23f487e31",
+    "dirty": false,
+    "builtAt": "2026-10-12T01:36:28.599Z",
+    "stage": "project-changes",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "source": "干净固定29ed3d9，本机真实MySQL/HTTP；没有切换常驻应用",
+  "schemaChanged": false,
+  "foundationExitCode": 0,
+  "databaseVerifyProfiles": [
+    "dev_migrator",
+    "test_migrator"
+  ],
+  "changes": {
+    "status": "passed",
+    "checkedAt": "2026-10-12T01:37:53.273Z",
+    "checks": [
+      "两来源/两决定与文字同一版本/事务，预览不写、正式ID/实名/新SQL与详情/历史；原正文键顺序重投无二次写入，无计划/阶段/灯色/检查联动",
+      "四字段/误选决定明确纠错、原创建事实/同值/临时引用；28次历史与创建姓名快照保持，未知旧来源空理由仅校验触及字段，排序上限整份拒绝",
+      "有限白名单/类型/UTF/字节/原因/未知/跨项目/重复临时引用逐项不写；四真实会话同版一胜三冲突，CSRF/失权/事务内停用不可绕过",
+      "文字/风险/节点/变更原子保存，各写点含第二对象失败完整SQL回滚；真实COMMIT丢确认/应用重建后原会话、映射、原结果及新请求保持",
+      "实际2a342d6兼容D/E同库回退，旧会话/文字结果/当前变更保持；新changeOps窗口未知保留正文，升级后原结果确认无重写"
+    ],
+    "requestCount": 284,
+    "build": {
+      "revision": "29ed3d900cadf4140ad9ff149e8b98e23f487e31",
+      "dirty": false,
+      "builtAt": "2026-10-12T01:36:28.599Z",
+      "stage": "project-changes",
+      "schemaVersion": "0003-node-recovery"
+    },
+    "fallbackBuild": {
+      "revision": "2a342d66bee15248ad382d2c0050ebe01730a6e7",
+      "dirty": false,
+      "builtAt": "2026-10-10T09:49:08.536Z",
+      "stage": "project-nodes-recovery",
+      "schemaVersion": "0003-node-recovery"
+    },
+    "isolatedTestDatabase": true
+  },
+  "nodeRecovery": {
+    "status": "passed",
+    "checkedAt": "2026-10-12T01:38:01.791Z",
+    "checks": [
+      "真实删中间并精确确认旧线，来源/实际日/成果保持、邻居不桥接/不清完成；另一负责人新线后恢复同ID默认无旧线、原审计/原结果保持",
+      "同份多个恢复与新线复用最终前置/明确影响，异常旧阶段和未来实际日可同次明确纠正；客户恢复与旧单边所有引用预览清除",
+      "从实际2dfb17c兼容镜像导出的服务启动同库，真实ready/原会话/有效过滤/旧A-C原结果保持；D/E确认窗口明确未知不写，再升级恢复原ID/来源/新原结果",
+      "已删记录独立20/100数值游标超过100无总量上限，版本同快照；未知删除来源不补造，结案遗留与有效详情排除已删行",
+      "新增有限协议白名单/跨项目/非法原线/原因拒绝且普通文字不部分写；四真实会话删除同版一赢家，失权和事务内停用拒绝，本人旧结果仍可确认",
+      "删除/恢复及多邻居第二SQL写点、审计/回执全回滚；两类真实COMMIT丢确认应用重建后原会话/原结果保持，无业务自动联动"
+    ],
+    "requestCount": 217,
+    "build": {
+      "revision": "29ed3d900cadf4140ad9ff149e8b98e23f487e31",
+      "dirty": false,
+      "builtAt": "2026-10-12T01:36:28.599Z",
+      "stage": "project-changes",
+      "schemaVersion": "0003-node-recovery"
+    },
+    "fallbackBuild": {
+      "revision": "2dfb17c463972def4f8aaea6a9d1c4079bd9effa",
+      "dirty": false,
+      "builtAt": "2026-10-10T08:30:47.475Z",
+      "stage": "project-nodes-compatible",
+      "schemaVersion": "0003-node-recovery"
+    },
+    "processMemory": {
+      "rss": 229769216,
+      "heapTotal": 40452096,
+      "heapUsed": 35860872,
+      "external": 5182272,
+      "arrayBuffers": 1059538
+    },
+    "isolatedTestDatabase": true,
+    "syntheticLegacyAnomalies": true,
+    "nativeBrowserAcceptance": false
+  },
+  "capacity": {
+    "status": "passed",
+    "startedAt": "2026-10-12T01:38:04.598Z",
+    "checkedAt": "2026-10-12T01:40:47.744Z",
+    "projectCount": 500,
+    "stageCount": 3500,
+    "initialAuditCount": 6000,
+    "checkCount": 1580,
+    "initialCorrectionCount": 500,
+    "weekHistoryCount": 1000,
+    "riskCount": 1000,
+    "realRiskAdditions": 500,
+    "riskCorrections": 580,
+    "riskQueryPlan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "4.35"
+        },
+        "nested_loop": [
+          {
+            "table": {
+              "table_name": "targets",
+              "access_type": "ALL",
+              "rows_examined_per_scan": 4,
+              "rows_produced_per_join": 4,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "2.55",
+                "eval_cost": "0.40",
+                "prefix_cost": "2.95",
+                "data_read_per_join": "64"
+              },
+              "used_columns": [
+                "id"
+              ],
+              "attached_condition": "(`targets`.`id` is not null)",
+              "materialized_from_subquery": {
+                "using_temporary_table": true,
+                "dependent": false,
+                "cacheable": true,
+                "query_block": {
+                  "union_result": {
+                    "using_temporary_table": false,
+                    "query_specifications": [
+                      {
+                        "dependent": false,
+                        "cacheable": true,
+                        "query_block": {
+                          "select_id": 2,
+                          "cost_info": {
+                            "query_cost": "1.86"
+                          },
+                          "grouping_operation": {
+                            "using_filesort": false,
+                            "table": {
+                              "table_name": "audit_log",
+                              "access_type": "range",
+                              "possible_keys": [
+                                "idx_entity_type_entity_id_id"
+                              ],
+                              "key": "idx_entity_type_entity_id_id",
+                              "used_key_parts": [
+                                "entity_type",
+                                "entity_id"
+                              ],
+                              "key_length": "43",
+                              "rows_examined_per_scan": 3,
+                              "rows_produced_per_join": 0,
+                              "filtered": "10.00",
+                              "index_condition": "((`geekdash_test`.`audit_log`.`entity_type` = 'project_risk') and (`geekdash_test`.`audit_log`.`entity_id` in (18118,18618)))",
+                              "cost_info": {
+                                "read_cost": "1.83",
+                                "eval_cost": "0.03",
+                                "prefix_cost": "1.86",
+                                "data_read_per_join": "232"
+                              },
+                              "used_columns": [
+                                "id",
+                                "action",
+                                "entity_type",
+                                "entity_id"
+                              ],
+                              "attached_condition": "(`geekdash_test`.`audit_log`.`action` = 'project.risk.add')"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "dependent": false,
+                        "cacheable": true,
+                        "query_block": {
+                          "select_id": 3,
+                          "cost_info": {
+                            "query_cost": "1.86"
+                          },
+                          "grouping_operation": {
+                            "using_filesort": false,
+                            "table": {
+                              "table_name": "audit_log",
+                              "access_type": "range",
+                              "possible_keys": [
+                                "idx_entity_type_entity_id_id"
+                              ],
+                              "key": "idx_entity_type_entity_id_id",
+                              "used_key_parts": [
+                                "entity_type",
+                                "entity_id"
+                              ],
+                              "key_length": "43",
+                              "rows_examined_per_scan": 3,
+                              "rows_produced_per_join": 0,
+                              "filtered": "10.00",
+                              "index_condition": "((`geekdash_test`.`audit_log`.`entity_type` = 'project_risk') and (`geekdash_test`.`audit_log`.`entity_id` in (18118,18618)))",
+                              "cost_info": {
+                                "read_cost": "1.83",
+                                "eval_cost": "0.03",
+                                "prefix_cost": "1.86",
+                                "data_read_per_join": "232"
+                              },
+                              "used_columns": [
+                                "id",
+                                "action",
+                                "entity_type",
+                                "entity_id"
+                              ],
+                              "attached_condition": "(`geekdash_test`.`audit_log`.`action` = 'project.risk.resolve')"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "table": {
+              "table_name": "a",
+              "access_type": "eq_ref",
+              "possible_keys": [
+                "PRIMARY"
+              ],
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "id"
+              ],
+              "key_length": "8",
+              "ref": [
+                "targets.id"
+              ],
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 4,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "1.00",
+                "eval_cost": "0.40",
+                "prefix_cost": "4.35",
+                "data_read_per_join": "3K"
+              },
+              "used_columns": [
+                "id",
+                "actor_display_name",
+                "action",
+                "entity_id"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "nodeCount": 2000,
+    "realNodeAdditions": 1500,
+    "nodeMoveCount": 80,
+    "processMemory": {
+      "rss": 240816128,
+      "heapTotal": 39260160,
+      "heapUsed": 28303040,
+      "external": 4884234,
+      "arrayBuffers": 691940
+    },
+    "workers": 4,
+    "authenticated": true,
+    "rounds": 20,
+    "errorCount": 0,
+    "measurements": {
+      "changePreview": {
+        "requests": 80,
+        "p50Ms": 20,
+        "p95Ms": 26,
+        "maxMs": 61
+      },
+      "changeSave": {
+        "requests": 80,
+        "p50Ms": 38,
+        "p95Ms": 84,
+        "maxMs": 97
+      },
+      "list": {
+        "requests": 80,
+        "p50Ms": 47,
+        "p95Ms": 66,
+        "maxMs": 96
+      },
+      "detail": {
+        "requests": 80,
+        "p50Ms": 30,
+        "p95Ms": 38,
+        "maxMs": 57
+      },
+      "save": {
+        "requests": 80,
+        "p50Ms": 36,
+        "p95Ms": 58,
+        "maxMs": 102
+      },
+      "audit": {
+        "requests": 80,
+        "p50Ms": 15,
+        "p95Ms": 22,
+        "maxMs": 59
+      },
+      "checkSave": {
+        "requests": 80,
+        "p50Ms": 32,
+        "p95Ms": 41,
+        "maxMs": 62
+      },
+      "checkHistory": {
+        "requests": 80,
+        "p50Ms": 20,
+        "p95Ms": 25,
+        "maxMs": 29
+      },
+      "riskPreview": {
+        "requests": 80,
+        "p50Ms": 20,
+        "p95Ms": 26,
+        "maxMs": 32
+      },
+      "riskSave": {
+        "requests": 80,
+        "p50Ms": 38,
+        "p95Ms": 51,
+        "maxMs": 69
+      },
+      "nodePreview": {
+        "requests": 80,
+        "p50Ms": 20,
+        "p95Ms": 25,
+        "maxMs": 28
+      },
+      "nodeSave": {
+        "requests": 80,
+        "p50Ms": 37,
+        "p95Ms": 46,
+        "maxMs": 52
+      },
+      "deletedRead": {
+        "requests": 80,
+        "p50Ms": 18,
+        "p95Ms": 23,
+        "maxMs": 25
+      },
+      "restorePreview": {
+        "requests": 80,
+        "p50Ms": 20,
+        "p95Ms": 30,
+        "maxMs": 38
+      },
+      "restoreSave": {
+        "requests": 80,
+        "p50Ms": 38,
+        "p95Ms": 48,
+        "maxMs": 52
+      },
+      "deletePreview": {
+        "requests": 80,
+        "p50Ms": 20,
+        "p95Ms": 30,
+        "maxMs": 49
+      },
+      "deleteSave": {
+        "requests": 80,
+        "p50Ms": 38,
+        "p95Ms": 78,
+        "maxMs": 97
+      }
+    },
+    "noHardProjectLimit": true,
+    "source": "专用测试库/合成数据/四个真实会话 HTTP；本地或云内环回延时，不代表公司公网浏览器延时",
+    "initialActiveNodes": 1500,
+    "deletedNodeCount": 500,
+    "realInitialDeletes": 500,
+    "restoreCount": 80,
+    "deleteCount": 580,
+    "deletedQueryPlan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "2.66"
+        },
+        "ordering_operation": {
+          "using_filesort": false,
+          "nested_loop": [
+            {
+              "table": {
+                "table_name": "n",
+                "access_type": "ref",
+                "possible_keys": [
+                  "uk_project_id_id",
+                  "idx_project_id_kind_sort_order_id",
+                  "idx_fk_stage_id",
+                  "idx_fk_previous_node_id",
+                  "idx_fk_next_node_id"
+                ],
+                "key": "uk_project_id_id",
+                "used_key_parts": [
+                  "project_id"
+                ],
+                "key_length": "8",
+                "ref": [
+                  "const"
+                ],
+                "rows_examined_per_scan": 4,
+                "rows_produced_per_join": 3,
+                "filtered": "90.00",
+                "backward_index_scan": true,
+                "cost_info": {
+                  "read_cost": "1.00",
+                  "eval_cost": "0.36",
+                  "prefix_cost": "1.40",
+                  "data_read_per_join": "5K"
+                },
+                "used_columns": [
+                  "id",
+                  "project_id",
+                  "kind",
+                  "stage_id",
+                  "title",
+                  "target_date",
+                  "completed_on",
+                  "output",
+                  "note",
+                  "previous_node_id",
+                  "next_node_id",
+                  "x",
+                  "y",
+                  "sort_order",
+                  "source_key",
+                  "deleted_at"
+                ],
+                "attached_condition": "((`geekdash_test`.`n`.`project_id` = 9007199254780000) and (`geekdash_test`.`n`.`deleted_at` is not null))"
+              }
+            },
+            {
+              "table": {
+                "table_name": "s",
+                "access_type": "eq_ref",
+                "possible_keys": [
+                  "PRIMARY"
+                ],
+                "key": "PRIMARY",
+                "used_key_parts": [
+                  "id"
+                ],
+                "key_length": "8",
+                "ref": [
+                  "geekdash_test.n.stage_id"
+                ],
+                "rows_examined_per_scan": 1,
+                "rows_produced_per_join": 3,
+                "filtered": "100.00",
+                "cost_info": {
+                  "read_cost": "0.90",
+                  "eval_cost": "0.36",
+                  "prefix_cost": "2.66",
+                  "data_read_per_join": "230"
+                },
+                "used_columns": [
+                  "id",
+                  "stage_code"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "changeCount": 1000,
+    "realChangeAdditions": 500,
+    "changeCorrections": 580,
+    "changeQueryPlan": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "3.42"
+        },
+        "nested_loop": [
+          {
+            "table": {
+              "table_name": "targets",
+              "access_type": "ALL",
+              "rows_examined_per_scan": 2,
+              "rows_produced_per_join": 2,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "2.52",
+                "eval_cost": "0.20",
+                "prefix_cost": "2.73",
+                "data_read_per_join": "32"
+              },
+              "used_columns": [
+                "id"
+              ],
+              "attached_condition": "(`targets`.`id` is not null)",
+              "materialized_from_subquery": {
+                "using_temporary_table": true,
+                "dependent": false,
+                "cacheable": true,
+                "query_block": {
+                  "select_id": 2,
+                  "cost_info": {
+                    "query_cost": "1.86"
+                  },
+                  "grouping_operation": {
+                    "using_filesort": false,
+                    "table": {
+                      "table_name": "audit_log",
+                      "access_type": "range",
+                      "possible_keys": [
+                        "idx_entity_type_entity_id_id"
+                      ],
+                      "key": "idx_entity_type_entity_id_id",
+                      "used_key_parts": [
+                        "entity_type",
+                        "entity_id"
+                      ],
+                      "key_length": "43",
+                      "rows_examined_per_scan": 3,
+                      "rows_produced_per_join": 0,
+                      "filtered": "10.00",
+                      "index_condition": "((`geekdash_test`.`audit_log`.`entity_type` = 'project_change') and (`geekdash_test`.`audit_log`.`entity_id` in (1064,1564)))",
+                      "cost_info": {
+                        "read_cost": "1.83",
+                        "eval_cost": "0.03",
+                        "prefix_cost": "1.86",
+                        "data_read_per_join": "232"
+                      },
+                      "used_columns": [
+                        "id",
+                        "action",
+                        "entity_type",
+                        "entity_id"
+                      ],
+                      "attached_condition": "(`geekdash_test`.`audit_log`.`action` = 'project.change.add')"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "table": {
+              "table_name": "a",
+              "access_type": "eq_ref",
+              "possible_keys": [
+                "PRIMARY"
+              ],
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "id"
+              ],
+              "key_length": "8",
+              "ref": [
+                "targets.id"
+              ],
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 2,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "0.50",
+                "eval_cost": "0.20",
+                "prefix_cost": "3.43",
+                "data_read_per_join": "1K"
+              },
+              "used_columns": [
+                "id",
+                "actor_display_name",
+                "entity_id"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

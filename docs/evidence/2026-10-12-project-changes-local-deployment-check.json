@@ -1,0 +1,29 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-12T01:48:54.818138+00:00",
+  "build": {
+    "revision": "29ed3d900cadf4140ad9ff149e8b98e23f487e31",
+    "dirty": false,
+    "builtAt": "2026-10-12T01:36:28.599Z",
+    "stage": "project-changes",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "imageId": "sha256:49b6efc145004e6fd6070c11171f6be91cb9d2fc86ad77990a85620359e5c425",
+  "schemaChanged": false,
+  "structure": {
+    "tables": 34,
+    "columns": 315,
+    "foreignKeys": 55
+  },
+  "allBusinessByteFingerprintsAndMigrationHistoryPreserved": true,
+  "testFixturesRestored": true,
+  "mysqlIdStartedAtPreserved": true,
+  "otherContainersPreserved": 0,
+  "appOomKilled": false,
+  "backup": {
+    "path": "D:\\geekwon\\geekdash-data\\backups\\pre-changes-29ed3d900cad.sql.gz",
+    "bytes": 15234,
+    "sha256": "242571461b5b2a94b98ccd177004f9986385081efb680a0fd593e341ae3a9955",
+    "scope": "two complete logical databases; isolated restore pending"
+  }
+}
