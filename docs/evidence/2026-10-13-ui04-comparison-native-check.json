@@ -164,6 +164,567 @@
       "tableValuesPassed": true,
       "longTextLayoutPassed": false,
       "temporaryStyleNotProductFix": true
+    },
+    {
+      "build": "879fb2cc8607cda848320df37798392b7a52d4f4",
+      "projectId": "21",
+      "checks": [
+        {
+          "label": "固定列宽版的实际资源与风险入口",
+          "checkedAt": "2026-10-13T03:36:23.685Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": {
+            "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+            "scripts": [
+              "https://geekdash.zhiluan.cool/assets/project-detail-B5Y7mJJ6.js"
+            ]
+          }
+        },
+        {
+          "label": "正式列宽版长文字预览",
+          "checkedAt": "2026-10-13T03:36:40.471Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": "已提交实际预览"
+        },
+        {
+          "label": "正式发布表格的长文字列宽",
+          "checkedAt": "2026-10-13T03:37:06.925Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": {
+            "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+            "headers": [
+              "信息项",
+              "修改前",
+              "修改后"
+            ],
+            "cells": [
+              {
+                "width": 139,
+                "scrollWidth": 139,
+                "height": 374,
+                "text": "风险内容"
+              },
+              {
+                "width": 220,
+                "scrollWidth": 220,
+                "height": 374,
+                "text": "（无记录）"
+              },
+              {
+                "width": 220,
+                "scrollWidth": 220,
+                "height": 374,
+                "text": "合成风险：样机接口待核对。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。"
+              }
+            ],
+            "computedLayout": "fixed",
+            "inlineStyle": null,
+            "className": "read-table comparison-table",
+            "busy": ""
+          }
+        },
+        {
+          "label": "风险确认只进入项目副本",
+          "checkedAt": "2026-10-13T03:37:06.975Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": {
+            "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+            "dialogOpen": false,
+            "editState": "有未保存修改 · 本标签页暂存，需点击保存项目",
+            "riskCard": "中\n合成风险：样机接口待核对。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试>"
+          }
+        },
+        {
+          "label": "打开新增需求表单",
+          "checkedAt": "2026-10-13T03:37:06.991Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": "已打开需求"
+        },
+        {
+          "label": "需求表单实际字段",
+          "checkedAt": "2026-10-13T03:37:29.976Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": {
+            "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+            "fields": [
+              {
+                "id": "chg-source",
+                "value": "客户"
+              },
+              {
+                "id": "chg-content",
+                "value": ""
+              },
+              {
+                "id": "",
+                "value": "accept"
+              },
+              {
+                "id": "",
+                "value": "reject"
+              },
+              {
+                "id": "chg-reason",
+                "value": ""
+              }
+            ],
+            "buttons": [
+              {
+                "id": "",
+                "text": "预览",
+                "disabled": false
+              },
+              {
+                "id": "change-accept",
+                "text": "确认加入未保存修改",
+                "disabled": true
+              },
+              {
+                "id": "change-cancel",
+                "text": "取消",
+                "disabled": false
+              }
+            ]
+          }
+        },
+        {
+          "label": "需求内容及理由真实预览",
+          "checkedAt": "2026-10-13T03:37:42.198Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": "已提交需求预览"
+        },
+        {
+          "label": "需求表格实际前后值",
+          "checkedAt": "2026-10-13T03:37:59.303Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": {
+            "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+            "headers": [
+              "信息项",
+              "修改前",
+              "修改后"
+            ],
+            "rows": [
+              [
+                "来源",
+                "（无记录）",
+                "客户"
+              ],
+              [
+                "变更内容",
+                "（无记录）",
+                "合成需求：低功耗接口复用"
+              ],
+              [
+                "接受/拒绝",
+                "（无记录）",
+                "接受"
+              ],
+              [
+                "决定理由",
+                "（无记录）",
+                "人工确认可复用现有接口"
+              ]
+            ],
+            "layout": "fixed"
+          }
+        },
+        {
+          "label": "确认需求后跨页进入节点",
+          "checkedAt": "2026-10-13T03:37:59.340Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": {
+            "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+            "editState": "有未保存修改 · 本标签页暂存，需点击保存项目",
+            "buttons": [
+              {
+                "action": "add",
+                "text": "＋ 新增节点"
+              }
+            ]
+          }
+        },
+        {
+          "label": "打开节点表格校验",
+          "checkedAt": "2026-10-13T03:38:34.534Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": "已打开新增节点"
+        },
+        {
+          "label": "节点表单实际字段",
+          "checkedAt": "2026-10-13T03:38:46.705Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": {
+            "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+            "fields": [
+              {
+                "id": "",
+                "key": "title",
+                "value": ""
+              },
+              {
+                "id": "",
+                "key": "stage",
+                "value": "S1"
+              },
+              {
+                "id": "",
+                "key": "targetDate",
+                "value": ""
+              },
+              {
+                "id": "",
+                "key": "output",
+                "value": ""
+              }
+            ],
+            "buttons": [
+              {
+                "id": "",
+                "text": "预览",
+                "disabled": false
+              },
+              {
+                "id": "node-accept",
+                "text": "确认加入未保存修改",
+                "disabled": true
+              },
+              {
+                "id": "node-cancel",
+                "text": "取消",
+                "disabled": false
+              }
+            ]
+          }
+        },
+        {
+          "label": "节点缺成果错误入口",
+          "checkedAt": "2026-10-13T03:38:58.800Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": "已提交缺成果的节点预览"
+        },
+        {
+          "label": "节点缺成果的实际拒绝与输入保留",
+          "checkedAt": "2026-10-13T03:39:19.779Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": {
+            "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+            "title": "合成节点：方案核对",
+            "error": "请修正标出的字段。 请填写有效文字",
+            "valid": true,
+            "invalid": [],
+            "acceptDisabled": true
+          }
+        },
+        {
+          "label": "补充节点成果后预览",
+          "checkedAt": "2026-10-13T03:39:19.788Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": "已补充成果重新预览"
+        },
+        {
+          "label": "节点实际三列表格与字段联动",
+          "checkedAt": "2026-10-13T03:39:53.398Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": {
+            "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+            "headers": [
+              "信息项",
+              "修改前",
+              "修改后"
+            ],
+            "rows": [
+              [
+                "节点名称",
+                "（无记录）",
+                "合成节点：方案核对"
+              ],
+              [
+                "所属阶段",
+                "（无记录）",
+                "需求立项"
+              ],
+              [
+                "目标完成日期",
+                "（无记录）",
+                "未定"
+              ],
+              [
+                "实际完成日期",
+                "（无记录）",
+                "未完成"
+              ],
+              [
+                "输出成果",
+                "（无记录）",
+                "接口方案与BOM核对记录"
+              ],
+              [
+                "前置节点",
+                "（无记录）",
+                "无"
+              ],
+              [
+                "后续节点",
+                "（无记录）",
+                "无"
+              ],
+              [
+                "画布横向位置",
+                "（无记录）",
+                "自动"
+              ],
+              [
+                "画布纵向位置",
+                "（无记录）",
+                "自动"
+              ],
+              [
+                "节点状态",
+                "（无记录）",
+                "有效"
+              ]
+            ],
+            "layout": "fixed"
+          }
+        },
+        {
+          "label": "三类副本统一保存项目",
+          "checkedAt": "2026-10-13T03:39:53.428Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": {
+            "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+            "submitted": true,
+            "message": "节点操作已加入副本，请点击保存项目后生效。"
+          }
+        },
+        {
+          "label": "统一保存反馈与正式节点",
+          "checkedAt": "2026-10-13T03:40:18.625Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": {
+            "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+            "message": "项目已保存。",
+            "editState": "当前内容已保存",
+            "saveDisabled": true,
+            "node": "合成节点：方案核对\n需求立项\n未完成\n目标完成：未定 · 实际完成：未完成\n输出成果：接口方案与BOM核对记录\n纠正节点信息填写实际完成日连接下一节点删除",
+            "recovery": []
+          }
+        },
+        {
+          "label": "新请求重新进入已保存项目",
+          "checkedAt": "2026-10-13T03:40:43.843Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": {
+            "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+            "reloadRequested": true
+          }
+        },
+        {
+          "label": "重新进入后节点与风险需求展示",
+          "checkedAt": "2026-10-13T03:41:11.005Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": {
+            "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+            "riskAndChangePresent": true,
+            "editState": "当前内容已保存"
+          }
+        },
+        {
+          "label": "实际修改历史三列与同次保存版本",
+          "checkedAt": "2026-10-13T03:41:26.706Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": {
+            "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+            "auditEntries": [
+              {
+                "title": "新增需求变更 · business01 · 2026-10-13T03:40:02.597000Z · 版本 1 → 2",
+                "headers": [
+                  "信息项",
+                  "修改前",
+                  "修改后"
+                ],
+                "rows": [
+                  [
+                    "来源",
+                    "（无记录）",
+                    "客户"
+                  ],
+                  [
+                    "变更内容",
+                    "（无记录）",
+                    "合成需求：低功耗接口复用"
+                  ],
+                  [
+                    "接受/拒绝",
+                    "（无记录）",
+                    "接受"
+                  ],
+                  [
+                    "决定理由",
+                    "（无记录）",
+                    "人工确认可复用现有接口"
+                  ],
+                  [
+                    "correctionReason",
+                    "（空）",
+                    "（空）"
+                  ]
+                ],
+                "layout": "fixed"
+              },
+              {
+                "title": "project.node.add · business01 · 2026-10-13T03:40:02.597000Z · 版本 1 → 2",
+                "headers": [
+                  "信息项",
+                  "修改前",
+                  "修改后"
+                ],
+                "rows": [
+                  [
+                    "节点名称",
+                    "（无记录）",
+                    "合成节点：方案核对"
+                  ],
+                  [
+                    "所属阶段",
+                    "（无记录）",
+                    "需求立项"
+                  ],
+                  [
+                    "目标完成日期",
+                    "（无记录）",
+                    "未定"
+                  ],
+                  [
+                    "实际完成日期",
+                    "（无记录）",
+                    "未完成"
+                  ],
+                  [
+                    "输出成果",
+                    "（无记录）",
+                    "接口方案与BOM核对记录"
+                  ],
+                  [
+                    "前置节点",
+                    "（无记录）",
+                    "无"
+                  ],
+                  [
+                    "后续节点",
+                    "（无记录）",
+                    "无"
+                  ],
+                  [
+                    "画布横向位置",
+                    "（无记录）",
+                    "自动"
+                  ],
+                  [
+                    "画布纵向位置",
+                    "（无记录）",
+                    "自动"
+                  ],
+                  [
+                    "节点状态",
+                    "（无记录）",
+                    "有效"
+                  ],
+                  [
+                    "操作原因",
+                    "（空）",
+                    "（空）"
+                  ],
+                  [
+                    "operations",
+                    "（空）",
+                    ""
+                  ]
+                ],
+                "layout": "fixed"
+              },
+              {
+                "title": "新增风险 · business01 · 2026-10-13T03:40:02.597000Z · 版本 1 → 2",
+                "headers": [
+                  "信息项",
+                  "修改前",
+                  "修改后"
+                ],
+                "rows": [
+                  [
+                    "风险内容",
+                    "（无记录）",
+                    "合成风险：样机接口待核对。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。"
+                  ],
+                  [
+                    "风险等级",
+                    "（无记录）",
+                    "中"
+                  ],
+                  [
+                    "风险状态",
+                    "（无记录）",
+                    "预警中"
+                  ],
+                  [
+                    "解除说明",
+                    "（无记录）",
+                    "（空）"
+                  ],
+                  [
+                    "操作原因",
+                    "（空）",
+                    "（空）"
+                  ]
+                ],
+                "layout": "fixed"
+              },
+              {
+                "title": "创建项目 · business01 · 2026-10-13T03:20:52.712000Z · 版本  → 1",
+                "headers": [
+                  "信息项",
+                  "修改前",
+                  "修改后"
+                ],
+                "rows": [
+                  [
+                    "项目名称",
+                    "（空）",
+                    "E04-UI04 前后表格验收 2026-10-13"
+                  ],
+                  [
+                    "createdBy",
+                    "（空）",
+                    "1"
+                  ],
+                  [
+                    "项目详情备注",
+                    "（空）",
+                    "仅验证实际预览、明确保存和历史联动"
+                  ],
+                  [
+                    "项目简介",
+                    "（空）",
+                    "三列对比的原生验收项目"
+                  ],
+                  [
+                    "市场预期",
+                    "（空）",
+                    "合成表格验证"
+                  ]
+                ],
+                "layout": "fixed"
+              }
+            ],
+            "editState": "当前内容已保存"
+          }
+        }
+      ],
+      "tableValuesPassed": true,
+      "longTextLayoutPassed": true,
+      "savedThenFreshRequest": true,
+      "latestDEC113Acceptance": false
     }
   ],
   "completeE04Acceptance": false

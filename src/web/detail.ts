@@ -172,7 +172,7 @@ async function openRisk(op: RiskOperation['op'], target?: string) {
     event.preventDefault(); capture(); inFlight = true; controls();
     try { preview = await send<RiskPreview>('/api/projects/' + id + '/save-preview', 'POST', { expectedVersion: editBaseVersion, idempotencyKey: crypto.randomUUID(), changes: { riskOps: [...(values!.riskOps ?? []), draft] } });
       if (preview.projectId !== id || preview.expectedVersion !== editBaseVersion) throw new SaveError('RESPONSE_UNKNOWN', 'unknown');
-      local('risk-preview').innerHTML = preview.events.map(item => comparison(recordRows('risk', item.before, item.after))).join('') || '<p>没有实际变化。</p>'; local('risk-accept').dataset.preview = 'true'; local('risk-error').textContent = '';
+      local('risk-preview').innerHTML = recordComparisons('risk', preview.events) || '<p>没有实际变化。</p>'; local('risk-accept').dataset.preview = 'true'; local('risk-error').textContent = '';
     } catch (error) { const failure = error as SaveError; if (failure.code === 'PROJECT_VERSION_CONFLICT') stale = true; if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'PASSWORD_CHANGE_REQUIRED'].includes(failure.code)) authFrozen = true; local('risk-error').textContent = failure.message + ' ' + Object.values(failure.fields ?? {}).join('；'); }
     finally { inFlight = false; controls(); }
   };
@@ -231,7 +231,7 @@ async function openChange(op: ChangeOperation['op'], target?: string) {
     try {
       preview = await send<ChangePreview>('/api/projects/' + id + '/save-preview', 'POST', { expectedVersion: editBaseVersion, idempotencyKey: crypto.randomUUID(), changes: { changeOps: [...(values!.changeOps ?? []), draft] } });
       if (preview.projectId !== id || preview.expectedVersion !== editBaseVersion) throw new SaveError('RESPONSE_UNKNOWN', 'unknown');
-      element('change-preview').innerHTML = preview.changeEvents.map(item => comparison(recordRows('change', item.before, item.after))).join('') || '<p>没有实际变化。</p>';
+      element('change-preview').innerHTML = recordComparisons('change', preview.changeEvents) || '<p>没有实际变化。</p>';
       element('change-accept').dataset.preview = 'true'; element('change-error').textContent = '';
     } catch (error) { const failure = error as SaveError; if (failure.code === 'PROJECT_VERSION_CONFLICT') stale = true; if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'PASSWORD_CHANGE_REQUIRED'].includes(failure.code)) authFrozen = true; element('change-error').textContent = failure.message + ' ' + Object.values(failure.fields ?? {}).join('；'); }
     finally { inFlight = false; controls(); }
@@ -381,7 +381,7 @@ async function openNode(op: NodeOperation['op'], target?: string, move?: { x: nu
       preview = await send<NodePreview>('/api/projects/' + id + '/save-preview', 'POST', { expectedVersion: editBaseVersion, idempotencyKey: crypto.randomUUID(), changes: { nodeOps: [...values!.nodeOps ?? [], draft, ...draft.op === 'restore' ? nodeRestoreExtras : []] } });
       if (preview.projectId !== id || preview.expectedVersion !== editBaseVersion) throw new SaveError('RESPONSE_UNKNOWN', 'unknown');
       impact = preview.requiredUncompleteIds.filter(key => !(values!.nodeOps ?? []).some(op => 'affectedIds' in op && op.affectedIds.includes(key)));
-      local('node-preview').innerHTML = preview.nodeEvents.map(item => comparison(recordRows('node', item.before, item.after))).join('') + (preview.confirmed ? '<p>影响已核对，确认后仍需保存项目。</p>' : `<p>需要明确一并清空完成日期：${esc(preview.requiredUncompleteIds.map(key => rows.find(row => row.id === key)?.title ?? key).join('、'))}。勾选上方确认并填写原因，再次预览。</p>`);
+      local('node-preview').innerHTML = recordComparisons('node', preview.nodeEvents) + (preview.confirmed ? '<p>影响已核对，确认后仍需保存项目。</p>' : `<p>需要明确一并清空完成日期：${esc(preview.requiredUncompleteIds.map(key => rows.find(row => row.id === key)?.title ?? key).join('、'))}。勾选上方确认并填写原因，再次预览。</p>`);
       local('node-accept').dataset.preview = String(preview.confirmed); local('node-error').textContent = '';
     } catch (error) { const failure = error as SaveError; if (failure.code === 'PROJECT_VERSION_CONFLICT') stale = true; if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'PASSWORD_CHANGE_REQUIRED'].includes(failure.code)) authFrozen = true; local('node-error').textContent = failure.message + ' ' + Object.values(failure.fields ?? {}).join('；'); }
     finally { inFlight = false; controls(); }
@@ -469,7 +469,7 @@ async function openCheck(action: CheckCommand['action'], checkId?: string) {
       const result = await send<CheckPreview>(`/api/projects/${id}/actions/preview`, 'POST', draft);
       if (exact !== JSON.stringify(draft)) return;
       preview = result;
-      element('check-preview').innerHTML = `<h3>检查对比</h3>${comparison([{ field: '检查结论', before: result.beforeValues ? (result.beforeValues.check.conclusion === 'follow_up' ? '已核对，需跟进' : '已核对') : '（无记录）', after: result.afterValues.check.conclusion === 'follow_up' ? '已核对，需跟进' : '已核对' }, { field: '检查备注', before: result.beforeValues?.check.note || '（空）', after: result.afterValues.check.note || '（空）' }])}<p>${result.checkedAt ? '原检查 ' + esc(result.actorName) + ' · ' + esc(result.checkedAt) + '（UTC），所属周 ' + esc(result.weekStart) + '，事实保持。' : '本周截止 ' + esc(result.deadlineDate) + '；若现在保存，' + (result.onTime ? '按时' : '晚于截止') + '。实际记录由保存时重新确定。'}</p><p>${result.changed ? '明确保存后生效。' : '内容一致，不新增版本或检查。'}</p>`;
+      element('check-preview').innerHTML = `<h3>检查对比</h3>${groupedComparison('检查记录', [{ field: '检查结论', before: result.beforeValues ? (result.beforeValues.check.conclusion === 'follow_up' ? '已核对，需跟进' : '已核对') : '（无记录）', after: result.afterValues.check.conclusion === 'follow_up' ? '已核对，需跟进' : '已核对' }, { field: '检查备注', before: result.beforeValues?.check.note || '（空）', after: result.afterValues.check.note || '（空）' }])}<p>${result.checkedAt ? '原检查 ' + esc(result.actorName) + ' · ' + esc(result.checkedAt) + '（UTC），所属周 ' + esc(result.weekStart) + '，事实保持。' : '本周截止 ' + esc(result.deadlineDate) + '；若现在保存，' + (result.onTime ? '按时' : '晚于截止') + '。实际记录由保存时重新确定。'}</p><p>${result.changed ? '明确保存后生效。' : '内容一致，不新增版本或检查。'}</p>`;
       element('check-save').dataset.preview = 'true';
     } catch (error) {
       if (error instanceof SaveError && error.code === 'PROJECT_VERSION_CONFLICT') stale = true;
@@ -518,7 +518,7 @@ async function openClosure(action: ClosureCommand['action'], initialType: 'norma
       const result = await send<ClosurePreview>(`/api/projects/${id}/actions/preview`, 'POST', draft);
       if (exact !== JSON.stringify(draft)) { element('closure-error').textContent = '输入已变化，请重新预览。'; return; }
       preview = result;
-      element('closure-preview').innerHTML = `<h3>保存影响</h3>${comparison(Object.entries({ status: '总体状态', ...closureTitles, maintenanceEnabled: '维护标识' }).map(([key, field]) => ({ field, before: key === 'maintenanceEnabled' ? Number(result.beforeValues.closure[key]) ? '开启' : '关闭' : showValue(key, result.beforeValues.closure[key]), after: key === 'maintenanceEnabled' ? Number(result.afterValues.closure[key]) ? '开启' : '关闭' : showValue(key, result.afterValues.closure[key]) })).concat([{ field: '有效阶段进度', before: result.progress + '%', after: result.progress + '%' }, { field: '日期结果', before: result.beforeDeadline.label, after: result.afterDeadline.label }, { field: '本周检查', before: result.beforeCheck.label, after: result.afterCheck.label }]))}<h3>当前遗留</h3><p>阶段：${esc(result.remaining.stages.map(item => label(item.code) + '：' + label(item.state)).join(' / ') || '无')}；节点：${esc(result.remaining.nodes.map(item => item.title).join(' / ') || '无')}；风险：${esc(result.remaining.risks.map(item => item.content).join(' / ') || '无')}。</p><p>${result.changed ? '明确保存后生效。' : '内容一致，不新增版本或修改历史。'}</p>`;
+      element('closure-preview').innerHTML = `<h3>保存影响</h3>${groupedComparison(actionLabels[action], Object.entries({ status: '总体状态', ...closureTitles, maintenanceEnabled: '维护标识' }).map(([key, field]) => ({ field, before: key === 'maintenanceEnabled' ? Number(result.beforeValues.closure[key]) ? '开启' : '关闭' : showValue(key, result.beforeValues.closure[key]), after: key === 'maintenanceEnabled' ? Number(result.afterValues.closure[key]) ? '开启' : '关闭' : showValue(key, result.afterValues.closure[key]) })).concat([{ field: '有效阶段进度', before: result.progress + '%', after: result.progress + '%' }, { field: '日期结果', before: result.beforeDeadline.label, after: result.afterDeadline.label }, { field: '本周检查', before: result.beforeCheck.label, after: result.afterCheck.label }]))}<h3>当前遗留</h3><p>阶段：${esc(result.remaining.stages.map(item => label(item.code) + '：' + label(item.state)).join(' / ') || '无')}；节点：${esc(result.remaining.nodes.map(item => item.title).join(' / ') || '无')}；风险：${esc(result.remaining.risks.map(item => item.content).join(' / ') || '无')}。</p><p>${result.changed ? '明确保存后生效。' : '内容一致，不新增版本或修改历史。'}</p>`;
       element('closure-error').textContent = ''; (element('closure-save') as HTMLButtonElement).disabled = false;
     } catch (error) {
       const failure = error as SaveError;
@@ -568,7 +568,7 @@ async function openLifecycle(action: LifecycleCommand['action'], auditId?: strin
       const result = await send<LifecyclePreview>(`/api/projects/${id}/actions/preview`, 'POST', draft);
       if (exact !== JSON.stringify(draft)) { element('lifecycle-error').textContent = '输入已变化，请重新预览。'; return; }
       preview = result;
-      element('lifecycle-preview').innerHTML = `<h3>保存影响</h3>${comparison([{ field: '项目状态', before: label(result.beforeValues.status ?? snapshot!.project.status), after: label(result.afterValues.status ?? snapshot!.project.status) }, { field: '本周检查', before: result.beforeCheck.label, after: result.afterCheck.label }, ...result.plan ? [{ field: '当前计划', before: showValue('dueDate', result.plan.beforeValues.dueDate ?? snapshot!.project.dueDate ?? '未定'), after: showValue('dueDate', result.plan.afterValues.dueDate ?? snapshot!.project.dueDate ?? '未定') }] : [], ...draft.action === 'correctLifecycleNote' ? [{ field: '有效说明', before: original!.note, after: draft.note }] : []])}<p>阶段事实和首次应检依据保持。${result.afterCheck.updatedAfterCheck ? '检查后项目有更新。' : ''}</p><p>${result.changed ? '明确保存后生效。' : '内容一致，不新增修改历史。'}</p>`;
+      element('lifecycle-preview').innerHTML = `<h3>保存影响</h3>${groupedComparison(actionLabels[action], [{ field: '项目状态', before: label(result.beforeValues.status ?? snapshot!.project.status), after: label(result.afterValues.status ?? snapshot!.project.status) }, { field: '本周检查', before: result.beforeCheck.label, after: result.afterCheck.label }, ...result.plan ? [{ field: '当前计划', before: showValue('dueDate', result.plan.beforeValues.dueDate ?? snapshot!.project.dueDate ?? '未定'), after: showValue('dueDate', result.plan.afterValues.dueDate ?? snapshot!.project.dueDate ?? '未定') }] : [], ...draft.action === 'correctLifecycleNote' ? [{ field: '有效说明', before: original!.note, after: draft.note }] : []])}<p>阶段事实和首次应检依据保持。${result.afterCheck.updatedAfterCheck ? '检查后项目有更新。' : ''}</p><p>${result.changed ? '明确保存后生效。' : '内容一致，不新增修改历史。'}</p>`;
       element('lifecycle-error').textContent = ''; (element('lifecycle-save') as HTMLButtonElement).disabled = false;
     } catch (error) {
       const failure = error as SaveError;
@@ -637,7 +637,7 @@ async function openPlan(action: PlanCommand['action'], recordId?: string) {
       const result = await send<PlanPreview>(`/api/projects/${id}/actions/preview`, 'POST', draft);
       if (exact !== JSON.stringify(draft)) { element('plan-error').textContent = '输入变化，请重新预览。'; return; }
       preview = result;
-      element('plan-preview').innerHTML = `<h3>影响预览</h3>${table(Object.entries(result.afterValues).map(([key, value]) => ({ field: dateTitles[key as keyof typeof dateTitles] ?? ({ scheduleRecord: '历史有效记录', correctionReason: '纠错原因' } as Record<string, string>)[key] ?? key, before: showValue(key, result.beforeValues[key]), after: showValue(key, value) })), [['field', '信息项'], ['before', '修改前'], ['after', '修改后']])}${comparison([{ field: '日期结果', before: result.beforeDeadline.label, after: result.afterDeadline.label }])}<p>截至 ${esc(result.afterDeadline.asOfDate)}</p>${result.adjustmentDays !== undefined ? `<p>净本次调整：${result.adjustmentDays} 天；${result.direction === 'same' ? '日期相同，不新增改期；原因/措施请保留，若需记录用补充计划说明。' : result.direction === 'later' ? '向后调整' : '提前调整'}。</p>` : ''}${result.scheduleRecord ? `<p>新增${result.scheduleRecord.kind === 'note' ? '补充说明' : '真实改期'}：${esc(result.scheduleRecord.reason)} · ${esc(result.scheduleRecord.measures)}</p>` : ''}${result.startupBasisNote ? `<p>${esc(result.startupBasisNote)}：${esc(result.startupBasis ?? '未知')}</p>` : ''}${!result.changed ? '<p>没有实际变化；保存只记录原结果回执，不增加版本或修改历史。</p>' : ''}`;
+      element('plan-preview').innerHTML = `<h3>影响预览</h3>${groupedComparison(actionLabels[action], [...Object.entries(result.afterValues).map(([key, value]) => ({ field: dateTitles[key as keyof typeof dateTitles] ?? ({ scheduleRecord: '计划记录', correctionReason: '纠错原因' } as Record<string, string>)[key] ?? key, before: showValue(key, result.beforeValues[key]), after: showValue(key, value) })), { field: '日期结果', before: result.beforeDeadline.label, after: result.afterDeadline.label }])}<p>截至 ${esc(result.afterDeadline.asOfDate)}</p>${result.adjustmentDays !== undefined ? `<p>净本次调整：${result.adjustmentDays} 天；${result.direction === 'same' ? '日期相同，不新增改期；原因/措施请保留，若需记录用补充计划说明。' : result.direction === 'later' ? '向后调整' : '提前调整'}。</p>` : ''}${result.scheduleRecord ? `<p>新增${result.scheduleRecord.kind === 'note' ? '补充说明' : '真实改期'}：${esc(result.scheduleRecord.reason)} · ${esc(result.scheduleRecord.measures)}</p>` : ''}${result.startupBasisNote ? `<p>${esc(result.startupBasisNote)}：${esc(result.startupBasis ?? '未知')}</p>` : ''}${!result.changed ? '<p>没有实际变化；保存只记录原结果回执，不增加版本或修改历史。</p>' : ''}`;
       element('plan-error').textContent = ''; (element('plan-save') as HTMLButtonElement).disabled = false;
     } catch (error) { const failure = error as SaveError; if (failure.code === 'PROJECT_VERSION_CONFLICT') stale = true; if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID'].includes(failure.code)) authFrozen = true; element('plan-error').textContent = Object.values(failure.fields ?? {})[0] ?? failure.message; }
     finally { inFlight = false; controls(); }
@@ -679,7 +679,7 @@ async function openCorrection(action: CorrectionCommand['action'], code?: string
       const result = await send<CorrectionPreview>(`/api/projects/${id}/actions/preview`, 'POST', draft);
       if (exact !== JSON.stringify(draft)) { element('correction-error').textContent = '输入已变化，请重新预览。'; return; }
       preview = result;
-      element('correction-preview').innerHTML = `<h3>影响预览</h3>${comparison([{ field: '有效进度', before: result.progressBefore + '%', after: result.progressAfter + '%' }])}${result.changed ? table(result.stageChanges.map((fact, index) => ({ code: label(fact.code), before: showValue('stageChanges', [result.beforeStages[index]]), after: showValue('stageChanges', [fact]) })), [['code', '阶段'], ['before', '修改前'], ['after', '修改后']]) : '<p>内容一致，保存只确认原结果，不新增修改历史。</p>'}<p>原因：${esc(result.reason)}。项目总体状态、计划、节点/成果、风险和负责关系保留。</p>`;
+      element('correction-preview').innerHTML = `<h3>影响预览</h3>${groupedComparison(actionLabels[draft.action], [{ field: '有效进度', before: result.progressBefore + '%', after: result.progressAfter + '%' }, ...result.stageChanges.map(fact => ({ field: label(fact.code), before: showValue('stageChanges', [result.beforeStages.find(before => before.code === fact.code)]), after: showValue('stageChanges', [fact]) }))])}${!result.changed ? '<p>内容一致，保存只确认原结果，不新增修改历史。</p>' : ''}<p>原因：${esc(result.reason)}。项目总体状态、计划、节点/成果、风险和负责关系保留。</p>`;
       element('correction-error').textContent = ''; (element('correction-save') as HTMLButtonElement).disabled = false;
     } catch (error) {
       const failure = error as SaveError;
@@ -1144,7 +1144,16 @@ try {
     if (url.origin === location.origin && ['/', '/GeekDash.html'].includes(url.pathname)) (element('back') as HTMLAnchorElement).href = url.href;
   }
 } catch { /* 无返回上下文时使用普通列表入口。 */ }
-function comparison(items: Entry[]) { return table(items, [['field', '信息项'], ['before', '修改前'], ['after', '修改后']]); }
+function changedRows(items: Entry[]) {
+  const value = (v: unknown) => v == null || ['', '（空）', '（无记录）', '未记录', '—'].includes(String(v)) ? '' : String(v);
+  return items.filter(row => value(row.before) !== value(row.after));
+}
+function comparison(items: Entry[]) { return table(changedRows(items), [['field', '修改事项'], ['before', '修改前'], ['after', '修改后']]); }
+function groupedRows(title: string, items: Entry[]): Entry[] {
+  const changed = changedRows(items);
+  return changed.length ? [{ field: title, before: changed.map(row => `${row.field}：${row.before}`).join('\n'), after: changed.map(row => `${row.field}：${row.after}`).join('\n') }] : [];
+}
+function groupedComparison(title: string, items: Entry[]) { return comparison(groupedRows(title, items)); }
 function recordRows(kind: 'risk' | 'change' | 'node', before: unknown, after: unknown): Entry[] {
   const old = (before ?? {}) as Record<string, unknown>, next = (after ?? {}) as Record<string, unknown>;
   const fields: Record<string, string> = kind === 'risk' ? { content: '风险内容', level: '风险等级', resolved: '风险状态', resolution: '解除说明' }
@@ -1157,10 +1166,54 @@ function recordRows(kind: 'risk' | 'change' | 'node', before: unknown, after: un
     if (key === 'previousNodeId' || key === 'nextNodeId') return nodeCopy(true).find(row => row.id === value)?.title ?? String(value);
     return value === '' ? '（空）' : label(value);
   };
-  return Object.entries(fields).filter(([key]) => kind !== 'node' || (customer ? !['stage', 'output', 'previousNodeId', 'nextNodeId', 'x', 'y'].includes(key) : key !== 'note' && (!['x', 'y'].includes(key) || old[key] !== next[key]))).map(([key, field]) => ({ field, before: before == null ? '（无记录）' : display(key, old[key]), after: after == null ? '（无记录）' : display(key, next[key]) }));
+  const empty = (v: unknown) => v == null || v === '';
+  const changes = Object.entries(fields).filter(([key]) => kind !== 'node' || (customer ? !['stage', 'output', 'previousNodeId', 'nextNodeId', 'x', 'y'].includes(key) : key !== 'note'))
+    .filter(([key]) => !(empty(old[key]) && empty(next[key])) && display(key, old[key]) !== display(key, next[key]))
+    .map(([key, field]) => ({ field, before: display(key, old[key]), after: display(key, next[key]) }));
+  const target = next.id ?? old.id, title = (kind === 'change' ? '需求变更' : kind === 'risk' ? '风险' : customer ? '客户节点' : '项目节点') + (/^[1-9][0-9]*$/.test(String(target)) ? ' #' + target : '');
+  const result = groupedRows(title, changes);
+  if (result.length && before == null) result[0].before = '（无记录）';
+  if (result.length && after == null) result[0].after = '（记录移除）';
+  return result;
+}
+function mergedRecords(kind: 'risk' | 'change' | 'node', events: { id: string; before: unknown; after: unknown; reason?: unknown; correctionReason?: unknown }[]) {
+  const records = new Map<string, typeof events[number]>();
+  for (const event of events) {
+    const prior = records.get(event.id);
+    records.set(event.id, prior ? { ...event, before: prior.before } : event);
+  }
+  return [...records.values()].flatMap(event => {
+    const rows = recordRows(kind, event.before, event.after), reason = event.correctionReason || event.reason;
+    if (rows.length && reason) rows[0].after += '\n修改原因：' + reason;
+    return rows;
+  });
+}
+function recordComparisons(kind: 'risk' | 'change' | 'node', events: Parameters<typeof mergedRecords>[1]) { return comparison(mergedRecords(kind, events)); }
+function auditHistory(items: AuditPage['items']) {
+  const fields: Record<string, string> = { ...titles, ...{ stageChanges: '阶段状态与实际日期', completionNote: '完成说明', reason: '操作原因', progress: '有效阶段进度', status: '项目状态', startDate: '实际启动日期', dueDate: '当前计划结案日期', originalDueDate: '原计划结案日期', firstCheckWeek: '首次应检周', firstCheckRuleVersion: '首次应检规则版本', resumeStatus: '暂缓前项目状态', closure: '当前结案事实', closureSource: '原结案来源', remaining: '当时遗留', stageFacts: '当时有效阶段事实', lifecycleNote: '有效说明', note: '操作说明' }, correctionReason: '纠错原因' };
+  const groups = new Map<string, AuditPage['items']>();
+  for (const item of items) {
+    const key = JSON.stringify([item.versionBefore, item.versionAfter, item.actorDisplayName, item.actorKind, item.createdAt]);
+    const group = groups.get(key) ?? []; group.push(item); groups.set(key, group);
+  }
+  return [...groups.values()].map(group => {
+    const records = new Map<'risk' | 'change' | 'node', Parameters<typeof mergedRecords>[1]>(), rows: Entry[] = [];
+    for (const item of group.slice().reverse()) {
+      const kind = (['risk', 'change', 'node'] as const).find(key => Object.hasOwn(item.afterValues, key));
+      if (kind) {
+        const before = item.beforeValues?.[kind], after = item.afterValues[kind];
+        const target = (after ?? before) as Entry;
+        const events = records.get(kind) ?? [];
+        events.push({ id: String(target?.id ?? item.id), before, after, reason: item.afterValues.reason, correctionReason: item.afterValues.correctionReason }); records.set(kind, events);
+      } else rows.push(...groupedRows(actionLabels[item.action] ?? '项目信息', Object.keys(item.afterValues).filter(key => !['createdBy', 'operations'].includes(key)).map(key => ({ field: fields[key] ?? key, before: showValue(key, item.beforeValues?.[key]), after: showValue(key, item.afterValues[key]) }))));
+    }
+    for (const [kind, events] of records) rows.push(...mergedRecords(kind, events));
+    const item = group[0], title = group.length > 1 ? '保存项目' : actionLabels[item.action] ?? '更新项目记录';
+    return `<article class="audit-entry" data-audit-version="${esc(item.versionAfter)}"><h3>${esc(title)} · ${esc(item.actorDisplayName)} · ${esc(item.createdAt)} · 版本 ${esc(item.versionBefore)} → ${esc(item.versionAfter)}</h3>${comparison(rows)}</article>`;
+  }).join('');
 }
 function table(items: Entry[], fields: [string, string][]) {
-  if (!items.length) return '<p class="read-message">暂无记录。</p>';
+  if (!items.length) return fields[1]?.[0] === 'before' ? '' : '<p class="read-message">暂无记录。</p>';
   return `<div class="read-table-wrap"><table class="read-table${fields[1]?.[0] === 'before' && fields[2]?.[0] === 'after' ? ' comparison-table' : ''}"><thead><tr>${fields.map(([, title]) => `<th scope="col">${title}</th>`).join('')}</tr></thead><tbody>${items.map(item => `<tr>${fields.map(([key]) => `<td>${esc(['code', 'state', 'stage', 'level', 'decision'].includes(key) ? label(item[key]) : item[key] ?? '—')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 function render() {
@@ -1180,7 +1233,7 @@ function render() {
   } else if (tab === 'stages') content = stagePanel();
   else if (tab === 'nodes' || tab === 'custnodes' || tab === 'flow') content = nodePanel(tab === 'custnodes' ? 'customer' : 'project', tab === 'flow') + deletedNodePanel(tab === 'custnodes' ? 'customer' : 'project');
   else if (tab === 'history') content = '<h2>服务器修改历史</h2><p class="read-message">时间为 UTC，每页 20 条。只有实际变化才产生修改历史。</p>'
-    + (audit?.items.length ? audit.items.map(item => `<article class="audit-entry"><h3>${esc(actionLabels[item.action] ?? item.action)} · ${esc(item.actorDisplayName)} · ${esc(item.createdAt)} · 版本 ${esc(item.versionBefore)} → ${esc(item.versionAfter)}</h3>${comparison(Object.keys(item.afterValues).flatMap(key => ['risk', 'change', 'node'].includes(key) ? recordRows(key as 'risk' | 'change' | 'node', item.beforeValues?.[key], item.afterValues[key]) : [{ field: titles[key as keyof EditValues] ?? ({ stageChanges: '阶段状态与实际日期', completionNote: '完成说明', reason: '操作原因', progress: '有效阶段进度', status: '项目状态', startDate: '实际启动日期', dueDate: '当前计划结案日期', originalDueDate: '原计划结案日期', firstCheckWeek: '首次应检周', firstCheckRuleVersion: '首次应检规则版本', resumeStatus: '暂缓前项目状态', closure: '当前结案事实', closureSource: '原结案来源', remaining: '当时遗留', stageFacts: '当时有效阶段事实', lifecycleNote: '有效说明', note: '操作说明' } as Record<string, string>)[key] ?? key, before: showValue(key, item.beforeValues?.[key]), after: showValue(key, item.afterValues[key]) }]))}</article>`).join('') : '<p>暂无服务器修改历史。</p>')
+    + (audit?.items.length ? auditHistory(audit.items) : '<p>暂无服务器修改历史。</p>')
     + `<p class="read-message">${esc(auditMessage)}</p><button class="back-btn" id="audit-refresh">重新读取历史</button>${audit?.nextCursor ? '<button class="back-btn" id="audit-more">读取更早记录</button>' : ''}`
     + '<h2>旧来源历史</h2><p class="read-message">保留原来源时间文本，与服务器修改历史分开。</p>' + table(snapshot.history.slice().reverse(), [['date', '来源时间'], ['text', '更新内容']]);
   else if (tab === 'risk') content = riskPanel() + changePanel() + '<h2>改期与说明</h2>' + (snapshot.delays.map(scheduleHistory).join('') || '<p>没有计划历史。</p>');
