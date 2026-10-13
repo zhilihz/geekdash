@@ -882,6 +882,7 @@ function controls() {
   element('action-reload').hidden = !stale && !authFrozen;
   (element('action-reload') as HTMLButtonElement).disabled = frozen;
   if ((element('action-dialog') as HTMLDialogElement).open && (stale || authFrozen || inFlight || stagePending)) note(authFrozen ? '账号已变化或登录失效，保存已暂停。请复制输入后重新登录。' : stale ? '项目已被他人更新，旧内容已保留。请复制输入并重新进入项目。' : inFlight ? '正在处理，请等待结果。' : '保存结果尚未确认，请确认原结果或重试原操作。', stale || authFrozen || !inFlight);
+  else if (!frozen && element('action-message').textContent === '正在处理，请等待结果。') note('');
 }
 function persist() {
   clearTimeout(bufferTimer);
@@ -972,6 +973,7 @@ function showValue(key: string, value: unknown): string {
   if (key === 'nodeOps') return JSON.stringify(value, null, 2);
       if (key === 'riskOps') return JSON.stringify(value ?? [], null, 2);
   if (key === 'risk' && typeof value === 'object') { const r = value as RiskRecord; return `风险 #${r.id} · ${label(r.level)} · ${r.resolved ? '已解除' : '预警中'}\n${r.content}\n创建：${r.createdByName ?? '原人未知'} · ${r.createdAt}\n解除：${r.resolvedByName ?? '原人未知'} · ${r.resolvedAt ?? '—'}\n${r.resolution}`; }
+  if (key === 'change' && typeof value === 'object') { const c = value as ChangeRecord; return `来源：${c.source}\n变更内容：${c.content}\n决定：${c.decision === 'accept' ? '接受' : c.decision === 'reject' ? '拒绝' : c.decision + '（待核对）'}\n决定理由：${c.reason || '（空）'}`; }
   if (key === 'stagePlans' && Array.isArray(value)) return value.map(item => `${label(item.code)}：工期 ${item.plannedDays ?? '未定'}；评述 ${item.note ?? ''}`).join('\n');
   if (key === 'scheduleRecord' && typeof value === 'object') { const record = value as ScheduleRecord; return `记录 #${record.id ?? '新记录'}：${record.kind === 'note' ? '补充说明' : '真实改期'}；${record.oldDate ?? '未定'} → ${record.newDate ?? '未定'}\n原因：${record.reason}\n措施：${record.measures}${record.voided ? '\n误录已撤销' : ''}`; }
   if (key === 'check' && typeof value === 'object') { const item = value as { id?: string; conclusion: string; note: string; checkedAt?: string; weekStart?: string }; return `检查 #${item.id ?? '新记录'}：${item.conclusion === 'follow_up' ? '已核对，需跟进' : '已核对'}；${item.note || '（无备注）'}${item.checkedAt ? '\n' + item.checkedAt + '（UTC），所属周 ' + item.weekStart : ''}`; }

@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-10-12T11:12:23.220947+00:00",
+  "build": {
+    "revision": "29ed3d900cadf4140ad9ff149e8b98e23f487e31",
+    "dirty": false,
+    "builtAt": "2026-10-12T01:36:28.599Z",
+    "stage": "project-changes",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "ready": "ready",
+  "currentLink": "29ed3d900cadf4140ad9ff149e8b98e23f487e31",
+  "appImageId": "sha256:49b6efc145004e6fd6070c11171f6be91cb9d2fc86ad77990a85620359e5c425",
+  "appStartedAt": "2026-10-12T01:59:40.577241442Z",
+  "mysqlStartedAt": "2026-10-08T09:37:05.989838304Z",
+  "appOOM": false,
+  "mysqlOOM": false,
+  "memAvailableKb": 529108,
+  "freeOptBytes": 14723469312,
+  "otherRunningContainers": 17
+}
