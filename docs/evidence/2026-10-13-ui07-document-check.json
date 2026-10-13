@@ -1,0 +1,24 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-13T10:00:05.735606+00:00",
+  "baseRevision": "c1ef626716b3408ce092dbda539089ee40f99278",
+  "headRevision": "3153498f372005eba9d74af8811a459bd258a710",
+  "scope": "UI07 changed Markdown plus docs navigation and project instructions; local paths and Markdown anchors only",
+  "markdownFiles": 10,
+  "localLinks": 313,
+  "anchors": 50,
+  "failures": [],
+  "sourceSha256": {
+    "AGENTS.md": "bc3bff0b554dea94656cb1bea047a29a84ac65065eb5752012450561357b3239",
+    "docs/README.md": "cfe59a7724e26b8e8ca3bd02d315c7067b1915113f94cc9c26019afc48835bf1",
+    "docs/changelog/CHANGELOG.md": "7a937b033af16495592ee2d0772dce1a9597dd9a0d80d209b6069bb20a290425",
+    "docs/handoff/handoff.md": "028dec81ff148ad90e845c64870a55029e2f73ea5f74b304faeef2136bcfd18d",
+    "docs/implementation/execution-plan.md": "dad0ed12cec4327941443fefde6b71e3fd0464d97a3d26f8cc5ac036ae6dd473",
+    "docs/operations/deployments/2026-10-13-e04-ui07.md": "dc2d980bc9e3eb5a6bfe97a85d25648127c7f450675398d83278d47808492b1e",
+    "docs/product/PRD.md": "afdb70269d4f37c20569af17bdf6678d85c7b4ec993f657bc2249fb99064177c",
+    "docs/status/current-system-truth.md": "3e7a738b1151bb53576f5607892de7750b438b2d3ac4609cc79e37582033478d",
+    "docs/testing/reports/2026-10-13-e04-ui07-notifications.md": "da0dd122c2b199c99f59b9b7939b50e5e3f6b03b11b3b266ad0bd56b00b20f7b",
+    "docs/usage/user-guide.md": "e0539a17889fe37295ca561c3e9b28d0ab3724cbdcd9e54e51425c25889ff13f"
+  },
+  "validatesBusinessOrDeployment": false
+}

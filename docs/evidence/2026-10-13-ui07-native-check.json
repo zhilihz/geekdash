@@ -1,0 +1,138 @@
+{
+  "checkedAt": "2026-10-13T09:59:38.285Z",
+  "revision": "3153498f372005eba9d74af8811a459bd258a710",
+  "browser": "Microsoft Edge",
+  "viewport": {
+    "width": 1272,
+    "height": 621
+  },
+  "syntheticProject": "22",
+  "observations": [
+    {
+      "name": "retained",
+      "visible": true,
+      "popover": true,
+      "rect": {
+        "x": 401,
+        "y": 68.515625,
+        "width": 460,
+        "height": 151.7890625
+      },
+      "text": "本次输入尚未保存到项目，可继续编辑。关闭标签页后副本会丢失。",
+      "draftButton": true,
+      "staticSaved": false
+    },
+    {
+      "name": "draft-dialog",
+      "open": true,
+      "rect": {
+        "x": 351,
+        "y": 86.9375,
+        "width": 560,
+        "height": 250.9921875
+      },
+      "buttons": [
+        {
+          "id": "draft-close",
+          "text": "×"
+        },
+        {
+          "id": "plan-restore",
+          "text": "恢复计划/日期表单"
+        },
+        {
+          "id": "plan-discard",
+          "text": "放弃该副本"
+        },
+        {
+          "id": "draft-copy",
+          "text": "查看并复制"
+        },
+        {
+          "id": "draft-later",
+          "text": "暂不处理"
+        }
+      ],
+      "overflow": false
+    },
+    {
+      "name": "restore",
+      "actionOpen": true,
+      "recoveryClosed": true,
+      "restored": "UI07 提示验收，未提交"
+    },
+    {
+      "name": "modal-notice-layer",
+      "visible": false,
+      "popover": false,
+      "parent": "",
+      "text": "",
+      "hit": "action-dialog",
+      "form": true,
+      "fieldsDisabled": false,
+      "fieldError": "计划请求无效，请核对选定字段。"
+    },
+    {
+      "name": "modal-notice-hit-and-close",
+      "visible": true,
+      "popover": true,
+      "parent": "action-dialog",
+      "hit": "notice-close",
+      "text": "正在处理，请等待结果。",
+      "closed": true,
+      "formOpen": true,
+      "input": "UI07 提示验收，未提交"
+    },
+    {
+      "name": "real-save-and-fresh-read",
+      "notice": "项目已保存。",
+      "visible": false,
+      "saveDisabled": true,
+      "version": "3",
+      "summary": "同一字段内输入搜索、选择和清空；关键日期集中展示。UI07 已核对中上方提示与副本恢复。",
+      "audits": [
+        {
+          "action": "project.text.save"
+        },
+        {
+          "action": "project.ordinary.save"
+        },
+        {
+          "action": "project.create"
+        }
+      ],
+      "draftsHidden": true
+    },
+    {
+      "name": "history-consumption-and-cleanup",
+      "history": true,
+      "historyTab": false,
+      "pending": false,
+      "draftStorage": null,
+      "ordinaryStorage": null
+    },
+    {
+      "name": "verified-history-table",
+      "historyTab": true,
+      "historyTable": true,
+      "headings": [
+        "更新历史",
+        "旧来源历史"
+      ],
+      "draftsHidden": true,
+      "pending": false
+    }
+  ],
+  "unverified": [
+    "narrow viewport",
+    "all themes",
+    "Figma Presentation",
+    "whole E04 user acceptance",
+    "isolated full backup restore"
+  ],
+  "screenshots": {
+    "2026-10-13-ui07-web-notice.png": "ff8928231086e77dd8baede908fcdd6bfdc0ea3cfe2480c2bd88c5f5ad435796",
+    "2026-10-13-ui07-web-recovery.png": "dafbf4e0c46ffc5059ba3c0f7c06a0c38b7cf9cb7dbd44f0ca0eb5622966056c"
+  },
+  "ownedTestTabClosed": true
+}
