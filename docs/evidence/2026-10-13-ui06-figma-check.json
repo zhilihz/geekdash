@@ -1,0 +1,1235 @@
+{
+  "status": "design_subset_checked_awaiting_runtime_implementation",
+  "checkedAt": "2026-10-13 07:40:08 UTC",
+  "fileKey": "leQy2Be9GaTXPvZeooQuIF",
+  "source": "原同一Figma文件与GeekDash1051，PRD8.10及用户2026-10-13即时纠正",
+  "scope": [
+    "原P02资料时间→分工→最新状态；资料搜索/选择/清空合一控件；关键项目日期四项，其余展开",
+    "原P03阶段日期、P04项目节点日期及P06客户节点日期留在对应记录；各自目标/预计和实际完成分开"
+  ],
+  "final": {
+    "screens": [
+      {
+        "id": "4:159",
+        "name": "P02 项目详情 · 基本信息",
+        "width": 1440,
+        "height": 2003,
+        "counts": {
+          "FRAME": 44,
+          "INSTANCE": 66,
+          "TEXT": 102
+        },
+        "images": [],
+        "fonts": [
+          "Noto Sans SC"
+        ]
+      },
+      {
+        "id": "4:311",
+        "name": "P03 项目阶段 · 原七卡片",
+        "width": 1440,
+        "height": 2135,
+        "counts": {
+          "FRAME": 27,
+          "INSTANCE": 25,
+          "TEXT": 85
+        },
+        "images": [],
+        "fonts": [
+          "Noto Sans SC"
+        ]
+      },
+      {
+        "id": "4:449",
+        "name": "P04 项目节点 · 依赖与列表",
+        "width": 1440,
+        "height": 1215,
+        "counts": {
+          "FRAME": 19,
+          "INSTANCE": 26,
+          "TEXT": 43
+        },
+        "images": [],
+        "fonts": [
+          "Noto Sans SC"
+        ]
+      },
+      {
+        "id": "5:387",
+        "name": "P06 客户节点 · 日期与沟通",
+        "width": 1440,
+        "height": 889,
+        "counts": {
+          "FRAME": 16,
+          "INSTANCE": 23,
+          "TEXT": 37
+        },
+        "images": [],
+        "fonts": [
+          "Noto Sans SC"
+        ]
+      }
+    ],
+    "referenceFields": [
+      {
+        "id": "4:227",
+        "width": 388,
+        "height": 75,
+        "properties": {
+          "值#116:6": {
+            "type": "TEXT",
+            "value": "输入名称搜索"
+          },
+          "已选择#116:7": {
+            "type": "TEXT",
+            "value": "演示客户"
+          },
+          "标题#116:5": {
+            "type": "TEXT",
+            "value": "客户名称"
+          },
+          "状态": {
+            "value": "收起",
+            "type": "VARIANT",
+            "boundVariables": {}
+          }
+        }
+      },
+      {
+        "id": "4:271",
+        "width": 792,
+        "height": 75,
+        "properties": {
+          "值#116:6": {
+            "type": "TEXT",
+            "value": "输入名称搜索"
+          },
+          "已选择#116:7": {
+            "type": "TEXT",
+            "value": "GD-MCU-A ×    GD-RF-B ×"
+          },
+          "标题#116:5": {
+            "type": "TEXT",
+            "value": "核心芯片（多选）"
+          },
+          "状态": {
+            "value": "收起",
+            "type": "VARIANT",
+            "boundVariables": {}
+          }
+        }
+      },
+      {
+        "id": "4:276",
+        "width": 388,
+        "height": 75,
+        "properties": {
+          "值#116:6": {
+            "type": "TEXT",
+            "value": "输入名称搜索"
+          },
+          "已选择#116:7": {
+            "type": "TEXT",
+            "value": "张工"
+          },
+          "标题#116:5": {
+            "type": "TEXT",
+            "value": "硬件负责人"
+          },
+          "状态": {
+            "value": "收起",
+            "type": "VARIANT",
+            "boundVariables": {}
+          }
+        }
+      },
+      {
+        "id": "4:289",
+        "width": 388,
+        "height": 75,
+        "properties": {
+          "值#116:6": {
+            "type": "TEXT",
+            "value": "输入名称搜索"
+          },
+          "已选择#116:7": {
+            "type": "TEXT",
+            "value": "张工、李工、王工"
+          },
+          "标题#116:5": {
+            "type": "TEXT",
+            "value": "参与人"
+          },
+          "状态": {
+            "value": "收起",
+            "type": "VARIANT",
+            "boundVariables": {}
+          }
+        }
+      }
+    ],
+    "dateFields": [
+      {
+        "id": "4:249",
+        "properties": {
+          "值#2:8": {
+            "type": "TEXT",
+            "value": "2026-09-03"
+          },
+          "标题#2:7": {
+            "type": "TEXT",
+            "value": "立案日期"
+          }
+        }
+      },
+      {
+        "id": "117:3089",
+        "properties": {
+          "值#2:8": {
+            "type": "TEXT",
+            "value": "2026-09-05"
+          },
+          "标题#2:7": {
+            "type": "TEXT",
+            "value": "实际启动日期"
+          }
+        }
+      },
+      {
+        "id": "117:3094",
+        "properties": {
+          "值#2:8": {
+            "type": "TEXT",
+            "value": "2026-11-20"
+          },
+          "标题#2:7": {
+            "type": "TEXT",
+            "value": "预计结案日期"
+          }
+        }
+      },
+      {
+        "id": "117:3098",
+        "properties": {
+          "值#2:8": {
+            "type": "TEXT",
+            "value": "未结案"
+          },
+          "标题#2:7": {
+            "type": "TEXT",
+            "value": "实际结案日期"
+          }
+        }
+      }
+    ],
+    "dateExpand": {
+      "buttonId": "4:260",
+      "contentId": "117:3102"
+    },
+    "layoutOrder": [
+      {
+        "id": "107:2953",
+        "name": "UI06/资料与时间",
+        "height": 26
+      },
+      {
+        "id": "4:218",
+        "name": "字段/项目名称",
+        "height": 75
+      },
+      {
+        "id": "4:253",
+        "name": "原计划日期及上下文操作",
+        "height": 118
+      },
+      {
+        "id": "4:226",
+        "name": "原双列资料",
+        "height": 75
+      },
+      {
+        "id": "4:235",
+        "name": "原双列资料",
+        "height": 75
+      },
+      {
+        "id": "4:244",
+        "name": "原双列资料",
+        "height": 75
+      },
+      {
+        "id": "4:271",
+        "name": "资料选择/核心芯片（多选）",
+        "height": 75
+      },
+      {
+        "id": "4:293",
+        "name": "资料选择/项目标签",
+        "height": 75
+      },
+      {
+        "id": "107:2954",
+        "name": "UI06/项目分工",
+        "height": 26
+      },
+      {
+        "id": "4:275",
+        "name": "原双列资料",
+        "height": 75
+      },
+      {
+        "id": "4:284",
+        "name": "原双列资料",
+        "height": 75
+      },
+      {
+        "id": "107:2955",
+        "name": "UI06/最新状态与说明",
+        "height": 26
+      },
+      {
+        "id": "4:301",
+        "name": "字段/项目状态描述",
+        "height": 75
+      },
+      {
+        "id": "4:297",
+        "name": "字段/项目简介",
+        "height": 75
+      },
+      {
+        "id": "4:305",
+        "name": "字段/项目市场预期",
+        "height": 75
+      },
+      {
+        "id": "4:262",
+        "name": "原双列资料",
+        "height": 75
+      },
+      {
+        "id": "4:222",
+        "name": "字段/项目详情备注",
+        "height": 75
+      }
+    ]
+  },
+  "component": {
+    "createdNodeIds": [
+      "116:2968",
+      "116:2969",
+      "116:2970",
+      "116:2971",
+      "116:2972",
+      "I116:2972;2:108",
+      "116:2974",
+      "116:2975",
+      "116:2976",
+      "I116:2976;2:108",
+      "116:2978",
+      "116:2979",
+      "116:2980",
+      "116:2982",
+      "116:2983",
+      "116:2984",
+      "116:2985",
+      "116:2986",
+      "116:2987",
+      "116:2988",
+      "I116:2988;2:108",
+      "116:2990",
+      "116:2991",
+      "116:2992",
+      "I116:2992;2:108",
+      "116:2994",
+      "116:2995",
+      "116:2996",
+      "116:2998",
+      "116:2999",
+      "116:3000",
+      "116:3001",
+      "116:3002",
+      "116:3003",
+      "116:3004",
+      "I116:3004;2:108",
+      "116:3006",
+      "116:3007",
+      "116:3008",
+      "I116:3008;2:108",
+      "116:3010",
+      "116:3011",
+      "116:3012",
+      "116:3014",
+      "116:3015",
+      "116:3016",
+      "116:3017",
+      "116:3018",
+      "116:3019",
+      "I116:3019;2:108",
+      "116:3021",
+      "116:3022",
+      "116:3023",
+      "I116:3023;2:108",
+      "116:3025",
+      "116:3026",
+      "116:3027",
+      "116:3029",
+      "116:3030",
+      "116:3031",
+      "116:3035",
+      "116:3036",
+      "I116:3036;116:2969",
+      "I116:3036;116:2970",
+      "I116:3036;116:2971",
+      "I116:3036;116:2972",
+      "I116:3036;116:2972;2:108",
+      "I116:3036;116:2974",
+      "I116:3036;116:2975",
+      "I116:3036;116:2976",
+      "I116:3036;116:2976;2:108",
+      "116:3047",
+      "I116:3047;116:2985",
+      "I116:3047;116:2986",
+      "I116:3047;116:2987",
+      "I116:3047;116:2988",
+      "I116:3047;116:2988;2:108",
+      "I116:3047;116:2990",
+      "I116:3047;116:2991",
+      "I116:3047;116:2992",
+      "I116:3047;116:2992;2:108",
+      "I116:3047;116:2994",
+      "I116:3047;116:2998",
+      "I116:3047;116:2999",
+      "116:3060",
+      "I116:3060;116:3001",
+      "I116:3060;116:3002",
+      "I116:3060;116:3003",
+      "I116:3060;116:3004",
+      "I116:3060;116:3004;2:108",
+      "I116:3060;116:3006",
+      "I116:3060;116:3007",
+      "I116:3060;116:3008",
+      "I116:3060;116:3008;2:108",
+      "I116:3060;116:3010",
+      "I116:3060;116:3014",
+      "116:3072",
+      "I116:3072;116:3016",
+      "I116:3072;116:3017",
+      "I116:3072;116:3018",
+      "I116:3072;116:3021",
+      "I116:3072;116:3022"
+    ],
+    "mutatedNodeIds": [
+      "116:2972",
+      "116:2988",
+      "116:3004",
+      "116:3019"
+    ],
+    "componentSetId": "116:3031",
+    "variants": [
+      {
+        "id": "116:2968",
+        "state": "状态=收起",
+        "selectedProperty": "已选择#116:1",
+        "height": 120,
+        "width": 384,
+        "triggerButton": "116:2972"
+      },
+      {
+        "id": "116:2984",
+        "state": "状态=展开",
+        "selectedProperty": "已选择#116:2",
+        "height": 194,
+        "width": 384,
+        "triggerButton": "116:2988"
+      },
+      {
+        "id": "116:3000",
+        "state": "状态=无匹配",
+        "selectedProperty": "已选择#116:3",
+        "height": 166,
+        "width": 384,
+        "triggerButton": "116:3004"
+      },
+      {
+        "id": "116:3015",
+        "state": "状态=只读",
+        "selectedProperty": "已选择#116:4",
+        "height": 103,
+        "width": 384,
+        "triggerButton": "116:3019"
+      }
+    ],
+    "reviewId": "116:3035",
+    "fonts": [
+      {
+        "family": "Noto Sans SC",
+        "style": "Regular",
+        "variationSettings": {
+          "wght": 400
+        }
+      }
+    ]
+  },
+  "layout": {
+    "createdNodeIds": [
+      "117:3087",
+      "117:3088",
+      "117:3089",
+      "I117:3089;2:120",
+      "I117:3089;2:121",
+      "I117:3089;2:122",
+      "117:3093",
+      "117:3094",
+      "I117:3094;2:120",
+      "I117:3094;2:121",
+      "I117:3094;2:122",
+      "117:3098",
+      "I117:3098;2:120",
+      "I117:3098;2:121",
+      "I117:3098;2:122",
+      "117:3102",
+      "117:3103",
+      "117:3104",
+      "I117:3104;2:108"
+    ],
+    "mutatedNodeIds": [
+      "107:2953",
+      "107:2954",
+      "107:2955",
+      "4:227",
+      "4:231",
+      "4:236",
+      "4:240",
+      "4:245",
+      "4:271",
+      "4:276",
+      "4:280",
+      "4:285",
+      "4:289",
+      "4:293",
+      "4:244",
+      "4:249",
+      "I4:249;2:121",
+      "117:3089",
+      "I117:3089;2:121",
+      "117:3094",
+      "I117:3094;2:121",
+      "117:3098",
+      "I117:3098;2:121",
+      "4:254",
+      "4:258",
+      "4:260",
+      "4:267",
+      "I4:267;2:121",
+      "4:301",
+      "4:218",
+      "4:226",
+      "4:235",
+      "4:253",
+      "4:275",
+      "4:284",
+      "4:297",
+      "4:305",
+      "4:262",
+      "4:222",
+      "5:457",
+      "5:465",
+      "4:523",
+      "4:531",
+      "4:539",
+      "4:159",
+      "4:211",
+      "117:3087"
+    ],
+    "deletedNodeIds": [],
+    "screenId": "4:159",
+    "order": [
+      {
+        "id": "107:2953",
+        "name": "UI06/资料与时间",
+        "height": 26,
+        "width": 792
+      },
+      {
+        "id": "4:218",
+        "name": "字段/项目名称",
+        "height": 75,
+        "width": 792
+      },
+      {
+        "id": "4:226",
+        "name": "原双列资料",
+        "height": 120,
+        "width": 792
+      },
+      {
+        "id": "4:235",
+        "name": "原双列资料",
+        "height": 120,
+        "width": 792
+      },
+      {
+        "id": "4:244",
+        "name": "原双列资料",
+        "height": 120,
+        "width": 792
+      },
+      {
+        "id": "4:271",
+        "name": "资料选择/核心芯片（多选）",
+        "height": 120,
+        "width": 792
+      },
+      {
+        "id": "4:293",
+        "name": "资料选择/项目标签",
+        "height": 120,
+        "width": 792
+      },
+      {
+        "id": "4:253",
+        "name": "原计划日期及上下文操作",
+        "height": 254,
+        "width": 792
+      },
+      {
+        "id": "107:2954",
+        "name": "UI06/项目分工",
+        "height": 26,
+        "width": 792
+      },
+      {
+        "id": "4:275",
+        "name": "原双列资料",
+        "height": 120,
+        "width": 792
+      },
+      {
+        "id": "4:284",
+        "name": "原双列资料",
+        "height": 120,
+        "width": 792
+      },
+      {
+        "id": "107:2955",
+        "name": "UI06/最新状态与说明",
+        "height": 26,
+        "width": 792
+      },
+      {
+        "id": "4:301",
+        "name": "字段/项目状态描述",
+        "height": 75,
+        "width": 792
+      },
+      {
+        "id": "4:297",
+        "name": "字段/项目简介",
+        "height": 75,
+        "width": 792
+      },
+      {
+        "id": "4:305",
+        "name": "字段/项目市场预期",
+        "height": 75,
+        "width": 792
+      },
+      {
+        "id": "4:262",
+        "name": "原双列资料",
+        "height": 75,
+        "width": 792
+      },
+      {
+        "id": "4:222",
+        "name": "字段/项目详情备注",
+        "height": 75,
+        "width": 792
+      }
+    ],
+    "dateFields": [
+      [
+        "立案日期",
+        "2026-09-03"
+      ],
+      [
+        "实际启动日期",
+        "2026-09-05"
+      ],
+      [
+        "预计结案日期",
+        "2026-11-20"
+      ],
+      [
+        "实际结案日期",
+        "未结案"
+      ]
+    ],
+    "nodeDatesRemainWithRecords": true,
+    "stageDatesRemainWithRecords": true,
+    "size": {
+      "width": 1440,
+      "height": 2454
+    },
+    "fonts": [
+      {
+        "family": "Noto Sans SC",
+        "style": "Regular",
+        "variationSettings": {
+          "wght": 400
+        }
+      },
+      {
+        "family": "Noto Sans SC",
+        "style": "Bold",
+        "variationSettings": {
+          "wght": 700
+        }
+      }
+    ]
+  },
+  "compactComponent": {
+    "mutatedNodeIds": [
+      "116:2968",
+      "116:2970",
+      "116:2971",
+      "116:2974",
+      "116:2976",
+      "116:2972",
+      "I116:2976;2:108",
+      "I116:2972;2:108",
+      "116:2984",
+      "116:2986",
+      "116:2987",
+      "116:2990",
+      "116:2992",
+      "116:2988",
+      "I116:2992;2:108",
+      "I116:2988;2:108",
+      "116:3000",
+      "116:3002",
+      "116:3003",
+      "116:3006",
+      "116:3008",
+      "116:3004",
+      "I116:3008;2:108",
+      "I116:3004;2:108",
+      "116:3015",
+      "116:3017",
+      "116:3018",
+      "116:3021",
+      "116:3023",
+      "116:3019",
+      "I116:3023;2:108",
+      "I116:3019;2:108"
+    ],
+    "deletedNodeIds": [],
+    "variants": [
+      {
+        "id": "116:2968",
+        "state": "状态=收起",
+        "width": 384,
+        "height": 92
+      },
+      {
+        "id": "116:2984",
+        "state": "状态=展开",
+        "width": 384,
+        "height": 194
+      },
+      {
+        "id": "116:3000",
+        "state": "状态=无匹配",
+        "width": 384,
+        "height": 166
+      },
+      {
+        "id": "116:3015",
+        "state": "状态=只读",
+        "width": 384,
+        "height": 73
+      }
+    ],
+    "principle": "每个字段一个控件；已选值、输入搜索、清空和展开使用同一入口"
+  },
+  "inlineButtons": {
+    "mutatedNodeIds": [
+      "116:2970",
+      "116:2976",
+      "116:2972",
+      "116:2986",
+      "116:2992",
+      "116:2988",
+      "116:3002",
+      "116:3008",
+      "116:3004",
+      "116:3017",
+      "116:3023",
+      "116:3019"
+    ],
+    "sizes": [
+      {
+        "id": "116:2968",
+        "state": "状态=收起",
+        "width": 384,
+        "height": 75
+      },
+      {
+        "id": "116:2984",
+        "state": "状态=展开",
+        "width": 384,
+        "height": 177
+      },
+      {
+        "id": "116:3000",
+        "state": "状态=无匹配",
+        "width": 384,
+        "height": 149
+      },
+      {
+        "id": "116:3015",
+        "state": "状态=只读",
+        "width": 384,
+        "height": 73
+      }
+    ]
+  },
+  "compactLayout": {
+    "createdIds": [
+      "VariableID:121:3032"
+    ],
+    "mutatedNodeIds": [
+      "4:253",
+      "4:254",
+      "4:249",
+      "117:3089",
+      "117:3094",
+      "117:3098",
+      "117:3088",
+      "117:3087",
+      "107:2953",
+      "4:218",
+      "4:226",
+      "4:235",
+      "4:244",
+      "4:271",
+      "4:293",
+      "107:2954",
+      "4:275",
+      "4:284",
+      "107:2955",
+      "4:301",
+      "4:297",
+      "4:305",
+      "4:262",
+      "4:222",
+      "117:3102",
+      "4:260",
+      "4:372",
+      "4:383",
+      "4:394",
+      "4:405",
+      "4:416",
+      "4:427",
+      "4:438"
+    ],
+    "deletedNodeIds": [
+      "117:3093"
+    ],
+    "screen": {
+      "id": "4:159",
+      "width": 1440,
+      "height": 2003
+    },
+    "order": [
+      {
+        "id": "107:2953",
+        "name": "UI06/资料与时间",
+        "width": 792,
+        "height": 26
+      },
+      {
+        "id": "4:218",
+        "name": "字段/项目名称",
+        "width": 792,
+        "height": 75
+      },
+      {
+        "id": "4:253",
+        "name": "原计划日期及上下文操作",
+        "width": 792,
+        "height": 118
+      },
+      {
+        "id": "4:226",
+        "name": "原双列资料",
+        "width": 792,
+        "height": 75
+      },
+      {
+        "id": "4:235",
+        "name": "原双列资料",
+        "width": 792,
+        "height": 75
+      },
+      {
+        "id": "4:244",
+        "name": "原双列资料",
+        "width": 792,
+        "height": 75
+      },
+      {
+        "id": "4:271",
+        "name": "资料选择/核心芯片（多选）",
+        "width": 792,
+        "height": 75
+      },
+      {
+        "id": "4:293",
+        "name": "资料选择/项目标签",
+        "width": 792,
+        "height": 75
+      },
+      {
+        "id": "107:2954",
+        "name": "UI06/项目分工",
+        "width": 792,
+        "height": 26
+      },
+      {
+        "id": "4:275",
+        "name": "原双列资料",
+        "width": 792,
+        "height": 75
+      },
+      {
+        "id": "4:284",
+        "name": "原双列资料",
+        "width": 792,
+        "height": 75
+      },
+      {
+        "id": "107:2955",
+        "name": "UI06/最新状态与说明",
+        "width": 792,
+        "height": 26
+      },
+      {
+        "id": "4:301",
+        "name": "字段/项目状态描述",
+        "width": 792,
+        "height": 75
+      },
+      {
+        "id": "4:297",
+        "name": "字段/项目简介",
+        "width": 792,
+        "height": 75
+      },
+      {
+        "id": "4:305",
+        "name": "字段/项目市场预期",
+        "width": 792,
+        "height": 75
+      },
+      {
+        "id": "4:262",
+        "name": "原双列资料",
+        "width": 792,
+        "height": 75
+      },
+      {
+        "id": "4:222",
+        "name": "字段/项目详情备注",
+        "width": 792,
+        "height": 75
+      }
+    ],
+    "dateGrid": [
+      {
+        "id": "4:249",
+        "width": 184,
+        "height": 73
+      },
+      {
+        "id": "117:3089",
+        "width": 184,
+        "height": 73
+      },
+      {
+        "id": "117:3094",
+        "width": 184,
+        "height": 73
+      },
+      {
+        "id": "117:3098",
+        "width": 184,
+        "height": 73
+      }
+    ],
+    "stageDates": [
+      [
+        "4:372",
+        "预期4天\n实际开始 09-01　预计完成 09-03　实际完成 09-03"
+      ],
+      [
+        "4:383",
+        "预期3天\n实际开始 09-05　预计完成 09-06　实际完成 09-06"
+      ],
+      [
+        "4:394",
+        "预期17天\n实际开始 09-07　预计完成 09-29　实际完成 09-29"
+      ],
+      [
+        "4:405",
+        "预期32天\n实际开始 09-30　预计完成 10-30　实际完成：未完成"
+      ],
+      [
+        "4:416",
+        "预期22天\n实际开始：未开始　预计完成：未定　实际完成：未完成"
+      ],
+      [
+        "4:427",
+        "预期19天\n实际开始：未开始　预计完成：未定　实际完成：未完成"
+      ],
+      [
+        "4:438",
+        "预期19天\n实际开始：未开始　预计完成：未定　实际完成：未完成"
+      ]
+    ],
+    "moreInteraction": [
+      {
+        "action": {
+          "type": "CONDITIONAL",
+          "conditionalBlocks": [
+            {
+              "actions": [
+                {
+                  "type": "SET_VARIABLE",
+                  "variableId": "VariableID:121:3032",
+                  "variableValue": {
+                    "value": false,
+                    "type": "BOOLEAN",
+                    "resolvedType": "BOOLEAN"
+                  }
+                }
+              ],
+              "condition": {
+                "value": {
+                  "expressionArguments": [
+                    {
+                      "value": {
+                        "type": "VARIABLE_ALIAS",
+                        "id": "VariableID:121:3032"
+                      },
+                      "type": "VARIABLE_ALIAS",
+                      "resolvedType": "BOOLEAN"
+                    },
+                    {
+                      "value": true,
+                      "type": "BOOLEAN",
+                      "resolvedType": "BOOLEAN"
+                    }
+                  ],
+                  "expressionFunction": "EQUALS"
+                },
+                "type": "EXPRESSION",
+                "resolvedType": "BOOLEAN"
+              }
+            },
+            {
+              "actions": [
+                {
+                  "type": "SET_VARIABLE",
+                  "variableId": "VariableID:121:3032",
+                  "variableValue": {
+                    "value": true,
+                    "type": "BOOLEAN",
+                    "resolvedType": "BOOLEAN"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "actions": [
+          {
+            "type": "CONDITIONAL",
+            "conditionalBlocks": [
+              {
+                "actions": [
+                  {
+                    "type": "SET_VARIABLE",
+                    "variableId": "VariableID:121:3032",
+                    "variableValue": {
+                      "value": false,
+                      "type": "BOOLEAN",
+                      "resolvedType": "BOOLEAN"
+                    }
+                  }
+                ],
+                "condition": {
+                  "value": {
+                    "expressionArguments": [
+                      {
+                        "value": {
+                          "type": "VARIABLE_ALIAS",
+                          "id": "VariableID:121:3032"
+                        },
+                        "type": "VARIABLE_ALIAS",
+                        "resolvedType": "BOOLEAN"
+                      },
+                      {
+                        "value": true,
+                        "type": "BOOLEAN",
+                        "resolvedType": "BOOLEAN"
+                      }
+                    ],
+                    "expressionFunction": "EQUALS"
+                  },
+                  "type": "EXPRESSION",
+                  "resolvedType": "BOOLEAN"
+                }
+              },
+              {
+                "actions": [
+                  {
+                    "type": "SET_VARIABLE",
+                    "variableId": "VariableID:121:3032",
+                    "variableValue": {
+                      "value": true,
+                      "type": "BOOLEAN",
+                      "resolvedType": "BOOLEAN"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "trigger": {
+          "type": "ON_CLICK"
+        }
+      }
+    ]
+  },
+  "reviewFix": {
+    "mutatedNodeIds": [
+      "116:3035",
+      "116:3031"
+    ],
+    "preview": {
+      "id": "116:3035",
+      "width": 840,
+      "height": 514,
+      "fills": [
+        {
+          "type": "SOLID",
+          "visible": true,
+          "opacity": 1,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0.05098039284348488,
+            "g": 0.06666667014360428,
+            "b": 0.09019608050584793
+          },
+          "boundVariables": {
+            "color": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:2:6"
+            }
+          }
+        }
+      ]
+    },
+    "properties": {
+      "标题#116:5": {
+        "type": "TEXT",
+        "defaultValue": "客户名称"
+      },
+      "值#116:6": {
+        "type": "TEXT",
+        "defaultValue": "输入名称搜索"
+      },
+      "已选择#116:7": {
+        "type": "TEXT",
+        "defaultValue": "演示客户"
+      },
+      "状态": {
+        "type": "VARIANT",
+        "defaultValue": "收起",
+        "variantOptions": [
+          "收起",
+          "展开",
+          "无匹配",
+          "只读"
+        ]
+      }
+    }
+  },
+  "visualCheck": {
+    "status": "checked",
+    "basicWidth": 1440,
+    "basicHeight": 2003,
+    "referenceFieldHeight": 75,
+    "initialSplitDesignRejected": true,
+    "fullScreens": [
+      "4:159",
+      "4:311",
+      "4:449",
+      "5:387"
+    ],
+    "controlReview": "116:3035",
+    "findingsResolved": [
+      "搜索控件宽度与字段对齐",
+      "收起状态一个控件内显示原值与清空/下拉，不常驻第二行",
+      "关键项目日期四列且无额外卡片",
+      "更多日期在当前画面展开，不跳更新历史",
+      "节点日期同时显示目标和实际",
+      "状态示例背景与文字对比"
+    ]
+  },
+  "limits": [
+    "仅四个受影响画面和一个资料控件族，未进行全文件设计审计",
+    "Figma Presentation真人点击未执行",
+    "UI06尚无网页产品代码、数据库写入或部署；网页核心沿固定669c360，不能把设计截图称线上完成"
+  ],
+  "screenshots": [
+    {
+      "path": "docs/evidence/2026-10-13-ui06-figma-basic.png",
+      "sha256": "f6b46f68dfc6dc1c5b2c405d2bf475c1e4c71ec3b8a8e4aef965b0042349b456",
+      "source": "Figma get_screenshot",
+      "viewed": true
+    },
+    {
+      "path": "docs/evidence/2026-10-13-ui06-figma-stages.png",
+      "sha256": "0dcc91a304e5e5b2c693177546805d3ccde73f49f0f60ce89b67e65489a47d1b",
+      "source": "Figma get_screenshot",
+      "viewed": true
+    },
+    {
+      "path": "docs/evidence/2026-10-13-ui06-figma-project-nodes.png",
+      "sha256": "1e2a73ac474265618746897b2deb47be41d8029affcc70270ab02022a7c752b5",
+      "source": "Figma get_screenshot",
+      "viewed": true
+    },
+    {
+      "path": "docs/evidence/2026-10-13-ui06-figma-customer-nodes.png",
+      "sha256": "b81215415489a1e09484ce4280077eaf4eb17d61473a95f5772d73b9858103b8",
+      "source": "Figma get_screenshot",
+      "viewed": true
+    },
+    {
+      "path": "docs/evidence/2026-10-13-ui06-figma-reference-control.png",
+      "sha256": "1532262ff136f10274d818abf007c3c445215bdfdcbd665bd60e896f5eb5c410",
+      "source": "Figma get_screenshot",
+      "viewed": true
+    }
+  ],
+  "source1051": {
+    "zipSha256": "3c8bc91974a137b82e3b96df5020e479339c3bd4ecd2e01e931afb6d3cd5c8c8",
+    "detailSourceSha256": "8e85c5453d604e7110d0cb6a5c9669f757a374d315a24b1d19921cbe90673d59",
+    "instructionsInAttachmentNotAdopted": true
+  }
+}
