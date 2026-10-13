@@ -166,5 +166,71 @@
     "full Presentation",
     "all advanced result clones",
     "pixel exact runtime match"
-  ]
+  ],
+  "followup": {
+    "groups": {
+      "updatedIds": [
+        "107:2953",
+        "107:2954",
+        "107:2955",
+        "4:211",
+        "4:175",
+        "4:159"
+      ],
+      "screenHeight": 2022,
+      "bodyHeight": 1449,
+      "newTextNodes": [
+        "107:2953",
+        "107:2954",
+        "107:2955"
+      ]
+    },
+    "firstScreen": {
+      "updatedIds": [
+        "4:170",
+        "4:160",
+        "4:175",
+        "4:176",
+        "4:322",
+        "4:312",
+        "4:327",
+        "4:328",
+        "4:460",
+        "4:450",
+        "4:465",
+        "4:466",
+        "5:282",
+        "5:272",
+        "5:287",
+        "5:288",
+        "5:398",
+        "5:388",
+        "5:403",
+        "5:404",
+        "5:477",
+        "5:467",
+        "5:482",
+        "5:483",
+        "5:580",
+        "5:570",
+        "5:585",
+        "5:586"
+      ],
+      "screens": [
+        "4:159",
+        "4:311",
+        "4:449",
+        "5:271",
+        "5:387",
+        "5:466",
+        "5:569"
+      ],
+      "newNodes": 0,
+      "operation": "existing compact date moved into existing nav; common header reduced"
+    },
+    "status": "original_screens_synced_subset",
+    "checkedAt": {
+      "current_time": "2026-10-13 06:51:15 UTC"
+    }
+  }
 }

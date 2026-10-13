@@ -1,0 +1,65 @@
+{
+  "status": "installed",
+  "checkedAt": "2026-10-13T06:36:22.490212+00:00",
+  "build": {
+    "revision": "c916910dd1ef36c10c87e44756a16f976113eb1c",
+    "dirty": false,
+    "builtAt": "2026-10-13T06:29:44.183Z",
+    "stage": "project-list",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "imageId": "sha256:13f20aa5b86fd32ad8c8479abe80748fdca0d5149936a541cd94efba0d21df49",
+  "schemaChanged": false,
+  "backup": {
+    "path": "/var/backups/geekdash/pre-business-c916910dd1ef.sql.gz",
+    "bytes": 72128,
+    "sha256": "0bb6a18d811f316ec91621f90a7aee4a0a9628e9ed6395200d187b53f8246c34",
+    "scope": "two complete logical databases; isolated restore pending"
+  },
+  "businessFingerprintPreserved": true,
+  "sessionSecurityFieldsPreserved": true,
+  "sessionHeartbeatOnlyMonotonic": true,
+  "testFixturesRestored": true,
+  "mysqlIdStartedAtPreserved": true,
+  "otherContainersPreserved": 17,
+  "reports": {
+    "context-ui-check": {
+      "status": "passed",
+      "checkedAt": "2026-10-13T06:35:10.143Z",
+      "checks": [
+        "七页签唯一保存；真实前端普通输入与节点副本跨页同源；预览不写库，保存后独立SQL/新GET/Flow与列表一致",
+        "非负责人只读，七页签共享责任判断，无普通或节点写入口",
+        "另一负责人真实保存后旧副本冻结、可复制；明确重新进入后显示新版本，旧输入仍保留供核对",
+        "真实COMMIT后丢响应，页面保留原请求；确认原结果及新读取仅产生一次审计",
+        "同一需求一行；仅纠正理由隐藏不变字段；清空旧备注保留实际变化；同次保存归组，三条独立记录各一行",
+        "三类新增仅一次完成编辑且不入正式库；风险/需求/客户节点同次普通保存；取消与ESC保留其他副本；直接纠错只发送变化",
+        "阶段未来日期失败保留输入与库原值；开始/完成独立保存，真实动作COMMIT丢响应用原编号确认；S1完成仍提案，人工启动后S2待开始",
+        "计划/检查在原Flow上下文保存及新读取；暂缓/恢复留在风险页，首次检查义务及原检查保持，无自动检查或开工",
+        "结案/维护/重开在原上下文保存，真实进度与遗留保持；回退当前有效完成阶段，后续锁定，历史/启动与检查依据保持",
+        "Flow节点弹窗直接进入实际完成操作，明确字段纠错后才编辑；节点完成不自动完成阶段；他人更新时弹窗冻结、可复制，关闭仍保留旧副本"
+      ],
+      "requestCount": 105,
+      "build": {
+        "revision": "c916910dd1ef36c10c87e44756a16f976113eb1c",
+        "dirty": false,
+        "builtAt": "2026-10-13T06:29:44.183Z",
+        "stage": "project-list",
+        "schemaVersion": "0003-node-recovery"
+      },
+      "frontendSource": "src/web/detail.ts + shared/api.ts",
+      "sourceSha256": {
+        "detailSource": "ed0f2a7f6c29d6c4ff0a8afe46443b5bbef55f770a7c67bf1522feff026a5f85",
+        "apiSource": "2a2cf7e484ef0b45229aabb5fc7800254fc2646224773955a0d69bca5671cae1",
+        "html": "387a3656dd5ad5edb6ce0d73b58d21efe36fc2aa286c6422325f5e1f95395c8b"
+      },
+      "isolatedTestDatabase": true,
+      "syntheticOnly": true,
+      "domExecution": "jsdom 27.0.1; CSS/BroadcastChannel/native dialog behavior not validated",
+      "nativeBrowserAcceptance": false,
+      "visualAcceptance": false
+    }
+  },
+  "performance": "deferred-by-DEC-111",
+  "nativeTaskFlowAcceptance": "pending",
+  "verificationScope": "fixed image and exact release frontend source; no performance rerun"
+}
