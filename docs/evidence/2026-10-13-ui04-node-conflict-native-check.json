@@ -1,0 +1,1091 @@
+{
+  "status": "passed_with_scope",
+  "build": "56e69a7a83a171d54e0d387d69ae01e316ba2805",
+  "source": "actual Edge/web-access page interactions and fresh GET",
+  "projectId": "21",
+  "scope": [
+    "node predecessor restriction",
+    "complete then explicit downstream uncomplete",
+    "new cycle rejection",
+    "delete explicit edge confirmation",
+    "same-ID restore without old links",
+    "same account two-tab conflict and retained copy"
+  ],
+  "notVerified": [
+    "physical pointer drag",
+    "two independent browser account contexts",
+    "full E04 acceptance"
+  ],
+  "checks": [
+    {
+      "label": "node-tab-enter",
+      "checkedAt": "2026-10-13T05:42:25.876Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "title": "GeekDash 项目详情",
+        "body": "← 返回列表\n深色\n浅色\n暖色\n账号与设置\n2026年10月13日\n星期二\n12:35:24\n距年底 79 天\nE04-UI04 前后表格验收 2026-10-13\n绿灯\n中优先级\n提案中\n计划未定\n测试项目\n不在默认必查范围\n项目操作\n管理负责范围\n客户：— · 产品线：— · 芯片：—\n本人已负责 · 普通修改统一保存，页面保持进入时的内容。\n基本信息\n项目阶段\n项目节点\n项目 Flow\n客户节点\n项目风险与变更\n更新历史\n需求立项 · 进度 0% · 预计结案 未定 · 不在默认必查范围\n检查\n重新进入项目\n共 1 个节点 · 已完成 0 个\n＋ 新增节点\n\n编辑、完成、连线和拖动先进入副本，统一点击保存项目。\n\n合成节点：方案核对\n需求立项\n未完成\n目标完成：未定 · 实际完成：未完成\n输出成果：接口方案与BOM核对记录\n纠正节点信息填写实际完成日连接下一节点删除\n已删除节点与误删恢复\n保存项目\n当前内容已保存"
+      }
+    },
+    {
+      "label": "node-add-open",
+      "checkedAt": "2026-10-13T05:42:44.659Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "opened"
+    },
+    {
+      "label": "node-add-fields",
+      "checkedAt": "2026-10-13T05:42:56.611Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "form": "新增节点\n节点名称\n所属阶段\n原阶段未知，请核对\nS1 需求立项\nS2 项目预启动\nS3 PEVT技术预研\nS4 EVT集成验证\nS5 DVT可靠性验证\nS6 PVT量产验证\nS7 MP量产维护\n目标完成日期\n输出成果\n\n预览确认加入未保存修改取消",
+        "fields": [
+          {
+            "field": "title",
+            "value": ""
+          },
+          {
+            "field": "stage",
+            "value": "S1"
+          },
+          {
+            "field": "targetDate",
+            "value": ""
+          },
+          {
+            "field": "output",
+            "value": ""
+          }
+        ]
+      }
+    },
+    {
+      "label": "add-dependent-node-submit",
+      "checkedAt": "2026-10-13T05:43:08.084Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "submitted"
+    },
+    {
+      "label": "add-dependent-node-preview",
+      "checkedAt": "2026-10-13T05:43:20.899Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "error": "",
+        "preview": "",
+        "enabled": false
+      }
+    },
+    {
+      "label": "node-preview-request-state",
+      "checkedAt": "2026-10-13T05:43:32.501Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "visibility": "hidden",
+        "body": "← 返回列表\n深色\n浅色\n暖色\n账号与设置\n2026年10月13日\n星期二\n12:35:24\n距年底 79 天\n\n正在处理，请等待结果。\n\nE04-UI04 前后表格验收 2026-10-13\n绿灯\n中优先级\n提案中\n计划未定\n测试项目\n不在默认必查范围\n项目操作\n管理负责范围\n客户：— · 产品线：— · 芯片：—\n本人已负责 · 普通修改统一保存，页面保持进入时的内容。\n基本信息\n项目阶段\n项目节点\n项目 Flow\n客户节点\n项目风险与变更\n更新历史\n需求立项 · 进度 0% · 预计结案 未定 · 不在默认必查范围\n检查\n重新进入项目\n查看并复制未保存内容\n共 1 个节点 · 已完成 0 个\n＋ 新增节点\n\n编辑、完成、连线和拖动先进入副本，统一点击保存项目。\n\n合成节点：方案核对\n需求立项\n未完成\n目标完成：未定 · 实际完成：未完成\n输出成果：接口方案与BOM核对记录\n纠正节点信息填写实际完成日连接下一节点删除\n已删除节点与误删恢复\n\n本标签页保留未确认节点表单。\n\n恢复节点表单\n保存项目\n取消修改\n有未保存修改 · 本标签页暂存，需点击保存项目\n复制输入\n×\n\n正在处理，请等待结果。\n\n新增节点\n节点名称\n所属阶段\n原阶段未知，请核对\nS1 需求立项\nS2 项目预启动\nS3 PEVT技术预研\nS4 EVT集成验证\nS5 DVT可靠性验证\nS6 PVT量产验证\nS7 MP量产维护\n目标完成日期\n输出成果\n\n预览确认加入未保存修改取消",
+        "resources": [
+          {
+            "name": "https://geekdash.zhiluan.cool/assets/api-DGOJJ6O7.css",
+            "duration": 479
+          },
+          {
+            "name": "https://geekdash.zhiluan.cool/assets/detail-BKtpKBA6.css",
+            "duration": 917.7000000029802
+          },
+          {
+            "name": "https://geekdash.zhiluan.cool/api/auth/me",
+            "duration": 460.3999999910593
+          },
+          {
+            "name": "https://geekdash.zhiluan.cool/api/projects/21",
+            "duration": 500
+          },
+          {
+            "name": "https://geekdash.zhiluan.cool/api/project-options",
+            "duration": 467.79999999701977
+          },
+          {
+            "name": "https://geekdash.zhiluan.cool/api/projects/21/audit",
+            "duration": 461.90000000596046
+          }
+        ]
+      }
+    },
+    {
+      "label": "node-add-preview-returned",
+      "checkedAt": "2026-10-13T05:44:35.176Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "visible": "visible",
+        "error": "保存结果尚未确认，请确认结果或重试原操作。",
+        "preview": "",
+        "enabled": false
+      }
+    },
+    {
+      "label": "node-add-preview-retry",
+      "checkedAt": "2026-10-13T05:44:53.014Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "preview-only retry"
+    },
+    {
+      "label": "node-add-preview-valid",
+      "checkedAt": "2026-10-13T05:45:05.029Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "error": "",
+        "preview": "修改事项\t修改前\t修改后\n项目节点\t（无记录）\t节点名称：合成节点：样机验证\n所属阶段：项目预启动\n输出成果：样机接口验证记录\n\n影响已核对，确认后仍需保存项目。",
+        "enabled": true
+      }
+    },
+    {
+      "label": "node-add-copy-save",
+      "checkedAt": "2026-10-13T05:45:17.155Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "one project save submitted"
+    },
+    {
+      "label": "node-add-saved",
+      "checkedAt": "2026-10-13T05:45:29.443Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "message": "项目已保存。",
+        "state": "当前内容已保存",
+        "nodes": [
+          {
+            "text": "合成节点：方案核对\n需求立项\n未完成\n目标完成：未定 · 实际完成：未完成\n输出成果：接口方案与BOM核对记录\n纠正节点信息填写实际完成日连接下一节点删除",
+            "id": "12"
+          },
+          {
+            "text": "合成节点：样机验证\n项目预启动\n未完成\n目标完成：未定 · 实际完成：未完成\n输出成果：样机接口验证记录\n纠正节点信息填写实际完成日连接下一节点删除",
+            "id": "13"
+          }
+        ]
+      }
+    },
+    {
+      "label": "node-link-open",
+      "checkedAt": "2026-10-13T05:45:42.448Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "link opened"
+    },
+    {
+      "label": "node-link-preview-submit",
+      "checkedAt": "2026-10-13T05:45:54.381Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "link preview"
+    },
+    {
+      "label": "node-link-preview-valid",
+      "checkedAt": "2026-10-13T05:46:05.662Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "error": "",
+        "preview": "修改事项\t修改前\t修改后\n项目节点 #12\t后续节点：无\t后续节点：合成节点：样机验证\n项目节点 #13\t前置节点：无\t前置节点：合成节点：方案核对\n\n影响已核对，确认后仍需保存项目。",
+        "enabled": true
+      }
+    },
+    {
+      "label": "node-link-save",
+      "checkedAt": "2026-10-13T05:46:17.619Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "link save"
+    },
+    {
+      "label": "node-link-read-before-complete",
+      "checkedAt": "2026-10-13T05:46:29.783Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "dependent completion open"
+    },
+    {
+      "label": "dependent-completion-submit",
+      "checkedAt": "2026-10-13T05:46:44.094Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "preview requested"
+    },
+    {
+      "label": "dependent-completion-blocked",
+      "checkedAt": "2026-10-13T05:46:54.993Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "error": "前置节点尚未完成，本次不能完成。 前置节点尚未完成：12 → 13",
+        "date": "2026-10-13",
+        "preview": "",
+        "acceptDisabled": true
+      }
+    },
+    {
+      "label": "node-prerequisite-fresh-get",
+      "checkedAt": "2026-10-13T05:47:20.755Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "version": "5",
+        "status": "proposal",
+        "nodes": [
+          {
+            "id": "12",
+            "title": "合成节点：方案核对",
+            "completedOn": null,
+            "previousNodeId": null,
+            "nextNodeId": "13"
+          },
+          {
+            "id": "13",
+            "title": "合成节点：样机验证",
+            "completedOn": null,
+            "previousNodeId": "12",
+            "nextNodeId": null
+          }
+        ]
+      }
+    },
+    {
+      "label": "preceding-complete-open",
+      "checkedAt": "2026-10-13T05:47:20.763Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "opened"
+    },
+    {
+      "label": "preceding-complete-preview-submit",
+      "checkedAt": "2026-10-13T05:47:30.837Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "submitted"
+    },
+    {
+      "label": "preceding-complete-preview",
+      "checkedAt": "2026-10-13T05:47:44.468Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "error": "",
+        "preview": "修改事项\t修改前\t修改后\n项目节点 #12\t实际完成日期：未完成\t实际完成日期：2026-10-13\n\n影响已核对，确认后仍需保存项目。",
+        "acceptDisabled": false
+      }
+    },
+    {
+      "label": "preceding-complete-save",
+      "checkedAt": "2026-10-13T05:47:44.476Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "save submitted"
+    },
+    {
+      "label": "preceding-complete-saved",
+      "checkedAt": "2026-10-13T05:47:55.710Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "message": "项目已保存。",
+        "state": "当前内容已保存",
+        "nodes": [
+          "合成节点：方案核对\n需求立项\n已完成\n目标完成：未定 · 实际完成：2026-10-13\n输出成果：接口方案与BOM核对记录\n纠正节点信息填写实际完成日纠正为未完成连接下一节点解除下一连线删除",
+          "合成节点：样机验证\n项目预启动\n未完成\n目标完成：未定 · 实际完成：未完成\n输出成果：样机接口验证记录\n\n前置：合成节点：方案核对\n\n纠正节点信息填写实际完成日连接下一节点删除"
+        ]
+      }
+    },
+    {
+      "label": "dependent-complete-open",
+      "checkedAt": "2026-10-13T05:47:55.723Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "opened"
+    },
+    {
+      "label": "dependent-complete-preview-submit",
+      "checkedAt": "2026-10-13T05:48:08.354Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "submitted"
+    },
+    {
+      "label": "dependent-complete-preview",
+      "checkedAt": "2026-10-13T05:48:22.042Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "error": "",
+        "preview": "修改事项\t修改前\t修改后\n项目节点 #13\t实际完成日期：未完成\t实际完成日期：2026-10-13\n\n影响已核对，确认后仍需保存项目。",
+        "acceptDisabled": false
+      }
+    },
+    {
+      "label": "dependent-complete-save",
+      "checkedAt": "2026-10-13T05:48:22.051Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "save submitted"
+    },
+    {
+      "label": "both-completed-fresh-get",
+      "checkedAt": "2026-10-13T05:48:35.871Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "message": "项目已保存。",
+        "version": "7",
+        "stageStates": [
+          {
+            "code": "S1",
+            "state": "ready"
+          },
+          {
+            "code": "S2",
+            "state": "locked"
+          },
+          {
+            "code": "S3",
+            "state": "locked"
+          },
+          {
+            "code": "S4",
+            "state": "locked"
+          },
+          {
+            "code": "S5",
+            "state": "locked"
+          },
+          {
+            "code": "S6",
+            "state": "locked"
+          },
+          {
+            "code": "S7",
+            "state": "locked"
+          }
+        ],
+        "nodes": [
+          {
+            "id": "12",
+            "completedOn": "2026-10-13",
+            "previousNodeId": null,
+            "nextNodeId": "13"
+          },
+          {
+            "id": "13",
+            "completedOn": "2026-10-13",
+            "previousNodeId": "12",
+            "nextNodeId": null
+          }
+        ]
+      }
+    },
+    {
+      "label": "uncomplete-preceding-open",
+      "checkedAt": "2026-10-13T05:48:35.879Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "opened"
+    },
+    {
+      "label": "uncomplete-current-form",
+      "checkedAt": "2026-10-13T05:48:58.785Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "visibility": "visible",
+        "form": "纠正为未完成\n\n合成节点：方案核对：实际完成日期将明确清空\n\n纠错原因\n明确确认预览列出的依赖完成日一并清空\n\n预览确认加入未保存修改取消",
+        "inputs": [
+          {
+            "id": "node-reason",
+            "value": ""
+          },
+          {
+            "id": "node-impact",
+            "value": "on"
+          }
+        ],
+        "dialogs": [
+          {
+            "open": true,
+            "text": "复制输入\n×\n纠正为未完成\n\n合成节点：方案核对：实际完成日期将明确清空\n\n纠错原因\n明确确认预览列出的依赖完成日一并清空\n\n预览确认加入未保存修改取消"
+          },
+          {
+            "open": false,
+            "text": ""
+          }
+        ]
+      }
+    },
+    {
+      "label": "uncomplete-preview-submit-scoped",
+      "checkedAt": "2026-10-13T05:49:36.459Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "submitted"
+    },
+    {
+      "label": "uncomplete-impact-required",
+      "checkedAt": "2026-10-13T05:49:58.553Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "error": "",
+        "preview": "修改事项\t修改前\t修改后\n项目节点 #12\t实际完成日期：2026-10-13\t实际完成日期：未完成\n修改原因：合成验证：前置完成日误填，明确纠正依赖完成事实\n\n需要明确一并清空完成日期：合成节点：样机验证。勾选上方确认并填写原因，再次预览。",
+        "acceptDisabled": true,
+        "reason": "合成验证：前置完成日误填，明确纠正依赖完成事实",
+        "impactChecked": false
+      }
+    },
+    {
+      "label": "uncomplete-impact-confirm-preview",
+      "checkedAt": "2026-10-13T05:50:08.898Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "confirmed impact preview"
+    },
+    {
+      "label": "uncomplete-impact-valid",
+      "checkedAt": "2026-10-13T05:50:22.329Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "error": "",
+        "preview": "修改事项\t修改前\t修改后\n项目节点 #12\t实际完成日期：2026-10-13\t实际完成日期：未完成\n修改原因：合成验证：前置完成日误填，明确纠正依赖完成事实\n项目节点 #13\t实际完成日期：2026-10-13\t实际完成日期：未完成\n修改原因：合成验证：前置完成日误填，明确纠正依赖完成事实\n\n影响已核对，确认后仍需保存项目。",
+        "acceptDisabled": false,
+        "rows": 2
+      }
+    },
+    {
+      "label": "uncomplete-impact-save",
+      "checkedAt": "2026-10-13T05:50:22.335Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "saved intent submitted"
+    },
+    {
+      "label": "uncomplete-fresh-read-and-flow",
+      "checkedAt": "2026-10-13T05:50:40.797Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "message": "项目已保存。",
+        "version": "8",
+        "progress": "0",
+        "nodes": [
+          {
+            "id": "12",
+            "completedOn": null,
+            "previousNodeId": null,
+            "nextNodeId": "13"
+          },
+          {
+            "id": "13",
+            "completedOn": null,
+            "previousNodeId": "12",
+            "nextNodeId": null
+          }
+        ]
+      }
+    },
+    {
+      "label": "flow-enter-after-uncomplete",
+      "checkedAt": "2026-10-13T05:50:40.829Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "lanes": 7,
+        "nodes": [
+          {
+            "id": "12",
+            "text": "合成节点：方案核对\n目标 未定",
+            "completed": false,
+            "left": "220px",
+            "top": "20px"
+          },
+          {
+            "id": "13",
+            "text": "合成节点：样机验证\n目标 未定",
+            "completed": false,
+            "left": "220px",
+            "top": "130px"
+          }
+        ],
+        "lines": 1
+      }
+    },
+    {
+      "label": "flow-node-context-open",
+      "checkedAt": "2026-10-13T05:51:09.589Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "flow context opened"
+    },
+    {
+      "label": "flow-context-fields",
+      "checkedAt": "2026-10-13T05:51:25.974Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "form": "纠正节点信息\n实际完成：未完成 · 前置：合成节点：方案核对\n填写实际完成日\n连接节点\n明确纠正节点名称\n明确纠正所属阶段\n原阶段未知，请核对\nS1 需求立项\nS2 项目预启动\nS3 PEVT技术预研\nS4 EVT集成验证\nS5 DVT可靠性验证\nS6 PVT量产验证\nS7 MP量产维护\n明确纠正目标完成日期\n明确纠正输出成果\n纠错原因\n\n预览确认加入未保存修改取消删除这个节点",
+        "buttons": [
+          [
+            "complete",
+            "填写实际完成日"
+          ],
+          [
+            "link",
+            "连接节点"
+          ]
+        ]
+      }
+    },
+    {
+      "label": "cycle-link-open",
+      "checkedAt": "2026-10-13T05:51:25.986Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "opened"
+    },
+    {
+      "label": "cycle-preview-submit",
+      "checkedAt": "2026-10-13T05:51:37.816Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "cycle preview submitted"
+    },
+    {
+      "label": "cycle-blocked",
+      "checkedAt": "2026-10-13T05:51:49.745Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "error": "本次完成或连线涉及循环，请先明确拆线纠正。 循环：13 → 12 → 13",
+        "targetPreserved": "12",
+        "acceptDisabled": true
+      }
+    },
+    {
+      "label": "node-delete-open",
+      "checkedAt": "2026-10-13T05:51:49.758Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "context open"
+    },
+    {
+      "label": "flow-selected-delete-open",
+      "checkedAt": "2026-10-13T05:51:59.363Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "delete opened"
+    },
+    {
+      "label": "delete-old-lines-unconfirmed",
+      "checkedAt": "2026-10-13T05:52:09.579Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "unconfirmed preview submitted"
+    },
+    {
+      "label": "delete-without-edge-confirmation-blocked",
+      "checkedAt": "2026-10-13T05:52:22.725Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "error": "请核对并明确确认删除时解除的全部旧连线。 需要明确确认将解除的全部旧线：12:13",
+        "oldLines": "将解除：合成节点：方案核对 → 合成节点：样机验证",
+        "acceptDisabled": true
+      }
+    },
+    {
+      "label": "delete-edge-confirm-preview",
+      "checkedAt": "2026-10-13T05:52:22.732Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "explicit delete preview"
+    },
+    {
+      "label": "delete-confirmed-preview",
+      "checkedAt": "2026-10-13T05:52:33.506Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "error": "",
+        "preview": "修改事项\t修改前\t修改后\n项目节点 #12\t后续节点：合成节点：样机验证\t后续节点：无\n项目节点 #13\t前置节点：合成节点：方案核对\n节点状态：有效\t前置节点：无\n节点状态：已删除\n\n影响已核对，确认后仍需保存项目。",
+        "acceptDisabled": false
+      }
+    },
+    {
+      "label": "delete-project-save",
+      "checkedAt": "2026-10-13T05:52:33.515Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "delete save submitted"
+    },
+    {
+      "label": "deleted-flow-and-fresh-get",
+      "checkedAt": "2026-10-13T05:52:56.956Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "message": "项目已保存。",
+        "version": "9",
+        "nodes": [
+          {
+            "id": "12",
+            "nextNodeId": null,
+            "previousNodeId": null
+          }
+        ],
+        "flowIds": [
+          "12"
+        ],
+        "lines": 0
+      }
+    },
+    {
+      "label": "deleted-nodes-read-open",
+      "checkedAt": "2026-10-13T05:52:56.968Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "deleted nodes read requested"
+    },
+    {
+      "label": "deleted-node-source-visible",
+      "checkedAt": "2026-10-13T05:53:40.737Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "deleted": "已删除节点与误删恢复\n\n按需读取两类节点，每页20条；恢复默认不接回旧连线，仍需保存项目。\n\n查看/重新读取已删除节点\n\n合成节点：样机验证 #13\n\n删除于 2026-10-13T05:52:42.865000Z（UTC） · business01\n\n阶段：项目预启动；目标日：未定；实际日：未完成\n\n样机接口验证记录\n\n原连线：12 → 13 → 无；只作核对，不自动接回。\n\n恢复误删节点",
+        "restore": [
+          {
+            "id": "13",
+            "disabled": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "restore-node-open",
+      "checkedAt": "2026-10-13T05:53:40.750Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "restore opened"
+    },
+    {
+      "label": "restore-reason-empty-submit",
+      "checkedAt": "2026-10-13T05:53:51.963Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "empty reason preview"
+    },
+    {
+      "label": "restore-empty-reason-blocked",
+      "checkedAt": "2026-10-13T05:54:05.931Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "error": "请修正标出的字段。 请填写有效文字",
+        "acceptDisabled": true,
+        "reason": ""
+      }
+    },
+    {
+      "label": "restore-reason-preview-submit",
+      "checkedAt": "2026-10-13T05:54:05.938Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "restore reason preview"
+    },
+    {
+      "label": "restore-preview-valid",
+      "checkedAt": "2026-10-13T05:54:20.788Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "error": "",
+        "preview": "修改事项\t修改前\t修改后\n项目节点 #13\t节点状态：已删除\t节点状态：有效\n修改原因：合成验证：误删恢复，保留原节点身份，原连线不自动接回\n\n影响已核对，确认后仍需保存项目。",
+        "acceptDisabled": false,
+        "uncheckedFields": [
+          {
+            "field": "title",
+            "checked": false
+          },
+          {
+            "field": "stage",
+            "checked": false
+          },
+          {
+            "field": "targetDate",
+            "checked": false
+          },
+          {
+            "field": "output",
+            "checked": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "restore-accept-and-save",
+      "checkedAt": "2026-10-13T05:54:20.803Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "restore save submitted"
+    },
+    {
+      "label": "restored-node-fresh-get",
+      "checkedAt": "2026-10-13T05:54:37.088Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "message": "项目已保存。",
+        "version": "10",
+        "nodes": [
+          {
+            "id": "12",
+            "title": "合成节点：方案核对",
+            "stage": "S1",
+            "output": "接口方案与BOM核对记录",
+            "deletedAt": null,
+            "completedOn": null,
+            "previousNodeId": null,
+            "nextNodeId": null
+          },
+          {
+            "id": "13",
+            "title": "合成节点：样机验证",
+            "stage": "S2",
+            "output": "样机接口验证记录",
+            "deletedAt": null,
+            "completedOn": null,
+            "previousNodeId": null,
+            "nextNodeId": null
+          }
+        ],
+        "flowIds": [
+          "12",
+          "13"
+        ],
+        "lines": 0
+      }
+    },
+    {
+      "label": "restored-node-reenter",
+      "checkedAt": "2026-10-13T05:54:37.094Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "fresh project reentry"
+    },
+    {
+      "label": "restored-node-reentry-read",
+      "checkedAt": "2026-10-13T05:54:52.854Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "state": "当前内容已保存",
+        "message": "",
+        "flow": [
+          {
+            "id": "12",
+            "text": "合成节点：方案核对\n目标 未定"
+          },
+          {
+            "id": "13",
+            "text": "合成节点：样机验证\n目标 未定"
+          }
+        ],
+        "lines": 0
+      }
+    },
+    {
+      "label": "restored-node-deleted-list-refresh",
+      "checkedAt": "2026-10-13T05:54:52.858Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "deleted refresh"
+    },
+    {
+      "label": "restored-node-not-deleted",
+      "checkedAt": "2026-10-13T05:55:03.217Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "deletedText": "已删除节点与误删恢复\n\n按需读取两类节点，每页20条；恢复默认不接回旧连线，仍需保存项目。\n\n查看/重新读取已删除节点",
+        "restoreButtons": 0
+      }
+    },
+    {
+      "label": "node-audit-history-open",
+      "checkedAt": "2026-10-13T05:55:03.223Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "history entered"
+    },
+    {
+      "label": "node-history-events",
+      "checkedAt": "2026-10-13T05:55:33.221Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "groups": [
+          {
+            "version": "10",
+            "text": "更新项目记录 · business01 · 2026-10-13T05:54:30.142000Z · 版本 9 → 10\n修改事项\t修改前\t修改后\n项目节点 #13\t节点状态：已删除\t节点状态：有效\n修改原因：合成验证：误删恢复，保留原节点身份，原连线不自动接回"
+          },
+          {
+            "version": "9",
+            "text": "保存项目 · business01 · 2026-10-13T05:52:42.865000Z · 版本 8 → 9\n修改事项\t修改前\t修改后\n项目节点 #12\t后续节点：合成节点：样机验证\t后续节点：无\n项目节点 #13\t前置节点：合成节点：方案核对\n节点状态：有效\t前置节点：无\n节点状态：已删除"
+          },
+          {
+            "version": "8",
+            "text": "保存项目 · business01 · 2026-10-13T05:50:31.695000Z · 版本 7 → 8\n修改事项\t修改前\t修改后\n项目节点 #12\t实际完成日期：2026-10-13\t实际完成日期：未完成\n修改原因：合成验证：前置完成日误填，明确纠正依赖完成事实\n项目节点 #13\t实际完成日期：2026-10-13\t实际完成日期：未完成\n修改原因：合成验证：前置完成日误填，明确纠正依赖完成事实"
+          },
+          {
+            "version": "7",
+            "text": "更新项目记录 · business01 · 2026-10-13T05:48:31.385000Z · 版本 6 → 7\n修改事项\t修改前\t修改后\n项目节点 #13\t实际完成日期：未完成\t实际完成日期：2026-10-13"
+          },
+          {
+            "version": "6",
+            "text": "更新项目记录 · business01 · 2026-10-13T05:47:53.809000Z · 版本 5 → 6\n修改事项\t修改前\t修改后\n项目节点 #12\t实际完成日期：未完成\t实际完成日期：2026-10-13"
+          }
+        ],
+        "rows": 15
+      }
+    },
+    {
+      "label": "conflict-old-page-info",
+      "checkedAt": "2026-10-13T05:55:54.684Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "fields": [
+          {
+            "id": "edit-name",
+            "value": "E04-UI04 前后表格验收 2026-10-13"
+          },
+          {
+            "id": "edit-detailNote",
+            "value": "仅验证实际预览、明确保存和历史联动"
+          },
+          {
+            "id": "edit-summaryNote",
+            "value": "三列对比的原生验收项目"
+          },
+          {
+            "id": "edit-statusDesc",
+            "value": ""
+          },
+          {
+            "id": "edit-marketExpectation",
+            "value": "合成表格验证"
+          },
+          {
+            "id": "edit-signalNote",
+            "value": ""
+          },
+          {
+            "id": "edit-chipstatNote",
+            "value": ""
+          }
+        ],
+        "buttons": [
+          {
+            "id": "copy",
+            "text": "查看并复制未保存内容"
+          },
+          {
+            "id": "action-copy",
+            "text": "复制输入"
+          }
+        ]
+      }
+    },
+    {
+      "label": "conflict-current-tab-input",
+      "checkedAt": "2026-10-13T05:56:14.977Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "summary": "旧页面未保存文字：必须保留供复制",
+        "state": "有未保存修改 · 本标签页暂存，需点击保存项目",
+        "saveDisabled": false
+      }
+    },
+    {
+      "label": "conflict-second-page-loaded",
+      "checkedAt": "2026-10-13T05:56:14.984Z",
+      "targetId": "1ABABD445EFF9323B2CCC883D01465F7",
+      "result": {
+        "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+        "summary": "三列对比的原生验收项目",
+        "body": " 2\n软件负责人\n[合成试用] engineers 1\n[合成试用] engineers 2\n项目经理\n[合成试用] engineers 1\n[合成试用] engineers 2\n参与人\n[合成试用] engineers 1\n[合成试用] engineers 2\n项目标签\n[合成试用] tags 1\n[合成试用] tags 2\n项目简介\n最新状态说明\n市场预期\n信号灯\n绿灯\n黄灯\n红灯\n灯色说明\n芯片统计备注\n\n原计划结案日期\n—\n结案日期\n—\n结案类型\n—\n结案说明\n—\n剩余工作\n—\n计划与日期 · 当前计划 未定\n暂缓与恢复记录\n结案与维护事实\n检查历史与结论纠正\n保存项目\n当前内容已保存",
+        "resources": [
+          "https://geekdash.zhiluan.cool/api/auth/me",
+          "https://geekdash.zhiluan.cool/api/projects/21",
+          "https://geekdash.zhiluan.cool/api/project-options"
+        ]
+      }
+    },
+    {
+      "label": "conflict-second-page-save",
+      "checkedAt": "2026-10-13T05:56:28.530Z",
+      "targetId": "1ABABD445EFF9323B2CCC883D01465F7",
+      "result": "one save submitted from second page"
+    },
+    {
+      "label": "conflict-second-page-saved",
+      "checkedAt": "2026-10-13T05:56:38.508Z",
+      "targetId": "1ABABD445EFF9323B2CCC883D01465F7",
+      "result": {
+        "message": "项目已保存。",
+        "state": "当前内容已保存",
+        "market": "另一个页面已保存：市场信息已更新（合成冲突验收）"
+      }
+    },
+    {
+      "label": "conflict-old-page-still-fixed-before-save",
+      "checkedAt": "2026-10-13T05:56:50.578Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "old version save attempted once"
+    },
+    {
+      "label": "conflict-old-page-blocked-preserved",
+      "checkedAt": "2026-10-13T05:57:08.793Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "message": "项目已被他人更新，请重新进入项目。",
+        "state": "项目已被他人更新，请重新进入项目。旧文字已保留供复制。",
+        "saveDisabled": true,
+        "summaryPreserved": "旧页面未保存文字：必须保留供复制",
+        "marketStillFixed": "合成表格验证",
+        "copyDisabled": false
+      }
+    },
+    {
+      "label": "conflict-copy-open",
+      "checkedAt": "2026-10-13T05:57:08.810Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "dialogs": [
+          {
+            "text": "以下文字可选择后复制；复制不会保存项目。\n\n关闭",
+            "copy": [
+              "项目名称\nE04-UI04 前后表格验收 2026-10-13\n\n市场预期\n合成表格验证\n\n项目详情备注\n仅验证实际预览、明确保存和历史联动\n\n项目简介\n旧页面未保存文字：必须保留供复制\n\n最新状态说明\n（空）\n\n灯色说明\n（空）\n\n芯片统计备注\n（空）\n\n信号灯\n绿灯\n\n紧急程度\n中\n\n客户\n（空）\n\nODM 工厂\n（空）\n\n产品线\n（空）\n\nAPP\n（空）\n\n分组\n（空）\n\n芯片\n（空）\n\n项目标签\n（空）\n\n业务人员\n（空）\n\n阶段工期与评述\n需求立项：工期 未定；评述 \n项目预启动：工期 未定；评述 \nPEVT技术预研：工期 未定；评述 \nEVT集成验证：工期 未定；评述 \nDVT可靠性验证：工期 未定；评述 \nPVT量产验证：工期 未定；评述 \nMP量产维护：工期 未定；评述 \n\n风险未保存操作\n（空）\n\n节点未保存操作\n（空）\n\n需求变更未保存操作\n（空）"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "label": "conflict-latest-fresh-read",
+      "checkedAt": "2026-10-13T05:57:35.134Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "version": "11",
+        "market": "另一个页面已保存：市场信息已更新（合成冲突验收）",
+        "summary": "三列对比的原生验收项目",
+        "nodes": 2
+      }
+    },
+    {
+      "label": "conflict-close-copy-and-reenter",
+      "checkedAt": "2026-10-13T05:57:35.143Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "dialogs": [
+          {
+            "text": "重新进入前请处理未保存文字。保留后可通过复制入口核对，不会自动带入新版本。\n\n继续编辑\n保留副本并重新进入\n放弃并重新进入",
+            "buttons": [
+              {
+                "text": "继续编辑",
+                "value": ""
+              },
+              {
+                "text": "保留副本并重新进入",
+                "value": ""
+              },
+              {
+                "text": "放弃并重新进入",
+                "value": ""
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "label": "conflict-keep-copy-and-reenter-confirm",
+      "checkedAt": "2026-10-13T05:57:49.259Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "keep copy and reenter"
+    },
+    {
+      "label": "conflict-reentered-new-version",
+      "checkedAt": "2026-10-13T05:58:02.600Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "message": "项目已被他人更新，请重新进入项目。",
+        "state": "项目已被他人更新，请重新进入项目。旧文字已保留供复制。",
+        "summary": "旧页面未保存文字：必须保留供复制",
+        "market": "合成表格验证",
+        "copyDisabled": false,
+        "saveDisabled": true
+      }
+    },
+    {
+      "label": "conflict-retained-old-copy",
+      "checkedAt": "2026-10-13T05:58:02.611Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "copy": [
+          "项目名称\nE04-UI04 前后表格验收 2026-10-13\n\n市场预期\n合成表格验证\n\n项目详情备注\n仅验证实际预览、明确保存和历史联动\n\n项目简介\n旧页面未保存文字：必须保留供复制\n\n最新状态说明\n（空）\n\n灯色说明\n（空）\n\n芯片统计备注\n（空）\n\n信号灯\n绿灯\n\n紧急程度\n中\n\n客户\n（空）\n\nODM 工厂\n（空）\n\n产品线\n（空）\n\nAPP\n（空）\n\n分组\n（空）\n\n芯片\n（空）\n\n项目标签\n（空）\n\n业务人员\n（空）\n\n阶段工期与评述\n需求立项：工期 未定；评述 \n项目预启动：工期 未定；评述 \nPEVT技术预研：工期 未定；评述 \nEVT集成验证：工期 未定；评述 \nDVT可靠性验证：工期 未定；评述 \nPVT量产验证：工期 未定；评述 \nMP量产维护：工期 未定；评述 \n\n风险未保存操作\n（空）\n\n节点未保存操作\n（空）\n\n需求变更未保存操作\n（空）"
+        ],
+        "buttons": [
+          "关闭"
+        ]
+      }
+    },
+    {
+      "label": "conflict-reentry-request-state",
+      "checkedAt": "2026-10-13T05:58:23.483Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "visibility": "visible",
+        "message": "项目已被他人更新，请重新进入项目。",
+        "state": "项目已被他人更新，请重新进入项目。旧文字已保留供复制。",
+        "resources": [
+          {
+            "url": "https://geekdash.zhiluan.cool/api/projects/21",
+            "duration": 761.5
+          },
+          {
+            "url": "https://geekdash.zhiluan.cool/api/projects/21/deleted-nodes",
+            "duration": 534.2000000029802
+          },
+          {
+            "url": "https://geekdash.zhiluan.cool/api/projects/21/audit",
+            "duration": 1099.5999999940395
+          },
+          {
+            "url": "https://geekdash.zhiluan.cool/api/projects/21",
+            "duration": 531.9000000059605
+          },
+          {
+            "url": "https://geekdash.zhiluan.cool/api/auth/me",
+            "duration": 760.5999999940395
+          },
+          {
+            "url": "https://geekdash.zhiluan.cool/api/projects/21",
+            "duration": 719.5
+          }
+        ],
+        "dialogs": [
+          {
+            "open": false,
+            "text": "复制输入重新进入项目×确认原保存结果重试原操作"
+          },
+          {
+            "open": true,
+            "text": "以下文字可选择后复制；复制不会保存项目。\n\n关闭"
+          }
+        ]
+      }
+    },
+    {
+      "label": "close-copy-before-reentry",
+      "checkedAt": "2026-10-13T05:59:28.708Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": "copy closed"
+    },
+    {
+      "label": "conflict-reenter-open-again",
+      "checkedAt": "2026-10-13T05:59:49.314Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "dialog": [
+          {
+            "text": "重新进入前请处理未保存文字。保留后可通过复制入口核对，不会自动带入新版本。\n\n继续编辑\n保留副本并重新进入\n放弃并重新进入",
+            "returnValue": "cancel"
+          }
+        ]
+      }
+    },
+    {
+      "label": "conflict-reentry-after-native-click",
+      "checkedAt": "2026-10-13T06:00:27.752Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "visibility": "visible",
+        "message": "",
+        "state": "当前内容已保存",
+        "summary": "三列对比的原生验收项目",
+        "market": "另一个页面已保存：市场信息已更新（合成冲突验收）",
+        "dialogs": [
+          {
+            "open": false,
+            "returnValue": ""
+          },
+          {
+            "open": false,
+            "returnValue": "keep"
+          }
+        ]
+      }
+    },
+    {
+      "label": "conflict-copy-after-reentry",
+      "checkedAt": "2026-10-13T06:00:47.083Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "retained": [
+          {
+            "hasOld": true,
+            "hasCandidate": true,
+            "length": 804
+          }
+        ]
+      }
+    }
+  ]
+}

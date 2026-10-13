@@ -2,6 +2,10 @@
 
 ## 最新接手优先级（2026-10-13 E04核心功能）
 
+最新用户要求使用anthropic-frontend-design修正模块和冗余操作。当前施工codex/e04-ui05-task-flow，从已核查干净main/513e6b6开始；计划PRD8.9/AD-031/14.9.21.10先行，尚未改产品代码。先实施完整UI05批次：三类新增一次完成编辑、需求/节点直接纠错、节点主要动作及紧凑首屏/人可读来源；沿原主题和同一Figma，不增加审批或新层级。之后真实MySQL/原生/固定main与测试发布；不能重跑旧installer。
+
+原生21当前v11，节点12/13未完成、无连线；前置/下游/循环/删除恢复和同账号双页冲突链已保存[证据](../evidence/2026-10-13-ui04-node-conflict-native-check.json)，准确范围归[真相58](../status/current-system-truth.md#58-原生节点及双页冲突ui05体验修正规划2026-10-13)。物理拖动、独立两浏览器身份、完整Presentation仍待。新增证据JSON受ignore规则影响，提交时精确git add -f本次文件；不带私有test-results或凭据。
+
 当前目标继续E04核心验收；DEC-111性能后置，DEC-113只显示变化、同一业务事项一行、不同事项多行。实施codex/e04-ui04-business-comparison，计划b05fb5d先行，代码56e69a7已回读远端main并实际运行；当前codex/e04-ui04-delivery-records从56e69a7整理已发生事实。文档收尾后重新读取Git/dirty文件，不能把后续文档SHA当运行镜像。准确状态归[真相57](../status/current-system-truth.md#57-e04-ui04业务事项对比2026-10-13)。
 
 固定56e69a7/ready/0003，真实MySQL前端10组105 HTTP通过；原6会话/34原结果及常驻app实际重启后的公网/原生回读通过，MySQL和其他17服务保持。business安装/重启已SUCCESS/exit0，所有本批TAT任务终结，禁止重跑旧install或初始化。备份与应用回退只查[部署](../operations/deployments/2026-10-13-e04-ui04-core.md)，真实备份未导入，隔离恢复尚待。
