@@ -439,6 +439,21 @@ html, body {
 .editor-heading { font-size: 16px; color: var(--text); padding: 6px 0; margin-top: 16px; border-bottom: 1px solid var(--border-soft); }
 .editor-heading:first-child { margin-top: 0; }
 .trial-editor .field-grid { margin: 14px 0 24px; }
+.project-info .field { min-width: 0; }
+.project-info .field-error:empty { display: none; }
+.project-info .field-fact { padding: 8px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.project-key-dates { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.project-dates .date-fact { padding: 8px 0; font-size: 14px; }
+.date-actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; margin-top: 8px; }
+.more-project-dates { flex: 1; min-width: 180px; }
+.more-project-dates > summary { width: fit-content; cursor: pointer; }
+.more-project-dates[open] { flex-basis: 100%; }
+.more-project-dates > div { padding: 8px 0; font-size: 13px; }
+.project-state { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.status-actions { position: relative; }
+.status-actions > summary { cursor: pointer; white-space: nowrap; }
+.status-actions[open] > div { position: absolute; right: 0; top: 100%; min-width: 170px; z-index: 15; display: grid; gap: 8px; padding: 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); }
+@media (max-width: 600px) { .project-key-dates { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) {
   .project-detail-page .page { padding: 16px 12px 40px; }
   .project-detail-page .topbar { flex-wrap: wrap; gap: 8px; }

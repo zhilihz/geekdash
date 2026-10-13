@@ -1,5 +1,13 @@
 # 未完成任务交接
 
+## 最新接手优先级（2026-10-13 UI06网页实施）
+
+当前分支codex/e04-ui06-frontend，从main/75656c5继续。网页代码已按同一Figma实现，类型/构建、真实前端/MySQL的13组139请求通过，夹具恢复；[真相61](../status/current-system-truth.md#61-ui06网页实施与候选验证2026-10-13)、[报告](../testing/reports/2026-10-13-e04-ui06-frontend.md)。下一步具名提交合并main、干净固定构建、UI06独立Docker测试发布及Edge实际输入/新GET/历史验收。当前公网仍669c360；不要将候选标记dirty=true的产物发布。
+
+新发布助手在忽略test-results/ui06-*；Windows入口使用python -X utf8，避免读取GitHub中文时GBK失败。候选ui06-verify-920db3e8b712已成功终结，不重复跑；固定发布尚未提交TAT。源码改动是detail.ts、detail.css、新reference-picker.ts/css与verify-detail-ui.mjs；Git状态接手重核。禁止重跑旧UI05 installer，禁止绕过此前本机MySQL启动审批拒绝。原生自有Edge页71E44A52608F1EB8A7BC6D2157F660C6在项目21，尚未执行本轮业务保存；源备份不导入。
+
+下文为此前设计交接，不代表当前源码状态。
+
 ## 最新接手优先级（2026-10-13 UI06先Figma）
 
 用户最新要求在原Figma上修改，并否定将搜索/已选/清空拆碎的结构；项目只放关键日期，阶段和节点日期归各自记录。UI06已在同一文件修正，四个画面及一个资料控件状态示例已截图/独立回读。唯一交互归[PRD8.10](../product/PRD.md#810-资料时间优先与可修正字段2026-10-13最新要求)，实施链路归[14.9.21.11](../implementation/execution-plan.md#1492111-ui06资料输入与可修正入口)，设计证据/边界归[报告](../testing/reports/2026-10-13-e04-ui06-figma.md)。不可恢复成字段外常驻搜索、已选值、清空三块，也不能把更多日期导航到历史页。

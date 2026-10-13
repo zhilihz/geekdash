@@ -1,5 +1,7 @@
 import './shared/detail.css';
 import './shared/read.css';
+import './shared/reference-picker.css';
+import { mountReferencePickers, syncReferencePickers } from './shared/reference-picker';
 import { get, send, SaveError, esc, label, projectTags, setupTheme, requireIdentity, account, stageMessages, actionLabels, dateTitles, isPlanCommand, isLifecycleCommand, isClosureCommand, isCheckCommand, type ChangeOperation, type ChangeRecord, type ChangePreview, type ChangeFields, type NodeOperation, type NodeRecord, type NodePreview, type NodeFields, type RiskOperation, type RiskRecord, type RiskPreview, type CheckCommand, type CheckPreview, type CheckPage, closureTitles, type ClosureCommand, type ClosurePreview, type LifecycleCommand, type LifecyclePreview, type PlanCommand, type PlanPreview, type ScheduleRecord, type CorrectionCommand, type CorrectionPreview, type StageCommand, type StartCommand, type ProjectCommand, type CheckRuleContext, type Detail, type Entry, type EditValues, type Catalog, type SaveRequest, type SaveResult, type AuditPage } from './shared/api';
 
 const element = (id: string) => document.getElementById(id)!;
@@ -863,6 +865,8 @@ function controls() {
   const frozen = inFlight || !!pending || !!responsibilityPending || !!stagePending || loading || checksLoading;
   const actionOpen = actionFormOpen();
   document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('[data-edit]').forEach(input => { input.disabled = frozen || actionOpen || stale || authFrozen || input.dataset.reference === 'true' && !catalog; });
+  syncReferencePickers();
+  document.querySelectorAll<HTMLButtonElement>('[data-plan]').forEach(button => { button.disabled = frozen || actionOpen || stale || authFrozen || !snapshot?.capabilities.editText; });
   const save = document.getElementById('save') as HTMLButtonElement | null;
   if (save) save.disabled = frozen || actionOpen || stale || authFrozen || !snapshot?.capabilities.editText || !dirty();
   const discard = document.getElementById('discard') as HTMLButtonElement | null;
@@ -954,14 +958,27 @@ async function copyText() {
   const text = changeCopyText + nodeCopyText + riskCopy + (stageCopy ? (isPlanCommand(stageCopy) || isLifecycleCommand(stageCopy) || isClosureCommand(stageCopy) || isCheckCommand(stageCopy)) ? `${actionLabels[stageCopy.action]}副本\n${JSON.stringify(stageCopy, null, 2)}\n\n` : 'reason' in stageCopy ? `${actionLabels[stageCopy.action]}副本\n原因：${stageCopy.reason}\n进入版本：${stageCopy.expectedVersion}\n${stageCopy.action === 'correctStageFacts' ? JSON.stringify(stageCopy.changes) : label(stageCopy.stageCode) + (stageCopy.undoStart ? '（开始也误记）' : '')}\n\n` : stageCopy.action === 'startProject' ? `启动项目副本\n实际启动：${stageCopy.actualDate}\n预计结案：${stageCopy.dueDate}\n调整原因：${stageCopy.planReason ?? ''}\n首次应检周：${stageCopy.previewFirstCheckWeek}\n进入版本：${stageCopy.expectedVersion}\n\n` : `阶段操作副本\n${label(stageCopy.stageCode)} · ${stageCopy.action === 'startStage' ? '开始' : '完成'}\n实际日期：${stageCopy.actualDate}\n说明：${stageCopy.completionNote ?? ''}\n进入版本：${stageCopy.expectedVersion}\n\n` : '') + keys.map(key => `${titles[key]}\n${showValue(key, values?.[key])}`).join('\n\n') + (candidate ? '\n\n——恢复候选副本——\n' + keys.map(key => `${titles[key]}\n${showValue(key, candidate!.values[key])}`).join('\n\n') + (candidate.changeDraft ? '\n未确认需求变更表单\n' + JSON.stringify(candidate.changeDraft, null, 2) : '') + (candidate.riskDraft ? '\n未确认风险表单\n' + JSON.stringify(candidate.riskDraft, null, 2) : '') + (candidate.nodeDraft ? '\n未确认节点表单\n' + JSON.stringify({ nodeDraft: candidate.nodeDraft, nodeRestoreExtras: candidate.nodeRestoreExtras }, null, 2) : '') : '') + (legacyCopy ? '\n\n——旧匿名试用副本（仅供核对）——\n' + keys.map(key => `${titles[key]}\n${showValue(key, legacyCopy!.values[key])}`).join('\n\n') : '');
   await choose('以下文字可选择后复制；复制不会保存项目。', [['cancel', '关闭']], `<textarea class="copy-text" readonly aria-label="未保存文字">${esc(text)}</textarea>`);
 }
+function projectStatusActions() {
+  const p = snapshot!.project;
+  return p.status === 'closed' ? '<button class="back-btn" data-closure="reopenProject">重新打开项目</button><button class="back-btn" data-closure="setMaintenance">' + (p.maintenanceEnabled ? '结束维护' : '开启维护') + '</button>' : '<button class="back-btn" data-lifecycle="' + (p.status === 'paused' ? 'resumeProject' : 'pauseProject') + '">' + (p.status === 'paused' ? '恢复项目' : '暂缓项目') + '</button><button class="back-btn" data-closure="closeProject">结案项目</button>';
+}
+function projectDates() {
+  const p = snapshot!.project;
+  const editable = snapshot!.capabilities.editText;
+  const dates = [['立案日期', p.filingDate ?? '未知'], ['实际启动日期', p.startDate ?? '未知'], ['预计结案日期', p.dueDate ?? '未定'], ['实际结案日期', p.status === 'closed' ? p.closedOn ?? '未知，待核对' : '未结案']];
+  return `<div class="project-dates field-full"><div class="project-key-dates">${dates.map(([title, value]) => `<div><span class="read-label">${title}</span><div class="date-fact">${esc(value)}</div></div>`).join('')}</div><div class="date-actions">${editable ? `<button class="back-btn" data-plan="${p.dueDate ? 'reschedulePlan' : 'setPlan'}">${p.dueDate ? '调整计划' : '确定计划'}</button><button class="back-btn" data-plan="correctProjectDates">纠正日期</button>${p.status === 'closed' ? '<button class="back-btn" data-closure="correctClosure">纠正结案日期</button>' : ''}` : ''}<details class="more-project-dates"><summary class="back-btn">更多日期与原始计划</summary><div><p>提案日期：${esc(p.proposalDate ?? '未知')} · 原计划结案：${esc(p.originalDueDate ?? '未定')}</p><p class="read-message">有效改期 ${snapshot!.planSummary.reschedules} 次，其中向后调整 ${snapshot!.planSummary.laterAdjustments} 次；日期待核对 ${snapshot!.planSummary.unknownAdjustments} 次。相对原始计划净调整：${snapshot!.planSummary.netDays === null ? '无法计算' : snapshot!.planSummary.netDays + ' 天'}。</p>${editable ? '<button class="back-btn" data-plan="notePlan">补充计划说明</button>' : ''}</div></details></div></div>`;
+}
 function editor() {
   const p = snapshot!.project;
-  const field = (key: keyof EditValues, input: string, full = false) => `<div class="field${full ? ' field-full' : ''}"><label class="read-label" for="edit-${key}">${titles[key]}</label>${input}<span class="field-error" id="error-${key}">${esc(validationErrors[key])}</span></div>`;
-  const text = (key: typeof textKeys[number]) => field(key, key === 'name' ? `<input data-edit id="edit-${key}" value="${esc(values![key])}" autocomplete="off">` : `<textarea data-edit id="edit-${key}" rows="3">${esc(values![key])}</textarea>`, true);
-  const simple = (key: 'signal' | 'priority', choices: string[]) => field(key, `<select data-edit id="edit-${key}">${choices.map(value => `<option value="${value}"${values![key] === value ? ' selected' : ''}>${label(value)}</option>`).join('')}</select>`);
-  const reference = (key: Exclude<keyof typeof referenceFields, 'people'>) => field(key, selectReference(key, referenceFields[key]), key === 'chipIds' || key === 'tagIds');
-  const people = ['hardware_owner', 'software_owner', 'pm', 'participant'].map(role => `<div class="field"><label class="read-label" for="edit-people-${role}">${label(role)}</label>${selectReference('people', 'engineers', role)}</div>`).join('');
-  return `<section class="trial-editor" aria-label="项目基本信息"><h2 class="editor-heading">项目概况</h2><div class="field-grid">${text('name')}${text('summaryNote')}${text('statusDesc')}${simple('priority', ['high', 'mid', 'low'])}${text('marketExpectation')}<div class="field field-full"><span class="read-label">项目日期</span><div class="read-value">实际启动 ${esc(p.startDate ?? '未知')} · 当前计划结案 ${esc(p.dueDate ?? '未定')}</div></div></div><h2 class="editor-heading">资料与分工</h2><div class="field-grid">${reference('customerId')}${reference('groupId')}${reference('productLineId')}${reference('odmCustomerId')}${reference('appId')}${reference('chipIds')}${people}<span class="field-error field-full" id="error-people">${esc(validationErrors.people)}</span>${reference('tagIds')}</div><h2 class="editor-heading">补充说明</h2><div class="field-grid">${text('detailNote')}${text('chipstatNote')}<div class="field"><span class="read-label">提案 / 立案日期</span><div class="read-value">${esc(p.proposalDate ?? '未知')} / ${esc(p.filingDate ?? '未知')}</div></div></div><p class="read-message">${esc(catalogMessage)}</p>${!catalog ? '<button class="back-btn" id="options-retry">重新读取候选资料</button>' : ''}</section>`;
+  const editable = snapshot!.capabilities.editText;
+  const read = (value: unknown) => `<div class="field-fact">${esc(value === '' || value == null ? '—' : value)}</div>`;
+  const field = (key: keyof EditValues, input: string, full = false) => `<div class="field${full ? ' field-full' : ''}">${editable ? `<label class="read-label" for="edit-${key}">${titles[key]}</label>` : `<span class="read-label">${titles[key]}</span>`}${input}<span class="field-error" id="error-${key}">${esc(validationErrors[key])}</span></div>`;
+  const text = (key: typeof textKeys[number]) => field(key, !editable ? read(p[key]) : key === 'name' ? `<input data-edit id="edit-${key}" value="${esc(values![key])}" autocomplete="off">` : `<textarea data-edit id="edit-${key}" rows="2">${esc(values![key])}</textarea>`, true);
+  const simple = (key: 'signal' | 'priority', choices: string[]) => field(key, !editable ? read(label(p[key])) : `<select data-edit id="edit-${key}">${choices.map(value => `<option value="${value}"${values![key] === value ? ' selected' : ''}>${label(value)}</option>`).join('')}</select>`);
+  const referenceNames = { customerId: p.customer, groupId: p.projectGroup, productLineId: p.productLine, odmCustomerId: p.odmFactory, appId: p.app, chipIds: p.chips.map(item => item.name).join(' / '), tagIds: p.tags.map(item => item.name).join(' / ') };
+  const reference = (key: Exclude<keyof typeof referenceFields, 'people'>) => field(key, editable ? selectReference(key, referenceFields[key]) : read(referenceNames[key]), ['appId', 'chipIds', 'tagIds'].includes(key));
+  const people = ['hardware_owner', 'software_owner', 'pm', 'participant'].map(role => `<div class="field"><label class="read-label" for="edit-people-${role}">${label(role)}</label>${editable ? selectReference('people', 'engineers', role) : read(p.people.filter(person => person.role === role).map(person => person.name).join(' / '))}</div>`).join('');
+  return `<section class="trial-editor project-info" aria-label="项目基本信息"><h2 class="editor-heading">资料与时间</h2><div class="field-grid">${text('name')}${projectDates()}${reference('customerId')}${reference('groupId')}${reference('productLineId')}${reference('odmCustomerId')}${reference('appId')}${reference('chipIds')}${reference('tagIds')}</div>${editable && catalogMessage ? `<p class="read-message">${esc(catalogMessage)}</p>` : ''}${editable && !catalog ? '<button class="back-btn" id="options-retry">重新读取候选资料</button>' : ''}<h2 class="editor-heading">项目分工</h2><div class="field-grid">${people}<span class="field-error field-full" id="error-people">${esc(validationErrors.people)}</span></div><h2 class="editor-heading">最新状态与说明</h2><div class="field-grid">${text('statusDesc')}${text('summaryNote')}${text('marketExpectation')}${simple('priority', ['high', 'mid', 'low'])}<div class="field"><span class="read-label">项目状态</span><div class="project-state">${read(label(p.status))}${editable ? `<details class="status-actions"><summary class="back-btn">修改状态</summary><div>${projectStatusActions()}</div></details>` : ''}</div></div>${text('detailNote')}${text('chipstatNote')}</div></section>`;
 }
 function selectReference(key: string, table: string, role?: string) {
   const base = baseline();
@@ -971,10 +988,12 @@ function selectReference(key: string, table: string, role?: string) {
   const options = [...(catalog?.[table] ?? [])];
   for (const id of new Set([...old, ...selected])) if (!options.some(item => item.id === id)) {
     const named = key === 'chipIds' ? snapshot!.project.chips : key === 'tagIds' ? snapshot!.project.tags : key === 'people' ? snapshot!.project.people : [];
-    options.push({ id, name: named.find(item => item.id === id)?.name ?? id, enabled: 0 });
+    const p = snapshot!.project;
+    const currentNames: Record<string, unknown> = { customerId: p.customer, odmCustomerId: p.odmFactory, productLineId: p.productLine, appId: p.app, groupId: p.projectGroup };
+    options.push({ id, name: named.find(item => item.id === id)?.name ?? (old.includes(id) && currentNames[key] ? String(currentNames[key]) : id), enabled: 0 });
   }
   const multiple = ['chipIds', 'tagIds', 'people'].includes(key);
-  return `<select data-edit data-reference="true" id="edit-${key}${role ? '-' + role : ''}"${multiple ? ' multiple size="4"' : ''}>${multiple ? '' : '<option value="">未选择</option>'}${options.filter(item => item.enabled || old.includes(item.id) || selected.includes(item.id)).map(item => `<option value="${esc(item.id)}"${selected.includes(item.id) ? ' selected' : ''}${!item.enabled && !old.includes(item.id) ? ' disabled' : ''}>${esc(item.name)}${item.originalModel ? ' · ' + esc(item.originalModel) : ''}${item.manufacturer ? ' · ' + esc(item.manufacturer) : ''}${item.enabled ? '' : '（停用/不可新增）'}</option>`).join('')}</select>`;
+  return `<select data-edit data-reference="true" id="edit-${key}${role ? '-' + role : ''}-source"${multiple ? ' multiple' : ''}>${multiple ? '' : '<option value="">未选择</option>'}${options.filter(item => item.enabled || old.includes(item.id) || selected.includes(item.id)).map(item => `<option value="${esc(item.id)}"${selected.includes(item.id) ? ' selected' : ''}${!item.enabled && !old.includes(item.id) ? ' disabled' : ''}>${esc(item.name)}${item.originalModel ? ' · ' + esc(item.originalModel) : ''}${item.manufacturer ? ' · ' + esc(item.manufacturer) : ''}${item.enabled ? '' : '（停用/不可新增）'}</option>`).join('')}</select>`;
 }
 function showValue(key: string, value: unknown): string {
   if (value == null || value === '' || Array.isArray(value) && !value.length) return '（空）';
@@ -1026,7 +1045,7 @@ function bindEditor() {
   });
   for (const key of ['signal', 'priority', ...Object.keys(referenceFields)]) {
     for (const role of key === 'people' ? roles : ['']) {
-      const input = document.getElementById('edit-' + key + (role ? '-' + role : '')) as HTMLSelectElement | null;
+      const input = document.getElementById('edit-' + key + (role ? '-' + role : '') + (Object.hasOwn(referenceFields, key) ? '-source' : '')) as HTMLSelectElement | null;
       if (input) input.onchange = () => {
         const selected = [...input.selectedOptions].map(option => option.value);
         const ordered = (old: string[]) => [...old.filter(id => selected.includes(id)), ...selected.filter(id => !old.includes(id))];
@@ -1040,6 +1059,7 @@ function bindEditor() {
       };
     }
   }
+  mountReferencePickers();
   const options = document.getElementById('options-retry') as HTMLButtonElement | null;
   if (options) { options.disabled = catalogLoading; options.onclick = () => { void loadCatalog(); }; }
   const save = document.getElementById('save'); if (save) save.onclick = () => { void saveNew(); };
@@ -1245,9 +1265,7 @@ function render() {
   element('d-meta').textContent = detailMeta(p);
   let content = '';
   if (tab === 'info') {
-    const values: [string, unknown][] = [['项目名称', p.name], ['客户', p.customer], ['产品线', p.productLine], ['ODM 工厂', p.odmFactory], ['APP', p.app], ['分组', p.projectGroup], ['项目标签', p.tags.map(tag => tag.name).join(' / ')], ['项目状态', label(p.status)], ['优先级', label(p.priority)], ['信号灯', label(p.signal)], ['灯色说明', p.signalNote], ['提案日期', p.proposalDate], ['立案日期', p.filingDate], ['启动日期', p.startDate], ['原计划结案日期', p.originalDueDate], ['当前计划结案日期', p.dueDate], ['结案日期', p.closedOn], ['结案类型', p.closureType ? label(p.closureType) : '—'], ['市场预期', p.marketExpectation], ['最新状态', p.statusDesc], ['项目备注', p.detailNote], ['汇总备注', p.summaryNote], ['芯片统计备注', p.chipstatNote], ['结案说明', p.closureNote], ['剩余工作', p.remainingWorkNote], ['阶段进度', `${p.progress}%`]];
-    for (const role of ['hardware_owner', 'software_owner', 'pm', 'participant']) values.push([label(role), p.people.filter(person => person.role === role).map(person => person.name).join(' / ')]);
-    content = (snapshot.capabilities.editText ? editor() : '') + `<div class="field-grid">${values.filter(([title]) => !snapshot!.capabilities.editText || ![...Object.values(titles), '项目备注', '汇总备注', '最新状态', '优先级', '项目状态', '提案日期', '立案日期', '启动日期', '当前计划结案日期', '阶段进度', ...roles.map(label)].includes(title)).map(([title, value]) => `<div class="field"><span class="read-label">${title}</span><div class="read-value">${esc(value === '' || value == null ? '—' : value)}</div></div>`).join('')}</div>`;
+    content = editor();
   } else if (tab === 'stages') content = stagePanel();
   else if (tab === 'nodes' || tab === 'custnodes' || tab === 'flow') content = nodePanel(tab === 'custnodes' ? 'customer' : 'project', tab === 'flow') + deletedNodePanel(tab === 'custnodes' ? 'customer' : 'project');
   else if (tab === 'history') content = '<h2>更新历史</h2><p class="read-message">只有实际变化才产生修改历史。</p>'
@@ -1255,8 +1273,8 @@ function render() {
     + `<p class="read-message">${esc(auditMessage)}</p><button class="back-btn" id="audit-refresh">重新读取历史</button>${audit?.nextCursor ? '<button class="back-btn" id="audit-more">读取更早记录</button>' : ''}`
     + '<h2>旧来源历史</h2><p class="read-message">保留原来源时间文本，与服务器修改历史分开。</p>' + table(snapshot.history.slice().reverse(), [['date', '来源时间'], ['text', '更新内容']]);
   else if (tab === 'risk') content = signalEditor() + riskPanel() + changePanel() + '<h2>改期与说明</h2>' + (snapshot.delays.map(scheduleHistory).join('') || '<p>没有计划历史。</p>');
-  if (['info', 'risk'].includes(tab)) content += `<details class="secondary-section"><summary>计划与日期 · 当前计划 ${esc(p.dueDate ?? '未定')}</summary>${snapshot.capabilities.editText ? '<button class="back-btn" data-plan="notePlan">补充计划说明</button>' : ''}<p>原计划结案：${esc(p.originalDueDate ?? '未定')} · 实际启动：${esc(p.startDate ?? '未知')}</p>`;
-  if (['info', 'risk'].includes(tab)) content += `<p class="read-message">有效改期 ${snapshot.planSummary.reschedules} 次，其中向后调整 ${snapshot.planSummary.laterAdjustments} 次；日期待核对 ${snapshot.planSummary.unknownAdjustments} 次。相对原始计划净调整：${snapshot.planSummary.netDays === null ? '无法计算' : snapshot.planSummary.netDays + ' 天'}。</p></details>`;
+  if (tab === 'risk') content += `<details class="secondary-section"><summary>计划与日期 · 当前计划 ${esc(p.dueDate ?? '未定')}</summary>${snapshot.capabilities.editText ? '<button class="back-btn" data-plan="notePlan">补充计划说明</button>' : ''}<p>原计划结案：${esc(p.originalDueDate ?? '未定')} · 实际启动：${esc(p.startDate ?? '未知')}</p>`;
+  if (tab === 'risk') content += `<p class="read-message">有效改期 ${snapshot.planSummary.reschedules} 次，其中向后调整 ${snapshot.planSummary.laterAdjustments} 次；日期待核对 ${snapshot.planSummary.unknownAdjustments} 次。相对原始计划净调整：${snapshot.planSummary.netDays === null ? '无法计算' : snapshot.planSummary.netDays + ' 天'}。</p></details>`;
   if (planDraft && !stagePending) content = `<p>本标签页保留${esc(actionLabels[planDraft.action])}副本。</p><button class="back-btn" id="plan-restore">恢复计划/日期表单</button><button class="back-btn" id="plan-discard">放弃该副本</button>${planDraft.action === 'reschedulePlan' ? '<button class="back-btn" id="plan-as-note">作为补充说明重新预览</button>' : ''}` + content;
   if (tab === 'history' && snapshot.lifecycleNotes.length) {
     const p = snapshot.project;
@@ -1266,7 +1284,7 @@ function render() {
   if (lifecycleDraft && !stagePending) content = `<p>本标签页保留${esc(actionLabels[lifecycleDraft.action])}副本。</p><button class="back-btn" id="lifecycle-restore">恢复暂缓/恢复表单</button><button class="back-btn" id="lifecycle-discard">放弃该副本</button>` + content;
   if (stagePending && (isPlanCommand(stagePending) || isLifecycleCommand(stagePending) || isClosureCommand(stagePending) || isCheckCommand(stagePending)) && tab !== 'stages') content = '<p role="status">原动作结果待确认。</p><button class="back-btn" id="stage-confirm">确认原动作结果</button><button class="back-btn" id="stage-retry">重试原动作</button>' + content;
   if (tab === 'info' && p.status === 'closed') {
-    content += `<details class="secondary-section"><summary>结案与维护事实</summary>${p.status === 'closed' ? `<p>本次结案：${esc(snapshot.currentClosure?.auditId ? '#' + snapshot.currentClosure.auditId + ' · ' + snapshot.currentClosure.actorDisplayName + ' · ' + snapshot.currentClosure.createdAt + '（UTC）' : '旧来源事实，原操作人/时间未知')}；结案时计划 ${esc(p.closureDueDate ?? (snapshot.currentClosure?.auditId ? '未定' : '未知，需核对'))}。阶段实际进度 ${esc(p.progress)}%，维护${p.maintenanceEnabled ? '开启' : '关闭'}，与S7分别记录。</p><p>重开将恢复：${esc(p.preCloseStatus ? label(p.preCloseStatus) : '依据未知，需核对来源')}。原结案及每次更正从修改历史查看。</p>${snapshot.capabilities.editText ? '<button class="back-btn" data-closure="correctClosure">纠正当前结案</button>' : ''}` : `<p>人工确认结案，保留真实阶段/节点/风险及首次检查依据，不自动完成七阶段。</p>`}</details>`;
+    content += `<details class="secondary-section"><summary>结案与维护事实</summary><p>结案类型：${esc(p.closureType ? label(p.closureType) : '未知')} · 结案说明：${esc(p.closureNote || '—')} · 剩余工作：${esc(p.remainingWorkNote || '—')}</p>${p.status === 'closed' ? `<p>本次结案：${esc(snapshot.currentClosure?.auditId ? '#' + snapshot.currentClosure.auditId + ' · ' + snapshot.currentClosure.actorDisplayName + ' · ' + snapshot.currentClosure.createdAt + '（UTC）' : '旧来源事实，原操作人/时间未知')}；结案时计划 ${esc(p.closureDueDate ?? (snapshot.currentClosure?.auditId ? '未定' : '未知，需核对'))}。阶段实际进度 ${esc(p.progress)}%，维护${p.maintenanceEnabled ? '开启' : '关闭'}，与S7分别记录。</p><p>重开将恢复：${esc(p.preCloseStatus ? label(p.preCloseStatus) : '依据未知，需核对来源')}。原结案及每次更正从修改历史查看。</p>${snapshot.capabilities.editText ? '<button class="back-btn" data-closure="correctClosure">纠正当前结案</button>' : ''}` : `<p>人工确认结案，保留真实阶段/节点/风险及首次检查依据，不自动完成七阶段。</p>`}</details>`;
   }
   if (tab === 'info') content += checkHistory();
   if (checkDraft && !stagePending) content = '<p>本标签页保留检查副本。</p><button class="back-btn" id="check-restore">恢复检查表单</button><button class="back-btn" id="check-discard">放弃该副本</button>' + content;
@@ -1276,7 +1294,7 @@ function render() {
   if (riskDraft) content += '<p>本标签页保留未确认风险表单。</p><button class="back-btn" id="risk-restore">恢复风险表单</button>';
   content += '<div id="change-form"></div><div id="risk-form"></div><div id="plan-form"></div><div id="lifecycle-form"></div><div id="closure-form"></div><div id="check-form"></div>';
   element('project-menu').hidden = !snapshot.capabilities.editText;
-  element('project-actions').innerHTML = snapshot.capabilities.editText ? `<button class="back-btn" data-plan="${p.dueDate ? 'reschedulePlan' : 'setPlan'}">${p.dueDate ? '调整计划' : '确定计划'}</button><button class="back-btn" data-plan="correctProjectDates">纠正日期信息</button>${p.status === 'closed' ? '<button class="back-btn" data-closure="reopenProject">重新打开项目</button><button class="back-btn" data-closure="setMaintenance">' + (p.maintenanceEnabled ? '结束维护' : '开启维护') + '</button>' : '<button class="back-btn" data-lifecycle="' + (p.status === 'paused' ? 'resumeProject' : 'pauseProject') + '">' + (p.status === 'paused' ? '恢复项目' : '暂缓项目') + '</button><button class="back-btn" data-closure="closeProject">结案项目</button>'}` : '';
+  element('project-actions').innerHTML = snapshot.capabilities.editText ? `<button class="back-btn" data-plan="${p.dueDate ? 'reschedulePlan' : 'setPlan'}">${p.dueDate ? '调整计划' : '确定计划'}</button><button class="back-btn" data-plan="correctProjectDates">纠正日期信息</button>${projectStatusActions()}` : '';
   element('project-context').innerHTML = `<span>${esc(label(p.stage))} · 进度 ${esc(p.progress)}% · 预计结案 ${esc(p.dueDate ?? '未定')} · ${esc(p.checkStatus.label)}${p.checkStatus.updatedAfterCheck ? ' · 检查后有更新' : ''}</span>${snapshot.capabilities.editText ? '<button class="back-btn" data-check="saveCheck">检查</button>' : ''}`;
   element('project-savebar').hidden = !snapshot.capabilities.editText;
   element('project-savebar').innerHTML = snapshot.capabilities.editText ? `<div class="savebar-main"><button class="save-btn" id="save">保存项目</button><button class="back-btn" id="discard" hidden>取消修改</button><span id="edit-state" role="status"></span>${pending ? '<button class="back-btn" id="confirm">确认原保存结果</button><button class="back-btn" id="retry">重试原操作</button>' : ''}</div><p id="storage-warning" class="field-error"></p>` : '';

@@ -10,13 +10,15 @@ import { hashPassword } from '../dist/server/modules/identity.js';
 
 // DOM执行模型用于检查真实前端代码的状态与接口链路，不替代浏览器布局/指针验收。
 const { JSDOM, CookieJar, VirtualConsole } = await import(process.env.GEEKDASH_DOM_LIBRARY ?? '../test-results/ui-dom-tools/node_modules/jsdom/lib/api.js');
-const users = [], projects = [], views = [], errors = [], checks = [];
+const users = [], projects = [], references = [], views = [], errors = [], checks = [];
 const actionsMode = process.argv.includes('--actions'); let ownConfig = false;
+const referencesMode = process.argv.includes('--references');
 const prefix = 'detail_ui_' + randomUUID().slice(0, 8), password = '页面整链测试 长短语 password 2026';
 const authOrigin = 'http://localhost';
 const html = await readFile(process.env.GEEKDASH_DETAIL_HTML ?? 'src/web/project-detail.html', 'utf8');
 const detailSource = await readFile(process.env.GEEKDASH_DETAIL_SOURCE ?? 'src/web/detail.ts', 'utf8');
 const apiSource = await readFile('src/web/shared/api.ts', 'utf8');
+const referenceSource = await readFile('src/web/shared/reference-picker.ts', 'utf8');
 const stageSource = (await readFile('geekdashdesktop/projects-data.js', 'utf8')).match(/const STAGES = (\[[\s\S]*?\n  \]);/);
 assert(stageSource, '原版阶段常量存在');
 const stages = vm.runInNewContext(stageSource[1], Object.create(null), { timeout: 1000 });
@@ -70,7 +72,10 @@ async function page(user, projectId, holdCatalog = false) {
   const transpile = source => ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.CommonJS } }).outputText;
   vm.runInContext('(function(exports,module){' + transpile(apiSource) + '\n})(exports,module)', context, { filename: 'src/web/shared/api.ts' });
   const api = context.module.exports;
-  context.require = name => { if (name === './shared/api') return api; if (name.endsWith('.css')) return {}; throw new Error('未预期的前端依赖：' + name); };
+  context.exports = {}; context.module = { exports: context.exports };
+  vm.runInContext('(function(exports,module){' + transpile(referenceSource) + '\n})(exports,module)', context, { filename: 'src/web/shared/reference-picker.ts' });
+  const referencePicker = context.module.exports;
+  context.require = name => { if (name === './shared/api') return api; if (name === './shared/reference-picker') return referencePicker; if (name.endsWith('.css')) return {}; throw new Error('未预期的前端依赖：' + name); };
   context.exports = {}; context.module = { exports: context.exports };
   vm.runInContext('(function(){' + transpile(detailSource) + '\n})()', context, { filename: 'src/web/detail.ts' });
   await waitFor(() => !w.document.getElementById('detail-panel').hidden && !w.document.getElementById('reload').disabled, '详情及可信身份就绪');
@@ -84,6 +89,92 @@ async function facts(id) {
   try { return { project: (await connection.query('SELECT name,summary_note,CAST(version AS CHAR) version FROM projects WHERE id=?', [id]))[0][0], nodes: (await connection.query('SELECT CAST(id AS CHAR) id,title,output FROM project_nodes WHERE project_id=? AND deleted_at IS NULL ORDER BY id', [id]))[0], auditCount: Number((await connection.query('SELECT COUNT(*) n FROM audit_log WHERE project_id=?', [id]))[0][0].n) }; }
   finally { await connection.end(); }
 }
+async function verifyReferences(a, b, id, path) {
+  const refs = {};
+  for (const [table, fields] of Object.entries({ customers: ['contact', 'background'], chips: ['original_model', 'manufacturer', 'firmware_version'], engineers: ['role'], tags: [], product_lines: [], apps: ['app_version', 'description'], project_groups: [] })) {
+    refs[table] = [];
+    for (const index of [0, 1]) {
+      const name = prefix + '_' + table + (table === 'customers' ? '_同名' : '_' + index);
+      await c.execute(`INSERT INTO ${table} (name,${fields.map(field => field + ',').join('')}enabled,created_at,updated_at) VALUES (?${fields.map(() => ',?').join('')},1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))`, [name, ...fields.map(field => field === 'role' ? 'hardware' : '合成资料')]);
+      const reference = (await c.query('SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0][0].id;
+      references.push({ table, id: reference }); refs[table].push(reference);
+    }
+  }
+  const panel = await page(a, id, true), initial = await facts(id), read = () => a.api(path);
+  const source = key => panel.$('#edit-' + key + '-source');
+  const box = key => panel.$('#edit-' + key).closest('.reference-picker');
+  const selected = key => [...source(key).selectedOptions].map(option => option.value).filter(Boolean);
+  const search = (key, query) => { panel.$('#edit-' + key).focus(); panel.input('#edit-' + key, query); };
+  const pick = (key, reference) => { search(key, prefix); const option = box(key).querySelector('[data-reference-value="' + reference + '"]'); assert(option && !option.disabled); option.click(); };
+  const press = (key, value) => panel.$('#edit-' + key).dispatchEvent(new panel.w.KeyboardEvent('keydown', { key: value, bubbles: true, cancelable: true }));
+  const frozen = expected => { for (const element of panel.w.document.querySelectorAll('.reference-picker input,.reference-box button,select[data-reference]')) assert.equal(element.disabled, expected, element.id || element.outerHTML); };
+  frozen(true); await waitFor(() => panel.dom.releaseCatalog, '资料响应等待释放'); panel.dom.releaseCatalog();
+  await waitFor(() => panel.dom.catalogConsumed && !panel.$('#edit-customerId').disabled, '资料响应后控件恢复'); frozen(false);
+  assert.deepEqual([...panel.w.document.querySelectorAll('.project-info h2')].map(node => node.textContent), ['资料与时间', '项目分工', '最新状态与说明']);
+  const dates = panel.$('.project-key-dates');
+  assert.deepEqual([...dates.querySelectorAll('.read-label')].map(node => node.textContent), ['立案日期', '实际启动日期', '预计结案日期', '实际结案日期']);
+  assert.match(dates.textContent, /未结案/); assert.equal(dates.querySelector('input,select'), null);
+  assert(panel.$('#edit-name').compareDocumentPosition(dates) & panel.w.Node.DOCUMENT_POSITION_FOLLOWING);
+  assert(dates.compareDocumentPosition(panel.$('#edit-customerId')) & panel.w.Node.DOCUMENT_POSITION_FOLLOWING);
+  panel.click('.more-project-dates summary'); assert(panel.$('.more-project-dates').open); assert(panel.$('[data-tab="info"]').classList.contains('active'));
+  assert.match(panel.$('.more-project-dates').textContent, /提案日期.*原计划结案/); assert.equal(panel.$('.project-dates [data-tab]'), null);
+  search('customerId', prefix + '_未匹配'); assert.equal(source('customerId').value, ''); assert(panel.$('#save').disabled);
+  press('customerId', 'Escape'); assert.equal(panel.$('#edit-customerId').getAttribute('aria-expanded'), 'false'); assert.deepEqual(await facts(id), initial);
+  search('customerId', prefix); const matches = [...box('customerId').querySelectorAll('[data-reference-value]')].filter(option => refs.customers.includes(option.dataset.referenceValue));
+  assert.equal(matches.length, 2); assert.notEqual(matches[0].textContent, matches[1].textContent, '同名资料必须能区分稳定ID');
+  pick('customerId', refs.customers[0]); assert.equal(source('customerId').value, refs.customers[0]);
+  pick('customerId', refs.customers[1]); assert.equal(source('customerId').value, refs.customers[1]);
+  box('customerId').querySelector('[data-reference-clear]').click(); assert.equal(source('customerId').value, '');
+  pick('customerId', refs.customers[1]);
+  for (const [key, table] of [['odmCustomerId', 'customers'], ['productLineId', 'product_lines'], ['groupId', 'project_groups']]) pick(key, refs[table][0]);
+  search('appId', prefix + '_apps_1'); press('appId', 'ArrowDown'); press('appId', 'Enter'); assert.equal(source('appId').value, refs.apps[1]);
+  for (const [key, table] of [['chipIds', 'chips'], ['tagIds', 'tags'], ['people-hardware_owner', 'engineers']]) {
+    for (const reference of refs[table]) pick(key, reference);
+    assert.deepEqual(selected(key), refs[table]); box(key).querySelector('[data-reference-remove="' + refs[table][0] + '"]').click(); assert.deepEqual(selected(key), [refs[table][1]]);
+  }
+  pick('people-pm', refs.engineers[0]); press('people-pm', 'Escape');
+  panel.input('#edit-statusDesc', '资料核对完成，按最新分工推进'); panel.tab('stages'); panel.tab('info');
+  assert.equal(source('customerId').value, refs.customers[1]); assert.deepEqual(selected('chipIds'), [refs.chips[1]]); assert.equal(panel.$('#edit-statusDesc').value, '资料核对完成，按最新分工推进');
+  assert.deepEqual(await facts(id), initial, '搜索/重选/清空/移除及切页只改共享副本');
+  panel.click('#save'); await waitFor(() => panel.$('#save').disabled && panel.dom.projectReads.at(-1)?.project.customerId === refs.customers[1] && !panel.$('#reload').disabled, '关联统一保存后的新GET');
+  let d = await read(), saved = await facts(id);
+  assert.equal(saved.project.version, String(BigInt(initial.project.version) + 1n)); assert.equal(saved.auditCount, initial.auditCount + 1);
+  const { connection: fresh } = await connectDatabase('test_app');
+  try {
+    const p = (await fresh.query('SELECT CAST(customer_id AS CHAR) customer,CAST(odm_customer_id AS CHAR) odm,CAST(product_line_id AS CHAR) product,CAST(app_id AS CHAR) app,CAST(group_id AS CHAR) projectGroup,status_description description FROM projects WHERE id=?', [id]))[0][0];
+    assert.deepEqual(p, { customer: refs.customers[1], odm: refs.customers[0], product: refs.product_lines[0], app: refs.apps[1], projectGroup: refs.project_groups[0], description: '资料核对完成，按最新分工推进' });
+    for (const [table, column, wanted] of [['project_chips', 'chip_id', refs.chips[1]], ['project_tags', 'tag_id', refs.tags[1]]]) assert.deepEqual((await fresh.query(`SELECT CAST(${column} AS CHAR) id FROM ${table} WHERE project_id=?`, [id]))[0], [{ id: wanted }]);
+    assert.deepEqual((await fresh.query('SELECT CAST(engineer_id AS CHAR) id,role FROM project_people WHERE project_id=? ORDER BY role', [id]))[0], [{ id: refs.engineers[1], role: 'hardware_owner' }, { id: refs.engineers[0], role: 'pm' }]);
+  } finally { await fresh.end(); }
+  assert.equal(d.project.customerId, refs.customers[1]); assert.deepEqual(d.project.chips.map(item => item.id), [refs.chips[1]]);
+  const history = await a.api(path + '/audit'); assert.equal(history.items[0].afterValues.customerId.id, refs.customers[1]); assert.equal(history.items[0].afterValues.chipIds[0].id, refs.chips[1]);
+  assert.match(panel.$('#edit-customerId').value, /同名/); assert.match(box('chipIds').textContent, /chips_1/);
+  panel.tab('history'); await waitFor(() => panel.$('.audit-entry'), '关联变更消费到历史'); assert.match(panel.$('.audit-entry').textContent, /同名/); assert.match(panel.$('.audit-entry').textContent, /chips_1/); panel.tab('info');
+  search('customerId', '只搜索而不修改'); press('customerId', 'Escape'); assert(panel.$('#save').disabled); assert.equal(source('customerId').value, refs.customers[1]);
+  box('customerId').querySelector('[data-reference-clear]').click(); box('chipIds').querySelector('[data-reference-remove="' + refs.chips[1] + '"]').click();
+  panel.click('#save'); await waitFor(() => panel.$('#save').disabled && panel.dom.projectReads.at(-1)?.project.customerId === null && !panel.$('#reload').disabled, '明确清空保存后新GET');
+  d = await read(); assert.equal(d.project.customerId, null); assert.deepEqual(d.project.chips, []);
+  assert.equal((await c.query('SELECT customer_id FROM projects WHERE id=?', [id]))[0][0].customer_id, null); assert.equal((await c.query('SELECT chip_id FROM project_chips WHERE project_id=?', [id]))[0].length, 0);
+  pick('customerId', refs.customers[1]); pick('chipIds', refs.chips[1]); press('chipIds', 'Escape'); panel.click('#save');
+  await waitFor(() => panel.$('#save').disabled && panel.dom.projectReads.at(-1)?.project.customerId === refs.customers[1] && !panel.$('#reload').disabled, '清空后可重新选择保存');
+  d = await read(); saved = await facts(id); assert.deepEqual(d.project.chips.map(item => item.id), [refs.chips[1]]);
+  checks.push('单框搜索/下拉/清空与多选逐个移除；同名稳定ID、键盘选择、切页副本一致；一次保存增加一个版本/审计，独立SQL、新GET及历史消费正式关联');
+  panel.click('.date-actions [data-plan="correctProjectDates"]'); await waitFor(() => panel.$('#plan-edit'), '关键日期就近打开明确纠错'); frozen(true);
+  assert(panel.$('[data-tab="info"]').classList.contains('active')); panel.click('[data-plan-select="filingDate"]'); panel.input('[data-plan-date="filingDate"]', d.businessDate); panel.input('#plan-reason', '立案日期核对');
+  panel.$('#plan-edit').dispatchEvent(new panel.w.Event('submit', { bubbles: true, cancelable: true })); await waitFor(() => !panel.$('#plan-save').disabled, '日期纠错真实预览');
+  assert.deepEqual(await facts(id), saved, '日期预览未提交'); panel.click('#plan-save'); await waitFor(() => !panel.$('#action-dialog').open && panel.dom.projectReads.at(-1)?.project.filingDate === d.businessDate && !panel.$('#reload').disabled, '日期明确保存后新GET'); frozen(false);
+  d = await read(); assert.equal(d.project.filingDate, d.businessDate); assert.match(panel.$('.project-key-dates').textContent, new RegExp(d.businessDate));
+  assert.equal((await c.query('SELECT CAST(filed_on AS CHAR) day FROM projects WHERE id=?', [id]))[0][0].day, d.businessDate);
+  assert.equal((await a.api(path + '/audit')).items[0].action, 'project.plan.correctProjectDates');
+  const viewer = await page(b, id); assert.equal(viewer.$('[role="combobox"]'), null); assert.equal(viewer.$('#save'), null); assert.equal(viewer.$('.date-actions button'), null); assert.match(viewer.$('.project-info').textContent, /同名/);
+  checks.push('资料/关键日期/分工/最新说明层级一致；更多日期原位展开；纠错在当前页预览并明确保存后日期新读；非负责人纯文本只读');
+  await b.api(path + '/responsibility', 'POST', { action: 'join', expectedVersion: d.project.version, idempotencyKey: randomUUID() });
+  panel.click('#reload'); await waitFor(() => /页面合成账号1/.test(panel.$('#responsibility').textContent) && !panel.$('#reload').disabled, '加入责任后新进入');
+  pick('customerId', refs.customers[0]); const latest = await b.api(path); await b.api(path, 'PATCH', { expectedVersion: latest.project.version, idempotencyKey: randomUUID(), changes: { summaryNote: '另一个负责人核对资料' } });
+  panel.w.dispatchEvent(new panel.w.Event('focus')); await waitFor(() => panel.$('#save').disabled && /他人更新/.test(panel.$('#edit-state').textContent), '引用旧版本冻结'); frozen(true); assert.equal(source('customerId').value, refs.customers[0]);
+  assert.equal((await read()).project.customerId, refs.customers[1], '旧副本未覆盖正式关联'); panel.click('#copy'); assert.match(panel.$('.copy-text').value, new RegExp(refs.customers[0])); panel.click('[data-choice="cancel"]');
+  checks.push('候选未到、动作处理中与他人更新统一禁用组合控件；冻结保留旧ID供复制，不覆盖他人新版本');
+}
 try {
   assert.equal((await c.query('SELECT DATABASE() db'))[0][0].db, 'geekdash_test');
   const hash = await hashPassword(password);
@@ -93,6 +184,8 @@ try {
   const a = client(), b = client(); await a.login(0); await b.login(1);
   const created = (await a.api('/api/projects', 'POST', { idempotencyKey: randomUUID(), fields: { name: prefix, summaryNote: '原项目简介' } })).result;
   const id = created.projectId, path = '/api/projects/' + id; projects.push(id);
+  if (referencesMode) await verifyReferences(a, b, id, path);
+  else {
   const owner = await page(a, id, true), initial = await facts(id);
   if (process.argv.includes('--baseline-node-mount')) { owner.tab('nodes'); assert(owner.$('#pane'), '节点编辑目标pane必须真实存在'); throw new Error('旧版断点未复现，重新核对源码来源'); }
   assert.equal(owner.w.document.querySelectorAll('[data-tab]').length, 7);
@@ -201,14 +294,16 @@ try {
     panel.click('#action-close'); assert.equal(panel.$('#action-dialog').open, false); panel.click('#copy'); assert.match(panel.$('.copy-text').value, /旧节点输入供复制/); panel.click('[data-choice="cancel"]');
     checks.push('Flow节点弹窗直接进入实际完成操作，明确字段纠错后才编辑；节点完成不自动完成阶段；他人更新时弹窗冻结、可复制，关闭仍保留旧副本');
   }
+  }
   assert.equal(errors.length, 0);
   const build = (await a.api('/api/health/live')).build;
-  await writeFile('test-results/' + (actionsMode ? 'context-ui-check.json' : 'detail-ui-check.json'), JSON.stringify({ status: 'passed', checkedAt: new Date().toISOString(), checks, requestCount, build, frontendSource: 'src/web/detail.ts + shared/api.ts', sourceSha256: Object.fromEntries(Object.entries({ detailSource, apiSource, html }).map(([key, source]) => [key, createHash('sha256').update(source).digest('hex')])), isolatedTestDatabase: true, syntheticOnly: true, domExecution: 'jsdom 27.0.1; CSS/BroadcastChannel/native dialog behavior not validated', nativeBrowserAcceptance: false, visualAcceptance: false }, null, 2) + '\n');
+  await writeFile('test-results/' + (referencesMode ? 'reference-ui-check.json' : actionsMode ? 'context-ui-check.json' : 'detail-ui-check.json'), JSON.stringify({ status: 'passed', checkedAt: new Date().toISOString(), checks, requestCount, build, frontendSource: 'src/web/detail.ts + shared/api.ts + shared/reference-picker.ts', sourceSha256: Object.fromEntries(Object.entries({ detailSource, apiSource, referenceSource, html }).map(([key, source]) => [key, createHash('sha256').update(source).digest('hex')])), isolatedTestDatabase: true, syntheticOnly: true, domExecution: 'jsdom 27.0.1; CSS/BroadcastChannel/native dialog behavior not validated', nativeBrowserAcceptance: false, visualAcceptance: false }, null, 2) + '\n');
   console.log(JSON.stringify({ status: 'passed', groups: checks.length, requestCount }));
 } finally {
   for (const view of views) view.window.close();
   if (app) await app.close();
-  for (const id of projects) { await c.execute('UPDATE project_nodes SET previous_node_id=NULL,next_node_id=NULL WHERE project_id=?', [id]); for (const table of ['project_changes', 'project_risks', 'project_nodes', 'project_checks', 'schedule_changes', 'audit_log', 'project_stages', 'project_responsibilities']) await c.execute('DELETE FROM ' + table + ' WHERE project_id=?', [id]); await c.execute("DELETE FROM command_receipts WHERE command_scope LIKE CONCAT('user:%:project:',?,':%')", [id]); await c.execute('DELETE FROM projects WHERE id=?', [id]); }
+  for (const id of projects) { await c.execute('UPDATE project_nodes SET previous_node_id=NULL,next_node_id=NULL WHERE project_id=?', [id]); for (const table of ['project_changes', 'project_risks', 'project_nodes', 'project_checks', 'schedule_changes', 'audit_log', 'project_stages', 'project_responsibilities', 'project_chips', 'project_tags', 'project_people']) await c.execute('DELETE FROM ' + table + ' WHERE project_id=?', [id]); await c.execute("DELETE FROM command_receipts WHERE command_scope LIKE CONCAT('user:%:project:',?,':%')", [id]); await c.execute('DELETE FROM projects WHERE id=?', [id]); }
+  for (const reference of references) await c.execute('DELETE FROM ' + reference.table + ' WHERE id=? AND name LIKE ?', [reference.id, prefix + '%']);
   for (const user of users) { await c.execute('DELETE FROM command_receipts WHERE actor_id=?', [user.id]); await c.execute('DELETE FROM audit_log WHERE actor_id=?', [user.id]); await c.execute('DELETE FROM sessions WHERE user_id=?', [user.id]); }
   if (ownConfig) { await c.execute('DELETE FROM system_configuration WHERE id=1 AND maintenance_user_id=?', [users[2].id]); await c.execute('DELETE FROM check_rule_revisions WHERE saved_by=?', [users[2].id]); }
   for (const user of users) await c.execute('DELETE FROM users WHERE id=?', [user.id]);
