@@ -420,18 +420,23 @@ html, body {
 .project-detail-page .date-zone { border: 0; background: transparent; padding: 0; margin: 0 0 12px; box-shadow: none; }
 .project-detail-page .date-zone .dz-date, .project-detail-page .date-zone .dz-week { color: var(--text-dim); font-size: 12px; font-weight: 400; background: transparent; padding: 0; }
 .project-detail-page .date-zone .dz-time, .project-detail-page .date-zone > .read-label { display: none; }
-.project-detail-page .topbar { margin-bottom: 10px; }
-.project-detail-page .detail-head { padding: 18px 24px; }
-.project-detail-page .d-title { margin-bottom: 12px; }
-.project-detail-page .detail-meta { padding: 8px 24px; }
-.project-detail-page .detail-notice { padding: 6px 24px; font-size: 12px; }
+.project-detail-page .top-sticky { margin-bottom: 12px; }
+.project-detail-page .topbar { margin-bottom: 0; }
+.project-detail-page .topbar .date-zone { margin: 0; }
+.project-detail-page .detail-head { padding: 12px 24px; gap: 8px; }
+.project-detail-page .detail-head .d-title { margin-bottom: 0; }
+.project-detail-page .detail-meta { padding: 6px 24px; gap: 12px; }
+.project-detail-page .detail-notice { padding: 0; margin-left: auto; font-size: 12px; }
+.project-detail-page .detail-tabs { padding-top: 0; }
+.project-detail-page .dtab { padding: 8px 14px; }
+.project-detail-page .detail-body { padding-top: 16px; }
 .project-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 24px; background: var(--bg-soft); }
 .project-toolbar .project-context { flex: 1; padding: 0; min-width: 260px; }
 .project-toolbar .detail-recovery { padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .record-source { color: var(--text-faint); font-size: 12px; margin: 4px 0; }
 .record-source > summary { cursor: pointer; }
 .record-source p { overflow-wrap: anywhere; }
-.editor-heading { font-size: 16px; color: var(--text); padding: 12px 0; margin-top: 16px; border-bottom: 1px solid var(--border-soft); }
+.editor-heading { font-size: 16px; color: var(--text); padding: 6px 0; margin-top: 16px; border-bottom: 1px solid var(--border-soft); }
 .editor-heading:first-child { margin-top: 0; }
 .trial-editor .field-grid { margin: 14px 0 24px; }
 @media (max-width: 600px) {
