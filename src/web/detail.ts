@@ -1161,7 +1161,7 @@ function recordRows(kind: 'risk' | 'change' | 'node', before: unknown, after: un
 }
 function table(items: Entry[], fields: [string, string][]) {
   if (!items.length) return '<p class="read-message">暂无记录。</p>';
-  return `<div class="read-table-wrap"><table class="read-table"><thead><tr>${fields.map(([, title]) => `<th scope="col">${title}</th>`).join('')}</tr></thead><tbody>${items.map(item => `<tr>${fields.map(([key]) => `<td>${esc(['code', 'state', 'stage', 'level', 'decision'].includes(key) ? label(item[key]) : item[key] ?? '—')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  return `<div class="read-table-wrap"><table class="read-table${fields[1]?.[0] === 'before' && fields[2]?.[0] === 'after' ? ' comparison-table' : ''}"><thead><tr>${fields.map(([, title]) => `<th scope="col">${title}</th>`).join('')}</tr></thead><tbody>${items.map(item => `<tr>${fields.map(([key]) => `<td>${esc(['code', 'state', 'stage', 'level', 'decision'].includes(key) ? label(item[key]) : item[key] ?? '—')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 function render() {
   if (!snapshot) return;

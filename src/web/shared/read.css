@@ -5,6 +5,8 @@
 .card { display: block; color: inherit; text-decoration: none; }
 .card:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .read-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.comparison-table { table-layout: fixed; }
+.comparison-table th:first-child { width: 24%; }
 .read-table th, .read-table td { border-bottom: 1px solid var(--border); padding: 10px; text-align: left; vertical-align: top; white-space: pre-wrap; overflow-wrap: anywhere; }
 .read-table th { color: var(--text-dim); }
 .read-value { padding: 10px; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg-soft); border-radius: 6px; }
