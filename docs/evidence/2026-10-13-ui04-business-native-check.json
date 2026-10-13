@@ -1,0 +1,208 @@
+{
+  "status": "passed",
+  "build": "56e69a7a83a171d54e0d387d69ae01e316ba2805",
+  "source": "Edge/web-access actual native UI",
+  "projectId": "21",
+  "checks": [
+    {
+      "label": "业务事项合并版真实页面就绪",
+      "checkedAt": "2026-10-13T04:21:33.199Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+        "notice": "本人已负责 · 普通修改统一保存，页面保持进入时的内容。",
+        "message": "",
+        "loaded": true,
+        "scripts": [
+          "https://geekdash.zhiluan.cool/assets/project-detail-B_HfF2RP.js"
+        ]
+      }
+    },
+    {
+      "label": "读取按一次保存归组的历史",
+      "checkedAt": "2026-10-13T04:21:47.422Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+        "historyRequested": true
+      }
+    },
+    {
+      "label": "真实历史同一业务一行且同次保存一组",
+      "checkedAt": "2026-10-13T04:22:06.510Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+        "groupCount": 2,
+        "version2Groups": 1,
+        "title": "保存项目 · business01 · 2026-10-13T03:40:02.597000Z · 版本 1 → 2",
+        "headers": [
+          "修改事项",
+          "修改前",
+          "修改后"
+        ],
+        "rows": [
+          [
+            "风险 #7",
+            "（无记录）",
+            "风险内容：合成风险：样机接口待核对。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。\n风险等级：中\n风险状态：预警中"
+          ],
+          [
+            "项目节点 #12",
+            "（无记录）",
+            "节点名称：合成节点：方案核对\n所属阶段：需求立项\n输出成果：接口方案与BOM核对记录"
+          ],
+          [
+            "需求变更 #6",
+            "（无记录）",
+            "来源：客户\n变更内容：合成需求：低功耗接口复用\n接受/拒绝：接受\n决定理由：人工确认可复用现有接口"
+          ]
+        ]
+      }
+    },
+    {
+      "label": "进入一条需求的纠错入口",
+      "checkedAt": "2026-10-13T04:22:06.590Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+        "changeId": "6"
+      }
+    },
+    {
+      "label": "只选择决定理由并预览",
+      "checkedAt": "2026-10-13T04:22:46.590Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+        "selected": [
+          "reason"
+        ]
+      }
+    },
+    {
+      "label": "实际需求纠错仅展示一行变化",
+      "checkedAt": "2026-10-13T04:23:28.895Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+        "headers": [
+          "修改事项",
+          "修改前",
+          "修改后"
+        ],
+        "rows": [
+          [
+            "需求变更 #6",
+            "决定理由：人工确认可复用现有接口",
+            "决定理由：表格验收：只更新决定理由\n修改原因：补充原决定的解释（合成验证）"
+          ]
+        ],
+        "busy": "",
+        "layout": "fixed"
+      }
+    },
+    {
+      "label": "确认需求纠错并保存项目",
+      "checkedAt": "2026-10-13T04:23:28.937Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+        "savedRequested": true
+      }
+    },
+    {
+      "label": "需求纠错保存后的实际结果",
+      "checkedAt": "2026-10-13T04:24:07.438Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+        "message": "项目已保存。",
+        "editState": "当前内容已保存",
+        "reason": "理由：表格验收：只更新决定理由",
+        "saveDisabled": true
+      }
+    },
+    {
+      "label": "新请求读取理由纠错",
+      "checkedAt": "2026-10-13T04:24:07.444Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+        "reloadRequested": true
+      }
+    },
+    {
+      "label": "新请求后进入纠错历史",
+      "checkedAt": "2026-10-13T04:25:06.331Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+        "reason": "理由：表格验收：只更新决定理由"
+      }
+    },
+    {
+      "label": "纠错历史只保留同一需求的一行变化",
+      "checkedAt": "2026-10-13T04:25:27.291Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+        "title": "纠正需求变更 · business01 · 2026-10-13T04:23:38.171000Z · 版本 2 → 3",
+        "headers": [
+          "修改事项",
+          "修改前",
+          "修改后"
+        ],
+        "rows": [
+          [
+            "需求变更 #6",
+            "决定理由：人工确认可复用现有接口",
+            "决定理由：表格验收：只更新决定理由\n修改原因：补充原决定的解释（合成验证）"
+          ]
+        ],
+        "groupCount": 3
+      }
+    },
+    {
+      "label": "应用重启后公网正式理由仍在",
+      "checkedAt": "2026-10-13T04:32:03.946Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+        "notice": "本人已负责 · 普通修改统一保存，页面保持进入时的内容。",
+        "reason": "理由：表格验收：只更新决定理由",
+        "source": "fresh native page after actual app restart"
+      }
+    },
+    {
+      "label": "应用重启后历史仍按业务事项归组",
+      "checkedAt": "2026-10-13T04:33:10.927Z",
+      "targetId": "707F5D5ADFB260303F5B26361A8B8BD1",
+      "result": {
+        "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+        "version": "3",
+        "groupCount": 3,
+        "headers": [
+          "修改事项",
+          "修改前",
+          "修改后"
+        ],
+        "row": [
+          "需求变更 #6",
+          "决定理由：人工确认可复用现有接口",
+          "决定理由：表格验收：只更新决定理由\n修改原因：补充原决定的解释（合成验证）"
+        ]
+      }
+    }
+  ],
+  "scope": [
+    "same record one comparison row",
+    "unchanged fields hidden",
+    "independent records in one save group",
+    "actual ordinary save and fresh request",
+    "actual matching history"
+  ],
+  "screenshot": "2026-10-13-ui04-business-history.png",
+  "completeE04Acceptance": false,
+  "actualAppRestartThenFreshNativeRead": true
+}

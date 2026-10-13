@@ -1,0 +1,120 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-13T04:27:25.228248+00:00",
+  "build": {
+    "revision": "56e69a7a83a171d54e0d387d69ae01e316ba2805",
+    "dirty": false,
+    "builtAt": "2026-10-13T04:12:06.137Z",
+    "stage": "project-list",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "actualAppRestarted": true,
+  "savedProjectSnapshotsPreserved": {
+    "16": {
+      "project": [
+        "13\tproposal"
+      ],
+      "childCounts": [
+        "30\t1\t0\t5"
+      ],
+      "stages": [
+        "S1\tready\tNULL\tNULL",
+        "S2\tlocked\tNULL\tNULL",
+        "S3\tlocked\tNULL\tNULL",
+        "S4\tlocked\tNULL\tNULL",
+        "S5\tlocked\tNULL\tNULL",
+        "S6\tlocked\tNULL\tNULL",
+        "S7\tlocked\tNULL\tNULL"
+      ]
+    },
+    "17": {
+      "project": [
+        "11\tproposal"
+      ],
+      "childCounts": [
+        "25\t0\t0\t4"
+      ],
+      "stages": [
+        "S1\tready\tNULL\tNULL",
+        "S2\tlocked\tNULL\tNULL",
+        "S3\tlocked\tNULL\tNULL",
+        "S4\tlocked\tNULL\tNULL",
+        "S5\tlocked\tNULL\tNULL",
+        "S6\tlocked\tNULL\tNULL",
+        "S7\tlocked\tNULL\tNULL"
+      ]
+    },
+    "18": {
+      "project": [
+        "8\tproposal"
+      ],
+      "childCounts": [
+        "14\t1\t4\t1"
+      ],
+      "stages": [
+        "S1\tready\tNULL\tNULL",
+        "S2\tlocked\tNULL\tNULL",
+        "S3\tlocked\tNULL\tNULL",
+        "S4\tlocked\tNULL\tNULL",
+        "S5\tlocked\tNULL\tNULL",
+        "S6\tlocked\tNULL\tNULL",
+        "S7\tlocked\tNULL\tNULL"
+      ]
+    },
+    "19": {
+      "project": [
+        "3\tproposal"
+      ],
+      "childCounts": [
+        "6\t1\t1\t1"
+      ],
+      "stages": [
+        "S1\tactive\t2026-10-13\tNULL",
+        "S2\tlocked\tNULL\tNULL",
+        "S3\tlocked\tNULL\tNULL",
+        "S4\tlocked\tNULL\tNULL",
+        "S5\tlocked\tNULL\tNULL",
+        "S6\tlocked\tNULL\tNULL",
+        "S7\tlocked\tNULL\tNULL"
+      ]
+    },
+    "20": {
+      "project": [
+        "14\tongoing"
+      ],
+      "childCounts": [
+        "14\t0\t0\t0"
+      ],
+      "stages": [
+        "S1\tcompleted\t2026-10-13\t2026-10-13",
+        "S2\tready\tNULL\tNULL",
+        "S3\tlocked\tNULL\tNULL",
+        "S4\tlocked\tNULL\tNULL",
+        "S5\tlocked\tNULL\tNULL",
+        "S6\tlocked\tNULL\tNULL",
+        "S7\tlocked\tNULL\tNULL"
+      ]
+    },
+    "21": {
+      "project": [
+        "3\tproposal"
+      ],
+      "childCounts": [
+        "5\t1\t1\t1"
+      ],
+      "stages": [
+        "S1\tready\tNULL\tNULL",
+        "S2\tlocked\tNULL\tNULL",
+        "S3\tlocked\tNULL\tNULL",
+        "S4\tlocked\tNULL\tNULL",
+        "S5\tlocked\tNULL\tNULL",
+        "S6\tlocked\tNULL\tNULL",
+        "S7\tlocked\tNULL\tNULL"
+      ]
+    }
+  },
+  "mysqlInstanceStartedAtPreserved": true,
+  "otherContainersPreserved": 17,
+  "publicOriginalSessionReadback": "pending separate actual request",
+  "nativeBrowserAcceptance": false
+}
