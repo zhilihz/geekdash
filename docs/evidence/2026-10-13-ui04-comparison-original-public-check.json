@@ -1,0 +1,27 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-13T03:23:23.678354+00:00",
+  "mode": "after",
+  "originalSessionsSurvived": 6,
+  "originalResultsConfirmed": 34,
+  "projects": {
+    "nodes": {
+      "id": "16",
+      "version": "13",
+      "audits": 30
+    },
+    "recovery": {
+      "id": "17",
+      "version": "11",
+      "audits": 25
+    },
+    "changes": {
+      "id": "18",
+      "version": "8",
+      "audits": 14
+    }
+  },
+  "persistentOriginalDataPreserved": true,
+  "pastDateDerivedFieldsExcludedOnlyFromHistoricalComparison": true,
+  "nativeBrowserAcceptance": false
+}

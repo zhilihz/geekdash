@@ -1,0 +1,170 @@
+{
+  "source": "Edge/web-access actual native UI",
+  "runs": [
+    {
+      "build": "477e6e76424fd65bb6e0649006f37991fcd71f62",
+      "projectId": "21",
+      "checks": [
+        {
+          "label": "打开新增风险表格校验",
+          "checkedAt": "2026-10-13T03:21:47.021Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": "已打开新增风险"
+        },
+        {
+          "label": "实际风险表单字段",
+          "checkedAt": "2026-10-13T03:22:02.896Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": {
+            "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+            "open": true,
+            "fields": [
+              {
+                "id": "risk-content",
+                "value": ""
+              }
+            ],
+            "buttons": [
+              {
+                "id": "",
+                "text": "高",
+                "disabled": false
+              },
+              {
+                "id": "",
+                "text": "中",
+                "disabled": false
+              },
+              {
+                "id": "",
+                "text": "低",
+                "disabled": false
+              },
+              {
+                "id": "",
+                "text": "预览",
+                "disabled": false
+              },
+              {
+                "id": "risk-accept",
+                "text": "确认加入未保存修改",
+                "disabled": true
+              },
+              {
+                "id": "risk-cancel",
+                "text": "取消",
+                "disabled": false
+              }
+            ]
+          }
+        },
+        {
+          "label": "风险长文字实际预览",
+          "checkedAt": "2026-10-13T03:22:22.701Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": {
+            "previewRequested": true,
+            "chars": 269
+          }
+        },
+        {
+          "label": "风险真实三列表格与长文字布局",
+          "checkedAt": "2026-10-13T03:22:45.734Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": {
+            "url": "https://geekdash.zhiluan.cool/project-detail.html?id=21",
+            "headers": [
+              "信息项",
+              "修改前",
+              "修改后"
+            ],
+            "rows": [
+              [
+                "风险内容",
+                "（无记录）",
+                "合成风险：样机接口待核对。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。这段长文字用于核对表格换行、前后值和字符 <测试> & 的展示。"
+              ],
+              [
+                "风险等级",
+                "（无记录）",
+                "中"
+              ],
+              [
+                "风险状态",
+                "（无记录）",
+                "预警中"
+              ],
+              [
+                "解除说明",
+                "（无记录）",
+                "（空）"
+              ]
+            ],
+            "acceptDisabled": false,
+            "error": "",
+            "busy": "",
+            "tableWidth": 580,
+            "dialogWidth": 640,
+            "cells": [
+              {
+                "width": 39,
+                "scrollWidth": 39,
+                "whiteSpace": "pre-wrap",
+                "overflowWrap": "anywhere"
+              },
+              {
+                "width": 41,
+                "scrollWidth": 41,
+                "whiteSpace": "pre-wrap",
+                "overflowWrap": "anywhere"
+              },
+              {
+                "width": 501,
+                "scrollWidth": 501,
+                "whiteSpace": "pre-wrap",
+                "overflowWrap": "anywhere"
+              }
+            ]
+          }
+        },
+        {
+          "label": "临时列宽方案视觉核查",
+          "checkedAt": "2026-10-13T03:24:52.421Z",
+          "targetId": "53286826D455157BE1644F9EBD63B19B",
+          "result": {
+            "scope": "temporary layout preflight; deployed product not yet fixed",
+            "cells": [
+              {
+                "width": 139,
+                "scrollWidth": 139,
+                "height": 374,
+                "text": "风险内容"
+              },
+              {
+                "width": 220,
+                "scrollWidth": 220,
+                "height": 374,
+                "text": "（无记录）"
+              },
+              {
+                "width": 220,
+                "scrollWidth": 220,
+                "height": 374,
+                "text": "合成风险：样机接口待核对。这段长文字用于核对表格换行、前后值和字符 <测试> &"
+              }
+            ],
+            "headers": [
+              "信息项",
+              "修改前",
+              "修改后"
+            ]
+          }
+        }
+      ],
+      "tableValuesPassed": true,
+      "longTextLayoutPassed": false,
+      "temporaryStyleNotProductFix": true
+    }
+  ],
+  "completeE04Acceptance": false
+}
