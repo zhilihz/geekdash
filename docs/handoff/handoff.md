@@ -2,17 +2,15 @@
 
 ## 最新接手优先级（2026-10-13 E04核心功能）
 
-用户DEC-111：性能先搁置，优先核心功能。目标active，codex/e04-ui04-delivery；main已回读8c41067，后续规划176c0cd及预览修正待本批提交。准确事实只查[真相55](../status/current-system-truth.md#55-e04-ui04核心功能测试版2026-10-13)和[固定部署证据](../evidence/2026-10-13-ui04-core-deployment-check.json)。
+用户DEC-111优先核心、性能后置；DEC-112要求前后对比采用表格。当前施工codex/e04-ui04-delivery，从远端main/32ffce0接续，4fcfe42已先提交完整表格计划14.9.21.8；表格产品、测试及本批事实正在提交。准确状态归[真相56](../status/current-system-truth.md#56-e04-ui04核心复验与表格候选2026-10-13)，接手重新读取Git，不能将文档SHA当运行镜像。
 
-云运行3753f9d、ready，18功能报告与业务/会话安全指纹保持，其他17服务保持。ui04-core-confirm已SUCCESS终结，原install失败/回切也已终结；不重跑安装、初始化或改密。test-results保留私有checkpoint/任务。新变更只有detail.ts预览格式和临时忙提示及对应实际DOM断言，类型检查通过，尚未固定部署/原生复验。
+公网实际32ffce0/ready，整链169及看板API43 HTTP、原6会话/34原结果通过；cloud core-fix安装已SUCCESS/exit0，禁止重跑。完整两库备份、旧3753回切及其他17服务保护归[部署记录](../operations/deployments/2026-10-13-e04-ui04-core.md)。
 
-web-access用户已授权，新建Edge HTTPS页实际可读，目标ID归忽略的ui04-edge-tab-private.json；保留用户原标签。合成项目19，business01创建，已统一保存文字/芯片/风险/需求/节点，S1开始v3；后续动作正在实点，接手先GET实际版本。部分原生证据归ui04-native-browser-partial.json，不当全验收。
+Edge/web-access继续有效；用户原标签保留。合成20原生操作到v14重开，当前进行中/5%/S2待开始，用户可能正在此标签操作，保留已有检查副本；原生节点依赖/恢复及多人冲突仍待。19原请求正文/UUID仍待确认，不新造编号；test-results两份edge-tab-private及native-browser-current保存本轮位置，先新读取实际版本。
 
-下一步：提交本批修正及实况，main干净构建并只切云应用；实际预览复验和阶段/检查/暂缓/结案/节点/冲突链，新HTTP/SQL与实际app恢复。原公网项目16～18及6会话/34原结果用原正文核对；跨日派生值与持久事实区分，不能用旧“同日完整快照”断言。
+DEC-112表格覆盖普通子记录、独立状态动作和历史。代码src/web/detail.ts与scripts/verify-detail-ui.mjs，类型/构建及云隔离库前端源码9组99 HTTP通过，夹具指纹恢复；Figma八类原动作三列及宽度回读已完成，高级克隆/完整Presentation仍待。下一步具名提交、远端main、干净固定构建/只切app、实际表格及原会话新读，并完成常驻app重启恢复。
 
-本机容器重启后停止，启动MySQL的组合命令被自动审批拒绝，未绕行；继续云核心验证。性能及dashboard诊断5/4形状缺口留后续，不重跑容量。真实备份不接，E04不complete，后续完整页面/草稿/SSE依原阶段表。
-
-以下旧章节仅供历史接手参考，以本节及真相54为准。
+本机容器停止，启动MySQL的组合命令被自动审批拒绝，未换方式启动；不删卷、不全局kill/prune。性能暂停、E04仍未验收；后续E05～E08仍按原阶段，真实备份不接。以下为历史接手参考，以本节与真相56为准。
 
 ## 0. 历史接手：E04原批次及发布恢复参考
 

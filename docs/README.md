@@ -1,10 +1,10 @@
 # GeekDash 文档目录
 
-导航更新：2026-10-12。项目仓库：[zhilihz/geekdash](https://github.com/zhilihz/geekdash)。全部项目文档在本目录；协作与分类规则只维护于根目录[AGENTS.md](../AGENTS.md)。
+导航更新：2026-10-13。项目仓库：[zhilihz/geekdash](https://github.com/zhilihz/geekdash)。全部项目文档在本目录；协作与分类规则只维护于根目录[AGENTS.md](../AGENTS.md)。
 
 ## 本轮阅读入口
 
-1. [交接](handoff/handoff.md)与[当前系统真相](status/current-system-truth.md#55-e04-ui04核心功能测试版2026-10-13)：当前状态、证据边界和接续工作。
+1. [交接](handoff/handoff.md)与[当前系统真相](status/current-system-truth.md#56-e04-ui04核心复验与表格候选2026-10-13)：当前状态、证据边界和接续工作。
 2. [PRD页面来源与用途](product/PRD.md#8-页面来源用途与结构复核2026-10-12)及[Figma实际文件](https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF)：核对原版结构和候选体验。
 3. [E04前端固定施工](implementation/execution-plan.md#14921-e04前端固定与流程修正2026-10-12)：实现方法；准确业务规则仍查[规格书](specifications/specification.md)。
 4. [看板及已有入口报告](testing/reports/2026-10-12-e04-ui03-c.md)、[上下文动作报告](testing/reports/2026-10-12-e04-ui03-b.md)、[详情结构报告](testing/reports/2026-10-12-e04-ui03-a.md)、[设计核查报告](testing/reports/2026-10-12-e04-ui01-design.md)及[实际设计回读](evidence/2026-10-12-e04-ui01-design-audit.json)：分别核查实现、设计子集与未测范围。
