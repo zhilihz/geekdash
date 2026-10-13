@@ -1,0 +1,219 @@
+{
+  "screens": [
+    {
+      "id": "131:3034",
+      "name": "UI07 / 保存成功 · 中上方短提示",
+      "width": 1440,
+      "height": 1040,
+      "descendants": 220,
+      "types": {
+        "FRAME": 47,
+        "INSTANCE": 67,
+        "TEXT": 106
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "imageFilledNodes": []
+    },
+    {
+      "id": "131:3115",
+      "name": "UI07 / 发现未保存内容 · 中上方处理",
+      "width": 1440,
+      "height": 1040,
+      "descendants": 229,
+      "types": {
+        "FRAME": 48,
+        "INSTANCE": 71,
+        "TEXT": 109,
+        "RECTANGLE": 1
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "imageFilledNodes": []
+    },
+    {
+      "id": "131:3196",
+      "name": "UI07 / 副本已保留 · 中上方短提示",
+      "width": 1440,
+      "height": 1040,
+      "descendants": 223,
+      "types": {
+        "FRAME": 48,
+        "INSTANCE": 68,
+        "TEXT": 107
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "imageFilledNodes": []
+    }
+  ],
+  "details": [
+    {
+      "id": "132:3491",
+      "x": 490,
+      "y": 112,
+      "width": 460,
+      "height": 82,
+      "radius": 12,
+      "texts": [
+        {
+          "id": "135:3497",
+          "text": "✓",
+          "size": 16,
+          "width": 12,
+          "height": 24
+        },
+        {
+          "id": "135:3499",
+          "text": "操作提示",
+          "size": 14,
+          "width": 354,
+          "height": 22
+        },
+        {
+          "id": "132:3492",
+          "text": "项目已保存。",
+          "size": 13,
+          "width": 354,
+          "height": 22
+        },
+        {
+          "id": "I132:3493;2:108",
+          "text": "×",
+          "size": 20,
+          "width": 20,
+          "height": 32
+        }
+      ]
+    },
+    {
+      "id": "132:3496",
+      "x": 490,
+      "y": 112,
+      "width": 460,
+      "height": 154,
+      "radius": 12,
+      "texts": [
+        {
+          "id": "135:3501",
+          "text": "↺",
+          "size": 16,
+          "width": 19,
+          "height": 24
+        },
+        {
+          "id": "135:3503",
+          "text": "副本已保留",
+          "size": 14,
+          "width": 354,
+          "height": 22
+        },
+        {
+          "id": "132:3497",
+          "text": "本次输入尚未保存到项目，可继续编辑。关闭标签页后副本会丢失。",
+          "size": 13,
+          "width": 354,
+          "height": 43
+        },
+        {
+          "id": "I135:3505;2:108",
+          "text": "处理副本",
+          "size": 13,
+          "width": 52,
+          "height": 21
+        },
+        {
+          "id": "I132:3498;2:108",
+          "text": "×",
+          "size": 20,
+          "width": 20,
+          "height": 32
+        }
+      ]
+    },
+    {
+      "id": "132:3502",
+      "x": 440,
+      "y": 112,
+      "width": 560,
+      "height": 173,
+      "radius": 14,
+      "texts": [
+        {
+          "id": "132:3503",
+          "text": "继续未完成的编辑",
+          "size": 18,
+          "width": 470,
+          "height": 29
+        },
+        {
+          "id": "I137:3498;2:108",
+          "text": "×",
+          "size": 20,
+          "width": 20,
+          "height": 32
+        },
+        {
+          "id": "132:3504",
+          "text": "这些输入尚未保存到项目，仅保留在本标签页。继续编辑后，仍需明确保存。",
+          "size": 13,
+          "width": 510,
+          "height": 23
+        },
+        {
+          "id": "132:3507",
+          "text": "副本基于当前项目版本，可继续编辑；暂不恢复也会保留。",
+          "size": 13,
+          "width": 568,
+          "height": 24
+        },
+        {
+          "id": "I132:3509;2:108",
+          "text": "暂不处理",
+          "size": 13,
+          "width": 52,
+          "height": 21
+        },
+        {
+          "id": "I132:3510;2:108",
+          "text": "查看并复制",
+          "size": 13,
+          "width": 65,
+          "height": 21
+        },
+        {
+          "id": "I132:3511;2:106",
+          "text": "恢复普通编辑",
+          "size": 13,
+          "width": 78,
+          "height": 21
+        }
+      ]
+    }
+  ],
+  "mainStaticHidden": true,
+  "scope": "仅提示展示，无代码或日期结构变化；图层回读和截图检查，未进行Presentation真人点击",
+  "fileKey": "leQy2Be9GaTXPvZeooQuIF",
+  "version": "UI07 richer notice v2",
+  "validation": "三幅最终截图已视觉核查；标题对比度与长正文自适应高度纠正；Presentation真人点击未验",
+  "screenshots": [
+    {
+      "name": "ui07-figma-success.png",
+      "bytes": 110416,
+      "sha256": "cc9535f73035a3ec5887baef92451904485d2dfbd0ac2bfc68505d3f61b9f326"
+    },
+    {
+      "name": "ui07-figma-recovery.png",
+      "bytes": 86741,
+      "sha256": "47554b4af168cd26e98d243687c58df738c487d1646f927c7284cd2c7e8651b1"
+    },
+    {
+      "name": "ui07-figma-retained.png",
+      "bytes": 119818,
+      "sha256": "4b58cc4df0be1c54d3603dc9c8cf3722b04cb82a70760b64abd8b03ba6aa2369"
+    }
+  ]
+}

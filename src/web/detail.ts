@@ -80,9 +80,7 @@ function stagePanel() {
       <div class="stage-choice-form" id="stage-form-${stage.code}"></div></div>`;
   }).join('');
   const start = p.status === 'proposal' ? `<div class="stage-card"><div class="stage-head"><span class="stage-name">正式启动项目</span></div><p>S1完成后，核对实际启动日期和预计结案日期，明确保存。启动后S2仍为待开始。</p><button class="choice-btn choice-done" id="project-start"${snapshot!.startBlocked ? ' disabled' : ''}>启动项目</button>${snapshot!.startBlocked ? `<p class="stage-locked">${esc(stageMessages[snapshot!.startBlocked] ?? snapshot!.startBlocked)}</p>` : ''}<a class="back-btn" href="/settings.html">查看公共检查规则</a><div class="stage-choice-form" id="project-start-form"></div></div>` : `<div class="stages-hint">首次应检周：${esc(p.firstCheckWeek ?? '依据未知，待核对')} · 本周截止：${esc(snapshot!.checkRule.deadlineDate ?? '规则未初始化')}</div>`;
-  return `<div class="stages-wrap">${maxDays !== null && totalDays > maxDays ? `<div class="stages-error">⚠ ${estimated ? '参考工期' : '项目总工期'} <b>${totalDays}</b> 天，超过可用窗口 <b>${maxDays}</b> 天，请核对工期或项目日期。</div>` : ''}<div class="stages-hint">按顺序推进：开始和里程碑完成都需明确保存，完成后只解锁下一阶段。工期与评述统一保存项目；纠错和真实返工分别预览、明确保存。</div>${snapshot!.capabilities.editText ? `<button class="back-btn" data-correction="correctStageFacts">纠正实际日期</button><p id="error-stagePlans" class="field-error">${esc(validationErrors.stagePlans)}</p>` : ''}<div id="correction-form"></div>${correctionDraft && !stagePending ? '<button class="back-btn" id="correction-restore">恢复纠错/回退表单</button><button class="back-btn" id="correction-discard">放弃纠错/回退副本</button>' : ''}${start}<div class="stages-total">${estimated ? '参考总工期' : '项目总工期'}：<b>${totalDays}</b> 天（已完成 <b>${doneCount}</b> / 7 个阶段）${estimated ? ' · 未填工期按建议值估算，不写入项目' : ''}${maxDays !== null ? ` · 可用窗口：<b>${maxDays}</b> 天` : ''}</div>${cards}</div>`
-    + (stagePending ? '<p role="status">阶段操作结果待确认。请确认原结果或重试原操作。</p><button class="back-btn" id="stage-confirm">确认原阶段结果</button> <button class="back-btn" id="stage-retry">重试原阶段操作</button>' : '')
-    + (stageDraft && !stagePending ? `<button class="back-btn" id="stage-restore">恢复本标签页${stageDraft.action === 'startProject' ? '启动' : '阶段'}表单</button> <button class="back-btn" id="stage-discard">放弃动作表单副本</button>` : '');
+  return `<div class="stages-wrap">${maxDays !== null && totalDays > maxDays ? `<div class="stages-error">⚠ ${estimated ? '参考工期' : '项目总工期'} <b>${totalDays}</b> 天，超过可用窗口 <b>${maxDays}</b> 天，请核对工期或项目日期。</div>` : ''}<div class="stages-hint">按顺序推进：开始和里程碑完成都需明确保存，完成后只解锁下一阶段。工期与评述统一保存项目；纠错和真实返工分别预览、明确保存。</div>${snapshot!.capabilities.editText ? `<button class="back-btn" data-correction="correctStageFacts">纠正实际日期</button><p id="error-stagePlans" class="field-error">${esc(validationErrors.stagePlans)}</p>` : ''}<div id="correction-form"></div>${start}<div class="stages-total">${estimated ? '参考总工期' : '项目总工期'}：<b>${totalDays}</b> 天（已完成 <b>${doneCount}</b> / 7 个阶段）${estimated ? ' · 未填工期按建议值估算，不写入项目' : ''}${maxDays !== null ? ` · 可用窗口：<b>${maxDays}</b> 天` : ''}</div>${cards}</div>`;
 }
 async function prepareAction(action: ProjectCommand['action'], code?: string) {
   if (!snapshot || inFlight || pending || responsibilityPending || stagePending || stale || authFrozen || loading) return false;
@@ -833,7 +831,31 @@ let audit: AuditPage | undefined;
 let auditGeneration = 0;
 let auditMessage = '';
 let validationErrors: Record<string, string> = {};
-function note(text: string, error = false) { for (const target of [element('message'), element('action-message')]) { target.textContent = text; target.classList.toggle('error', error); } }
+let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+let draftNotice = '';
+let storageNotice = false;
+function closeNotice() {
+  clearTimeout(noticeTimer);
+  const notice = element('project-notice');
+  notice.hidePopover?.(); notice.hidden = true;
+  if (notice.parentElement !== document.body) document.body.append(notice);
+}
+function note(text: string, error = false, draft = false) {
+  const notice = element('project-notice'), message = element('message');
+  if (!text) { closeNotice(); message.textContent = ''; return; }
+  if (!notice.hidden && message.textContent === text && notice.classList.contains('error') === error) return;
+  clearTimeout(noticeTimer);
+  message.textContent = text; message.setAttribute('role', error ? 'alert' : 'status');
+  notice.classList.toggle('error', error);
+  element('notice-title').textContent = error ? '需要处理' : draft ? '副本已保留' : '操作提示';
+  element('notice-icon').textContent = error ? '!' : draft ? '↺' : '✓';
+  element('notice-drafts').hidden = !draft;
+  const openDialogs = document.querySelectorAll<HTMLDialogElement>('dialog[open]');
+  const host = openDialogs.item(openDialogs.length - 1) ?? document.body;
+  if (notice.parentElement !== host) { notice.hidePopover?.(); host.append(notice); }
+  notice.hidden = false; notice.showPopover?.();
+  if (!error) noticeTimer = setTimeout(closeNotice, 5000);
+}
 function baseline(): EditValues {
   const p = snapshot!.project;
   const ordinary = Object.fromEntries(keys.map(key => [key, p[key]])) as EditValues;
@@ -852,7 +874,7 @@ function showActionForm() {
     if (!heading) { heading = document.createElement('h2'); heading.textContent = stageDraft ? actionLabels[stageDraft.action] + ('stageCode' in stageDraft ? ' · ' + label(stageDraft.stageCode) : '') : '项目操作'; form.prepend(heading); }
     heading.id = 'action-heading'; element('action-fields').replaceChildren(form); element('action-message').textContent = '';
   }
-  if (!dialog.open) dialog.showModal();
+  if (!dialog.open) { closeNotice(); dialog.showModal(); }
 }
 function dismissAction() {
   if (inFlight || loading) return;
@@ -894,17 +916,16 @@ function controls() {
   document.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLButtonElement>('#check-edit input,#check-edit textarea,#check-edit select,#check-edit button').forEach(input => { input.disabled = frozen || stale || authFrozen || input.id === 'check-save' && input.dataset.preview !== 'true'; });
   for (const name of ['stage-confirm' , 'stage-retry']) { const button = document.getElementById(name) as HTMLButtonElement | null; if (button) button.disabled = inFlight || loading || authFrozen; }
   element('copy').hidden = !nodeDraft && !riskDraft && !changeDraft && !dirty() && !candidate && !legacyCopy && !pending && !stageDraft && !stagePending && !correctionDraft && !planDraft && !lifecycleDraft && !closureDraft && !checkDraft;
-  const state = document.getElementById('edit-state');
-  if (state) state.textContent = stagePending ? actionLabels[stagePending.action] + '结果待确认，请确认原结果或重试原操作。' : pending ? inFlight ? '正在处理原操作，请等待…' : '原操作结果尚未确认，请确认结果或重试原操作。' : stale ? '项目已被他人更新，请重新进入项目。旧文字已保留供复制。' : dirty() ? '有未保存修改 · 本标签页暂存，需点击保存项目' : '当前内容已保存';
-  const warning = document.getElementById('storage-warning');
-  if (warning) warning.textContent = storageFailed ? dirty() || pending ? '本标签页恢复存储不可用，未保存文字仅留在内存。请及时复制。' : '本标签页恢复存储不可用；已确认保存的数据以服务器为准。' : '';
+  (element('drafts') as HTMLButtonElement).disabled = inFlight || loading || actionOpen;
+  if (storageFailed && !storageNotice) note('本标签页无法保留副本。未保存内容只在当前页面，请及时复制。', true);
+  storageNotice = storageFailed;
   (element('action-fields') as HTMLFieldSetElement).disabled = frozen || stale || authFrozen;
   element('action-recovery').hidden = !stagePending;
   for (const name of ['action-close', 'action-copy', 'action-confirm', 'action-retry']) (element(name) as HTMLButtonElement).disabled = inFlight || loading;
   element('action-reload').hidden = !stale && !authFrozen;
   (element('action-reload') as HTMLButtonElement).disabled = frozen;
   if ((element('action-dialog') as HTMLDialogElement).open && (stale || authFrozen || inFlight || stagePending)) note(authFrozen ? '账号已变化或登录失效，保存已暂停。请复制输入后重新登录。' : stale ? '项目已被他人更新，旧内容已保留。请复制输入并重新进入项目。' : inFlight ? '正在处理，请等待结果。' : '保存结果尚未确认，请确认原结果或重试原操作。', stale || authFrozen || !inFlight);
-  else if (!frozen && element('action-message').textContent === '正在处理，请等待结果。') note('');
+  else if (!frozen && element('message').textContent === '正在处理，请等待结果。') note('');
 }
 function persist() {
   clearTimeout(bufferTimer);
@@ -942,6 +963,7 @@ function readBuffer(key = bufferKey) {
 function choose(text: string, options: [string, string][], extra = ''): Promise<string> {
   const dialog = element('editor-dialog') as HTMLDialogElement;
   if (dialog.open) return Promise.resolve('cancel');
+  closeNotice();
   dialog.innerHTML = `<p>${esc(text)}</p>${extra}<div class="edit-actions">${options.map(([value, title]) => `<button class="back-btn" data-choice="${value}">${title}</button>`).join('')}</div>`;
   return new Promise(resolve => {
     dialog.oncancel = event => { event.preventDefault(); dialog.close('cancel'); };
@@ -1257,6 +1279,8 @@ function table(items: Entry[], fields: [string, string][]) {
 function render() {
   if (!snapshot) return;
   const dialog = element('action-dialog') as HTMLDialogElement;
+  const hadForm = dialog.open;
+  if (hadForm && dialog.contains(element('project-notice'))) closeNotice();
   if (dialog.open) dialog.close(); element('action-fields').replaceChildren(); element('action-message').textContent = '';
   const p = snapshot.project;
   element('notice').textContent = snapshot.capabilities.editText ? '本人已负责，可编辑' : '只读；加入负责范围后可编辑';
@@ -1264,6 +1288,7 @@ function render() {
   element('d-tags').innerHTML = projectTags(p);
   element('d-meta').textContent = detailMeta(p);
   let content = '';
+  let recovery = '';
   if (tab === 'info') {
     content = editor();
   } else if (tab === 'stages') content = stagePanel();
@@ -1275,29 +1300,34 @@ function render() {
   else if (tab === 'risk') content = signalEditor() + riskPanel() + changePanel() + '<h2>改期与说明</h2>' + (snapshot.delays.map(scheduleHistory).join('') || '<p>没有计划历史。</p>');
   if (tab === 'risk') content += `<details class="secondary-section"><summary>计划与日期 · 当前计划 ${esc(p.dueDate ?? '未定')}</summary>${snapshot.capabilities.editText ? '<button class="back-btn" data-plan="notePlan">补充计划说明</button>' : ''}<p>原计划结案：${esc(p.originalDueDate ?? '未定')} · 实际启动：${esc(p.startDate ?? '未知')}</p>`;
   if (tab === 'risk') content += `<p class="read-message">有效改期 ${snapshot.planSummary.reschedules} 次，其中向后调整 ${snapshot.planSummary.laterAdjustments} 次；日期待核对 ${snapshot.planSummary.unknownAdjustments} 次。相对原始计划净调整：${snapshot.planSummary.netDays === null ? '无法计算' : snapshot.planSummary.netDays + ' 天'}。</p></details>`;
-  if (planDraft && !stagePending) content = `<p>本标签页保留${esc(actionLabels[planDraft.action])}副本。</p><button class="back-btn" id="plan-restore">恢复计划/日期表单</button><button class="back-btn" id="plan-discard">放弃该副本</button>${planDraft.action === 'reschedulePlan' ? '<button class="back-btn" id="plan-as-note">作为补充说明重新预览</button>' : ''}` + content;
+  if (planDraft && !stagePending) recovery += `<p>${esc(actionLabels[planDraft.action])}</p><button class="back-btn" id="plan-restore">恢复计划/日期表单</button><button class="back-btn" id="plan-discard">放弃该副本</button>${planDraft.action === 'reschedulePlan' ? '<button class="back-btn" id="plan-as-note">作为补充说明重新预览</button>' : ''}`;
   if (tab === 'history' && snapshot.lifecycleNotes.length) {
     const p = snapshot.project;
     content += `<details class="secondary-section"><summary>暂缓与恢复记录</summary>${p.status === 'paused' ? `<p>项目暂缓；此前状态：${esc(p.resumeStatus ? label(p.resumeStatus) : '未知，需核对来源')}。阶段保留，不代表仍在执行。</p>` : ''}<p>${esc(p.checkStatus.label)}${p.checkStatus.updatedAfterCheck ? '；检查后项目有更新' : ''} · 本周截止 ${esc(p.checkStatus.deadlineDate ?? '未初始化')}；不自动产生检查。</p>${p.checkStatus.latest ? `<p>最新检查：${esc(p.checkStatus.latest.actorName ?? '原账号未知')} · ${esc(p.checkStatus.latest.checkedAt)}（UTC） · ${p.checkStatus.latest.conclusion === 'follow_up' ? '已核对，需跟进' : '已核对'}。</p>` : ''}</details>`;
     content += snapshot.lifecycleNotes.map(item => `<article class="audit-entry"><h3>${esc(actionLabels[item.action])} #${esc(item.id)} · ${esc(item.actorDisplayName)} · ${esc(item.createdAt)}（UTC）</h3><p>有效说明：${esc(item.note || '（空）')}</p><details><summary>原文及纠错来源</summary><p>${esc(item.originalNote || '（空）')}</p>${item.corrections.map(change => `<p>${esc(change.actorDisplayName)} · ${esc(change.createdAt)} · ${esc(change.reason)}</p>`).join('')}</details>${snapshot!.capabilities.editText ? `<button class="back-btn" data-lifecycle="correctLifecycleNote" data-audit="${esc(item.id)}">纠正说明</button>` : ''}</article>`).join('');
   }
-  if (lifecycleDraft && !stagePending) content = `<p>本标签页保留${esc(actionLabels[lifecycleDraft.action])}副本。</p><button class="back-btn" id="lifecycle-restore">恢复暂缓/恢复表单</button><button class="back-btn" id="lifecycle-discard">放弃该副本</button>` + content;
-  if (stagePending && (isPlanCommand(stagePending) || isLifecycleCommand(stagePending) || isClosureCommand(stagePending) || isCheckCommand(stagePending)) && tab !== 'stages') content = '<p role="status">原动作结果待确认。</p><button class="back-btn" id="stage-confirm">确认原动作结果</button><button class="back-btn" id="stage-retry">重试原动作</button>' + content;
+  if (lifecycleDraft && !stagePending) recovery += `<p>${esc(actionLabels[lifecycleDraft.action])}</p><button class="back-btn" id="lifecycle-restore">恢复暂缓/恢复表单</button><button class="back-btn" id="lifecycle-discard">放弃该副本</button>`;
+
   if (tab === 'info' && p.status === 'closed') {
     content += `<details class="secondary-section"><summary>结案与维护事实</summary><p>结案类型：${esc(p.closureType ? label(p.closureType) : '未知')} · 结案说明：${esc(p.closureNote || '—')} · 剩余工作：${esc(p.remainingWorkNote || '—')}</p>${p.status === 'closed' ? `<p>本次结案：${esc(snapshot.currentClosure?.auditId ? '#' + snapshot.currentClosure.auditId + ' · ' + snapshot.currentClosure.actorDisplayName + ' · ' + snapshot.currentClosure.createdAt + '（UTC）' : '旧来源事实，原操作人/时间未知')}；结案时计划 ${esc(p.closureDueDate ?? (snapshot.currentClosure?.auditId ? '未定' : '未知，需核对'))}。阶段实际进度 ${esc(p.progress)}%，维护${p.maintenanceEnabled ? '开启' : '关闭'}，与S7分别记录。</p><p>重开将恢复：${esc(p.preCloseStatus ? label(p.preCloseStatus) : '依据未知，需核对来源')}。原结案及每次更正从修改历史查看。</p>${snapshot.capabilities.editText ? '<button class="back-btn" data-closure="correctClosure">纠正当前结案</button>' : ''}` : `<p>人工确认结案，保留真实阶段/节点/风险及首次检查依据，不自动完成七阶段。</p>`}</details>`;
   }
   if (tab === 'info') content += checkHistory();
-  if (checkDraft && !stagePending) content = '<p>本标签页保留检查副本。</p><button class="back-btn" id="check-restore">恢复检查表单</button><button class="back-btn" id="check-discard">放弃该副本</button>' + content;
-  if (closureDraft && !stagePending) content = '<p>本标签页保留结案操作副本。</p><button class="back-btn" id="closure-restore">恢复结案操作表单</button><button class="back-btn" id="closure-discard">放弃该副本</button>' + content;
-  if (nodeDraft) content += '<p>本标签页保留未确认节点表单。</p><button class="back-btn" id="node-restore">恢复节点表单</button>';
-  if (changeDraft) content += '<p>本标签页保留未确认需求变更表单。</p><button class="back-btn" id="change-restore">恢复需求变更表单</button>';
-  if (riskDraft) content += '<p>本标签页保留未确认风险表单。</p><button class="back-btn" id="risk-restore">恢复风险表单</button>';
+  if (checkDraft && !stagePending) recovery += '<p>检查</p><button class="back-btn" id="check-restore">恢复检查表单</button><button class="back-btn" id="check-discard">放弃该副本</button>';
+  if (closureDraft && !stagePending) recovery += '<p>结案操作</p><button class="back-btn" id="closure-restore">恢复结案操作表单</button><button class="back-btn" id="closure-discard">放弃该副本</button>';
+  if (nodeDraft) recovery += '<p>节点编辑</p><button class="back-btn" id="node-restore">恢复节点表单</button>';
+  if (changeDraft) recovery += '<p>需求变更编辑</p><button class="back-btn" id="change-restore">恢复需求变更表单</button>';
+  if (riskDraft) recovery += '<p>风险编辑</p><button class="back-btn" id="risk-restore">恢复风险表单</button>';
   content += '<div id="change-form"></div><div id="risk-form"></div><div id="plan-form"></div><div id="lifecycle-form"></div><div id="closure-form"></div><div id="check-form"></div>';
   element('project-menu').hidden = !snapshot.capabilities.editText;
   element('project-actions').innerHTML = snapshot.capabilities.editText ? `<button class="back-btn" data-plan="${p.dueDate ? 'reschedulePlan' : 'setPlan'}">${p.dueDate ? '调整计划' : '确定计划'}</button><button class="back-btn" data-plan="correctProjectDates">纠正日期信息</button>${projectStatusActions()}` : '';
   element('project-context').innerHTML = `<span>${esc(label(p.stage))} · 进度 ${esc(p.progress)}% · 预计结案 ${esc(p.dueDate ?? '未定')} · ${esc(p.checkStatus.label)}${p.checkStatus.updatedAfterCheck ? ' · 检查后有更新' : ''}</span>${snapshot.capabilities.editText ? '<button class="back-btn" data-check="saveCheck">检查</button>' : ''}`;
   element('project-savebar').hidden = !snapshot.capabilities.editText;
-  element('project-savebar').innerHTML = snapshot.capabilities.editText ? `<div class="savebar-main"><button class="save-btn" id="save">保存项目</button><button class="back-btn" id="discard" hidden>取消修改</button><span id="edit-state" role="status"></span>${pending ? '<button class="back-btn" id="confirm">确认原保存结果</button><button class="back-btn" id="retry">重试原操作</button>' : ''}</div><p id="storage-warning" class="field-error"></p>` : '';
+  element('project-savebar').innerHTML = snapshot.capabilities.editText ? `<div class="savebar-main"><button class="save-btn" id="save">保存项目</button><button class="back-btn" id="discard" hidden>取消修改</button>${pending ? '<button class="back-btn" id="confirm">确认原保存结果</button><button class="back-btn" id="retry">重试原操作</button>' : ''}</div>` : '';
+  if (stageDraft && !stagePending) recovery += `<p>${esc(actionLabels[stageDraft.action])}</p><button class="back-btn" id="stage-restore">继续编辑</button><button class="back-btn" id="stage-discard">放弃副本</button>`;
+  if (correctionDraft && !stagePending) recovery += `<p>${esc(actionLabels[correctionDraft.action])}</p><button class="back-btn" id="correction-restore">继续编辑</button><button class="back-btn" id="correction-discard">放弃副本</button>`;
+  if (stagePending) recovery += `<p>${esc(actionLabels[stagePending.action])}结果待确认。请确认原结果或重试原操作。</p><button class="back-btn" id="stage-confirm">确认原结果</button><button class="back-btn" id="stage-retry">重试原操作</button>`;
+  element('draft-actions').innerHTML = recovery;
+  element('drafts').hidden = !recovery;
   element('detail-body').innerHTML = content;
   document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => button.classList.toggle('active', button.dataset.tab === tab));
   bindEditor();
@@ -1333,13 +1363,15 @@ function render() {
   const refresh = document.getElementById('audit-refresh'); if (refresh) refresh.onclick = () => { void loadAudit(); };
   const more = document.getElementById('audit-more'); if (more) more.onclick = () => { void loadAudit(true); };
   controls();
+  const signature = [stageDraft?.action, correctionDraft?.action, planDraft?.action, lifecycleDraft?.action, closureDraft?.action, checkDraft?.action, nodeDraft?.op, changeDraft?.op, riskDraft?.op, stagePending?.action].filter(Boolean).join('|');
+  if (signature && (signature !== draftNotice || hadForm) && !loading && !stale && !authFrozen) note(stagePending ? '保存结果尚未确认，请确认原结果或重试原操作。' : '本次输入尚未保存到项目，可继续编辑。关闭标签页后副本会丢失。', !!stagePending, true);
+  draftNotice = signature;
 }
 async function load(initial = false) {
   const current = ++generation;
   loading = true; controls();
-  element('message').classList.remove('error');
-  element('message').textContent = '正在读取项目…';
-  if (!/^[1-9][0-9]{0,19}$/.test(id)) { element('message').textContent = '项目编号无效，请从列表选择项目。'; loading = false; controls(); return; }
+  note('正在读取项目…');
+  if (!/^[1-9][0-9]{0,19}$/.test(id)) { note('项目编号无效，请从列表选择项目。', true); loading = false; controls(); return; }
   try {
     const data = await get<Detail>('/api/projects/' + id);
     if (current !== generation) return;
@@ -1349,7 +1381,7 @@ async function load(initial = false) {
     deletedNodes = undefined; deletedMessage = ''; deletedGeneration++; deletedLoading = false; restoredSources.clear();
     element('detail-panel').hidden = false;
     render();
-    element('message').textContent = '';
+    note('');
     if (initial) {
       if (stagePending) { tab = isPlanCommand(stagePending) || isLifecycleCommand(stagePending) || isClosureCommand(stagePending) || isCheckCommand(stagePending) ? 'info' : 'stages'; render(); await executeStage(true); }
       candidate = readBuffer();
@@ -1365,11 +1397,16 @@ async function load(initial = false) {
     return true;
   } catch (error) {
     if (current !== generation) return false;
-    element('message').classList.add('error');
-    element('message').textContent = (error as Error).message + (snapshot ? ' 当前仍显示上次进入的项目版本。' : '');
+    note((error as Error).message + (snapshot ? ' 当前仍显示上次进入的项目版本。' : ''), true);
   } finally { if (current === generation) { loading = false; controls(); } }
 }
 document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => button.onclick = () => { persist(); tab = button.dataset.tab!; render(); if (tab === 'history' && !audit) void loadAudit(); });
+element('notice-close').onclick = closeNotice;
+const draftDialog = element('draft-dialog') as HTMLDialogElement;
+element('drafts').onclick = element('notice-drafts').onclick = () => { closeNotice(); if (!draftDialog.open) draftDialog.showModal(); };
+for (const name of ['draft-close', 'draft-later']) element(name).onclick = () => draftDialog.close();
+element('draft-copy').onclick = () => { draftDialog.close(); void copyText(); };
+element('draft-actions').addEventListener('click', event => { if ((event.target as HTMLElement).closest('button')) draftDialog.close(); }, true);
 element('reload').onclick = async () => {
   if (pending || stagePending || inFlight) return;
   if (dirty()) {
@@ -1422,4 +1459,5 @@ void requireIdentity().then(async () => {
     }
   } catch { note('动作恢复信息无法读取，请核对当前项目。', true); }
   await load(true); legacyCopy = readBuffer(`geekdash_trial_text_v1:${id}`); await loadCatalog(); if (responsibilityPending) await changeResponsibility(true);
+  if (!element('drafts').hidden && !stagePending && !(element('editor-dialog') as HTMLDialogElement).open && element('project-notice').hidden) note('发现本标签页未保存的操作，可继续编辑或查看并复制。', false, true);
 }).catch(error => { note((error as Error).message, true); const link = document.createElement('a'); link.href = '/login.html'; link.textContent = '登录 GeekDash'; element('message').append(' ', link); });

@@ -82,7 +82,8 @@ async function page(user, projectId, holdCatalog = false) {
   const $ = selector => w.document.querySelector(selector);
   const input = (selector, value) => { const element = $(selector); assert(element, selector); element.value = value; element.dispatchEvent(new w.Event('input', { bubbles: true })); };
   const click = selector => { const element = $(selector); assert(element, selector); assert(!element.disabled, selector + ' 不应禁用'); element.click(); };
-  return { dom, w, $, input, click, tab: value => click(`[data-tab="${value}"]`) };
+  const visibleClick = selector => { const element = $(selector); assert(element, selector); assert.equal(element.closest('[hidden]'), null, selector + ' 必须实际展示'); const dialog = element.closest('dialog'); if (dialog) assert(dialog.open, selector + ' 所在弹窗必须已打开'); click(selector); };
+  return { dom, w, $, input, click, visibleClick, tab: value => click(`[data-tab="${value}"]`) };
 }
 async function facts(id) {
   const { connection } = await connectDatabase('test_app');
@@ -110,6 +111,14 @@ async function verifyReferences(a, b, id, path) {
   const frozen = expected => { for (const element of panel.w.document.querySelectorAll('.reference-picker input,.reference-box button,select[data-reference]')) assert.equal(element.disabled, expected, element.id || element.outerHTML); };
   frozen(true); await waitFor(() => panel.dom.releaseCatalog, '资料响应等待释放'); panel.dom.releaseCatalog();
   await waitFor(() => panel.dom.catalogConsumed && !panel.$('#edit-customerId').disabled, '资料响应后控件恢复'); frozen(false);
+  assert.equal(panel.$('#edit-state,#storage-warning'), null, '移除常驻保存/副本状态文字'); assert.equal(panel.$('#project-notice').getAttribute('popover'), 'manual');
+  const store = panel.w.Storage.prototype.setItem;
+  try {
+    panel.w.Storage.prototype.setItem = function(key, value) { if (this === panel.w.sessionStorage && key.startsWith('geekdash_project_buffer:')) throw new panel.w.DOMException('合成暂存容量不足', 'QuotaExceededError'); return store.call(this, key, value); };
+    panel.input('#edit-summaryNote', '暂存不可用时仍保留的输入'); await waitFor(() => !panel.$('#project-notice').hidden && /无法保留副本/.test(panel.$('#message').textContent), '暂存失败提示');
+    panel.visibleClick('#notice-close'); assert(panel.$('#project-notice').hidden); assert.equal(panel.$('#edit-summaryNote').value, '暂存不可用时仍保留的输入'); assert.deepEqual(await facts(id), initial);
+  } finally { panel.w.Storage.prototype.setItem = store; }
+  panel.input('#edit-summaryNote', '原项目简介'); assert(panel.$('#save').disabled);
   assert.deepEqual([...panel.w.document.querySelectorAll('.project-info h2')].map(node => node.textContent), ['资料与时间', '项目分工', '最新状态与说明']);
   const dates = panel.$('.project-key-dates');
   assert.deepEqual([...dates.querySelectorAll('.read-label')].map(node => node.textContent), ['立案日期', '实际启动日期', '预计结案日期', '实际结案日期']);
@@ -137,6 +146,8 @@ async function verifyReferences(a, b, id, path) {
   assert.equal(source('customerId').value, refs.customers[1]); assert.deepEqual(selected('chipIds'), [refs.chips[1]]); assert.equal(panel.$('#edit-statusDesc').value, '资料核对完成，按最新分工推进');
   assert.deepEqual(await facts(id), initial, '搜索/重选/清空/移除及切页只改共享副本');
   panel.click('#save'); await waitFor(() => panel.$('#save').disabled && panel.dom.projectReads.at(-1)?.project.customerId === refs.customers[1] && !panel.$('#reload').disabled, '关联统一保存后的新GET');
+  assert(!panel.$('#project-notice').hidden); assert.match(panel.$('#message').textContent, /项目已保存/); assert.equal(panel.$('#action-message').textContent, '');
+  await waitFor(() => panel.$('#project-notice').hidden, '成功反馈自动收起'); assert.equal(panel.$('#edit-state'), null);
   let d = await read(), saved = await facts(id);
   assert.equal(saved.project.version, String(BigInt(initial.project.version) + 1n)); assert.equal(saved.auditCount, initial.auditCount + 1);
   const { connection: fresh } = await connectDatabase('test_app');
@@ -161,17 +172,27 @@ async function verifyReferences(a, b, id, path) {
   checks.push('单框搜索/下拉/清空与多选逐个移除；同名稳定ID、键盘选择、切页副本一致；一次保存增加一个版本/审计，独立SQL、新GET及历史消费正式关联');
   panel.click('.date-actions [data-plan="correctProjectDates"]'); await waitFor(() => panel.$('#plan-edit'), '关键日期就近打开明确纠错'); frozen(true);
   assert(panel.$('[data-tab="info"]').classList.contains('active')); panel.click('[data-plan-select="filingDate"]'); panel.input('[data-plan-date="filingDate"]', d.businessDate); panel.input('#plan-reason', '立案日期核对');
+  panel.click('#plan-cancel'); assert.equal(panel.$('#action-dialog').open, false); assert.equal(panel.$('#draft-dialog').open, false);
+  assert.equal(panel.$('#detail-body #plan-restore'), null); assert(!panel.$('#detail-body').textContent.includes('本标签页保留')); assert(panel.$('#draft-actions #plan-restore'));
+  panel.visibleClick('#notice-drafts'); assert(panel.$('#draft-dialog').open); assert(panel.$('#project-notice').hidden);
+  panel.visibleClick('#draft-later'); assert.equal(panel.$('#draft-dialog').open, false); assert.deepEqual(await facts(id), saved, '关闭副本弹窗不保存也不丢输入');
+  panel.tab('stages'); panel.visibleClick('#drafts'); assert(panel.$('#draft-dialog').open); panel.visibleClick('#plan-restore');
+  await waitFor(() => panel.$('#plan-edit'), '跨页从可见副本入口恢复日期表单'); assert.equal(panel.$('#draft-dialog').open, false); assert(panel.$('#action-dialog').open);
+  assert.equal(panel.$('[data-plan-date="filingDate"]').value, d.businessDate); assert(panel.$('[data-plan-select="filingDate"]').checked); assert.equal(panel.$('#plan-reason').value, '立案日期核对');
   panel.$('#plan-edit').dispatchEvent(new panel.w.Event('submit', { bubbles: true, cancelable: true })); await waitFor(() => !panel.$('#plan-save').disabled, '日期纠错真实预览');
   assert.deepEqual(await facts(id), saved, '日期预览未提交'); panel.click('#plan-save'); await waitFor(() => !panel.$('#action-dialog').open && panel.dom.projectReads.at(-1)?.project.filingDate === d.businessDate && !panel.$('#reload').disabled, '日期明确保存后新GET'); frozen(false);
+  panel.tab('info');
   d = await read(); assert.equal(d.project.filingDate, d.businessDate); assert.match(panel.$('.project-key-dates').textContent, new RegExp(d.businessDate));
   assert.equal((await c.query('SELECT CAST(filed_on AS CHAR) day FROM projects WHERE id=?', [id]))[0][0].day, d.businessDate);
   assert.equal((await a.api(path + '/audit')).items[0].action, 'project.plan.correctProjectDates');
   const viewer = await page(b, id); assert.equal(viewer.$('[role="combobox"]'), null); assert.equal(viewer.$('#save'), null); assert.equal(viewer.$('.date-actions button'), null); assert.match(viewer.$('.project-info').textContent, /同名/);
   checks.push('资料/关键日期/分工/最新说明层级一致；更多日期原位展开；纠错在当前页预览并明确保存后日期新读；非负责人纯文本只读');
+  checks.push('成功反馈自动收起且无常驻已保存文字；暂存失败关闭提示仍保留输入；日期副本从可见提示打开，暂不处理后跨页恢复原输入，明确保存后SQL/新GET及历史一致');
   await b.api(path + '/responsibility', 'POST', { action: 'join', expectedVersion: d.project.version, idempotencyKey: randomUUID() });
   panel.click('#reload'); await waitFor(() => /页面合成账号1/.test(panel.$('#responsibility').textContent) && !panel.$('#reload').disabled, '加入责任后新进入');
   pick('customerId', refs.customers[0]); const latest = await b.api(path); await b.api(path, 'PATCH', { expectedVersion: latest.project.version, idempotencyKey: randomUUID(), changes: { summaryNote: '另一个负责人核对资料' } });
-  panel.w.dispatchEvent(new panel.w.Event('focus')); await waitFor(() => panel.$('#save').disabled && /他人更新/.test(panel.$('#edit-state').textContent), '引用旧版本冻结'); frozen(true); assert.equal(source('customerId').value, refs.customers[0]);
+  panel.w.dispatchEvent(new panel.w.Event('focus')); await waitFor(() => panel.$('#save').disabled && !panel.$('#project-notice').hidden && /他人更新/.test(panel.$('#message').textContent), '引用旧版本冻结'); frozen(true); assert.equal(source('customerId').value, refs.customers[0]);
+  panel.visibleClick('#notice-close'); assert(panel.$('#project-notice').hidden); frozen(true); assert(panel.$('#save').disabled);
   assert.equal((await read()).project.customerId, refs.customers[1], '旧副本未覆盖正式关联'); panel.click('#copy'); assert.match(panel.$('.copy-text').value, new RegExp(refs.customers[0])); panel.click('[data-choice="cancel"]');
   checks.push('候选未到、动作处理中与他人更新统一禁用组合控件；冻结保留旧ID供复制，不覆盖他人新版本');
 }
@@ -208,7 +229,7 @@ try {
   owner.$('.flow-node').dispatchEvent(new owner.w.KeyboardEvent('keydown', { key: 'Enter' }));
   await waitFor(() => owner.$('#node-edit'), 'Flow节点编辑'); assert(owner.$('[data-tab="flow"]').classList.contains('active'));
   owner.click('#node-cancel'); owner.tab('info'); assert.equal(owner.$('#edit-name').value, prefix + ' 修改'); assert.equal(owner.$('#edit-summaryNote').value, '跨页保留的普通修改');
-  owner.tab('flow'); owner.click('#save'); await waitFor(() => owner.$('#save')?.disabled && /当前内容已保存/.test(owner.$('#edit-state').textContent) && owner.dom.projectReads.at(-1)?.project.name === prefix + ' 修改', '项目保存及新GET回读');
+  owner.tab('flow'); owner.click('#save'); await waitFor(() => owner.$('#save')?.disabled && !owner.$('#reload').disabled && owner.dom.projectReads.at(-1)?.project.name === prefix + ' 修改', '项目保存及新GET回读');
   const persisted = await facts(id); assert.equal(persisted.project.name, prefix + ' 修改'); assert.equal(persisted.project.summary_note, '跨页保留的普通修改'); assert.equal(persisted.nodes.length, 1); assert.equal(persisted.nodes[0].title, '同源节点');
   assert.equal(owner.$('.flow-node').dataset.nodeDrag, persisted.nodes[0].id); owner.tab('nodes'); assert.match(owner.$('.node-item').textContent, /同源节点/);
   checks.push('七页签唯一保存；真实前端普通输入与节点副本跨页同源；预览不写库，保存后独立SQL/新GET/Flow与列表一致');
@@ -219,14 +240,15 @@ try {
   owner.click('#reload'); await waitFor(() => /页面合成账号1/.test(owner.$('#responsibility').textContent) && !owner.$('#reload').disabled, '新进入读取加入责任后的版本');
   owner.tab('info'); owner.input('#edit-name', '旧副本供复制');
   const latest = await b.api(path); await b.api(path, 'PATCH', { expectedVersion: latest.project.version, idempotencyKey: randomUUID(), changes: { name: '另一人已经更新' } });
-  owner.w.dispatchEvent(new owner.w.Event('focus')); await waitFor(() => owner.$('#save').disabled && /他人更新/.test(owner.$('#edit-state').textContent), '旧版本冻结');
+  owner.w.dispatchEvent(new owner.w.Event('focus')); await waitFor(() => owner.$('#save').disabled && !owner.$('#project-notice').hidden && /他人更新/.test(owner.$('#message').textContent), '旧版本冻结');
+  owner.visibleClick('#notice-close'); assert(owner.$('#project-notice').hidden); assert(owner.$('#edit-name').disabled); assert(owner.$('#save').disabled);
   owner.click('#copy'); assert.match(owner.$('.copy-text').value, /旧副本供复制/); owner.click('[data-choice="cancel"]');
   owner.click('#reload'); await waitFor(() => owner.$('[data-choice="keep"]'), '重新进入前明确保留'); owner.click('[data-choice="keep"]');
   await waitFor(() => owner.$('#edit-name')?.value === '另一人已经更新' && !owner.$('#reload').disabled, '新版本回读'); owner.click('#copy'); assert.match(owner.$('.copy-text').value, /旧副本供复制/); owner.click('[data-choice="cancel"]');
   checks.push('另一负责人真实保存后旧副本冻结、可复制；明确重新进入后显示新版本，旧输入仍保留供核对');
   const recovering = await page(a, id), beforeUnknown = await facts(id); recovering.tab('info'); recovering.input('#edit-name', '真实提交后丢确认'); recovering.dom.dropSaveAck = true; recovering.click('#save');
   await waitFor(() => recovering.$('#confirm') && !recovering.$('#confirm').disabled, '原保存结果待确认'); assert.equal((await facts(id)).project.name, '真实提交后丢确认');
-  recovering.click('#confirm'); await waitFor(() => recovering.$('#save')?.disabled && /当前内容已保存/.test(recovering.$('#edit-state').textContent) && recovering.dom.projectReads.at(-1)?.project.name === '真实提交后丢确认', '原编号确认及新读取');
+  recovering.visibleClick('#confirm'); await waitFor(() => recovering.$('#save')?.disabled && !recovering.$('#reload').disabled && recovering.dom.projectReads.at(-1)?.project.name === '真实提交后丢确认', '原编号确认及新读取');
   assert.equal((await facts(id)).auditCount, beforeUnknown.auditCount + 1); assert.equal(recovering.$('#edit-name').value, '真实提交后丢确认');
   checks.push('真实COMMIT后丢响应，页面保留原请求；确认原结果及新读取仅产生一次审计');
   if (actionsMode) {
@@ -267,13 +289,17 @@ try {
     checks.push('三类新增仅一次完成编辑且不入正式库；风险/需求/客户节点同次普通保存；取消与ESC保留其他副本；直接纠错只发送变化');
     let d = await read(); const today = d.businessDate, date = days => new Date(Date.parse(today) + days * 86400000).toISOString().slice(0, 10);
     panel.tab('stages'); panel.click('[data-stage="S1"][data-stage-action="startStage"]'); await waitFor(() => panel.$('#stage-form'), '阶段开始弹窗'); mounted('#stage-form');
-    panel.input('#stage-date', '2099-01-01'); const beforeReject = await facts(id); submit('#stage-form'); await waitFor(() => !panel.$('#action-fields').disabled && /日期/.test(panel.$('#action-message').textContent), '未来实际日拒绝'); assert.equal(panel.$('#stage-date').value, '2099-01-01'); assert.deepEqual(await facts(id), beforeReject);
+    panel.input('#stage-date', '2099-01-01'); const beforeReject = await facts(id); submit('#stage-form'); await waitFor(() => !panel.$('#action-fields').disabled && !panel.$('#project-notice').hidden && /日期/.test(panel.$('#message').textContent), '未来实际日拒绝'); assert.equal(panel.$('#action-message').textContent, ''); assert.equal(panel.$('#stage-date').value, '2099-01-01'); assert.deepEqual(await facts(id), beforeReject);
     panel.input('#stage-date', today); submit('#stage-form'); await done(data => data?.stages[0].state === 'active', '开始新GET');
     panel.click('[data-stage="S1"][data-stage-action="completeStage"]'); await waitFor(() => panel.$('#stage-form'), '完成弹窗'); panel.input('#stage-note', '负责人已核对'); panel.dom.dropActionAck = true; submit('#stage-form');
-    await waitFor(() => !panel.$('#action-recovery').hidden && !panel.$('#action-confirm').disabled, '动作真实COMMIT后未知'); assert(panel.$('#action-fields').disabled); const afterCommit = await facts(id); panel.click('#action-confirm');
+    await waitFor(() => !panel.$('#action-recovery').hidden && !panel.$('#action-confirm').disabled, '动作真实COMMIT后未知'); assert(panel.$('#action-fields').disabled); const afterCommit = await facts(id);
+    panel.visibleClick('#action-close'); assert.equal(panel.$('#action-dialog').open, false); assert.equal(panel.$('#draft-dialog').open, false); assert.equal(panel.$('#detail-body #stage-confirm'), null);
+    panel.visibleClick('#drafts'); assert(panel.$('#draft-dialog').open); panel.visibleClick('#draft-close'); assert.equal(panel.$('#draft-dialog').open, false); assert.deepEqual(await facts(id), afterCommit);
+    panel.visibleClick('#drafts'); assert(panel.$('#draft-dialog').open); panel.visibleClick('#stage-confirm');
     d = await done(data => data?.stages[0].state === 'completed', '完成原结果及新GET'); assert.equal((await facts(id)).auditCount, afterCommit.auditCount); assert.equal(d.project.status, 'proposal'); assert.equal(d.stages[1].state, 'ready');
     panel.click('#project-start'); await waitFor(() => panel.$('#start-form'), '项目启动弹窗'); panel.input('#start-date', today); panel.input('#start-due', date(10)); submit('#start-form'); d = await done(data => data?.project.status === 'ongoing', '启动新GET'); const obligation = d.project.firstCheckWeek; assert.equal(d.stages[1].state, 'ready');
     checks.push('阶段未来日期失败保留输入与库原值；开始/完成独立保存，真实动作COMMIT丢响应用原编号确认；S1完成仍提案，人工启动后S2待开始');
+    checks.push('动作未知结果关闭原表单后，从可见副本弹窗找到原结果确认；关闭提示不丢请求，原编号回读不重复增加审计');
     panel.tab('flow'); panel.click('[data-plan="reschedulePlan"]'); await waitFor(() => panel.$('#plan-edit'), 'Flow中的计划弹窗'); mounted('#plan-edit'); assert(panel.$('[data-tab="flow"]').classList.contains('active'));
     panel.input('#plan-date', date(14)); panel.input('#plan-reason', '客户窗口调整'); await preview('#plan-edit', '#plan-save'); panel.input('#plan-date', date(15)); assert(panel.$('#plan-save').disabled); await preview('#plan-edit', '#plan-save'); panel.click('#plan-save'); d = await done(data => data?.project.dueDate === date(15), '计划新GET'); assert(panel.$('[data-tab="flow"]').classList.contains('active'));
     panel.click('[data-check="saveCheck"]'); await waitFor(() => panel.$('#check-edit'), 'Flow中的检查弹窗'); panel.input('#check-note', '按实际版本核对'); await preview('#check-edit', '#check-save'); panel.click('#check-save'); d = await done(data => data?.project.checkStatus.latest, '检查新GET'); assert(panel.$('[data-tab="flow"]').classList.contains('active'));
@@ -290,14 +316,15 @@ try {
     panel.click('[data-node-form-action="complete"]'); await waitFor(() => panel.$('#node-completed'), '同上下文填写完成日'); panel.input('#node-completed', today); await preview('#node-edit', '#node-accept'); panel.click('#node-accept'); panel.click('#save'); d = await done(data => data?.nodes.find(n => n.kind === 'project')?.completedOn === today, 'Flow节点完成正式新读'); assert(panel.$('[data-tab="flow"]').classList.contains('active')); assert.equal(d.stages[0].state, 'ready');
     panel.$('.flow-node').dispatchEvent(new panel.w.KeyboardEvent('keydown', { key: 'Enter' })); await waitFor(() => panel.$('#node-edit'), '节点更正弹窗'); panel.input('[data-node-field="title"]', '旧节点输入供复制'); panel.input('#node-reason', '名称误录');
     const concurrent = await b.api(path); await b.api(path, 'PATCH', { expectedVersion: concurrent.project.version, idempotencyKey: randomUUID(), changes: { summaryNote: '另一个负责人已经核对' } });
-    panel.w.dispatchEvent(new panel.w.Event('focus')); await waitFor(() => panel.$('#action-fields').disabled && /他人更新/.test(panel.$('#action-message').textContent), '弹窗旧版本冻结'); panel.click('#action-copy'); assert.match(panel.$('.copy-text').value, /旧节点输入供复制/); panel.click('[data-choice="cancel"]'); assert(panel.$('#action-dialog').open);
+    panel.w.dispatchEvent(new panel.w.Event('focus')); await waitFor(() => panel.$('#action-fields').disabled && !panel.$('#project-notice').hidden && /他人更新/.test(panel.$('#message').textContent), '弹窗旧版本冻结'); assert.equal(panel.$('#action-message').textContent, '');
+    panel.visibleClick('#notice-close'); assert(panel.$('#project-notice').hidden); assert(panel.$('#action-fields').disabled); panel.click('#action-copy'); assert.match(panel.$('.copy-text').value, /旧节点输入供复制/); panel.click('[data-choice="cancel"]'); assert(panel.$('#action-dialog').open);
     panel.click('#action-close'); assert.equal(panel.$('#action-dialog').open, false); panel.click('#copy'); assert.match(panel.$('.copy-text').value, /旧节点输入供复制/); panel.click('[data-choice="cancel"]');
     checks.push('Flow节点弹窗直接进入实际完成操作，明确字段纠错后才编辑；节点完成不自动完成阶段；他人更新时弹窗冻结、可复制，关闭仍保留旧副本');
   }
   }
   assert.equal(errors.length, 0);
   const build = (await a.api('/api/health/live')).build;
-  await writeFile('test-results/' + (referencesMode ? 'reference-ui-check.json' : actionsMode ? 'context-ui-check.json' : 'detail-ui-check.json'), JSON.stringify({ status: 'passed', checkedAt: new Date().toISOString(), checks, requestCount, build, frontendSource: 'src/web/detail.ts + shared/api.ts + shared/reference-picker.ts', sourceSha256: Object.fromEntries(Object.entries({ detailSource, apiSource, referenceSource, html }).map(([key, source]) => [key, createHash('sha256').update(source).digest('hex')])), isolatedTestDatabase: true, syntheticOnly: true, domExecution: 'jsdom 27.0.1; CSS/BroadcastChannel/native dialog behavior not validated', nativeBrowserAcceptance: false, visualAcceptance: false }, null, 2) + '\n');
+  await writeFile('test-results/' + (referencesMode ? 'reference-ui-check.json' : actionsMode ? 'context-ui-check.json' : 'detail-ui-check.json'), JSON.stringify({ status: 'passed', checkedAt: new Date().toISOString(), checks, requestCount, build, frontendSource: 'src/web/detail.ts + shared/api.ts + shared/reference-picker.ts', sourceSha256: Object.fromEntries(Object.entries({ detailSource, apiSource, referenceSource, html }).map(([key, source]) => [key, createHash('sha256').update(source).digest('hex')])), isolatedTestDatabase: true, syntheticOnly: true, domExecution: 'jsdom 27.0.1; CSS/BroadcastChannel/native dialog/popover behavior not validated', nativeBrowserAcceptance: false, visualAcceptance: false }, null, 2) + '\n');
   console.log(JSON.stringify({ status: 'passed', groups: checks.length, requestCount }));
 } finally {
   for (const view of views) view.window.close();

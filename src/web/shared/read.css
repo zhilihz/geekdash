@@ -22,8 +22,25 @@
 .field-error { color: var(--p-high); font-size: 13px; }
 .edit-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
 button:disabled { opacity: .5; cursor: not-allowed; }
-#editor-dialog { color: var(--text); background: var(--card); border: 1px solid var(--border); border-radius: 12px; max-width: 680px; width: calc(100% - 60px); }
-#editor-dialog::backdrop { background: #0009; }
+#editor-dialog, #draft-dialog { color: var(--text); background: var(--card); border: 1px solid var(--border); border-radius: 12px; max-width: 560px; width: calc(100% - 32px); box-sizing: border-box; padding: 24px; inset: clamp(72px, 14dvh, 128px) 0 auto; margin: 0 auto; max-height: calc(100dvh - 160px); overflow: auto; box-shadow: 0 16px 48px #0004; }
+#editor-dialog::backdrop, #draft-dialog::backdrop { background: #0009; }
+.feedback-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.feedback-heading h2 { font-size: 18px; margin: 0; }
+.feedback-detail { color: var(--text-dim); font-size: 13px; line-height: 1.7; }
+#draft-actions > p { margin: 20px 0 10px; font-weight: 600; }
+#draft-actions > button { margin: 0 8px 8px 0; }
+#project-notice { position: fixed; inset: clamp(72px, 12dvh, 112px) 0 auto; margin: 0 auto; box-sizing: border-box; width: min(460px, calc(100% - 32px)); padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); color: var(--text); box-shadow: 0 12px 36px #0005; z-index: 1500; gap: 12px; align-items: flex-start; }
+#project-notice:not([hidden]) { display: flex; animation: notice-in .16s ease-out; }
+#project-notice[hidden] { display: none; }
+#notice-icon { display: grid; place-items: center; border: 1px solid currentColor; border-radius: 50%; color: var(--accent); flex: 0 0 24px; height: 24px; font-weight: 700; }
+#project-notice.error #notice-icon { color: var(--p-high); }
+.notice-content { min-width: 0; flex: 1; }
+.notice-content strong { font-size: 14px; }
+#message { font-size: 13px; line-height: 1.65; color: var(--text-dim); margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+#notice-drafts { margin-top: 12px; }
+#notice-close { border: 0; background: transparent; color: var(--text-dim); cursor: pointer; font: inherit; font-size: 20px; padding: 0 4px; }
+@keyframes notice-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { #project-notice:not([hidden]) { animation: none; } }
 .copy-text { min-height: 250px; }
 .audit-entry { border-bottom: 1px solid var(--border); padding-bottom: 14px; }
 .audit-entry h3 { font-size: 13px; margin: 16px 0; }
