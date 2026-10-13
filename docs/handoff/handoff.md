@@ -1,12 +1,16 @@
 # 未完成任务交接
 
-## 最新接手优先级（2026-10-13 UI06网页实施）
+## 最新接手优先级（2026-10-13 UI06已上线）
 
-当前分支codex/e04-ui06-frontend，从main/75656c5继续。网页代码已按同一Figma实现，类型/构建、真实前端/MySQL的13组139请求通过，夹具恢复；[真相61](../status/current-system-truth.md#61-ui06网页实施与候选验证2026-10-13)、[报告](../testing/reports/2026-10-13-e04-ui06-frontend.md)。下一步具名提交合并main、干净固定构建、UI06独立Docker测试发布及Edge实际输入/新GET/历史验收。当前公网仍669c360；不要将候选标记dirty=true的产物发布。
+UI06实现4250abed已在main推送并固定部署新加坡；本轮源码、验证、部署和局部Edge验收已完成，收尾证据在codex/e04-ui06-frontend补充后合并main。接手重核Git与实际运行，不用后续文档SHA当镜像。当前能力只查[真相61](../status/current-system-truth.md#61-ui06网页实施与候选验证2026-10-13)、[网页报告](../testing/reports/2026-10-13-e04-ui06-frontend.md)和[部署](../operations/deployments/2026-10-13-e04-ui06.md)。
 
-新发布助手在忽略test-results/ui06-*；Windows入口使用python -X utf8，避免读取GitHub中文时GBK失败。候选ui06-verify-920db3e8b712已成功终结，不重复跑；固定发布尚未提交TAT。源码改动是detail.ts、detail.css、新reference-picker.ts/css与verify-detail-ui.mjs；Git状态接手重核。禁止重跑旧UI05 installer，禁止绕过此前本机MySQL启动审批拒绝。原生自有Edge页71E44A52608F1EB8A7BC6D2157F660C6在项目21，尚未执行本轮业务保存；源备份不导入。
+源码为detail.ts、detail.css、新reference-picker.ts/css、verify-detail-ui.mjs；资料选择沿原select→共享values→统一保存，日期仍原明确动作。候选与固定13组139请求通过、夹具恢复；6原会话/34原结果保持。ui06-download、install、read-facts全已SUCCESS/exit0，无未确认服务器写任务，禁止盲重跑installer。完整两库备份和旧669应用回退位置只查部署记录。Windows辅助入口用python -X utf8，编码错误库GE-20260905-002已覆盖同类原因。
 
-下文为此前设计交接，不代表当前源码状态。
+Edge原验收页71E44A52608F1EB8A7BC6D2157F660C6保留给用户：合成项目22已创建并保存资料到v2，原页随后有未提交的暂缓副本，本任务未保存或丢弃。不要替用户处理该副本；后续先核新版本/当前输入。额外核对页7E463604BE33298AA0BB7B5D9CE6015E已关闭。日期原生只打开/取消；真实日期保存由固定MySQL测试覆盖。窄屏/全部主题、完整Presentation、物理拖动及完整E04用户验收仍独立未验。
+
+下一步优先接用户本版页面验收反馈，按原1051与同一Figma修具体卡点。E04剩余服务器私人草稿、SSE等按原执行计划接续；性能后置，真实备份不导入。不得绕过此前本机MySQL启动审批拒绝；本次用独立工具容器与授权云隔离验证完成。
+
+以下为历史交接，不能代替上述运行状态。
 
 ## 最新接手优先级（2026-10-13 UI06先Figma）
 

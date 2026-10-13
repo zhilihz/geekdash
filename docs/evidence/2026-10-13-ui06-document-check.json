@@ -1,0 +1,26 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-13T08:46:16.741928+00:00",
+  "baseRevision": "669c3606ad56f21493b833a3d23aa9e99e23b373",
+  "headRevision": "4250abed2f8bc1367f36888a718b377656151884",
+  "scope": "UI06 changed Markdown plus docs navigation and project instructions; local paths and Markdown anchors only",
+  "markdownFiles": 12,
+  "localLinks": 321,
+  "anchors": 61,
+  "failures": [],
+  "sourceSha256": {
+    "AGENTS.md": "bc3bff0b554dea94656cb1bea047a29a84ac65065eb5752012450561357b3239",
+    "docs/README.md": "df14c524fe4407518828a721a878f1ec60e879fe990e7549cb729701a5cf7e4b",
+    "docs/changelog/CHANGELOG.md": "6a1a49acae932482829b81a2e7a4d7acd206de416c6faffeb2fbd47c425a7b46",
+    "docs/decisions/autonomous-decisions.md": "b691df054db2bd66196f76de648fe3be88e6f4d2fbc447a213a4789673d43f62",
+    "docs/handoff/handoff.md": "6a8eef880b2936a7fe521d67fd3487f7768d20e8e7692924bb8e2982ccad66f6",
+    "docs/implementation/execution-plan.md": "a32832a81b7967bd7789955347ecd81eabe4c956f23fe56b7cda7f676fad2d5e",
+    "docs/operations/deployments/2026-10-13-e04-ui06.md": "5bced5dcff880af60ec48fc93341460badc512924af1c9603d9e96ec598930f3",
+    "docs/product/PRD.md": "4db5fcc378e1550ba89ef64a98a0275d78de61171cab89b3227dcd94524f81b0",
+    "docs/status/current-system-truth.md": "ea08c500d5fb2665257a8f32ab267f126de872f45a8ad0ea7a2b0cf31aa45a60",
+    "docs/testing/reports/2026-10-13-e04-ui06-figma.md": "e7bf03f22d9b4372cc8c2db2b14fd1fd3914ed2e8cada4592dfb07d93d2a7b7f",
+    "docs/testing/reports/2026-10-13-e04-ui06-frontend.md": "620a69ab437617363e01ad16e37c4684596fb1be211d83764098f8a821a1e560",
+    "docs/usage/user-guide.md": "3e6809beb4fb84b802dc50200b906cd23e5e477cd7753a88b0198e76f90d39da"
+  },
+  "validatesBusinessOrDeployment": false
+}

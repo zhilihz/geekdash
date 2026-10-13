@@ -1,0 +1,119 @@
+{
+  "checkedAt": "2026-10-13T08:43:41.705Z",
+  "status": "passed-with-stated-scope",
+  "revision": "4250abed2f8bc1367f36888a718b377656151884",
+  "browser": "Edge via web-access",
+  "projectId": "22",
+  "observedProjectVersion": "2",
+  "syntheticOnly": true,
+  "checks": [
+    "11个资料控件真实可输入、展开和修改；无匹配搜索未修改关系",
+    "客户选择/清空/重选；芯片多选逐项移除；分工与最新说明统一保存",
+    "带可信账号的新GET返回v2，正式关联、表头和真实修改历史一致",
+    "四个关键项目日期同一行；更多日期当前区域展开；日期纠错打开真实date输入",
+    "1272 CSS像素桌面视口无横向溢出；首屏与下拉截图已视觉核对"
+  ],
+  "limits": [
+    "原生日期表单仅打开并取消，实际日期持久化由固定MySQL链路验证",
+    "未执行窄屏、全部主题、完整E04用户验收或Figma Presentation",
+    "后台创建请求曾超时，前台原编号查询确认未提交后按原编号重试，只创建项目22",
+    "只读观察请求第一次缺少账号头被409拒绝，补齐当前账号头后200；不是业务保存失败",
+    "原验收页发现未提交暂缓副本，已保留；只关闭本任务额外的核对页"
+  ],
+  "observations": [
+    {
+      "label": "新建页结构",
+      "result": "{\"body\":\"← 返回看板\\nbusiness01 ▾\\n深色浅色暖色\\n2026年10月13日星期二　16:27:01　距年底 79 天\\n新建项目\\n保存后由当前账号自动负责。初始为提案中，S1 待开始；资料与芯片可在详情中继续选择。\\n项目名称\\n市场预期\\n详细说明\\n项目简介\\n保存并进入项目取消\",\"inputs\":[{\"tag\":\"BUTTON\",\"id\":\"\",\"text\":\"深色\",\"type\":\"submit\"},{\"tag\":\"BUTTON\",\"id\":\"\",\"text\":\"浅色\",\"type\":\"submit\"},{\"tag\":\"BUTTON\",\"id\":\"\",\"text\":\"暖色\",\"type\":\"submit\"},{\"tag\":\"INPUT\",\"id\":\"\",\"text\":\"\",\"type\":\"text\"},{\"tag\":\"TEXTAREA\",\"id\":\"\",\"text\":\"\",\"type\":\"textarea\"},{\"tag\":\"TEXTAREA\",\"id\":\"\",\"text\":\"\",\"type\":\"textarea\"},{\"tag\":\"TEXTAREA\",\"id\":\"\",\"text\":\"\",\"type\":\"textarea\"},{\"tag\":\"BUTTON\",\"id\":\"save\",\"text\":\"保存并进入项目\",\"type\":\"submit\"},{\"tag\":\"BUTTON\",\"id\":\"confirm\",\"text\":\"确认原创建结果\",\"type\":\"submit\"},{\"tag\":\"BUTTON\",\"id\":\"retry\",\"text\":\"重试原创建\",\"type\":\"submit\"}]}"
+    },
+    {
+      "label": "新建字段",
+      "result": "[{\"name\":\"name\",\"outer\":\"<input name=\\\"name\\\" required=\\\"\\\">\"},{\"name\":\"marketExpectation\",\"outer\":\"<textarea name=\\\"marketExpectation\\\"></textarea>\"},{\"name\":\"detailNote\",\"outer\":\"<textarea name=\\\"detailNote\\\"></textarea>\"},{\"name\":\"summaryNote\",\"outer\":\"<textarea name=\\\"summaryNote\\\"></textarea>\"}]"
+    },
+    {
+      "label": "填写合成验收项目",
+      "result": "{\"ready\":true,\"name\":\"E04-UI06 资料与日期验收\"}"
+    },
+    {
+      "label": "新项目实际页面",
+      "result": "{\"url\":\"https://geekdash.zhiluan.cool/project-new.html\",\"headings\":[],\"combos\":[],\"themeControls\":[{\"tag\":\"HTML\",\"theme\":\"warm\"},{\"tag\":\"BUTTON\",\"theme\":\"dark\"},{\"tag\":\"BUTTON\",\"theme\":\"light\"},{\"tag\":\"BUTTON\",\"theme\":\"warm\"}],\"body\":\"← 返回看板\\nbusiness01 ▾\\n深色浅色暖色\\n2026年10月13日星期二　16:27:44　距年底 79 天\\n新建项目\\n保存后由当前账号自动负责。初始为提案中，S1 待开始；资料与芯片可在详情中继续选择。\\n项目名称\\n市场预期\\n详细说明\\n项目简介\\n保存并进入项目取消\"}"
+    },
+    {
+      "label": "创建等待状态",
+      "result": "{\"buttons\":[{\"id\":\"save\",\"disabled\":false,\"hidden\":false},{\"id\":\"confirm\",\"disabled\":false,\"hidden\":true},{\"id\":\"retry\",\"disabled\":false,\"hidden\":true}],\"message\":\"\",\"visibility\":\"hidden\",\"focus\":true,\"errors\":[],\"bufferKeys\":[\"__imt_handshake_page_id\"]}"
+    },
+    {
+      "label": "通过实际表单提交一次",
+      "result": "{\"disabled\":true,\"pending\":[\"geekdash_create:1\"]}"
+    },
+    {
+      "label": "新版创建回读",
+      "result": "{\"url\":\"https://geekdash.zhiluan.cool/project-new.html\",\"headings\":[],\"combos\":[],\"message\":\"\"}"
+    },
+    {
+      "label": "核对页面请求与恢复状态",
+      "result": "{\"url\":\"https://geekdash.zhiluan.cool/project-new.html\",\"message\":\"\",\"save\":true,\"pending\":[\"geekdash_create:1\"],\"resources\":[{\"path\":\"/api/auth/me\",\"start\":4647.29999999702,\"duration\":937.0999999940395}],\"visibility\":\"hidden\"}"
+    },
+    {
+      "label": "唤起自有验收页",
+      "result": "{\"visibility\":\"hidden\",\"url\":\"https://geekdash.zhiluan.cool/project-new.html\",\"pending\":[\"geekdash_create:1\"]}"
+    },
+    {
+      "label": "前台恢复后的创建结果",
+      "result": "{\"url\":\"https://geekdash.zhiluan.cool/project-new.html\",\"headings\":[],\"message\":\"保存结果尚未确认，请确认结果或重试原操作。\",\"visibility\":\"visible\",\"combos\":[]}"
+    },
+    {
+      "label": "确认原创建结果",
+      "result": "已提交原编号查询"
+    },
+    {
+      "label": "原编号查询返回",
+      "result": "{\"url\":\"https://geekdash.zhiluan.cool/project-new.html\",\"message\":\"暂未查到原创建结果；可重试原创建，不要另建重复项目。\",\"confirm\":false,\"retry\":false}"
+    },
+    {
+      "label": "重试原创建请求",
+      "result": "按原编号重试"
+    },
+    {
+      "label": "创建成功后实际结构",
+      "result": "{\"url\":\"https://geekdash.zhiluan.cool/project-detail.html?id=22\",\"title\":\"E04-UI06 资料与日期验收\",\"headings\":[\"资料与时间\",\"项目分工\",\"最新状态与说明\"],\"combos\":11,\"dates\":\"立案日期\\n未知\\n实际启动日期\\n未知\\n预计结案日期\\n未定\\n实际结案日期\\n未结案\",\"message\":\"\",\"visibility\":\"visible\"}"
+    },
+    {
+      "label": "资料候选与实际布局",
+      "result": "{\"sources\":[{\"id\":\"edit-customerId-source\",\"options\":[{\"id\":\"\",\"name\":\"未选择\",\"disabled\":false},{\"id\":\"1\",\"name\":\"[合成试用] customers 1\",\"disabled\":false},{\"id\":\"2\",\"name\":\"[合成试用] customers 2\",\"disabled\":false}]},{\"id\":\"edit-groupId-source\",\"options\":[{\"id\":\"\",\"name\":\"未选择\",\"disabled\":false},{\"id\":\"1\",\"name\":\"[合成试用] project_groups 1\",\"disabled\":false},{\"id\":\"2\",\"name\":\"[合成试用] project_groups 2\",\"disabled\":false}]},{\"id\":\"edit-productLineId-source\",\"options\":[{\"id\":\"\",\"name\":\"未选择\",\"disabled\":false},{\"id\":\"1\",\"name\":\"[合成试用] product_lines 1\",\"disabled\":false},{\"id\":\"2\",\"name\":\"[合成试用] product_lines 2\",\"disabled\":false}]},{\"id\":\"edit-odmCustomerId-source\",\"options\":[{\"id\":\"\",\"name\":\"未选择\",\"disabled\":false},{\"id\":\"1\",\"name\":\"[合成试用] customers 1\",\"disabled\":false},{\"id\":\"2\",\"name\":\"[合成试用] customers 2\",\"disabled\":false}]},{\"id\":\"edit-appId-source\",\"options\":[{\"id\":\"\",\"name\":\"未选择\",\"disabled\":false},{\"id\":\"1\",\"name\":\"[合成试用] apps 1\",\"disabled\":false},{\"id\":\"2\",\"name\":\"[合成试用] apps 2\",\"disabled\":false}]},{\"id\":\"edit-chipIds-source\",\"options\":[{\"id\":\"1\",\"name\":\"[合成试用] chips 1 · SYNTHETIC-1 · 合成厂商\",\"disabled\":false},{\"id\":\"2\",\"name\":\"[合成试用] chips 2 · SYNTHETIC-2 · 合成厂商\",\"disabled\":false}]},{\"id\":\"edit-tagIds-source\",\"options\":[{\"id\":\"1\",\"name\":\"[合成试用] tags 1\",\"disabled\":false},{\"id\":\"2\",\"name\":\"[合成试用] tags 2\",\"disabled\":false}]},{\"id\":\"edit-people-hardware_owner-source\",\"options\":[{\"id\":\"1\",\"name\":\"[合成试用] engineers 1\",\"disabled\":false},{\"id\":\"2\",\"name\":\"[合成试用] engineers 2\",\"disabled\":false}]},{\"id\":\"edit-people-software_owner-source\",\"options\":[{\"id\":\"1\",\"name\":\"[合成试用] engineers 1\",\"disabled\":false},{\"id\":\"2\",\"name\":\"[合成试用] engineers 2\",\"disabled\":false}]},{\"id\":\"edit-people-pm-source\",\"options\":[{\"id\":\"1\",\"name\":\"[合成试用] engineers 1\",\"disabled\":false},{\"id\":\"2\",\"name\":\"[合成试用] engineers 2\",\"disabled\":false}]},{\"id\":\"edit-people-participant-source\",\"options\":[{\"id\":\"1\",\"name\":\"[合成试用] engineers 1\",\"disabled\":false},{\"id\":\"2\",\"name\":\"[合成试用] engineers 2\",\"disabled\":false}]}],\"geometry\":{\"viewport\":1272,\"panel\":840,\"dates\":[{\"x\":236,\"y\":477.2734375},{\"x\":437.5,\"y\":477.2734375},{\"x\":639,\"y\":477.2734375},{\"x\":840.5,\"y\":477.2734375}]}}"
+    },
+    {
+      "label": "输入无匹配资料",
+      "result": "{\"text\":\"▾\\n没有匹配资料，可修改搜索内容；原选择保留。\",\"selected\":\"\",\"saveDisabled\":true}"
+    },
+    {
+      "label": "重选清空与多选移除",
+      "result": "{\"customer\":\"2\",\"chipIds\":[\"2\"],\"state\":\"有未保存修改 · 本标签页暂存，需点击保存项目\"}"
+    },
+    {
+      "label": "保存后的新请求与界面",
+      "result": "{\"status\":409,\"meta\":\"客户：[合成试用] customers 2 · 产品线：[合成试用] product_lines 1 · 芯片：[合成试用] chips 2\",\"state\":\"当前内容已保存\",\"saveDisabled\":true}"
+    },
+    {
+      "label": "回到资料首屏",
+      "result": {
+        "theme": "dark"
+      }
+    },
+    {
+      "label": "可信账号的新读取",
+      "result": "{\"status\":200,\"version\":\"2\",\"customerId\":\"2\",\"chips\":[{\"id\":\"2\",\"name\":\"[合成试用] chips 2\"}],\"people\":[{\"id\":\"1\",\"name\":\"[合成试用] engineers 1\",\"role\":\"hardware_owner\"},{\"id\":\"2\",\"name\":\"[合成试用] engineers 2\",\"role\":\"software_owner\"},{\"id\":\"1\",\"name\":\"[合成试用] engineers 1\",\"role\":\"pm\"}],\"statusDesc\":\"资料与分工已核对，等待阶段启动。\",\"dates\":[\"未知\",\"未知\",\"未定\",\"未结案\"],\"meta\":\"客户：[合成试用] customers 2 · 产品线：[合成试用] product_lines 1 · 芯片：[合成试用] chips 2\",\"state\":\"有未保存修改 · 本标签页暂存，需点击保存项目\"}"
+    },
+    {
+      "label": "核对未保存副本来源",
+      "result": "{\"customer\":\"2\",\"focused\":\"\",\"buffers\":[{\"key\":\"geekdash_stage_action:1:22\",\"data\":{\"lifecycle\":{\"expectedVersion\":\"2\",\"idempotencyKey\":\"7ae3da36-8c76-4293-8fae-dcb4f48c92ad\",\"action\":\"pauseProject\",\"reason\":\"\"}}}]}"
+    },
+    {
+      "label": "新页历史消费",
+      "result": "{\"history\":\"本标签页保留纠正项目日期副本。\\n\\n恢复计划/日期表单放弃该副本\\n更新历史\\n\\n只有实际变化才产生修改历史。\\n\\n保存普通信息 · business01 · 10/13 16:35\\n记录来源\\n修改事项\\t修改前\\t修改后\\n保存普通信息\\tAPP：（空）\\n业务人员：（空）\\n项目标签：（空）\\n芯片：（空）\\n分组：（空）\\n客户：（空）\\n最新状态说明：（空）\\nODM 工厂：（空）\\n产品线：（空）\\tAPP：[合成试用] apps 1 [ID 1]\\n业务人员：[合成试用] engineers 1 [ID 1] · 硬件负责人\\n[合成试用] engineers 2 [ID 2] · 软件负责人\\n[合成试用] engineers 1 [ID 1] · 项目经理\\n项目标签：[合成试用] tags 1 [ID 1]\\n芯片：[合成试用] chips 2 [ID 2]\\n分组：[合成试用] project_groups 1 [ID 1]\\n客户：[合成试用] customers 2 [ID 2]\\n最新状态说明：资料与分工已核对，等待阶段启动。\\nODM 工厂：[合成试用] customers 1 [ID 1]\\n产品线：[合成试用] product_lines 1 [ID 1]\\n创建项目 · business01 · 10/13 16:32\\n记录来源\\n修改事项\\t修改前\\t修改后\\n创建项目\\t项目名称：（空）\\n项目详情备注：（空）\\n项目简介：（空）\\n市场预期：（空）\\t项目名称：E04-UI06 资料与日期验收\\n项目详情备注：UI06 公网原生验收使用，不含真实客户数据。\\n项目简介：同一字段内输入搜索、选择和清空；关键日期集中展示。\\n市场预期：合成测试：核对资料选择、关键日期和保存联动。\\n\\n重新读取历史\\n旧来源历史\\n\\n保留原来源时间文本，与服务器修改历史分开。\\n\\n暂无记录。\",\"rows\":[{\"title\":\"保存普通信息 · business01 · 10/13 16:35\",\"tables\":1},{\"title\":\"创建项目 · business01 · 10/13 16:32\",\"tables\":1}],\"save\":\"当前内容已保存\"}"
+    }
+  ],
+  "screenshots": {
+    "2026-10-13-ui06-web-basic.png": "00c7eeccbe398003b0723e787516799e8e86a1bd2c1556149be0a95c9236d828",
+    "2026-10-13-ui06-web-reference.png": "e955c735c6e808aeccc9c867aedb0d3cff68387ba16cb04ab521607696b3b58d"
+  }
+}
