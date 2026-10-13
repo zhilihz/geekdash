@@ -1,0 +1,44 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-13T06:24:12.027555+00:00",
+  "sourceArchiveSha256": "b1fc4344cc1cc903d879b846b086564d73b7e11b55bc4147f511acc4af419dc0",
+  "report": {
+    "status": "passed",
+    "checkedAt": "2026-10-13T06:24:00.017Z",
+    "checks": [
+      "七页签唯一保存；真实前端普通输入与节点副本跨页同源；预览不写库，保存后独立SQL/新GET/Flow与列表一致",
+      "非负责人只读，七页签共享责任判断，无普通或节点写入口",
+      "另一负责人真实保存后旧副本冻结、可复制；明确重新进入后显示新版本，旧输入仍保留供核对",
+      "真实COMMIT后丢响应，页面保留原请求；确认原结果及新读取仅产生一次审计",
+      "同一需求一行；仅纠正理由隐藏不变字段；清空旧备注保留实际变化；同次保存归组，三条独立记录各一行",
+      "三类新增仅一次完成编辑且不入正式库；风险/需求/客户节点同次普通保存；取消与ESC保留其他副本；直接纠错只发送变化",
+      "阶段未来日期失败保留输入与库原值；开始/完成独立保存，真实动作COMMIT丢响应用原编号确认；S1完成仍提案，人工启动后S2待开始",
+      "计划/检查在原Flow上下文保存及新读取；暂缓/恢复留在风险页，首次检查义务及原检查保持，无自动检查或开工",
+      "结案/维护/重开在原上下文保存，真实进度与遗留保持；回退当前有效完成阶段，后续锁定，历史/启动与检查依据保持",
+      "Flow节点弹窗直接进入实际完成操作，明确字段纠错后才编辑；节点完成不自动完成阶段；他人更新时弹窗冻结、可复制，关闭仍保留旧副本"
+    ],
+    "requestCount": 105,
+    "build": {
+      "revision": "7e09c01d137ee8092b713015463d8a54ddd3cc3e",
+      "dirty": true,
+      "builtAt": "2026-10-13T06:21:43.234Z",
+      "stage": "project-list",
+      "schemaVersion": "0003-node-recovery"
+    },
+    "frontendSource": "src/web/detail.ts + shared/api.ts",
+    "sourceSha256": {
+      "detailSource": "4e7a38e1b2d9e0cea78c768327f38a75b881fb5b5dfd0c630e00142e50430b62",
+      "apiSource": "2a2cf7e484ef0b45229aabb5fc7800254fc2646224773955a0d69bca5671cae1",
+      "html": "a63daec4e150b727555054f0d6e7e2ab7be0a55fad0114db7b5a7d8be3955df6"
+    },
+    "isolatedTestDatabase": true,
+    "syntheticOnly": true,
+    "domExecution": "jsdom 27.0.1; CSS/BroadcastChannel/native dialog behavior not validated",
+    "nativeBrowserAcceptance": false,
+    "visualAcceptance": false
+  },
+  "fixturesRestored": true,
+  "runtimeBuild": "56e69a7 with exact UI05 candidate dist/source mounted only in verification",
+  "productionDependenciesChanged": false,
+  "nativeProductAcceptance": false
+}

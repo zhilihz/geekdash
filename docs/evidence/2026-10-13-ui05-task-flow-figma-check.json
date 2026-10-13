@@ -1,0 +1,170 @@
+{
+  "status": "synced_subset",
+  "checkedAt": {
+    "current_time": "2026-10-13 06:29:24 UTC"
+  },
+  "source": "PRD8.9 UI05 original file",
+  "fileKey": "leQy2Be9GaTXPvZeooQuIF",
+  "read": {
+    "panel": [
+      {
+        "id": "4:176",
+        "name": "项目标题与操作",
+        "type": "FRAME",
+        "x": 0,
+        "y": 1,
+        "width": 840,
+        "height": 210,
+        "layout": "VERTICAL"
+      },
+      {
+        "id": "4:192",
+        "name": "原七页签",
+        "type": "FRAME",
+        "x": 0,
+        "y": 211,
+        "width": 840,
+        "height": 63,
+        "layout": "HORIZONTAL"
+      },
+      {
+        "id": "4:207",
+        "name": "项目当前概况",
+        "type": "FRAME",
+        "x": 0,
+        "y": 274,
+        "width": 840,
+        "height": 87,
+        "layout": "HORIZONTAL"
+      },
+      {
+        "id": "4:211",
+        "name": "当前页签内容",
+        "type": "FRAME",
+        "x": 0,
+        "y": 361,
+        "width": 840,
+        "height": 1323,
+        "layout": "VERTICAL"
+      },
+      {
+        "id": "4:212",
+        "name": "唯一普通编辑操作条",
+        "type": "FRAME",
+        "x": 0,
+        "y": 1684,
+        "width": 840,
+        "height": 71,
+        "layout": "HORIZONTAL"
+      }
+    ],
+    "components": [
+      {
+        "id": "4:209",
+        "component": "2:107",
+        "name": "1051/普通按钮",
+        "key": "c3306c18d4c8f093f6d90153d689d056c0f5a966"
+      },
+      {
+        "id": "4:218",
+        "component": "2:119",
+        "name": "1051/字段",
+        "key": "01bd4247d350a592f1e34f1d9c9085fa9b9d808f"
+      },
+      {
+        "id": "12:1225",
+        "component": "2:105",
+        "name": "1051/主按钮",
+        "key": "8034a175ebfe332c056f5ecbe06cbeb3e854488c"
+      }
+    ]
+  },
+  "write": {
+    "updatedIds": [
+      "4:171",
+      "4:172",
+      "4:173",
+      "4:174",
+      "4:170",
+      "4:176",
+      "4:175",
+      "4:323",
+      "4:324",
+      "4:325",
+      "4:326",
+      "4:322",
+      "4:328",
+      "4:327",
+      "4:461",
+      "4:462",
+      "4:463",
+      "4:464",
+      "4:460",
+      "4:466",
+      "4:465",
+      "5:283",
+      "5:284",
+      "5:285",
+      "5:286",
+      "5:282",
+      "5:288",
+      "5:287",
+      "5:399",
+      "5:400",
+      "5:401",
+      "5:402",
+      "5:398",
+      "5:404",
+      "5:403",
+      "5:478",
+      "5:479",
+      "5:480",
+      "5:481",
+      "5:477",
+      "5:483",
+      "5:482",
+      "5:581",
+      "5:582",
+      "5:583",
+      "5:584",
+      "5:580",
+      "5:586",
+      "5:585",
+      "4:218",
+      "4:297",
+      "4:301",
+      "4:262",
+      "4:305",
+      "4:253",
+      "4:226",
+      "4:235",
+      "4:244",
+      "4:271",
+      "4:275",
+      "4:284",
+      "4:293",
+      "4:222",
+      "I12:1181;2:106",
+      "I12:1225;2:106",
+      "I12:1259;2:106"
+    ],
+    "screenIds": [
+      "4:159",
+      "4:311",
+      "4:449",
+      "5:271",
+      "5:387",
+      "5:466",
+      "5:569"
+    ],
+    "source": "UI05 PRD8.9 original seven tabs and existing 1051 components",
+    "newComponents": 0,
+    "newPages": 0
+  },
+  "screenshotReviewed": "P02 basic information",
+  "notVerified": [
+    "full Presentation",
+    "all advanced result clones",
+    "pixel exact runtime match"
+  ]
+}
