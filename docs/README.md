@@ -4,6 +4,8 @@
 
 ## 本轮阅读入口
 
+当前补充：[UI11完整筛选报告](testing/reports/2026-10-14-ui11-complete-filters.md)、[设计事实67](status/current-system-truth.md#67-ui11完整可折叠筛选2026-10-14)及[首页完整筛选交互](product/PRD.md#首页完整筛选)。用户已认可当前Figma并授权正式前端修正，后续代码与部署状态分别核实。
+
 1. [交接](handoff/handoff.md)与[当前设计事实](status/current-system-truth.md#66-ui10本地参考风格修正2026-10-14)：先审阅UI10本地参考风格修正，再补实际原型核验与网页实施；已部署UI07、3153498及其验收边界仍查[运行事实](status/current-system-truth.md#62-ui07中上方提示已部署2026-10-13)。
 2. [视觉意图](product/PRD.md#813-ui09正式视觉稿2026-10-14设计中)、[UI10设计报告](testing/reports/2026-10-14-ui10-reference-style.md)及[Figma文件](https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=142-3499)：在原画板恢复本地参考风格；截图、配置核验及未测范围查报告。[PRD8.12](product/PRD.md#812-ui08全站结构与日常操作2026-10-14结构评审稿)和[UI08线框报告](testing/reports/2026-10-14-ui08-wireframes.md)为结构与操作关系依据；UI09浅色首版及原型历史见[旧报告](testing/reports/2026-10-14-ui09-visual-design.md)。
 3. [E04前端固定施工](implementation/execution-plan.md#14921-e04前端固定与流程修正2026-10-12)：实现方法；准确业务规则仍查[规格书](specifications/specification.md)。
