@@ -1,6 +1,6 @@
-# E04-UI12 首页与项目检查（本地候选验收）
+# E04-UI12 首页与项目检查验收
 
-日期：2026-10-14。本报告记录本地候选的已验范围及限制，不代表全站完成、远端main已更新或公网已部署。分支`codex/e04-ui12-home-checks`，基线`14bad38dc1c4e257c353d2c66b6c109ca7f8a9c1`；本轮改动尚未提交。
+日期：2026-10-14。本批实现`cf49780698130b8e742fd010f66e121d64474044`已合并并推送远端main，固定镜像已部署新加坡测试实例。本报告分别记录本地候选、原生浏览器及固定发布验证；通过范围限首页与检查链路，不代表全站完成。施工分支`codex/e04-ui12-home-checks`，基线`14bad38dc1c4e257c353d2c66b6c109ca7f8a9c1`；收尾文档分支`codex/e04-ui12-delivery`不改变运行镜像。
 
 设计依据为已认可的[首页完整筛选](../../product/PRD.md#首页完整筛选)、[PRD8.12](../../product/PRD.md#812-ui08全站结构与日常操作2026-10-14结构评审稿)及[视觉意图](../../product/PRD.md#813-ui09正式视觉稿2026-10-14设计中)，实现路径归[计划14.9.22](../../implementation/execution-plan.md#14922-ui12认可设计的首页与检查链路实施2026-10-14)。业务行为继续以[规格书](../../specifications/specification.md)和[读取协议](../../specifications/api/projects-read.md)为准。
 
@@ -42,10 +42,27 @@
 | 项目尾号1303进入修正，填写并正式保存最新状态说明 | 返回后仍待查，首页待查2；SQL确认新说明、普通保存审计及回执一致，没有自动新增检查 | [修正返回](../../evidence/ui12-home-checks/correction-return.png)及上述SQL快照 |
 | 首页选择客户星岚科技，折叠筛选，再切驾驶舱 | 当前范围为3项目、待查1；折叠后保留条件摘要，驾驶舱按同一3项目范围显示 | [展开筛选](../../evidence/ui12-home-checks/filters-expanded.png)、[折叠筛选](../../evidence/ui12-home-checks/filters-collapsed.png)、[驾驶舱](../../evidence/ui12-home-checks/cockpit.png) |
 
-主任务已视觉查看[首页](../../evidence/ui12-home-checks/home.png)、[卡片](../../evidence/ui12-home-checks/cards.png)、[检查页](../../evidence/ui12-home-checks/checks.png)、[已查列表](../../evidence/ui12-home-checks/checked.png)、[修正返回](../../evidence/ui12-home-checks/correction-return.png)、[展开筛选](../../evidence/ui12-home-checks/filters-expanded.png)、[折叠筛选](../../evidence/ui12-home-checks/filters-collapsed.png)、[驾驶舱](../../evidence/ui12-home-checks/cockpit.png)和[驾驶舱最新状态](../../evidence/ui12-home-checks/cockpit-latest.png)九幅；驾驶舱已重拍为Figma双列横条布局，移除原空白占位。截图与实际操作、持久化各证明其对应范围，不能据此称全站视觉验收完成。自建原生验收标签已关闭；测试库内六项目及其子表、账号、会话、回执、资料和规则夹具残留均核对为0，仓库外临时凭据已移除。
+主任务已视觉查看[首页](../../evidence/ui12-home-checks/home.png)、[卡片](../../evidence/ui12-home-checks/cards.png)、[检查页](../../evidence/ui12-home-checks/checks.png)、[已查列表](../../evidence/ui12-home-checks/checked.png)、[修正返回](../../evidence/ui12-home-checks/correction-return.png)、[展开筛选](../../evidence/ui12-home-checks/filters-expanded.png)、[折叠筛选](../../evidence/ui12-home-checks/filters-collapsed.png)、[驾驶舱](../../evidence/ui12-home-checks/cockpit.png)和[驾驶舱最新状态](../../evidence/ui12-home-checks/cockpit-latest.png)九幅；驾驶舱已重拍为Figma双列横条布局，移除原空白占位。截图与实际操作、持久化各证明其对应范围，不能据此称全站视觉验收完成。自建原生验收标签已关闭；测试库内六项目及其子表、账号、会话、回执、资料和规则夹具残留均核对为0，临时账号已删除，受控私有清单中的临时密码已移除，见[夹具清理证据](../../evidence/ui12-home-checks/fixture-cleanup.json)。
 
 人工切前台后上述点击和GET完成已验证；首次raw CDP attach/bringToFront返回成功是否恢复原请求仍无证据，第二次独立WebSocket连接曾悬挂，不归因其已修复。1440/390只是辅助脚本目标参数，未取得对应实测截图；1440桌面、390窄屏、多主题及全站视觉验收仍未完成。
 
-## 4. 后续收口
+## 4. 固定版本与部署验证
 
-本批候选已完成上述验证，接续阶段提交、合并远端main及干净构建。代码、文档、远端main、固定镜像、实际部署及公网回读分别记录。UI12发布助手目前仅作本地准备，未据此执行上传或安装；原公网运行记录仍查[UI07部署](../../operations/deployments/2026-10-13-e04-ui07.md)。最新能力状态归[系统真相68](../../status/current-system-truth.md#68-ui12首页与项目检查本地候选2026-10-14)，接续入口归[交接](../../handoff/handoff.md)。
+实现提交已通过远端main SHA及祖先关系核查。干净构建时间为`2026-10-14T10:10:08.776Z`，`dirty=false`，结构版本仍为`0003-node-recovery`。发布前在服务器隔离测试库执行相同固定镜像及其前端源码；[部署回执](../../evidence/2026-10-14-ui12-deployment-check.json)记录以下结果。
+
+| 固定产物验证 | 检查时间（UTC） | 结果 |
+| --- | --- | --- |
+| 首页 | 10:14:41.972 | 8组、79请求，通过 |
+| 独立检查页 | 10:15:07.306 | 5组、69请求，通过 |
+| 详情资料回归 | 10:15:37.320 | 4组、34请求，通过 |
+| 详情动作回归 | 10:16:09.654 | 11组、105请求，通过 |
+
+合计28组、287请求，四项测试分别恢复夹具后才继续。候选与固定检查页相差一次读取请求，按各自实测回执计数，不修改原始记录。这些是实际前端源码在JSDOM中执行并连接真实MySQL的验证；固定回执中的`nativeUI12Acceptance=pending`专指尚未执行公网原生操作，不覆盖第3节已经完成的本地原生验收。
+
+安装于`2026-10-14T10:17:32.789872Z`完成。业务数据指纹、会话安全字段、MySQL实例及启动时间和其他17个容器保持；完整两库备份已保存，隔离恢复未执行。具体产物、备份及回退位置只归[UI12部署记录](../../operations/deployments/2026-10-14-e04-ui12.md)。公网页面、资源及匿名访问的独立回读见该部署记录，不以部署成功代替浏览器操作。
+
+## 5. 接续与未验范围
+
+后续按同一Figma继续详情分区查看/编辑、项目经理与账号绑定、新建同构及风险删除；本批没有完成这些产品变更。服务器私人草稿、SSE及其余E04范围继续按既有计划推进，性能后置，真实备份未导入。1440/390、多主题、全站视觉、公网原生连续操作及隔离备份恢复尚未验收。
+
+最新能力状态归[系统真相68](../../status/current-system-truth.md#68-ui12首页与项目检查已部署2026-10-14)，接续位置与验证入口归[交接](../../handoff/handoff.md)。

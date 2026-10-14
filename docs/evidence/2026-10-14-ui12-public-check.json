@@ -1,0 +1,108 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-14T10:20:39.450104+00:00",
+  "revision": "cf49780698130b8e742fd010f66e121d64474044",
+  "origin": "https://geekdash.zhiluan.cool",
+  "anonymous": true,
+  "checks": [
+    {
+      "path": "/api/health/live",
+      "status": 200,
+      "phase": "before",
+      "build": {
+        "revision": "cf49780698130b8e742fd010f66e121d64474044",
+        "dirty": false,
+        "builtAt": "2026-10-14T10:10:08.776Z",
+        "stage": "project-list",
+        "schemaVersion": "0003-node-recovery"
+      }
+    },
+    {
+      "path": "/api/health/ready",
+      "status": 200
+    },
+    {
+      "path": "/",
+      "status": 200,
+      "bytes": 4280,
+      "sha256": "ccca7a20ea844341af95668322e4f5d82839826a43a72acb7467ad408fc08f4f",
+      "matchesDist": true
+    },
+    {
+      "path": "/project-checks.html",
+      "status": 200,
+      "bytes": 2228,
+      "sha256": "024bbf48be15fdb15d1f6982989e64f9aee0191b15ece9fc7105704b19a82e6a",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/index-DYgRt4GV.js",
+      "status": 200,
+      "bytes": 13511,
+      "sha256": "af8fcf4d1a558d03a3abf8d54ac82222b2e3c061b739374a8de16963217e08c5",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/api-cL9Q5WGo.js",
+      "status": 200,
+      "bytes": 16612,
+      "sha256": "ec8ca45ff37871f36be66ce17277c278aed681a297dcda5275ed4f11605adc77",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/api-DOCHdpk5.css",
+      "status": 200,
+      "bytes": 4655,
+      "sha256": "905bfd0d2e5051b01bef1edb5423d5e24c87e1b0c9186050601626e17a190549",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/index-CwO7ENZM.css",
+      "status": 200,
+      "bytes": 50130,
+      "sha256": "b4f6a0a55a251a3d42a1dbb55a41b69fe0930ac4f74036299e53e92c8fc79744",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-checks-n4U5eRjr.js",
+      "status": 200,
+      "bytes": 10592,
+      "sha256": "62a4af56d4e6d1424f8f36ab25c683719940ac8ca07c68688a871320815ff238",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-checks-BCxwH3uQ.css",
+      "status": 200,
+      "bytes": 3604,
+      "sha256": "54d28870557574d7e1730e41404df1b93f44efde39d6e0606cc84270919457a9",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/detail-DPS01Moz.css",
+      "status": 200,
+      "bytes": 45271,
+      "sha256": "4d3f513eb310ee2b7dbe75c25da1e0f7d721addd722c9c58ec90998f72ad2c50",
+      "matchesDist": true
+    },
+    {
+      "path": "/api/projects",
+      "status": 401,
+      "code": "AUTH_REQUIRED"
+    },
+    {
+      "path": "/api/health/live",
+      "status": 200,
+      "phase": "after",
+      "build": {
+        "revision": "cf49780698130b8e742fd010f66e121d64474044",
+        "dirty": false,
+        "builtAt": "2026-10-14T10:10:08.776Z",
+        "stage": "project-list",
+        "schemaVersion": "0003-node-recovery"
+      }
+    }
+  ],
+  "pageCount": 2,
+  "assetCount": 7,
+  "source": "公网HTTPS新请求；live前后固定构建一致，ready只验就绪；页面及引入JS/CSS与dist逐字节一致。不替代浏览器操作验收。"
+}
