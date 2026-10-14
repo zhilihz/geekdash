@@ -1,0 +1,53 @@
+{
+  "cleanupCompletedAt": "2026-10-14T10:00:28.209Z",
+  "recordedAt": "2026-10-14T10:05:20.7423370Z",
+  "database": "geekdash_test",
+  "fixtureScope": {
+    "kind": "UI12 原生浏览器合成验收",
+    "projectIds": [
+      "9007199254781299",
+      "9007199254781300",
+      "9007199254781301",
+      "9007199254781302",
+      "9007199254781303",
+      "9007199254781304"
+    ],
+    "resources": [
+      "自建项目及子记录",
+      "自建账号及会话",
+      "对应审计及幂等回执",
+      "自建基础资料",
+      "本夹具创建的检查规则版本"
+    ]
+  },
+  "container": {
+    "name": "geekdash-ui12-browser",
+    "status": "exited",
+    "exitCode": 0,
+    "cleanupResult": "owned_fixture_cleaned"
+  },
+  "verification": {
+    "source": "停止后独立 test_migrator 连接对 geekdash_test 的只读一致性快照回查",
+    "remaining": {
+      "projects": 0,
+      "project_changes": 0,
+      "project_risks": 0,
+      "project_nodes": 0,
+      "project_checks": 0,
+      "schedule_changes": 0,
+      "audit_log": 0,
+      "project_stages": 0,
+      "project_responsibilities": 0,
+      "project_chips": 0,
+      "project_people": 0,
+      "project_tags": 0,
+      "users": 0,
+      "sessions": 0,
+      "receipts": 0,
+      "actorAudit": 0,
+      "references": 0,
+      "ownRule": 0
+    },
+    "allTestRuleRevisions": 0
+  }
+}

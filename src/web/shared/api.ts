@@ -7,8 +7,9 @@ export type Project = {
   deadline: Deadline; checkStatus: CheckStatus; resumeStatus: string | null; maintenanceEnabled: number; updatedAt: string; stage: string; stageState: string; progress: string | number;
   chips: { id: string; name: string }[]; people: { id: string; name: string; role: string }[]; tags: { id: string; name: string }[];
 };
-export type Dashboard = { distributions: Record<string, { value: string; count: number }[]>; focusTotal: number; focus: Pick<Project, 'id' | 'name' | 'status' | 'priority' | 'stage' | 'progress'>[]; latest: Pick<Project, 'id' | 'name' | 'statusDesc' | 'updatedAt'>[]; team: { id: string; name: string; count: number }[] };
-export type List = { items: Project[]; businessDate: string; stats: Record<string, number>; options: Record<string, string[]>; stageCounts: { value: string; count: string | number }[]; pagination: { page: number; pageSize: number; total: number; pageCount: number }; readOnly: true; dashboard?: Dashboard };
+export type ListProject = Project & { checkedToday: boolean; capabilities: { canCheck: boolean } };
+export type Dashboard = { distributions: Record<string, { value: string; count: number }[]>; focusTotal: number; focus: Pick<Project, 'id' | 'name' | 'status' | 'priority' | 'stage' | 'progress'>[]; latest: Pick<Project, 'id' | 'name' | 'statusDesc' | 'updatedAt'>[]; team: { id: string; name: string; count: number; pmCount: number; hardwareCount: number; softwareCount: number }[] };
+export type List = { items: ListProject[]; businessDate: string; stats: Record<string, number> & { todayChecked: number; todayUnchecked: number }; options: Record<string, string[]>; stageCounts: { value: string; count: string | number }[]; pagination: { page: number; pageSize: number; total: number; pageCount: number }; readOnly: true; dashboard?: Dashboard };
 export type Entry = Record<string, string | number | null>;
 export type TextValues = { name: string; marketExpectation: string; detailNote: string; summaryNote: string };
 export type RiskOperation = { op: 'add'; tempId: string; content: string; level: 'high' | 'mid' | 'low' } | { op: 'correct'; id: string; changes: Partial<{ content: string; level: 'high' | 'mid' | 'low'; resolution: string }>; reason: string } | { op: 'resolve'; id: string; resolution: string } | { op: 'undoResolve'; id: string; reason: string };

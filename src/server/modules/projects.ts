@@ -6,7 +6,7 @@ import { businessToday, checkContext, closurePlanKnownExpression, dayDifference,
 import { scheduleRecords } from './project-plans.js';
 import { currentClosure } from './project-closures.js';
 import { lifecycleNotes } from './project-lifecycle.js';
-import { checkConditions, enrichChecks } from './project-checks.js';
+import { checkConditions, enrichChecks, todayCheckCondition } from './project-checks.js';
 
 // V1.050 的阶段名称、完成权重和里程碑；查询不自动改变业务状态。
 export const stages = [
@@ -18,7 +18,7 @@ export const stages = [
   { code: 'S6', name: 'PVT量产验证', progress: 90 },
   { code: 'S7', name: 'MP量产维护', progress: 100 },
 ];
-export type ProjectQuery = Partial<Record<'view' | 'search' | 'customer' | 'productLine' | 'odmFactory' | 'app' | 'group' | 'status' | 'priority' | 'signal' | 'stage' | 'progress' | 'chip' | 'tags' | 'owner', string>> & { deadline?: DeadlineKind; page?: number; pageSize?: number; dashboard?: '1' };
+export type ProjectQuery = Partial<Record<'view' | 'search' | 'customer' | 'productLine' | 'odmFactory' | 'app' | 'group' | 'status' | 'priority' | 'signal' | 'stage' | 'progress' | 'chip' | 'tags' | 'owner', string>> & { deadline?: DeadlineKind; checkToday?: 'unchecked' | 'checked'; page?: number; pageSize?: number; dashboard?: '1' };
 
 async function rows(connection: PoolConnection, sql: string, values: unknown[] = []) {
   return (await connection.query<RowDataPacket[]>({ sql, timeout: 3000 }, values))[0];
@@ -54,6 +54,7 @@ function conditions(query: ProjectQuery, includeFilters: boolean, today: string)
     case 'maintenance': clauses.push("p.status='closed' AND p.maintenance_enabled=1"); break;
   }
   if (includeFilters) {
+    if (query.checkToday) { const condition = todayCheckCondition(today); clauses.push((query.checkToday === 'unchecked' ? 'NOT ' : '') + condition.sql); values.push(...condition.values); }
     if (query.deadline) { const condition = deadlineCondition(query.deadline, today); clauses.push('(' + condition.sql + ')'); values.push(...condition.values); }
     for (const [key, column] of Object.entries(dimensionColumns)) {
       const value = query[key as keyof ProjectQuery];
@@ -69,7 +70,7 @@ function conditions(query: ProjectQuery, includeFilters: boolean, today: string)
       const value = '%' + query.search.toLowerCase().replace(/[!%_]/g, char => '!' + char) + '%';
       clauses.push(`(LOWER(CONCAT_WS(' ',p.name,c.name,pl.name,odm.name,a.name,p.market_expectation,p.status_description)) LIKE ? ESCAPE '!'
        OR EXISTS (SELECT 1 FROM project_chips pc JOIN chips r ON r.id=pc.chip_id WHERE pc.project_id=p.id AND LOWER(r.name) LIKE ? ESCAPE '!')
-       OR EXISTS (SELECT 1 FROM project_people pp JOIN engineers r ON r.id=pp.engineer_id WHERE pp.project_id=p.id AND pp.role IN ('hardware_owner','software_owner') AND LOWER(r.name) LIKE ? ESCAPE '!'))`);
+       OR EXISTS (SELECT 1 FROM project_people pp JOIN engineers r ON r.id=pp.engineer_id WHERE pp.project_id=p.id AND pp.role IN ('hardware_owner','software_owner','pm') AND LOWER(r.name) LIKE ? ESCAPE '!'))`);
       values.push(value, value, value);
     }
   }
@@ -93,7 +94,7 @@ async function enrich(connection: PoolConnection, projects: RowDataPacket[]) {
 
 export function projectReads(database: RuntimeDatabase, clock = () => new Date()) {
   return {
-    list(query: ProjectQuery) {
+    list(query: ProjectQuery, accountId?: string) {
       const now = clock(), today = businessToday(now);
       return database.readSnapshot(async connection => {
         const checkRule = await checkContext(connection, undefined, now);
@@ -101,13 +102,20 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
         const base = conditions(query, false, today);
         const filtered = conditions(query, true, today);
         const deadlines = deadlineKinds.map(kind => ({ kind, ...deadlineCondition(kind, today) }));
-        const stats = (await rows(connection, `SELECT COUNT(*) total,COALESCE(SUM(p.priority='high'),0) high,COALESCE(SUM(p.signal='green'),0) green,COALESCE(SUM(p.signal='yellow'),0) yellow,COALESCE(SUM(p.signal='red'),0) red,${[...deadlines.map(condition => ({ ...condition, key: condition.kind })), ...checkStats].map(condition => `COALESCE(SUM(${condition.sql}),0) \`${condition.key}\``).join(',')} ${joins} ${filtered.sql}`, [...deadlines.flatMap(condition => condition.values), ...checkStats.flatMap(condition => condition.values), ...filtered.values]))[0];
+        const todayCheck = todayCheckCondition(today);
+        const statistics = [...deadlines.map(condition => ({ ...condition, key: condition.kind })), ...checkStats, { key: 'todayChecked', ...todayCheck }, { key: 'todayUnchecked', sql: 'NOT ' + todayCheck.sql, values: todayCheck.values }];
+        const stats = (await rows(connection, `SELECT COUNT(*) total,COALESCE(SUM(p.priority='high'),0) high,COALESCE(SUM(p.signal='green'),0) green,COALESCE(SUM(p.signal='yellow'),0) yellow,COALESCE(SUM(p.signal='red'),0) red,${statistics.map(condition => `COALESCE(SUM(${condition.sql}),0) \`${condition.key}\``).join(',')} ${joins} ${filtered.sql}`, [...statistics.flatMap(condition => condition.values), ...filtered.values]))[0];
         const total = Number(stats.total);
         const pageSize = query.pageSize ?? 24;
         const pageCount = Math.max(1, Math.ceil(total / pageSize));
         const page = Math.min(query.page ?? 1, pageCount);
-        const items = await enrich(connection, await rows(connection, `SELECT ${columns},${query.dashboard ? 'p.summary_note summaryNote,' : ''}${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress ${joins} ${filtered.sql} ORDER BY p.id DESC LIMIT ? OFFSET ?`, [...filtered.values, pageSize, (page - 1) * pageSize]));
-        for (const project of items) project.deadline = deadlineResult(project as RowDataPacket & DateFacts, today);
+        const items = await enrich(connection, await rows(connection, `SELECT ${columns},${query.dashboard ? 'p.summary_note summaryNote,' : ''}${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress,${todayCheck.sql} checkedToday,EXISTS (SELECT 1 FROM project_responsibilities r WHERE r.project_id=p.id AND r.user_id=?) canCheck ${joins} ${filtered.sql} ORDER BY p.id DESC LIMIT ? OFFSET ?`, [...todayCheck.values, accountId ?? null, ...filtered.values, pageSize, (page - 1) * pageSize]));
+        for (const project of items) {
+          project.deadline = deadlineResult(project as RowDataPacket & DateFacts, today);
+          project.checkedToday = Number(project.checkedToday) === 1;
+          project.capabilities = { canCheck: Number(project.canCheck) === 1 };
+          delete project.canCheck;
+        }
         await enrichChecks(connection, items, checkRule);
         const options: Record<string, string[]> = {};
         const optionQueries: string[] = [];
@@ -129,11 +137,11 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
             for (const project of all) { const value = String(project[key] ?? ''); counts.set(value, (counts.get(value) ?? 0) + 1); }
             return [key, [...counts].map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, 'zh-CN'))];
           }));
-          const focus = all.filter(project => project.status !== 'closed');
+          const focus = [...all];
           const priorities: Record<string, number> = { high: 0, mid: 1, low: 2 };
           focus.sort((a, b) => priorities[a.priority] - priorities[b.priority] || Number(b.progress) - Number(a.progress));
-          const team = await rows(connection, "SELECT CAST(e.id AS CHAR) id,e.name,COUNT(DISTINCT CASE WHEN p.status<>'closed' AND pp.role IN ('hardware_owner','software_owner','pm') THEN p.id END) count FROM engineers e LEFT JOIN project_people pp ON pp.engineer_id=e.id LEFT JOIN projects p ON p.id=pp.project_id GROUP BY e.id,e.name ORDER BY count DESC,e.name,e.id");
-          dashboard = { distributions, focusTotal: focus.length, focus: focus.slice(0, 12).map(({ id, name, status, priority, stage, progress }) => ({ id, name, status, priority, stage, progress })), latest: [...all].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 10).map(({ id, name, statusDesc, updatedAt }) => ({ id, name, statusDesc, updatedAt })), team: team.map(member => ({ ...member, count: Number(member.count) })) };
+          const team = await rows(connection, `SELECT CAST(e.id AS CHAR) id,e.name,COUNT(DISTINCT scoped.id) count,COUNT(DISTINCT CASE WHEN pp.role='pm' THEN scoped.id END) pmCount,COUNT(DISTINCT CASE WHEN pp.role='hardware_owner' THEN scoped.id END) hardwareCount,COUNT(DISTINCT CASE WHEN pp.role='software_owner' THEN scoped.id END) softwareCount FROM engineers e LEFT JOIN project_people pp ON pp.engineer_id=e.id AND pp.role IN ('hardware_owner','software_owner','pm') LEFT JOIN (SELECT p.id ${joins} ${filtered.sql}${filtered.sql ? ' AND ' : ' WHERE '}p.status<>'closed') scoped ON scoped.id=pp.project_id GROUP BY e.id,e.name ORDER BY count DESC,e.name,e.id`, filtered.values);
+          dashboard = { distributions, focusTotal: focus.length, focus: focus.slice(0, 12).map(({ id, name, status, priority, stage, progress }) => ({ id, name, status, priority, stage, progress })), latest: [...all].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 10).map(({ id, name, statusDesc, updatedAt }) => ({ id, name, statusDesc, updatedAt })), team: team.map(member => ({ ...member, count: Number(member.count), pmCount: Number(member.pmCount), hardwareCount: Number(member.hardwareCount), softwareCount: Number(member.softwareCount) })) };
         }
         return { items, businessDate: today, stats: Object.fromEntries(Object.entries(stats).map(([key, value]) => [key, Number(value)])), stageCounts, options, pagination: { page, pageSize, total, pageCount }, readOnly: true, ...(dashboard ? { dashboard } : {}) };
       });

@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-14T09:53:37.005Z",
+  "checks": [
+    "客户端跨日focus/可见60秒回调触发真实新GET且保持范围，同日不重复刷新；真实页面通过检查→原actions事务→独立连接SQL检查事实/审计/回执→新GET待查消失、首页当日标记、已查页与检查历史一致",
+    "进入修正保留同站检查范围/位置；真实详情输入→返回取消仍保留→正式保存→新GET/独立SQL；修正不自动检查，外站returnTo被拒绝",
+    "并发真实普通保存使原卡片版本过期；旧版本409无检查写入，关闭提示仍冻结；主动刷新读取新说明后明确通过",
+    "真实COMMIT后丢响应：普通按钮冻结、原命令按账号项目暂存；显式重试及刷新确认均使用同一key，不重复检查/审计；确认遇到真实会话失效401仍保留原请求，重新登录同账号恢复；不同账号不重放或删除原账号请求",
+    "无负责关系仍可读完整卡片但按钮禁用且不发请求；直接HTTP越权403，独立SQL事实/审计/版本保持"
+  ],
+  "requestCount": 68,
+  "build": {
+    "revision": "14bad38dc1c4e257c353d2c66b6c109ca7f8a9c1",
+    "dirty": true,
+    "builtAt": "2026-10-14T09:51:41.112Z",
+    "stage": "project-list",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "sourceHashes": {
+    "src/web/project-checks.html": "331241bd0d15b41163d5471bd28e5f7d6f38b5b3eea820c7c247a96085c776ba",
+    "src/web/project-checks.ts": "2533d303b212a0bf3d5bdceb17cda3b6c2f9472b7d319801b1e55376c3efe26f",
+    "src/web/project-detail.html": "a7559bb1aec3e6ac7e8401598fc7392f5d8de9780441e3c255175c0baf5a4060",
+    "src/web/detail.ts": "7dee06581dd5aa58051232f6ba3c9e14c69d6373e3ba03fa6803dbc92e202eea",
+    "src/web/shared/api.ts": "12eda605290d9f833ccd22e9fc279b8a6b87e3e52d9a523340e4aee912b5dcfa",
+    "src/web/shared/reference-picker.ts": "072d316ea2dffc6d6f2e4fc082a5517908ce578decbdd9ec38bc43a9fc253a44"
+  },
+  "isolatedTestDatabase": true,
+  "syntheticOnly": true,
+  "domExecution": true,
+  "nativeBrowserAcceptance": false,
+  "visualAcceptance": false
+}

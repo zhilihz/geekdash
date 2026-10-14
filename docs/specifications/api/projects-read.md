@@ -1,6 +1,6 @@
 # 项目只读 API
 
-日期：2026-10-10；来源src/server/modules/projects.ts及routes/projects.ts，E04-B04。当前业务查询要求可信登录，身份协议归[项目主干](project-core.md)；以下是读取协议，部署状态归系统真相，不能由本文推导。业务语义引用SPEC-002/004/014。
+日期：2026-10-14；来源src/server/modules/projects.ts及routes/projects.ts，E04-UI12。当前业务查询要求可信登录，身份协议归[项目主干](project-core.md)；以下是读取协议，部署状态归系统真相，不能由本文推导。业务语义引用SPEC-002/004/005/014/018。
 
 ## 1. 看板列表
 
@@ -9,12 +9,13 @@
 | 参数 | 类型与范围 |
 |---|---|
 | view | active/proposal/closed/maintenance/all；默认 active |
-| search | 最多 255 字符；在原版名称、客户、产品线、ODM、APP、芯片、软硬件业务负责人、市场预期和状态描述范围内作包含匹配；%/_/! 按文字处理 |
+| search | 最多 255 字符；名称、客户、产品线、ODM、APP、芯片、软硬件负责人及项目经理、市场预期和状态描述的包含匹配；%/_/! 按文字处理 |
 | customer/productLine/odmFactory/app/group/chip/tags/owner | 最多 255 字符；名称完全匹配，owner 对应业务人员资料而非账号授权 |
 | status | proposal/ongoing/paused/closed |
 | priority | high/mid/low |
 | signal | green/yellow/red |
 | deadline | upcoming/due/overdue/unset/closed_on_time/closed_late/closed_unplanned/closed_unknown/terminated |
+| checkToday | 可选unchecked/checked；按服务器上海业务日是否存在检查事实筛选，先筛选再统计和分页 |
 | stage | S1～S7/completed/unconfigured |
 | progress | 字符串 0/5/10/20/60/80/90/100 |
 | dashboard | 可选字符串1；请求看板完整筛选投影和卡片简介，普通模式保持原字段 |
@@ -24,7 +25,11 @@
 
 返回 `items`（当前页项目摘要及批量关联芯片/人员/标签）、`pagination`、`stats`、`options`、`stageCounts`、`readOnly=true`。项目 ID/version 及关联 ID 均为字符串，避免 bigint 精度丢失；progress 可为 SQL 返回的数字字符串。空引用为 null，空关联为数组。
 
-dashboard=1在同一只读快照附加：items.summaryNote、dashboard.distributions（客户/产品线/状态/优先级/信号灯/阶段的value/count）、focusTotal及focus（当前匹配非结案，优先级/进度排序，最多12项）、latest（当前匹配按项目更新时间最近10项，非状态单项修改时间）、team（全体非结案硬/软/PM参与项目，以工程师ID和项目去重）。数量均为实际计数；focus有限展示不构成创建上限，分页变化不改变汇总口径。team保留1051全体口径，与其余按当前筛选投影分别标明。统计失败整次读取失败，不返回假零值。
+dashboard=1在同一只读快照附加：items.summaryNote、dashboard.distributions（客户/产品线/状态/优先级/信号灯/阶段的value/count）、focusTotal及focus（当前完整匹配范围，优先级/进度排序，最多12项；已结案及量产维护看板同样展示）、latest（当前匹配按项目更新时间最近10项，非状态单项修改时间）、team。team按当前完整筛选集合的非结案项目计算：id/name/count，以及pmCount/hardwareCount/softwareCount；总数按工程师与项目去重，各岗位分别按项目去重，保留零负载工程师。UI12按统一展示范围替代旧team全局口径。数量均为实际计数；focus有限展示不构成创建上限，分页变化不改变汇总口径。统计失败整次读取失败，不返回假零值。
+
+列表items增加checkedToday:boolean和capabilities.canCheck:boolean。前者根据checked_at位于上海当天00:00至次日00:00的UTC半开区间判断；同一天多条只算一个已检查项目。后者来自当前可信账号的project_responsibilities关系，不由业务人员姓名推断；写入仍会重新校验。只有列表使用ListProject类型，不能假定详情含这两个字段。
+
+stats增加todayChecked/todayUnchecked，均为包含checkToday在内的当前过滤集合计数，二者相加等于total；在unchecked查询里todayChecked自然为0，不得当作另一个已检查标签的总数。首页不带日条件，消费完整当前范围的两项计数；检查页以实际查询分页总数展示。日标记不改变周检查义务和按时规则。
 
 `stats/stageCounts`跟随完整筛选范围，options按view提供可选范围。列表与统计/选项处于同一短读事务，businessDate来自同次服务器Asia/Shanghai时钟。stats含九个deadline类别计数，当前范围合计等于total；项目deadline含kind/asOfDate/days/label。未定或未知days=null，不能解释为0；不返回manualDelayed。空查询返回200和空数组/零计数；不可用不能伪装成空查询。
 

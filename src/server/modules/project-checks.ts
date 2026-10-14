@@ -96,6 +96,13 @@ export function checkConditions(context: Context) {
     { key: 'checkUpdated', sql: `${required} AND p.version>(SELECT ck.result_version FROM project_checks ck WHERE ck.project_id=p.id AND ck.week_start=? ORDER BY ck.id DESC LIMIT 1)`, values: [...requiredValues, context.weekStart] },
   ];
 }
+export function todayCheckCondition(businessDate: string) {
+  const start = Date.parse(businessDate) - 8 * 3600000;
+  return {
+    sql: 'EXISTS (SELECT 1 FROM project_checks today_check WHERE today_check.project_id=p.id AND today_check.checked_at>=? AND today_check.checked_at<?)',
+    values: [start, start + 86400000].map(time => new Date(time).toISOString().slice(0, 23).replace('T', ' ')),
+  };
+}
 export async function enrichChecks(c: PoolConnection, projects: RowDataPacket[], context: Context) {
   if (!projects.length) return;
   const [records] = await c.query<RowDataPacket[]>({ sql: `SELECT ${checkColumns},DATE_FORMAT(first.checked_at,'%Y-%m-%dT%H:%i:%s.%fZ') firstAt

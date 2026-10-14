@@ -1204,6 +1204,16 @@ try {
     if (url.origin === location.origin && ['/', '/GeekDash.html'].includes(url.pathname)) (element('back') as HTMLAnchorElement).href = url.href;
   }
 } catch { /* 无返回上下文时使用普通列表入口。 */ }
+try {
+  const target = new URLSearchParams(location.search).get('returnTo');
+  if (target) {
+    const url = new URL(target, location.origin);
+    if (url.origin === location.origin && url.pathname === '/project-checks.html' && !url.username && !url.password) {
+      const back = element('back') as HTMLAnchorElement;
+      back.href = url.href; back.textContent = '← 返回项目检查';
+    }
+  }
+} catch { /* 非法返回目标保持原看板入口与副本保护。 */ }
 function changedRows(items: Entry[]) {
   const value = (v: unknown) => v == null || ['', '（空）', '（无记录）', '未记录', '—'].includes(String(v)) ? '' : String(v);
   return items.filter(row => value(row.before) !== value(row.after));

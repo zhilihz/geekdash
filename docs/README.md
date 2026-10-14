@@ -4,10 +4,10 @@
 
 ## 本轮阅读入口
 
-当前补充：[UI11完整筛选报告](testing/reports/2026-10-14-ui11-complete-filters.md)、[设计事实67](status/current-system-truth.md#67-ui11完整可折叠筛选2026-10-14)及[首页完整筛选交互](product/PRD.md#首页完整筛选)。用户已认可当前Figma并授权正式前端修正，后续代码与部署状态分别核实。
+当前施工：[UI12本地候选报告](testing/reports/2026-10-14-e04-ui12-home-checks.md)、[系统真相68](status/current-system-truth.md#68-ui12首页与项目检查本地候选2026-10-14)及[实施计划14.9.22](implementation/execution-plan.md#14922-ui12认可设计的首页与检查链路实施2026-10-14)。本批候选及原生关键链已核对，尚未推送或部署。
 
-1. [交接](handoff/handoff.md)与[当前设计事实](status/current-system-truth.md#66-ui10本地参考风格修正2026-10-14)：先审阅UI10本地参考风格修正，再补实际原型核验与网页实施；已部署UI07、3153498及其验收边界仍查[运行事实](status/current-system-truth.md#62-ui07中上方提示已部署2026-10-13)。
-2. [视觉意图](product/PRD.md#813-ui09正式视觉稿2026-10-14设计中)、[UI10设计报告](testing/reports/2026-10-14-ui10-reference-style.md)及[Figma文件](https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=142-3499)：在原画板恢复本地参考风格；截图、配置核验及未测范围查报告。[PRD8.12](product/PRD.md#812-ui08全站结构与日常操作2026-10-14结构评审稿)和[UI08线框报告](testing/reports/2026-10-14-ui08-wireframes.md)为结构与操作关系依据；UI09浅色首版及原型历史见[旧报告](testing/reports/2026-10-14-ui09-visual-design.md)。
+1. [交接](handoff/handoff.md)与[当前候选事实](status/current-system-truth.md#68-ui12首页与项目检查本地候选2026-10-14)：接续UI12阶段提交、合并及固定发布，准确通过/未测范围查报告；已部署UI07、3153498及其验收边界仍查[运行事实](status/current-system-truth.md#62-ui07中上方提示已部署2026-10-13)。
+2. [首页完整筛选](product/PRD.md#首页完整筛选)、[视觉意图](product/PRD.md#813-ui09正式视觉稿2026-10-14设计中)、[UI11设计报告](testing/reports/2026-10-14-ui11-complete-filters.md)及[Figma文件](https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=142-3499)：用户已认可当前设计，实施沿同一稿。[PRD8.12](product/PRD.md#812-ui08全站结构与日常操作2026-10-14结构评审稿)为结构与操作依据；历史设计范围仍可查[UI08](testing/reports/2026-10-14-ui08-wireframes.md)、[UI09](testing/reports/2026-10-14-ui09-visual-design.md)、[UI10](testing/reports/2026-10-14-ui10-reference-style.md)，不作为当前部署状态。
 3. [E04前端固定施工](implementation/execution-plan.md#14921-e04前端固定与流程修正2026-10-12)：实现方法；准确业务规则仍查[规格书](specifications/specification.md)。
 4. [UI07提示与副本报告](testing/reports/2026-10-13-e04-ui07-notifications.md)、[UI07部署与恢复](operations/deployments/2026-10-13-e04-ui07.md)、[UI06网页报告](testing/reports/2026-10-13-e04-ui06-frontend.md)、[UI06部署与恢复](operations/deployments/2026-10-13-e04-ui06.md)、[看板及已有入口报告](testing/reports/2026-10-12-e04-ui03-c.md)、[上下文动作报告](testing/reports/2026-10-12-e04-ui03-b.md)、[详情结构报告](testing/reports/2026-10-12-e04-ui03-a.md)、[设计核查报告](testing/reports/2026-10-12-e04-ui01-design.md)及[实际设计回读](evidence/2026-10-12-e04-ui01-design-audit.json)：分别核查实现、设计子集与未测范围。
 5. [六阶段目标任务](implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)、[代决记录](decisions/autonomous-decisions.md)、[代码管理](operations/release-maintenance.md#2-代码管理)：持续施工和交付入口。

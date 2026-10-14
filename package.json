@@ -27,6 +27,7 @@
     "test:integration": "node scripts/verify-project-integration.mjs",
     "test:detail-ui": "node scripts/verify-detail-ui.mjs",
     "test:board-ui": "node scripts/verify-board-ui.mjs",
+    "test:checks-ui": "node --max-old-space-size=192 scripts/verify-project-checks-ui.mjs",
     "test:list-equivalence": "node scripts/verify-project-list-equivalence.mjs",
     "test:ordinary": "node scripts/verify-project-ordinary.mjs",
     "test:core": "node scripts/verify-project-core.mjs",

@@ -28,7 +28,8 @@ try {
   if (schemaVersion !== '0003-node-recovery') throw new Error('迁移资源目标版本无效');
   await access(new URL('server/start.js', candidate));
   const html = await readFile(new URL('web/index.html', candidate), 'utf8');
-  const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^"?#]+)"/g)].map(match => match[1]);
+  const checksHtml = await readFile(new URL('web/project-checks.html', candidate), 'utf8');
+  const assets = [...new Set([html, checksHtml].flatMap(markup => [...markup.matchAll(/(?:src|href)="(\/assets\/[^"?#]+)"/g)].map(match => match[1])))];
   if (!assets.some(path => path.endsWith('.js')) || !assets.some(path => path.endsWith('.css'))) {
     throw new Error('前端脚本或样式产物缺失');
   }
@@ -39,7 +40,7 @@ try {
   const app = await createApp();
   try {
     const origin = await app.listen({ host: '127.0.0.1', port: 0 });
-    for (const path of ['/', '/GeekDash.html', '/project-detail.html', '/api/health/live', ...assets]) {
+    for (const path of ['/', '/GeekDash.html', '/project-detail.html', '/project-checks.html', '/api/health/live', ...assets]) {
       const response = await fetch(origin + path, { signal: AbortSignal.timeout(5000) });
       if (!response.ok) throw new Error(`候选产物 HTTP 核验失败：${path}`);
       await response.arrayBuffer();

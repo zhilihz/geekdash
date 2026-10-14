@@ -1,0 +1,30 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-14T09:50:50.217Z",
+  "checks": [
+    "单框搜索/下拉/清空与多选逐个移除；同名稳定ID、键盘选择、切页副本一致；一次保存增加一个版本/审计，独立SQL、新GET及历史消费正式关联",
+    "资料/关键日期/分工/最新说明层级一致；更多日期原位展开；纠错在当前页预览并明确保存后日期新读；非负责人纯文本只读",
+    "成功反馈自动收起且无常驻已保存文字；暂存失败关闭提示仍保留输入；日期副本从可见提示打开，暂不处理后跨页恢复原输入，明确保存后SQL/新GET及历史一致",
+    "候选未到、动作处理中与他人更新统一禁用组合控件；冻结保留旧ID供复制，不覆盖他人新版本"
+  ],
+  "requestCount": 34,
+  "build": {
+    "revision": "14bad38dc1c4e257c353d2c66b6c109ca7f8a9c1",
+    "dirty": true,
+    "builtAt": "2026-10-14T09:35:48.144Z",
+    "stage": "project-list",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "frontendSource": "src/web/detail.ts + shared/api.ts + shared/reference-picker.ts",
+  "sourceSha256": {
+    "detailSource": "7dee06581dd5aa58051232f6ba3c9e14c69d6373e3ba03fa6803dbc92e202eea",
+    "apiSource": "12eda605290d9f833ccd22e9fc279b8a6b87e3e52d9a523340e4aee912b5dcfa",
+    "referenceSource": "072d316ea2dffc6d6f2e4fc082a5517908ce578decbdd9ec38bc43a9fc253a44",
+    "html": "a7559bb1aec3e6ac7e8401598fc7392f5d8de9780441e3c255175c0baf5a4060"
+  },
+  "isolatedTestDatabase": true,
+  "syntheticOnly": true,
+  "domExecution": "jsdom 27.0.1; CSS/BroadcastChannel/native dialog/popover behavior not validated",
+  "nativeBrowserAcceptance": false,
+  "visualAcceptance": false
+}

@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-14T10:07:23.476Z",
+  "checks": [
+    "31项完整筛选投影与24/7分页；分布/重点跨页相同，真实重复职责按项目去重且结案排除；空范围与非法查询准确",
+    "普通保存真实事务后新GET/独立SQL/卡片简介及最近状态消费同一项目",
+    "今日已查/未查在SQL中先过滤再24/4分页，独立SQL与数量及跨页集合一致；重复检查只计一个项目，空范围与非法日条件准确",
+    "真实库注入读取时钟核对上海23:59:59.999/00:00日界；周已查与今日未查分离；旧单参数读取兼容且不授予检查权限",
+    "驾驶舱团队随产品线/日检查范围计数，三岗位分别去重，同人多岗总数只计一项目，结案岗位与范围外项目不计入；重点列表保留已结案和量产维护当前范围",
+    "列表权限来自登录账号负责关系；业务分工保留时失去负责权限仍可读但不能检查，403不写入，恢复负责后新GET同步",
+    "通过检查走真实actions事务；独立SQL事实/审计、新GET卡片及今日计数、检查历史与原回执一致；待查末页从28回退27且24/3分页准确",
+    "实际board.ts事件与API：14维完整筛选、折叠后逐项取消、重复选中取消、清空保持范围/布局；日标记及检查入口继承范围；布局切换不重取；分页/图例联动、账号唯一；旧响应不覆盖新卡片，读取失败保留完整旧结果；CSS/原生另验"
+  ],
+  "requestCount": 79,
+  "build": {
+    "revision": "14bad38dc1c4e257c353d2c66b6c109ca7f8a9c1",
+    "dirty": true,
+    "builtAt": "2026-10-14T09:56:56.179Z",
+    "stage": "project-list",
+    "schemaVersion": "0003-node-recovery"
+  },
+  "sourceHashes": {
+    "src/web/index.html": "b819c60bf727ca20460f3c1ee5faf03df0941cf7cc283de088fc3fb6f15e2d77",
+    "src/web/board.ts": "9f994bd3ba479094c2c5ec241a7d4121b37573f6412782fd366ae7de3dae3ef7",
+    "src/web/shared/api.ts": "12eda605290d9f833ccd22e9fc279b8a6b87e3e52d9a523340e4aee912b5dcfa"
+  },
+  "isolatedTestDatabase": true,
+  "syntheticOnly": true,
+  "domExecution": true,
+  "nativeBrowserAcceptance": false,
+  "visualAcceptance": false
+}

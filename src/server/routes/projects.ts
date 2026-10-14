@@ -108,6 +108,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
   properties.priority = { type: 'string', enum: ['high', 'mid', 'low'] };
   properties.signal = { type: 'string', enum: ['green', 'yellow', 'red'] };
   properties.deadline = { type: 'string', enum: deadlineKinds };
+  properties.checkToday = { type: 'string', enum: ['unchecked', 'checked'] };
   properties.stage = { type: 'string', enum: ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'completed', 'unconfigured'] };
   properties.progress = { type: 'string', enum: ['0', '5', '10', '20', '60', '80', '90', '100'] };
   properties.page = { type: 'integer', minimum: 1, maximum: 1000000 };
@@ -116,7 +117,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
   app.get<{ Querystring: ProjectQuery }>('/api/projects', options, async (request, reply) => {
     reply.header('Cache-Control', 'no-store');
     if (!reads) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE' });
-    try { return await reads.list(request.query); }
+    try { return await reads.list(request.query, request.actor?.id); }
     catch (error) { app.log.warn({ code: (error as { code?: string }).code }, '项目查询未完成'); return reply.code(503).send({ code: 'PROJECT_READ_UNAVAILABLE' }); }
   });
   app.get<{ Params: { id: string } }>('/api/projects/:id', {

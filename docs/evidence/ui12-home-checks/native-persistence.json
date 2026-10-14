@@ -1,0 +1,64 @@
+{
+  "verifiedAt": "2026-10-14T09:54:06.783Z",
+  "source": "原生 Edge 操作之后，独立 test_migrator 连接的 MySQL 只读一致性快照",
+  "database": "geekdash_test",
+  "readOnlyTransaction": true,
+  "fixtureOnly": true,
+  "browserOperationsPerformedBy": "root agent",
+  "businessDate": "2026-10-14",
+  "checkedProject": {
+    "projectId": "9007199254781304",
+    "name": "悦动便携音箱",
+    "projectVersion": "3",
+    "checkId": "25992",
+    "checkedAt": "2026-10-14T09:46:56.190000Z",
+    "weekStart": "2026-10-12",
+    "conclusion": "checked",
+    "note": "",
+    "observedVersion": "2",
+    "resultVersion": "3",
+    "checkCount": 1,
+    "auditId": "106027",
+    "auditAction": "project.check.save",
+    "auditCount": 1,
+    "receiptCount": 1,
+    "receiptResponseCode": 200,
+    "operationKeySha256": "efa026678d8a89f66de77d3082e15c4fa70de63b4da54a5cbd328a4756437d22",
+    "actorMatchesFixtureAccount": true,
+    "checkAuditReceiptVersionConsistent": true
+  },
+  "correctedProject": {
+    "projectId": "9007199254781303",
+    "name": "星岚健康手表",
+    "projectVersion": "3",
+    "statusDesc": "蓝牙连接稳定性测试已复核，等待客户确认。",
+    "previousStatusDesc": "蓝牙连接稳定性持续验证，最新测试结果待汇总。",
+    "auditId": "106047",
+    "auditAction": "project.ordinary.save",
+    "versionBefore": "2",
+    "versionAfter": "3",
+    "receiptCount": 1,
+    "receiptResponseCode": 200,
+    "operationKeySha256": "bef4d19ebed1f3bd48ed142978e2c8b443875bd67dbe5eb5b3c08ede1968afb2",
+    "checkCount": 0,
+    "checkAuditCount": 0,
+    "checkReceiptCount": 0,
+    "actorMatchesFixtureAccount": true,
+    "descriptionAuditReceiptConsistent": true
+  },
+  "currentFixtureCounts": {
+    "total": 6,
+    "todayChecked": 4,
+    "todayUnchecked": 2
+  },
+  "assertions": [
+    "通过检查只追加一条事实、一条检查审计和一份幂等回执，项目版本及操作者对应一致",
+    "修正的最新状态说明持久化，审计旧值/新值与回执对应；没有自动新增检查",
+    "独立 SQL 验证六个合成项目为四个今日已查、两个今日未查"
+  ],
+  "excluded": [
+    "未读取或记录登录口令、Cookie、会话令牌",
+    "未写入数据库、未停止服务、未清理夹具",
+    "本文件仅证明持久化结果；原生页面操作与截图另由主任务记录"
+  ]
+}
