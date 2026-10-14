@@ -4,8 +4,8 @@
 
 ## 本轮阅读入口
 
-1. [交接](handoff/handoff.md)与[当前设计事实](status/current-system-truth.md#65-ui09核心原型反馈与检查路径2026-10-14)：先进行UI09用户评审及实际原型核验，再实施网页；已部署UI07、3153498及其验收边界仍查[运行事实](status/current-system-truth.md#62-ui07中上方提示已部署2026-10-13)。
-2. [UI09视觉意图](product/PRD.md#813-ui09正式视觉稿2026-10-14设计中)、[UI09设计报告](testing/reports/2026-10-14-ui09-visual-design.md)及[Figma文件](https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF)：视觉首版和核心原型反馈供审阅；截图、配置核验、浏览器访问问题及未测范围查报告。[PRD8.12](product/PRD.md#812-ui08全站结构与日常操作2026-10-14结构评审稿)和[UI08线框报告](testing/reports/2026-10-14-ui08-wireframes.md)为结构与操作关系依据，可复用的旧版主题、组件来源查[PRD第8节](product/PRD.md#8-页面来源用途与结构复核2026-10-12)。
+1. [交接](handoff/handoff.md)与[当前设计事实](status/current-system-truth.md#66-ui10本地参考风格修正2026-10-14)：先审阅UI10本地参考风格修正，再补实际原型核验与网页实施；已部署UI07、3153498及其验收边界仍查[运行事实](status/current-system-truth.md#62-ui07中上方提示已部署2026-10-13)。
+2. [视觉意图](product/PRD.md#813-ui09正式视觉稿2026-10-14设计中)、[UI10设计报告](testing/reports/2026-10-14-ui10-reference-style.md)及[Figma文件](https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=142-3499)：在原画板恢复本地参考风格；截图、配置核验及未测范围查报告。[PRD8.12](product/PRD.md#812-ui08全站结构与日常操作2026-10-14结构评审稿)和[UI08线框报告](testing/reports/2026-10-14-ui08-wireframes.md)为结构与操作关系依据；UI09浅色首版及原型历史见[旧报告](testing/reports/2026-10-14-ui09-visual-design.md)。
 3. [E04前端固定施工](implementation/execution-plan.md#14921-e04前端固定与流程修正2026-10-12)：实现方法；准确业务规则仍查[规格书](specifications/specification.md)。
 4. [UI07提示与副本报告](testing/reports/2026-10-13-e04-ui07-notifications.md)、[UI07部署与恢复](operations/deployments/2026-10-13-e04-ui07.md)、[UI06网页报告](testing/reports/2026-10-13-e04-ui06-frontend.md)、[UI06部署与恢复](operations/deployments/2026-10-13-e04-ui06.md)、[看板及已有入口报告](testing/reports/2026-10-12-e04-ui03-c.md)、[上下文动作报告](testing/reports/2026-10-12-e04-ui03-b.md)、[详情结构报告](testing/reports/2026-10-12-e04-ui03-a.md)、[设计核查报告](testing/reports/2026-10-12-e04-ui01-design.md)及[实际设计回读](evidence/2026-10-12-e04-ui01-design-audit.json)：分别核查实现、设计子集与未测范围。
 5. [六阶段目标任务](implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)、[代决记录](decisions/autonomous-decisions.md)、[代码管理](operations/release-maintenance.md#2-代码管理)：持续施工和交付入口。
