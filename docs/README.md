@@ -1,11 +1,11 @@
 # GeekDash 文档目录
 
-导航更新：2026-10-13。项目仓库：[zhilihz/geekdash](https://github.com/zhilihz/geekdash)。全部项目文档在本目录；协作与分类规则只维护于根目录[AGENTS.md](../AGENTS.md)。
+导航更新：2026-10-14。项目仓库：[zhilihz/geekdash](https://github.com/zhilihz/geekdash)。全部项目文档在本目录；协作与分类规则只维护于根目录[AGENTS.md](../AGENTS.md)。
 
 ## 本轮阅读入口
 
-1. [交接](handoff/handoff.md)与[当前系统真相](status/current-system-truth.md#62-ui07中上方提示已部署2026-10-13)：UI07中上方提示、3153498部署、验收边界和接续工作。
-2. [PRD页面来源与用途](product/PRD.md#8-页面来源用途与结构复核2026-10-12)及[Figma实际文件](https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF)：核对原版结构和候选体验。
+1. [交接](handoff/handoff.md)与[当前系统真相](status/current-system-truth.md#62-ui07中上方提示已部署2026-10-13)：先接续UI08结构评审；已部署UI07、3153498及其验收边界仍查运行事实。
+2. [UI08交互与全站结构](product/PRD.md#812-ui08全站结构与日常操作2026-10-14结构评审稿)、[UI08线框设计报告](testing/reports/2026-10-14-ui08-wireframes.md)及[Figma实际文件](https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF)：37幅页面/状态含总目录，仍为结构评审稿，未代表产品实施或部署；原页面来源查[PRD第8节](product/PRD.md#8-页面来源用途与结构复核2026-10-12)。
 3. [E04前端固定施工](implementation/execution-plan.md#14921-e04前端固定与流程修正2026-10-12)：实现方法；准确业务规则仍查[规格书](specifications/specification.md)。
 4. [UI07提示与副本报告](testing/reports/2026-10-13-e04-ui07-notifications.md)、[UI07部署与恢复](operations/deployments/2026-10-13-e04-ui07.md)、[UI06网页报告](testing/reports/2026-10-13-e04-ui06-frontend.md)、[UI06部署与恢复](operations/deployments/2026-10-13-e04-ui06.md)、[看板及已有入口报告](testing/reports/2026-10-12-e04-ui03-c.md)、[上下文动作报告](testing/reports/2026-10-12-e04-ui03-b.md)、[详情结构报告](testing/reports/2026-10-12-e04-ui03-a.md)、[设计核查报告](testing/reports/2026-10-12-e04-ui01-design.md)及[实际设计回读](evidence/2026-10-12-e04-ui01-design-audit.json)：分别核查实现、设计子集与未测范围。
 5. [六阶段目标任务](implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)、[代决记录](decisions/autonomous-decisions.md)、[代码管理](operations/release-maintenance.md#2-代码管理)：持续施工和交付入口。

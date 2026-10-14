@@ -1,0 +1,228 @@
+{
+  "pageCount": 37,
+  "pdf": "GeekDash-UI08-structure.pdf",
+  "screenshots": [
+    {
+      "file": "W00.png",
+      "width": 1440,
+      "height": 1936,
+      "sha256": "1e3457673fd0f4bcc3fc0c04f31200f1f2625fcfae68e87b89cc6e258f1eb3fb"
+    },
+    {
+      "file": "W01.png",
+      "width": 1440,
+      "height": 1653,
+      "sha256": "21f0eff42724ebd2b51440dfe7d9ae824f2e5e62a64b044ea8af8f68ecaa1580"
+    },
+    {
+      "file": "W02.png",
+      "width": 1440,
+      "height": 1513,
+      "sha256": "ff8ff8acc6b342d160e0f2250768f55dff1cc5b94bd603183ad3d399f16dc4f9"
+    },
+    {
+      "file": "W03.png",
+      "width": 1440,
+      "height": 1555,
+      "sha256": "0282e7842a495cf3ec27203c03d5bee036b9cc5f7a128670a4d80ad3bdc6e4c5"
+    },
+    {
+      "file": "W04.png",
+      "width": 1440,
+      "height": 1692,
+      "sha256": "0ed1aabeaca6151970628d7734e3d0ef2423a03a3fb04d5a438cf58f41ba1de4"
+    },
+    {
+      "file": "W05.png",
+      "width": 1440,
+      "height": 1580,
+      "sha256": "d52adfae29e2065aeb5119417650a155c2ed97f7ee70d00d172ca2a30133b47f"
+    },
+    {
+      "file": "W06.png",
+      "width": 1440,
+      "height": 1555,
+      "sha256": "ddd30eedb3079074b64cbbc10d32b439ecd2a4e054cd94c35a76b6181a4c0f03"
+    },
+    {
+      "file": "W07.png",
+      "width": 1440,
+      "height": 1637,
+      "sha256": "e7d7b77b76e9c1ca73492a14043d79376e539ecda35fafd576de1085e8d0f488"
+    },
+    {
+      "file": "W08.png",
+      "width": 1440,
+      "height": 1421,
+      "sha256": "ea60c6e955f9fc4f5d60c3b741bcb8b6b22484c0fc22b7cdc3a904fe4a84f594"
+    },
+    {
+      "file": "W09.png",
+      "width": 1440,
+      "height": 1022,
+      "sha256": "effa958642ea341f914f307e5dd9f04656bbb1e133ebd69d8785e21d82956fae"
+    },
+    {
+      "file": "W10.png",
+      "width": 1440,
+      "height": 1501,
+      "sha256": "4693a07322dd27be2db67b6547cc9cd2c4ece59e5b950770c734e2d1000ab3f9"
+    },
+    {
+      "file": "W11.png",
+      "width": 1440,
+      "height": 1459,
+      "sha256": "1c9504dc9ab00adbc53bfef0129b6fcbf29796bef573112009dbaa3263d327bb"
+    },
+    {
+      "file": "W12.png",
+      "width": 1440,
+      "height": 1852,
+      "sha256": "74c882db674e2afe166c7bad788991e4230c8444d4e944a5d2d3767ce82f7a5f"
+    },
+    {
+      "file": "W13.png",
+      "width": 1440,
+      "height": 1827,
+      "sha256": "12d8c0329b91aefb66c8df6bc5e332604d99e3329b4b3f32e262275cec8f3fa6"
+    },
+    {
+      "file": "W14.png",
+      "width": 1440,
+      "height": 1655,
+      "sha256": "f1ffe6f718648b24a6ec08a29d2314addcba7c27b82fbc290fcbd5bf4a6f773f"
+    },
+    {
+      "file": "W15.png",
+      "width": 1440,
+      "height": 826,
+      "sha256": "e997c20a1dfe71849962ad0b6b1d8ac4dc84916fe0118c690ec0124a4f395bf7"
+    },
+    {
+      "file": "W16.png",
+      "width": 1440,
+      "height": 813,
+      "sha256": "49ea38fdc239d8e610e3c69ef7f600af8aa5ecc529d92ada608185437e9e1669"
+    },
+    {
+      "file": "W17.png",
+      "width": 1440,
+      "height": 1025,
+      "sha256": "f144409c540c8df4459e1ae9810c918385eb454e6bedf142574f2c85aa52d19f"
+    },
+    {
+      "file": "W18.png",
+      "width": 1440,
+      "height": 1175,
+      "sha256": "fd7b46e06acdea9896911833d09fa1e9e057fd012dacd861bae492741e98e8b0"
+    },
+    {
+      "file": "W19.png",
+      "width": 1440,
+      "height": 615,
+      "sha256": "f5245100774e206be2f6c53863e74af957b002c1e3f9838ec0363426a6e77db3"
+    },
+    {
+      "file": "W20.png",
+      "width": 1440,
+      "height": 1120,
+      "sha256": "d1ce426cb731b4a6bbb2df971b1e32de5da0412c441e73623f4242e3706c1431"
+    },
+    {
+      "file": "W21.png",
+      "width": 1440,
+      "height": 854,
+      "sha256": "e9731b9a64d909e1d756366e60cc17081791242256dc6150dea59b1322874833"
+    },
+    {
+      "file": "W22.png",
+      "width": 1440,
+      "height": 668,
+      "sha256": "13b073ec6f2940510af60aeb021c9986e8975d619df24b93b11be3d1d60e7602"
+    },
+    {
+      "file": "W23.png",
+      "width": 1440,
+      "height": 666,
+      "sha256": "76f4cc6c5175a819592e6014a48a9bcf4f35cf6cf2bab1977feca2ed34ef388b"
+    },
+    {
+      "file": "W24.png",
+      "width": 1440,
+      "height": 1012,
+      "sha256": "c5dc4da24fefe4c02a4716ff74ab4ef83c4730c798ff9c93ff5e05d7d460abb8"
+    },
+    {
+      "file": "W25.png",
+      "width": 1440,
+      "height": 1069,
+      "sha256": "84bed807e9c61707d5221c9b250e8a5a9ad5da1582a36a6f055e99570e8854e9"
+    },
+    {
+      "file": "W26.png",
+      "width": 1440,
+      "height": 1555,
+      "sha256": "b7f6c97f156b350b6382f9587527edeaf55a2291d25f96da915277660f74adc9"
+    },
+    {
+      "file": "W27.png",
+      "width": 1440,
+      "height": 820,
+      "sha256": "e9e8646310be4d2f06ecdf6ead52afe303c0db8f2ebed77dabe4c9a782df0a45"
+    },
+    {
+      "file": "W28.png",
+      "width": 1440,
+      "height": 1057,
+      "sha256": "816e8de085606f4984bac3b43ee5ea012583170eb1e32e0a8ff87be794a7c655"
+    },
+    {
+      "file": "W29.png",
+      "width": 1440,
+      "height": 1002,
+      "sha256": "d60f756b93d0656371f410445f28ef3d7e74114fbc450f2f06ce2376aeae1653"
+    },
+    {
+      "file": "W30.png",
+      "width": 1440,
+      "height": 909,
+      "sha256": "2dbf37ece2d03d68872c1c8f7dd6326bccaaa15ffac1131b8628afba8e7cb6a5"
+    },
+    {
+      "file": "W31.png",
+      "width": 1440,
+      "height": 632,
+      "sha256": "9c20dfaa55840db41a139c042158a88241ccac6f892778de9fdd2dda99cc4594"
+    },
+    {
+      "file": "W32.png",
+      "width": 1440,
+      "height": 1382,
+      "sha256": "6489cf69a2be8df662a37cc6ddc57b48228ddc9a03df9a8b4c55a06458b99d0d"
+    },
+    {
+      "file": "W33.png",
+      "width": 1440,
+      "height": 1289,
+      "sha256": "df168764088e270b2cc473140d508e4e67134caa3de810973efd6fb17710abb9"
+    },
+    {
+      "file": "W34.png",
+      "width": 1440,
+      "height": 1586,
+      "sha256": "2219389e1da3e56ff18c74c54434049112df1676534687c17b5da15200524aeb"
+    },
+    {
+      "file": "W35.png",
+      "width": 1440,
+      "height": 1203,
+      "sha256": "2cdd738d9620c385e98c9d800f9de33ce824946f2d2eec63f1fcad191be4f191"
+    },
+    {
+      "file": "W36.png",
+      "width": 1440,
+      "height": 1692,
+      "sha256": "f0177a5bbda2bca9d0dc8c515c08d32a214753d6c975fed129f482f1e9cd21bf"
+    }
+  ]
+}

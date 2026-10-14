@@ -1,0 +1,424 @@
+{
+  "verifiedAt": "2026-10-14",
+  "fileKey": "leQy2Be9GaTXPvZeooQuIF",
+  "pageId": "142:3499",
+  "screens": [
+    {
+      "key": "W01",
+      "id": "144:3499",
+      "name": "W01 项目看板 · 卡片",
+      "width": 1440,
+      "height": 1653,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=144-3499",
+      "screenshot": "ui08-wireframes/W01.png"
+    },
+    {
+      "key": "W03",
+      "id": "144:3668",
+      "name": "W03 基本信息 · 查看",
+      "width": 1440,
+      "height": 1555,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=144-3668",
+      "screenshot": "ui08-wireframes/W03.png"
+    },
+    {
+      "key": "W04",
+      "id": "144:3783",
+      "name": "W04 基本信息 · 一键切换编辑",
+      "width": 1440,
+      "height": 1692,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=144-3783",
+      "screenshot": "ui08-wireframes/W04.png"
+    },
+    {
+      "key": "W05",
+      "id": "144:3919",
+      "name": "W05 项目分工 · 原位编辑",
+      "width": 1440,
+      "height": 1580,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=144-3919",
+      "screenshot": "ui08-wireframes/W05.png"
+    },
+    {
+      "key": "W02",
+      "id": "146:3642",
+      "name": "W02 项目看板 · 驾驶舱",
+      "width": 1440,
+      "height": 1513,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=146-3642",
+      "screenshot": "ui08-wireframes/W02.png"
+    },
+    {
+      "key": "W06",
+      "id": "146:3771",
+      "name": "W06 最新状态说明 · 持续可编辑",
+      "width": 1440,
+      "height": 1555,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=146-3771",
+      "screenshot": "ui08-wireframes/W06.png"
+    },
+    {
+      "key": "W07",
+      "id": "146:3860",
+      "name": "W07 项目阶段 · 七阶段卡片",
+      "width": 1440,
+      "height": 1637,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=146-3860",
+      "screenshot": "ui08-wireframes/W07.png"
+    },
+    {
+      "key": "W08",
+      "id": "146:4011",
+      "name": "W08 项目节点 · 原位维护",
+      "width": 1440,
+      "height": 1421,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=146-4011",
+      "screenshot": "ui08-wireframes/W08.png"
+    },
+    {
+      "key": "W09",
+      "id": "146:4119",
+      "name": "W09 项目 Flow · 阶段泳道",
+      "width": 1440,
+      "height": 1022,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=146-4119",
+      "screenshot": "ui08-wireframes/W09.png"
+    },
+    {
+      "key": "W10",
+      "id": "149:3793",
+      "name": "W10 客户节点 · 交付与确认",
+      "width": 1440,
+      "height": 1501,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=149-3793",
+      "screenshot": "ui08-wireframes/W10.png"
+    },
+    {
+      "key": "W11",
+      "id": "149:3906",
+      "name": "W11 风险与需求变更 · 查看",
+      "width": 1440,
+      "height": 1459,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=149-3906",
+      "screenshot": "ui08-wireframes/W11.png"
+    },
+    {
+      "key": "W12",
+      "id": "149:3986",
+      "name": "W12 风险与需求变更 · 原位编辑",
+      "width": 1440,
+      "height": 1852,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=149-3986",
+      "screenshot": "ui08-wireframes/W12.png"
+    },
+    {
+      "key": "W13",
+      "id": "149:4081",
+      "name": "W13 更新历史 · 只看实际变化",
+      "width": 1440,
+      "height": 1827,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=149-4081",
+      "screenshot": "ui08-wireframes/W13.png"
+    },
+    {
+      "key": "W14",
+      "id": "149:4200",
+      "name": "W14 新建项目 · 同一套资料结构",
+      "width": 1440,
+      "height": 1655,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=149-4200",
+      "screenshot": "ui08-wireframes/W14.png"
+    },
+    {
+      "key": "W15",
+      "id": "151:3978",
+      "name": "W15 项目状态简要 · 跨项目表格",
+      "width": 1440,
+      "height": 826,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=151-3978",
+      "screenshot": "ui08-wireframes/W15.png"
+    },
+    {
+      "key": "W16",
+      "id": "151:4079",
+      "name": "W16 芯片项目统计 · 关联项目",
+      "width": 1440,
+      "height": 813,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=151-4079",
+      "screenshot": "ui08-wireframes/W16.png"
+    },
+    {
+      "key": "W17",
+      "id": "151:4158",
+      "name": "W17 基础资料 · 分类管理",
+      "width": 1440,
+      "height": 1025,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=151-4158",
+      "screenshot": "ui08-wireframes/W17.png"
+    },
+    {
+      "key": "W18",
+      "id": "151:4261",
+      "name": "W18 系统设置 · 个人与公共分开",
+      "width": 1440,
+      "height": 1175,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=151-4261",
+      "screenshot": "ui08-wireframes/W18.png"
+    },
+    {
+      "key": "W19",
+      "id": "151:4339",
+      "name": "W19 导入批次 · 集中处理",
+      "width": 1440,
+      "height": 615,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=151-4339",
+      "screenshot": "ui08-wireframes/W19.png"
+    },
+    {
+      "key": "W20",
+      "id": "153:4088",
+      "name": "W20 导入批次 · 卡片审查",
+      "width": 1440,
+      "height": 1120,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=153-4088",
+      "screenshot": "ui08-wireframes/W20.png"
+    },
+    {
+      "key": "W21",
+      "id": "153:4175",
+      "name": "W21 备份与恢复 · 运行维护",
+      "width": 1440,
+      "height": 854,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=153-4175",
+      "screenshot": "ui08-wireframes/W21.png"
+    },
+    {
+      "key": "W22",
+      "id": "153:4241",
+      "name": "W22 登录 · 回到工作",
+      "width": 1440,
+      "height": 668,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=153-4241",
+      "screenshot": "ui08-wireframes/W22.png"
+    },
+    {
+      "key": "W23",
+      "id": "153:4265",
+      "name": "W23 首次登录 · 修改临时密码",
+      "width": 1440,
+      "height": 666,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=153-4265",
+      "screenshot": "ui08-wireframes/W23.png"
+    },
+    {
+      "key": "W24",
+      "id": "153:4287",
+      "name": "W24 我的账号 · 本人信息",
+      "width": 1440,
+      "height": 1012,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=153-4287",
+      "screenshot": "ui08-wireframes/W24.png"
+    },
+    {
+      "key": "W25",
+      "id": "153:4340",
+      "name": "W25 账号与邀请码 · 维护后台",
+      "width": 1440,
+      "height": 1069,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=153-4340",
+      "screenshot": "ui08-wireframes/W25.png"
+    },
+    {
+      "key": "W26",
+      "id": "155:4158",
+      "name": "W26 保存成功 · 原位置显示新值",
+      "width": 1440,
+      "height": 1555,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=155-4158",
+      "screenshot": "ui08-wireframes/W26.png"
+    },
+    {
+      "key": "W27",
+      "id": "155:4259",
+      "name": "W27 单个项目检查 · 只读卡片",
+      "width": 1440,
+      "height": 820,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=155-4259",
+      "screenshot": "ui08-wireframes/W27.png"
+    },
+    {
+      "key": "W28",
+      "id": "155:4336",
+      "name": "W28 阶段操作 · 卡片内完成",
+      "width": 1440,
+      "height": 1057,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=155-4336",
+      "screenshot": "ui08-wireframes/W28.png"
+    },
+    {
+      "key": "W29",
+      "id": "155:4407",
+      "name": "W29 版本冲突 · 保留当前输入",
+      "width": 1440,
+      "height": 1002,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=155-4407",
+      "screenshot": "ui08-wireframes/W29.png"
+    },
+    {
+      "key": "W30",
+      "id": "155:4470",
+      "name": "W30 邀请码注册 · 正式密码",
+      "width": 1440,
+      "height": 909,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=155-4470",
+      "screenshot": "ui08-wireframes/W30.png"
+    },
+    {
+      "key": "W31",
+      "id": "155:4508",
+      "name": "W31 筛选无结果 · 保留条件",
+      "width": 1440,
+      "height": 632,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=155-4508",
+      "screenshot": "ui08-wireframes/W31.png"
+    },
+    {
+      "key": "W00",
+      "id": "156:4279",
+      "name": "W00 全站结构图 · 从这里开始",
+      "width": 1440,
+      "height": 1936,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=156-4279",
+      "screenshot": "ui08-wireframes/W00.png"
+    },
+    {
+      "key": "W32",
+      "id": "166:4421",
+      "name": "W32 风险删除 · 待保存",
+      "width": 1440,
+      "height": 1382,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=166-4421",
+      "screenshot": "ui08-wireframes/W32.png"
+    },
+    {
+      "key": "W33",
+      "id": "166:4516",
+      "name": "W33 风险删除 · 已保存",
+      "width": 1440,
+      "height": 1289,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=166-4516",
+      "screenshot": "ui08-wireframes/W33.png"
+    },
+    {
+      "key": "W34",
+      "id": "167:4446",
+      "name": "W34 项目检查 · 待检查项目",
+      "width": 1440,
+      "height": 1586,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=167-4446",
+      "screenshot": "ui08-wireframes/W34.png"
+    },
+    {
+      "key": "W35",
+      "id": "167:4563",
+      "name": "W35 项目检查 · 通过后继续",
+      "width": 1440,
+      "height": 1203,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=167-4563",
+      "screenshot": "ui08-wireframes/W35.png"
+    },
+    {
+      "key": "W36",
+      "id": "167:4652",
+      "name": "W36 从检查进入修正 · 返回继续检查",
+      "width": 1440,
+      "height": 1692,
+      "figmaUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=167-4652",
+      "screenshot": "ui08-wireframes/W36.png"
+    }
+  ],
+  "overflow": [],
+  "invalidNavigationTargets": [],
+  "componentInstances": 675,
+  "createInGlobalNavigation": [],
+  "basicFieldOrder": {
+    "edit": [
+      "项目名称",
+      "项目状态",
+      "客户",
+      "产品线",
+      "ODM 工厂",
+      "分组",
+      "APP",
+      "芯片",
+      "立案日期",
+      "实际启动日期",
+      "预计结案日期",
+      "项目简介",
+      "市场预期",
+      "详细说明"
+    ],
+    "create": [
+      "项目名称",
+      "项目状态",
+      "客户",
+      "产品线",
+      "ODM 工厂",
+      "分组",
+      "APP",
+      "芯片",
+      "立案日期",
+      "实际启动日期",
+      "预计结案日期",
+      "项目简介",
+      "市场预期",
+      "详细说明"
+    ]
+  },
+  "checkStaticStatusBlocks": 3,
+  "checkCards": [
+    [
+      "操作 / 通过检查",
+      "操作 / 进入修正"
+    ],
+    [
+      "操作 / 通过检查",
+      "操作 / 进入修正"
+    ],
+    [
+      "操作 / 通过检查",
+      "操作 / 进入修正"
+    ]
+  ],
+  "status": "结构评审稿，待用户审阅",
+  "scope": "Figma结构与示例状态；未改产品代码，未部署",
+  "source": "用户反馈、离线参考1051及既有Figma设计文件",
+  "overviewUrl": "https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=156-4279",
+  "visualReview": [
+    "W01",
+    "W03",
+    "W11",
+    "W13",
+    "W14",
+    "W34",
+    "W27",
+    "W33",
+    "W35"
+  ],
+  "limitations": [
+    "线框中的点击为示例画面导航，不是可运行的真实数据表单",
+    "未执行Figma Presentation真人验收",
+    "未验证窄屏与全部主题",
+    "未执行业务接口、持久化与页面联动验收"
+  ],
+  "pdf": "ui08-wireframes/GeekDash-UI08-structure.pdf",
+  "contactSheetReview": {
+    "pages": "W00-W36",
+    "scope": "缩略图整体结构快查，不能替代每页原尺寸验收"
+  },
+  "lastCorrections": [
+    "W33/W35复用中上方浮动提示，不占正文高度",
+    "W27复用单张只读检查卡，不另设检查表单",
+    "图注明确今日记录筛选不新增每日必查义务"
+  ]
+}
