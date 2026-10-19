@@ -1,0 +1,20 @@
+{
+  "uuid": "017e6895-c927-11f1-9c73-46ad6b6ac97c",
+  "project": [
+    {
+      "projectId": "9007199254760274",
+      "version": "3",
+      "customerId": "34",
+      "name": "P04原生维护验收1017更名",
+      "enabled": 0,
+      "catalogVersion": "3",
+      "contact": "合成联系人：工程对接",
+      "background": "隔离测试资料，用于验证新增后项目可选择。"
+    }
+  ],
+  "maintenance": [
+    {
+      "id": "226"
+    }
+  ]
+}

@@ -4,7 +4,7 @@ import { businessToday, dayDifference, deadlineResult, initialPlan, requireDate,
 
 type Base = { expectedVersion: string; idempotencyKey: string };
 export const dateColumns = { proposalDate: 'proposed_on', filingDate: 'filed_on', startDate: 'started_on', dueDate: 'current_due_date', originalDueDate: 'original_due_date' } as const;
-type DateChanges = Partial<Record<keyof typeof dateColumns, string | null>>;
+export type DateChanges = Partial<Record<keyof typeof dateColumns, string | null>>;
 export type PlanCommand = Base & (
   { action: 'setPlan'; dueDate: string }
   | { action: 'reschedulePlan'; dueDate: string; reason: string; measures: string }
@@ -80,7 +80,7 @@ async function firstS1Completion(c: PoolConnection, id: string) {
   return completed;
 }
 export type ProjectDates = DateFacts & Record<keyof typeof dateColumns, string | null> & { createdBy: string | null; sourceImportItemId: unknown };
-export async function planCandidate(c: PoolConnection, id: string, project: ProjectDates, body: PlanCommand, now: Date) {
+export async function planCandidate(c: PoolConnection, id: string, project: ProjectDates, body: PlanCommand, now: Date, combinedDates: DateChanges = {}) {
   const today = businessToday(now), next = { ...project };
   const patch: DateChanges = {}, beforeValues: Record<string, unknown> = {}, afterValues: Record<string, unknown> = {};
   let insert: Pick<ScheduleRecord, 'kind' | 'oldDate' | 'newDate' | 'reason' | 'measures'> | undefined;
@@ -112,7 +112,8 @@ export async function planCandidate(c: PoolConnection, id: string, project: Proj
     if (['proposalDate', 'filingDate', 'startDate'].includes(key) && patch[key] && patch[key]! > today) failure('INVALID_PROJECT_DATE', 422, { fields: { [key]: '实际日期不能晚于今天' } });
     if (project[key] !== patch[key]) { beforeValues[key] = project[key]; afterValues[key] = patch[key]; }
   }
-  if ((Object.hasOwn(patch, 'dueDate') || Object.hasOwn(patch, 'startDate')) && next.startDate && next.dueDate && next.dueDate < next.startDate) failure('INVALID_PROJECT_DATE', 422, { fields: { dueDate: '当前计划不能早于已知实际启动日期，可明确联合纠正' } });
+  const finalDates = { ...next, ...combinedDates };
+  if ((Object.hasOwn(patch, 'dueDate') || Object.hasOwn(patch, 'startDate')) && finalDates.startDate && finalDates.dueDate && finalDates.dueDate < finalDates.startDate) failure('INVALID_PROJECT_DATE', 422, { fields: { dueDate: '当前计划不能早于已知实际启动日期，可明确联合纠正' } });
   if (startupBasis && next.startDate && next.startDate < startupBasis) failure('INVALID_PROJECT_DATE', 422, { fields: { startDate: `实际启动日期不能早于首次S1完成日 ${startupBasis}` } });
   const changed = !!insert || Object.keys(afterValues).length > 0;
   const actualPatch = Object.fromEntries(Object.entries(patch).filter(([key, value]) => project[key as keyof DateChanges] !== value)) as DateChanges;

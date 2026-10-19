@@ -1,0 +1,2496 @@
+{
+  "task": "P04-01 项目节点与 Flow 原位连续操作",
+  "capturedDate": "2026-10-15",
+  "scope": {
+    "fileKey": "leQy2Be9GaTXPvZeooQuIF",
+    "pageId": "142:3499",
+    "frames": [
+      {
+        "id": "146:4011",
+        "name": "W08 项目节点 · 原位维护"
+      },
+      {
+        "id": "146:4119",
+        "name": "W09 项目 Flow · 阶段泳道"
+      }
+    ],
+    "modifiedProductCode": false,
+    "modifiedAuthoritativeDocuments": false,
+    "modifiedOtherFrames": false,
+    "modifiedSharedComponents": false
+  },
+  "summary": [
+    "复用原硬件与软件节点，影响说明在当前节点内条件展开；没有克隆整页或新增独立操作模块。",
+    "前置未完成阻止完成；撤销硬件完成时展示已完成下游，需填写原因后明确确认；取消保留原事实。",
+    "删除预览当前节点与连线影响，保存后隐藏正常节点及旧连线，保留原节点资料和完成事实。",
+    "已删除记录可恢复，需填写原因，不自动恢复原连线；允许在节点中显式重新选择前置。",
+    "列表与 Flow 共享待存内容和一次保存入口；未确认的影响不能用保存节点绕过。",
+    "完成后的操作改为撤销完成；原因使用既有输入框组件，避免像按钮却实际填写。",
+    "有限双节点示例在保存时消费有效节点目标日；删除软件节点后阶段取硬件 10-18，恢复后取原软件 10-22 或 10-24。",
+    "保留独立的节点 savedTarget，取消修改恢复该节点目标日，避免把删除后的阶段汇总日误当原节点日期。"
+  ],
+  "mutations": {
+    "composition": {
+      "createdNodeIds": [
+        "330:4852",
+        "I330:4852;2:108",
+        "330:4854",
+        "330:4855",
+        "330:4856",
+        "330:4857",
+        "330:4858",
+        "330:4859",
+        "330:4860",
+        "330:4861",
+        "330:4862",
+        "330:4863",
+        "330:4864",
+        "330:4865",
+        "330:4866",
+        "330:4867",
+        "330:4868",
+        "330:4869",
+        "I330:4869;2:108",
+        "330:4871",
+        "330:4872",
+        "I330:4872;2:106",
+        "330:4874",
+        "I330:4874;2:108",
+        "330:4876",
+        "I330:4876;2:108",
+        "330:4878",
+        "330:4879",
+        "330:4880",
+        "I330:4880;2:108",
+        "330:4882",
+        "I330:4882;2:108",
+        "330:4884",
+        "330:4885",
+        "330:4886",
+        "330:4887",
+        "330:4888",
+        "330:4889",
+        "330:4890",
+        "330:4891",
+        "330:4892",
+        "330:4893",
+        "330:4894",
+        "330:4895",
+        "330:4896",
+        "330:4897",
+        "330:4898",
+        "330:4899",
+        "I330:4899;2:108",
+        "330:4901",
+        "330:4902",
+        "I330:4902;2:106",
+        "330:4904",
+        "I330:4904;2:108",
+        "330:4906",
+        "330:4907",
+        "330:4908",
+        "330:4909",
+        "330:4910",
+        "330:4911",
+        "330:4912",
+        "I330:4912;2:108",
+        "330:4914",
+        "I330:4914;2:108",
+        "330:4916",
+        "330:4917",
+        "330:4918",
+        "I330:4918;2:108",
+        "330:4920",
+        "330:4921",
+        "I330:4921;2:106",
+        "330:4923",
+        "I330:4923;2:108",
+        "330:4925",
+        "330:4926",
+        "330:4927",
+        "330:4928",
+        "330:4929",
+        "I330:4929;2:106",
+        "330:4931",
+        "I330:4931;2:108",
+        "330:4933",
+        "I330:4933;2:108",
+        "330:4935",
+        "330:4936",
+        "I330:4936;2:106",
+        "330:4938",
+        "I330:4938;2:108",
+        "330:4940",
+        "I330:4940;2:108",
+        "330:4942",
+        "I330:4942;2:108",
+        "330:4944",
+        "330:4945",
+        "330:4946",
+        "330:4947",
+        "330:4948",
+        "330:4949",
+        "330:4950",
+        "330:4951",
+        "330:4952",
+        "330:4953",
+        "330:4954",
+        "330:4955",
+        "330:4956",
+        "330:4957",
+        "330:4958",
+        "330:4959",
+        "I330:4959;2:108",
+        "330:4960",
+        "330:4961",
+        "I330:4961;2:106",
+        "330:4962",
+        "I330:4962;2:108",
+        "330:4966",
+        "330:4967",
+        "330:4968",
+        "330:4969",
+        "330:4970",
+        "330:4971",
+        "330:4972",
+        "330:4973",
+        "330:4974",
+        "330:4975",
+        "330:4976",
+        "330:4977",
+        "330:4978",
+        "330:4979",
+        "330:4980",
+        "330:4981",
+        "I330:4981;2:108",
+        "330:4982",
+        "330:4983",
+        "I330:4983;2:106",
+        "330:4984",
+        "I330:4984;2:108",
+        "330:4988",
+        "330:4989",
+        "330:4990",
+        "330:4991",
+        "330:4992",
+        "330:4993",
+        "330:4994",
+        "I330:4994;2:108",
+        "330:4995",
+        "I330:4995;2:108",
+        "330:4996",
+        "330:4997",
+        "330:4998",
+        "I330:4998;2:108",
+        "330:4999",
+        "330:5000",
+        "I330:5000;2:106",
+        "330:5001",
+        "I330:5001;2:108",
+        "330:5007",
+        "330:5008"
+      ],
+      "mutatedNodeIds": [
+        "146:4078",
+        "146:4111",
+        "146:4073",
+        "I146:4098;2:122",
+        "I146:4102;2:122",
+        "146:4110",
+        "146:4219",
+        "146:4270",
+        "146:4059",
+        "146:4081",
+        "247:4580",
+        "252:4575",
+        "146:4223",
+        "203:4634",
+        "146:4116",
+        "146:4271"
+      ],
+      "createdVariableIds": {
+        "hwDone": "VariableID:330:4822",
+        "swDone": "VariableID:330:4823",
+        "savedHwDone": "VariableID:330:4824",
+        "savedSwDone": "VariableID:330:4825",
+        "active": "VariableID:330:4826",
+        "savedActive": "VariableID:330:4827",
+        "linked": "VariableID:330:4828",
+        "savedLinked": "VariableID:330:4829",
+        "dirty": "VariableID:330:4830",
+        "impact": "VariableID:330:4831",
+        "impactDownstream": "VariableID:330:4832",
+        "deleting": "VariableID:330:4833",
+        "restoring": "VariableID:330:4834",
+        "deletedShown": "VariableID:330:4835",
+        "flowOpen": "VariableID:330:4836",
+        "flowHardware": "VariableID:330:4837",
+        "flowSoftware": "VariableID:330:4838",
+        "predecessorMenu": "VariableID:330:4839",
+        "hwActual": "VariableID:330:4840",
+        "swActual": "VariableID:330:4841",
+        "savedHwActual": "VariableID:330:4842",
+        "savedSwActual": "VariableID:330:4843",
+        "predecessor": "VariableID:330:4844",
+        "dependencyNote": "VariableID:330:4845",
+        "hwFlow": "VariableID:330:4846",
+        "swFlow": "VariableID:330:4847",
+        "reason": "VariableID:330:4848",
+        "reasonReady": "VariableID:330:4849",
+        "error": "VariableID:330:4850",
+        "flowTitle": "VariableID:330:4851"
+      },
+      "variables": {
+        "hwDone": "VariableID:330:4822",
+        "swDone": "VariableID:330:4823",
+        "savedHwDone": "VariableID:330:4824",
+        "savedSwDone": "VariableID:330:4825",
+        "active": "VariableID:330:4826",
+        "savedActive": "VariableID:330:4827",
+        "linked": "VariableID:330:4828",
+        "savedLinked": "VariableID:330:4829",
+        "dirty": "VariableID:330:4830",
+        "impact": "VariableID:330:4831",
+        "impactDownstream": "VariableID:330:4832",
+        "deleting": "VariableID:330:4833",
+        "restoring": "VariableID:330:4834",
+        "deletedShown": "VariableID:330:4835",
+        "flowOpen": "VariableID:330:4836",
+        "flowHardware": "VariableID:330:4837",
+        "flowSoftware": "VariableID:330:4838",
+        "predecessorMenu": "VariableID:330:4839",
+        "hwActual": "VariableID:330:4840",
+        "swActual": "VariableID:330:4841",
+        "savedHwActual": "VariableID:330:4842",
+        "savedSwActual": "VariableID:330:4843",
+        "predecessor": "VariableID:330:4844",
+        "dependencyNote": "VariableID:330:4845",
+        "hwFlow": "VariableID:330:4846",
+        "swFlow": "VariableID:330:4847",
+        "reason": "VariableID:330:4848",
+        "reasonReady": "VariableID:330:4849",
+        "error": "VariableID:330:4850",
+        "flowTitle": "VariableID:330:4851"
+      },
+      "sections": {
+        "impact": "330:4854",
+        "deleting": "330:4884",
+        "deleted": "330:4906",
+        "restoring": "330:4916",
+        "flow": "330:4927"
+      },
+      "newNodeCount": 157
+    },
+    "wiring": {
+      "createdNodeIds": [
+        "337:4858",
+        "337:4859",
+        "337:4860",
+        "337:4861",
+        "337:4862",
+        "337:4863",
+        "337:4864",
+        "337:4865",
+        "337:4866",
+        "337:4867",
+        "337:4868",
+        "337:4869",
+        "337:4870",
+        "337:4871",
+        "337:4872",
+        "337:4873",
+        "I337:4873;2:108",
+        "337:4874",
+        "337:4875",
+        "I337:4875;2:106",
+        "337:4876",
+        "I337:4876;2:108",
+        "337:4880",
+        "337:4881",
+        "337:4882",
+        "337:4883",
+        "337:4884",
+        "337:4885",
+        "337:4886",
+        "337:4887",
+        "337:4888",
+        "337:4889",
+        "337:4890",
+        "337:4891",
+        "I337:4891;2:108",
+        "337:4892",
+        "337:4893",
+        "I337:4893;2:106",
+        "337:4894",
+        "I337:4894;2:108"
+      ],
+      "removedCreatedNodeIds": [
+        "337:4869",
+        "337:4870",
+        "337:4871",
+        "337:4872"
+      ],
+      "mutatedNodeIds": [
+        "330:4852",
+        "330:4869",
+        "330:4872",
+        "330:4874",
+        "330:4880",
+        "330:4882",
+        "330:4876",
+        "330:4899",
+        "330:4902",
+        "330:4904",
+        "337:4873",
+        "337:4875",
+        "337:4876",
+        "330:4912",
+        "330:4914",
+        "330:4918",
+        "330:4921",
+        "330:4923",
+        "330:4929",
+        "330:4931",
+        "330:4933",
+        "330:4936",
+        "330:4938",
+        "330:4940",
+        "330:4942",
+        "330:4959",
+        "330:4961",
+        "330:4962",
+        "330:4981",
+        "330:4983",
+        "330:4984",
+        "337:4891",
+        "337:4893",
+        "337:4894",
+        "330:4994",
+        "330:4995",
+        "330:4998",
+        "330:5000",
+        "330:5001",
+        "146:4079",
+        "146:4098",
+        "146:4057",
+        "146:4102",
+        "146:4217",
+        "146:4223",
+        "146:4114",
+        "146:4117",
+        "146:4272",
+        "146:4055",
+        "146:4169"
+      ],
+      "createdVariables": {
+        "undoSoftware": "VariableID:337:4857"
+      },
+      "configuredRoles": [
+        "completeHardware",
+        "completeSoftware",
+        "undo",
+        "reason",
+        "confirmUndo",
+        "cancelImpact",
+        "confirmUndoSoftware",
+        "cancelUndoSoftware",
+        "delete",
+        "confirmDelete",
+        "cancelDelete",
+        "restore",
+        "confirmRestore",
+        "cancelRestore",
+        "hideDeleted",
+        "showDeleted",
+        "closeFlow",
+        "link",
+        "unlink"
+      ],
+      "undoSoftware": "337:4858",
+      "undoSoftwareFlow": "337:4880"
+    },
+    "layoutAndSaveGuard": {
+      "createdNodeIds": [],
+      "mutatedNodeIds": [
+        "330:4857",
+        "330:4861",
+        "330:4865",
+        "330:4871",
+        "330:4879",
+        "330:4886",
+        "330:4890",
+        "330:4894",
+        "330:4901",
+        "337:4861",
+        "337:4865",
+        "337:4874",
+        "330:4911",
+        "330:4920",
+        "330:4928",
+        "330:4935",
+        "330:4947",
+        "330:4951",
+        "330:4955",
+        "330:4960",
+        "330:4968",
+        "330:4972",
+        "330:4976",
+        "330:4982",
+        "337:4883",
+        "337:4887",
+        "337:4892",
+        "330:4993",
+        "330:4999",
+        "330:4925",
+        "330:5007",
+        "146:4117",
+        "146:4272",
+        "146:4079",
+        "330:4852",
+        "330:4869",
+        "330:4872",
+        "330:4874",
+        "146:4098",
+        "146:4102",
+        "330:4880",
+        "330:4882",
+        "146:4114",
+        "330:4876",
+        "330:4899",
+        "330:4902",
+        "330:4904",
+        "337:4873",
+        "337:4875",
+        "337:4876",
+        "330:4912",
+        "330:4914",
+        "330:4918",
+        "330:4921",
+        "330:4923",
+        "146:4217",
+        "146:4223",
+        "330:4929",
+        "330:4931",
+        "330:4933",
+        "330:4936",
+        "330:4938",
+        "330:4942",
+        "330:4959",
+        "330:4961",
+        "330:4962",
+        "330:4981",
+        "330:4983",
+        "330:4984",
+        "337:4891",
+        "337:4893",
+        "337:4894",
+        "330:4994",
+        "330:4995",
+        "330:4998",
+        "330:5000",
+        "330:5001"
+      ],
+      "createdVariables": {
+        "errorShown": "VariableID:341:4861"
+      },
+      "temporaryScreenshotVariableIds": [
+        "VariableID:330:4822",
+        "VariableID:330:4823",
+        "VariableID:330:4840",
+        "VariableID:330:4841",
+        "VariableID:330:4846",
+        "VariableID:330:4831",
+        "VariableID:330:4832",
+        "VariableID:330:4845"
+      ],
+      "temporaryState": "硬件和软件均已完成，展开撤销完成影响；截图后恢复",
+      "sizes": [
+        [
+          "146:4011",
+          1440,
+          1485
+        ],
+        [
+          "146:4119",
+          1440,
+          919
+        ]
+      ]
+    },
+    "inputAndCompletionVisualFix": {
+      "createdNodeIds": [
+        "I330:4869;2:120",
+        "I330:4869;2:121",
+        "I330:4869;2:122",
+        "I330:4899;2:120",
+        "I330:4899;2:121",
+        "I330:4899;2:122",
+        "I337:4873;2:120",
+        "I337:4873;2:121",
+        "I337:4873;2:122",
+        "I330:4918;2:120",
+        "I330:4918;2:121",
+        "I330:4918;2:122",
+        "I330:4959;2:120",
+        "I330:4959;2:121",
+        "I330:4959;2:122",
+        "I330:4981;2:120",
+        "I330:4981;2:121",
+        "I330:4981;2:122",
+        "I337:4891;2:120",
+        "I337:4891;2:121",
+        "I337:4891;2:122",
+        "I330:4998;2:120",
+        "I330:4998;2:121",
+        "I330:4998;2:122"
+      ],
+      "mutatedNodeIds": [
+        "330:4869",
+        "330:4899",
+        "337:4873",
+        "330:4918",
+        "330:4959",
+        "330:4981",
+        "337:4891",
+        "330:4998",
+        "146:4079",
+        "330:4852",
+        "330:4872",
+        "146:4098",
+        "330:4880",
+        "330:4882",
+        "146:4114",
+        "330:4876",
+        "330:4902",
+        "330:4912",
+        "330:4921",
+        "146:4117",
+        "330:4929",
+        "330:4931",
+        "330:4936",
+        "330:4938",
+        "330:4961",
+        "330:4983",
+        "330:4994",
+        "330:5000",
+        "146:4272"
+      ],
+      "createdVariables": {
+        "hwIncomplete": "VariableID:344:4861"
+      },
+      "mutatedVariableIds": [
+        "VariableID:330:4848"
+      ],
+      "screenshotState": "完成后仅撤销入口；原因输入框采用现有组件",
+      "sizes": [
+        [
+          "146:4011",
+          1440,
+          1513
+        ],
+        [
+          "146:4119",
+          1440,
+          919
+        ]
+      ]
+    },
+    "restoredDefaults": [
+      "VariableID:330:4822",
+      "VariableID:330:4823",
+      "VariableID:330:4840",
+      "VariableID:330:4841",
+      "VariableID:330:4846",
+      "VariableID:330:4831",
+      "VariableID:330:4832",
+      "VariableID:330:4845",
+      "VariableID:330:4848",
+      "VariableID:344:4861"
+    ],
+    "dateConsumption": {
+      "createdNodeIds": [],
+      "mutatedNodeIds": [
+        "146:4117",
+        "146:4272",
+        "146:4114",
+        "146:4093"
+      ],
+      "createdVariables": {
+        "savedTarget": "VariableID:347:4877"
+      },
+      "rootDateDefinitionsUnchanged": true,
+      "finiteDomain": {
+        "hardwareTarget": "2026-10-18",
+        "softwareTargets": [
+          "2026-10-22",
+          "2026-10-24"
+        ],
+        "deletedStage": "2026-10-18",
+        "activeStage": "软件目标日，两种样例均晚于硬件日期"
+      },
+      "ruleBoundary": "仅为现有双节点样例的原型状态消费，未实现任意图算法/任意日期比较/未知日期聚合"
+    },
+    "flowActionLabel": {
+      "createdNodeIds": [],
+      "mutatedNodeIds": [
+        "I330:4936;2:106",
+        "330:4852",
+        "330:4872",
+        "146:4098",
+        "330:4880",
+        "146:4114",
+        "337:4875",
+        "146:4117",
+        "330:4931",
+        "330:4936",
+        "330:4961",
+        "337:4893",
+        "146:4272"
+      ],
+      "mutatedVariableIds": [
+        "VariableID:330:4847"
+      ],
+      "flowActionLabel": {
+        "node": "I330:4936;2:106",
+        "variable": "VariableID:330:4847",
+        "uncompleted": "确认完成",
+        "completed": "撤销完成"
+      },
+      "flowTargetBinding": {
+        "type": "VARIABLE_ALIAS",
+        "id": "VariableID:285:4690"
+      }
+    }
+  },
+  "verification": {
+    "nodeConfiguration": {
+      "mutatedNodeIds": [],
+      "mutatedVariableIds": [
+        "VariableID:330:4822",
+        "VariableID:330:4823",
+        "VariableID:330:4840",
+        "VariableID:330:4841",
+        "VariableID:330:4846",
+        "VariableID:330:4831",
+        "VariableID:330:4832",
+        "VariableID:330:4845",
+        "VariableID:330:4848",
+        "VariableID:344:4861"
+      ],
+      "checks": [
+        {
+          "name": "前置未完成阻止软件完成",
+          "passed": true,
+          "sequence": [
+            "completeSoftware"
+          ],
+          "after": {
+            "hwDone": false,
+            "swDone": false,
+            "active": true,
+            "linked": true,
+            "savedActive": true,
+            "savedLinked": true,
+            "dirty": false,
+            "impact": false,
+            "impactDownstream": false,
+            "deleting": false,
+            "restoring": false,
+            "errorShown": true
+          }
+        },
+        {
+          "name": "先完成前置和后继，Flow一次保存",
+          "passed": true,
+          "sequence": [
+            "completeHardware",
+            "completeSoftware",
+            "saveFlow"
+          ],
+          "after": {
+            "hwDone": true,
+            "swDone": true,
+            "active": true,
+            "linked": true,
+            "savedActive": true,
+            "savedLinked": true,
+            "dirty": false,
+            "impact": false,
+            "impactDownstream": false,
+            "deleting": false,
+            "restoring": false,
+            "errorShown": false
+          }
+        },
+        {
+          "name": "撤销前列出下游，取消保留事实",
+          "passed": true,
+          "sequence": [
+            "completeHardware",
+            "completeSoftware",
+            "saveList",
+            "undo",
+            "cancelImpact"
+          ],
+          "after": {
+            "hwDone": true,
+            "swDone": true,
+            "active": true,
+            "linked": true,
+            "savedActive": true,
+            "savedLinked": true,
+            "dirty": false,
+            "impact": false,
+            "impactDownstream": true,
+            "deleting": false,
+            "restoring": false,
+            "errorShown": false
+          }
+        },
+        {
+          "name": "缺原因阻止撤销",
+          "passed": true,
+          "sequence": [
+            "completeHardware",
+            "completeSoftware",
+            "undo",
+            "confirmUndo"
+          ],
+          "after": {
+            "hwDone": true,
+            "swDone": true,
+            "active": true,
+            "linked": true,
+            "savedActive": true,
+            "savedLinked": true,
+            "dirty": true,
+            "impact": true,
+            "impactDownstream": true,
+            "deleting": false,
+            "restoring": false,
+            "errorShown": true
+          }
+        },
+        {
+          "name": "确认原因后同次撤销依赖完成",
+          "passed": true,
+          "sequence": [
+            "completeHardware",
+            "completeSoftware",
+            "undo",
+            "reason",
+            "confirmUndo",
+            "saveList"
+          ],
+          "after": {
+            "hwDone": false,
+            "swDone": false,
+            "active": true,
+            "linked": true,
+            "savedActive": true,
+            "savedLinked": true,
+            "dirty": false,
+            "impact": false,
+            "impactDownstream": true,
+            "deleting": false,
+            "restoring": false,
+            "errorShown": false
+          }
+        },
+        {
+          "name": "有关联删除缺原因阻止",
+          "passed": true,
+          "sequence": [
+            "delete",
+            "confirmDelete"
+          ],
+          "after": {
+            "hwDone": false,
+            "swDone": false,
+            "active": true,
+            "linked": true,
+            "savedActive": true,
+            "savedLinked": true,
+            "dirty": false,
+            "impact": false,
+            "impactDownstream": false,
+            "deleting": true,
+            "restoring": false,
+            "errorShown": true
+          }
+        },
+        {
+          "name": "取消删除保留节点和关联",
+          "passed": true,
+          "sequence": [
+            "delete",
+            "cancelDelete"
+          ],
+          "after": {
+            "hwDone": false,
+            "swDone": false,
+            "active": true,
+            "linked": true,
+            "savedActive": true,
+            "savedLinked": true,
+            "dirty": false,
+            "impact": false,
+            "impactDownstream": false,
+            "deleting": false,
+            "restoring": false,
+            "errorShown": false
+          }
+        },
+        {
+          "name": "删除后保存去线，保留原完成事实",
+          "passed": true,
+          "sequence": [
+            "completeHardware",
+            "completeSoftware",
+            "delete",
+            "reason",
+            "confirmDelete",
+            "saveFlow"
+          ],
+          "after": {
+            "hwDone": true,
+            "swDone": true,
+            "active": false,
+            "linked": false,
+            "savedActive": false,
+            "savedLinked": false,
+            "dirty": false,
+            "impact": false,
+            "impactDownstream": false,
+            "deleting": false,
+            "restoring": false,
+            "errorShown": false
+          }
+        },
+        {
+          "name": "恢复缺原因不改变已删除状态",
+          "passed": true,
+          "sequence": [
+            "delete",
+            "reason",
+            "confirmDelete",
+            "saveList",
+            "restore",
+            "confirmRestore"
+          ],
+          "after": {
+            "hwDone": false,
+            "swDone": false,
+            "active": false,
+            "linked": false,
+            "savedActive": false,
+            "savedLinked": false,
+            "dirty": false,
+            "impact": false,
+            "impactDownstream": false,
+            "deleting": false,
+            "restoring": true,
+            "errorShown": true
+          }
+        },
+        {
+          "name": "恢复保留记录与完成，不自动接回旧线",
+          "passed": true,
+          "sequence": [
+            "completeHardware",
+            "completeSoftware",
+            "delete",
+            "reason",
+            "confirmDelete",
+            "saveFlow",
+            "restore",
+            "reason",
+            "confirmRestore",
+            "saveList"
+          ],
+          "after": {
+            "hwDone": true,
+            "swDone": true,
+            "active": true,
+            "linked": false,
+            "savedActive": true,
+            "savedLinked": false,
+            "dirty": false,
+            "impact": false,
+            "impactDownstream": false,
+            "deleting": false,
+            "restoring": false,
+            "errorShown": false
+          }
+        },
+        {
+          "name": "取消候选恢复回到已保存删除状态",
+          "passed": true,
+          "sequence": [
+            "delete",
+            "reason",
+            "confirmDelete",
+            "saveFlow",
+            "restore",
+            "reason",
+            "confirmRestore",
+            "cancelAll"
+          ],
+          "after": {
+            "hwDone": false,
+            "swDone": false,
+            "active": false,
+            "linked": false,
+            "savedActive": false,
+            "savedLinked": false,
+            "dirty": false,
+            "impact": false,
+            "impactDownstream": false,
+            "deleting": false,
+            "restoring": false,
+            "errorShown": false
+          }
+        },
+        {
+          "name": "已完成后继不能连接未完成前置",
+          "passed": true,
+          "sequence": [
+            "link"
+          ],
+          "after": {
+            "hwDone": false,
+            "swDone": true,
+            "active": true,
+            "linked": false,
+            "savedActive": true,
+            "savedLinked": true,
+            "dirty": false,
+            "impact": false,
+            "impactDownstream": false,
+            "deleting": false,
+            "restoring": false,
+            "errorShown": true
+          }
+        },
+        {
+          "name": "软件撤销可取消且不影响硬件",
+          "passed": true,
+          "sequence": [
+            "completeHardware",
+            "completeSoftware",
+            "completeSoftware",
+            "cancelUndoSoftware"
+          ],
+          "after": {
+            "hwDone": true,
+            "swDone": true,
+            "active": true,
+            "linked": true,
+            "savedActive": true,
+            "savedLinked": true,
+            "dirty": true,
+            "impact": false,
+            "impactDownstream": false,
+            "deleting": false,
+            "restoring": false,
+            "errorShown": false
+          }
+        },
+        {
+          "name": "软件单独撤销完成明确保存",
+          "passed": true,
+          "sequence": [
+            "completeHardware",
+            "completeSoftware",
+            "completeSoftware",
+            "reason",
+            "confirmUndoSoftware",
+            "saveList"
+          ],
+          "after": {
+            "hwDone": true,
+            "swDone": false,
+            "active": true,
+            "linked": true,
+            "savedActive": true,
+            "savedLinked": true,
+            "dirty": false,
+            "impact": false,
+            "impactDownstream": false,
+            "deleting": false,
+            "restoring": false,
+            "errorShown": false
+          }
+        },
+        {
+          "name": "未确认删除不能直接保存绕过",
+          "passed": true,
+          "sequence": [
+            "delete",
+            "saveList"
+          ],
+          "after": {
+            "hwDone": false,
+            "swDone": false,
+            "active": true,
+            "linked": true,
+            "savedActive": true,
+            "savedLinked": true,
+            "dirty": false,
+            "impact": false,
+            "impactDownstream": false,
+            "deleting": true,
+            "restoring": false,
+            "errorShown": true
+          }
+        },
+        {
+          "name": "未确认撤销不能通过Flow直接保存",
+          "passed": true,
+          "sequence": [
+            "completeHardware",
+            "completeSoftware",
+            "saveFlow",
+            "undo",
+            "saveFlow"
+          ],
+          "after": {
+            "hwDone": true,
+            "swDone": true,
+            "active": true,
+            "linked": true,
+            "savedActive": true,
+            "savedLinked": true,
+            "dirty": false,
+            "impact": true,
+            "impactDownstream": true,
+            "deleting": false,
+            "restoring": false,
+            "errorShown": true
+          }
+        },
+        {
+          "name": "完成后隐藏重复确认入口，撤销后恢复",
+          "passed": true,
+          "sequence": [
+            "completeHardware",
+            "undo",
+            "reason",
+            "confirmUndo"
+          ],
+          "after": {
+            "hwDone": false,
+            "swDone": false,
+            "active": true,
+            "linked": true,
+            "savedActive": true,
+            "savedLinked": true,
+            "dirty": true,
+            "impact": false,
+            "impactDownstream": false,
+            "deleting": false,
+            "restoring": false,
+            "errorShown": false
+          }
+        }
+      ],
+      "passed": 17,
+      "total": 17,
+      "configured": [
+        [
+          "330:4852",
+          "undo",
+          1
+        ],
+        [
+          "330:4869",
+          "reason",
+          1
+        ],
+        [
+          "330:4872",
+          "confirmUndo",
+          1
+        ],
+        [
+          "330:4874",
+          "cancelImpact",
+          1
+        ],
+        [
+          "330:4880",
+          "link",
+          1
+        ],
+        [
+          "330:4882",
+          "unlink",
+          1
+        ],
+        [
+          "330:4876",
+          "delete",
+          1
+        ],
+        [
+          "330:4899",
+          "reason",
+          1
+        ],
+        [
+          "330:4902",
+          "confirmDelete",
+          1
+        ],
+        [
+          "330:4904",
+          "cancelDelete",
+          1
+        ],
+        [
+          "337:4873",
+          "reason",
+          1
+        ],
+        [
+          "337:4875",
+          "confirmUndoSoftware",
+          1
+        ],
+        [
+          "337:4876",
+          "cancelUndoSoftware",
+          1
+        ],
+        [
+          "330:4912",
+          "restore",
+          1
+        ],
+        [
+          "330:4914",
+          "hideDeleted",
+          1
+        ],
+        [
+          "330:4918",
+          "reason",
+          1
+        ],
+        [
+          "330:4921",
+          "confirmRestore",
+          1
+        ],
+        [
+          "330:4923",
+          "cancelRestore",
+          1
+        ],
+        [
+          "330:4929",
+          "completeHardware",
+          1
+        ],
+        [
+          "330:4931",
+          "undo",
+          1
+        ],
+        [
+          "330:4933",
+          "closeFlow",
+          1
+        ],
+        [
+          "330:4936",
+          "completeSoftware",
+          1
+        ],
+        [
+          "330:4938",
+          "delete",
+          1
+        ],
+        [
+          "330:4940",
+          "showDeleted",
+          1
+        ],
+        [
+          "330:4942",
+          "closeFlow",
+          1
+        ],
+        [
+          "330:4959",
+          "reason",
+          1
+        ],
+        [
+          "330:4961",
+          "confirmUndo",
+          1
+        ],
+        [
+          "330:4962",
+          "cancelImpact",
+          1
+        ],
+        [
+          "330:4981",
+          "reason",
+          1
+        ],
+        [
+          "330:4983",
+          "confirmDelete",
+          1
+        ],
+        [
+          "330:4984",
+          "cancelDelete",
+          1
+        ],
+        [
+          "337:4891",
+          "reason",
+          1
+        ],
+        [
+          "337:4893",
+          "confirmUndoSoftware",
+          1
+        ],
+        [
+          "337:4894",
+          "cancelUndoSoftware",
+          1
+        ],
+        [
+          "330:4994",
+          "restore",
+          1
+        ],
+        [
+          "330:4995",
+          "hideDeleted",
+          1
+        ],
+        [
+          "330:4998",
+          "reason",
+          1
+        ],
+        [
+          "330:5000",
+          "confirmRestore",
+          1
+        ],
+        [
+          "330:5001",
+          "cancelRestore",
+          1
+        ]
+      ],
+      "unwired": [],
+      "bindings": [
+        [
+          "146:4081",
+          {
+            "visible": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:330:4826"
+            },
+            "fills": [
+              {
+                "type": "VARIABLE_ALIAS",
+                "id": "VariableID:2:16"
+              }
+            ],
+            "strokes": [
+              {
+                "type": "VARIABLE_ALIAS",
+                "id": "VariableID:2:30"
+              }
+            ]
+          }
+        ],
+        [
+          "146:4223",
+          {
+            "visible": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:330:4826"
+            },
+            "fills": [
+              {
+                "type": "VARIABLE_ALIAS",
+                "id": "VariableID:2:16"
+              }
+            ],
+            "strokes": [
+              {
+                "type": "VARIABLE_ALIAS",
+                "id": "VariableID:2:50"
+              }
+            ]
+          }
+        ],
+        [
+          "203:4634",
+          {
+            "visible": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:330:4828"
+            }
+          }
+        ],
+        [
+          "146:4073",
+          {
+            "characters": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:330:4840"
+            },
+            "fills": [
+              {
+                "type": "VARIABLE_ALIAS",
+                "id": "VariableID:2:35"
+              }
+            ]
+          }
+        ],
+        [
+          "I146:4098;2:122",
+          {
+            "characters": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:330:4841"
+            },
+            "fills": [
+              {
+                "type": "VARIABLE_ALIAS",
+                "id": "VariableID:2:35"
+              }
+            ]
+          }
+        ],
+        [
+          "146:4079",
+          {
+            "itemSpacing": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:2:90"
+            },
+            "paddingTop": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:2:90"
+            },
+            "paddingBottom": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:2:90"
+            },
+            "visible": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:344:4861"
+            },
+            "strokes": [
+              {
+                "type": "VARIABLE_ALIAS",
+                "id": "VariableID:2:25"
+              }
+            ]
+          }
+        ],
+        [
+          "330:4929",
+          {
+            "itemSpacing": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:2:90"
+            },
+            "paddingLeft": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:2:90"
+            },
+            "paddingTop": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:2:90"
+            },
+            "paddingRight": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:2:90"
+            },
+            "paddingBottom": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:2:90"
+            },
+            "visible": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:344:4861"
+            },
+            "topLeftRadius": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:2:90"
+            },
+            "topRightRadius": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:2:90"
+            },
+            "bottomLeftRadius": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:2:90"
+            },
+            "bottomRightRadius": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:2:90"
+            },
+            "fills": [
+              {
+                "type": "VARIABLE_ALIAS",
+                "id": "VariableID:2:55"
+              }
+            ],
+            "strokes": [
+              {
+                "type": "VARIABLE_ALIAS",
+                "id": "VariableID:2:55"
+              }
+            ]
+          }
+        ]
+      ],
+      "defaults": {
+        "hwDone": false,
+        "swDone": false,
+        "savedHwDone": false,
+        "savedSwDone": false,
+        "active": true,
+        "savedActive": true,
+        "linked": true,
+        "savedLinked": true,
+        "dirty": false,
+        "impact": false,
+        "impactDownstream": false,
+        "deleting": false,
+        "restoring": false,
+        "deletedShown": false,
+        "flowOpen": false,
+        "flowHardware": false,
+        "flowSoftware": true,
+        "predecessorMenu": false,
+        "hwActual": "尚未完成",
+        "swActual": "未完成",
+        "savedHwActual": "尚未完成",
+        "savedSwActual": "未完成",
+        "predecessor": "EVT 硬件封样 ▾",
+        "dependencyNote": "前置节点“EVT 硬件封样”尚未完成。",
+        "hwFlow": "截止 10-18",
+        "swFlow": "未完成",
+        "reason": "请说明本次修改的原因",
+        "reasonReady": false,
+        "error": "",
+        "flowTitle": "选中节点：EVT 软件联调",
+        "undoSoftware": false,
+        "errorShown": false,
+        "hwIncomplete": true
+      },
+      "defaultHidden": [
+        [
+          "330:4854",
+          false
+        ],
+        [
+          "330:4884",
+          false
+        ],
+        [
+          "337:4858",
+          false
+        ],
+        [
+          "330:4906",
+          false
+        ],
+        [
+          "330:4927",
+          false
+        ],
+        [
+          "330:4988",
+          false
+        ]
+      ],
+      "overflow": [],
+      "rootSizes": [
+        [
+          "146:4011",
+          1440,
+          1233
+        ],
+        [
+          "146:4119",
+          1440,
+          919
+        ]
+      ],
+      "savedNodes": [
+        "146:4117",
+        "146:4272"
+      ],
+      "method": "只读取得实际反应配置后，在本次脚本局部对象按动作顺序演算；未执行Presentation、HTTP或MySQL测试"
+    },
+    "dateConfiguration": {
+      "checks": [
+        {
+          "name": "待存目标日期不提前改阶段",
+          "sequence": [
+            "editTarget"
+          ],
+          "passed": true,
+          "expected": {
+            "stage": "2026-10-22",
+            "draft": "2026-10-24",
+            "dirty": true
+          },
+          "actual": {
+            "stage": "2026-10-22",
+            "draft": "2026-10-24",
+            "savedTarget": "2026-10-22",
+            "active": true,
+            "savedActive": true,
+            "linked": true,
+            "dirty": true,
+            "errorShown": false
+          }
+        },
+        {
+          "name": "Flow保存后两节点较晚日期24生效",
+          "sequence": [
+            "editTarget",
+            "saveFlow"
+          ],
+          "passed": true,
+          "expected": {
+            "stage": "2026-10-24",
+            "savedTarget": "2026-10-24",
+            "dirty": false
+          },
+          "actual": {
+            "stage": "2026-10-24",
+            "draft": "2026-10-24",
+            "savedTarget": "2026-10-24",
+            "active": true,
+            "savedActive": true,
+            "linked": true,
+            "dirty": false,
+            "errorShown": false
+          }
+        },
+        {
+          "name": "节点待删未保存阶段仍22",
+          "sequence": [
+            "delete",
+            "reason",
+            "confirmDelete"
+          ],
+          "passed": true,
+          "expected": {
+            "stage": "2026-10-22",
+            "active": false,
+            "savedActive": true,
+            "dirty": true
+          },
+          "actual": {
+            "stage": "2026-10-22",
+            "draft": "2026-10-22",
+            "savedTarget": "2026-10-22",
+            "active": false,
+            "savedActive": true,
+            "linked": false,
+            "dirty": true,
+            "errorShown": false
+          }
+        },
+        {
+          "name": "删除保存阶段回到剩余硬件18",
+          "sequence": [
+            "delete",
+            "reason",
+            "confirmDelete",
+            "saveList"
+          ],
+          "passed": true,
+          "expected": {
+            "stage": "2026-10-18",
+            "draft": "2026-10-22",
+            "savedTarget": "2026-10-22",
+            "savedActive": false
+          },
+          "actual": {
+            "stage": "2026-10-18",
+            "draft": "2026-10-22",
+            "savedTarget": "2026-10-22",
+            "active": false,
+            "savedActive": false,
+            "linked": false,
+            "dirty": false,
+            "errorShown": false
+          }
+        },
+        {
+          "name": "恢复保存带回原目标24不恢复线",
+          "sequence": [
+            "editTarget",
+            "saveList",
+            "delete",
+            "reason",
+            "confirmDelete",
+            "saveFlow",
+            "restore",
+            "reason",
+            "confirmRestore",
+            "saveList"
+          ],
+          "passed": true,
+          "expected": {
+            "stage": "2026-10-24",
+            "savedTarget": "2026-10-24",
+            "active": true,
+            "linked": false
+          },
+          "actual": {
+            "stage": "2026-10-24",
+            "draft": "2026-10-24",
+            "savedTarget": "2026-10-24",
+            "active": true,
+            "savedActive": true,
+            "linked": false,
+            "dirty": false,
+            "errorShown": false
+          }
+        },
+        {
+          "name": "取消待存日期恢复原节点目标",
+          "sequence": [
+            "editTarget",
+            "cancelAll"
+          ],
+          "passed": true,
+          "expected": {
+            "stage": "2026-10-22",
+            "draft": "2026-10-22",
+            "dirty": false
+          },
+          "actual": {
+            "stage": "2026-10-22",
+            "draft": "2026-10-22",
+            "savedTarget": "2026-10-22",
+            "active": true,
+            "savedActive": true,
+            "linked": true,
+            "dirty": false,
+            "errorShown": false
+          }
+        },
+        {
+          "name": "未确认删除不允许阶段汇总保存",
+          "sequence": [
+            "delete",
+            "saveFlow"
+          ],
+          "passed": true,
+          "expected": {
+            "stage": "2026-10-22",
+            "savedActive": true,
+            "errorShown": true
+          },
+          "actual": {
+            "stage": "2026-10-22",
+            "draft": "2026-10-22",
+            "savedTarget": "2026-10-22",
+            "active": true,
+            "savedActive": true,
+            "linked": true,
+            "dirty": false,
+            "errorShown": true
+          }
+        },
+        {
+          "name": "完成节点仍计入阶段最晚日期",
+          "sequence": [
+            "editTarget",
+            "completeHardware",
+            "completeSoftware",
+            "saveList"
+          ],
+          "passed": true,
+          "expected": {
+            "stage": "2026-10-24",
+            "savedTarget": "2026-10-24",
+            "dirty": false
+          },
+          "actual": {
+            "stage": "2026-10-24",
+            "draft": "2026-10-24",
+            "savedTarget": "2026-10-24",
+            "active": true,
+            "savedActive": true,
+            "linked": true,
+            "dirty": false,
+            "errorShown": false
+          }
+        }
+      ],
+      "passed": 8,
+      "total": 8,
+      "saveActionsIdentical": true,
+      "saveActions": [
+        [
+          "if",
+          [
+            [
+              "OR",
+              [
+                "OR",
+                [
+                  "EQUALS",
+                  [
+                    "v",
+                    "VariableID:330:4831"
+                  ],
+                  true
+                ],
+                [
+                  "EQUALS",
+                  [
+                    "v",
+                    "VariableID:330:4833"
+                  ],
+                  true
+                ]
+              ],
+              [
+                "OR",
+                [
+                  "EQUALS",
+                  [
+                    "v",
+                    "VariableID:330:4834"
+                  ],
+                  true
+                ],
+                [
+                  "EQUALS",
+                  [
+                    "v",
+                    "VariableID:337:4857"
+                  ],
+                  true
+                ]
+              ]
+            ],
+            [
+              [
+                "set",
+                "VariableID:330:4850",
+                "请先确认或取消当前节点操作，再保存节点。"
+              ],
+              [
+                "set",
+                "VariableID:341:4861",
+                true
+              ]
+            ]
+          ],
+          [
+            null,
+            []
+          ]
+        ],
+        [
+          "if",
+          [
+            [
+              "AND",
+              [
+                "AND",
+                [
+                  "EQUALS",
+                  [
+                    "v",
+                    "VariableID:330:4831"
+                  ],
+                  false
+                ],
+                [
+                  "EQUALS",
+                  [
+                    "v",
+                    "VariableID:330:4833"
+                  ],
+                  false
+                ]
+              ],
+              [
+                "AND",
+                [
+                  "EQUALS",
+                  [
+                    "v",
+                    "VariableID:330:4834"
+                  ],
+                  false
+                ],
+                [
+                  "EQUALS",
+                  [
+                    "v",
+                    "VariableID:337:4857"
+                  ],
+                  false
+                ]
+              ]
+            ],
+            [
+              [
+                "set",
+                "VariableID:225:4585",
+                "✓ 节点已保存，阶段预计日期已更新"
+              ],
+              [
+                "set",
+                "VariableID:225:4586",
+                true
+              ],
+              [
+                "set",
+                "VariableID:330:4824",
+                [
+                  "v",
+                  "VariableID:330:4822"
+                ]
+              ],
+              [
+                "set",
+                "VariableID:330:4825",
+                [
+                  "v",
+                  "VariableID:330:4823"
+                ]
+              ],
+              [
+                "set",
+                "VariableID:330:4842",
+                [
+                  "v",
+                  "VariableID:330:4840"
+                ]
+              ],
+              [
+                "set",
+                "VariableID:330:4843",
+                [
+                  "v",
+                  "VariableID:330:4841"
+                ]
+              ],
+              [
+                "set",
+                "VariableID:330:4827",
+                [
+                  "v",
+                  "VariableID:330:4826"
+                ]
+              ],
+              [
+                "set",
+                "VariableID:330:4829",
+                [
+                  "v",
+                  "VariableID:330:4828"
+                ]
+              ],
+              [
+                "set",
+                "VariableID:330:4830",
+                false
+              ],
+              [
+                "set",
+                "VariableID:330:4831",
+                false
+              ],
+              [
+                "set",
+                "VariableID:330:4833",
+                false
+              ],
+              [
+                "set",
+                "VariableID:330:4834",
+                false
+              ],
+              [
+                "set",
+                "VariableID:337:4857",
+                false
+              ],
+              [
+                "set",
+                "VariableID:330:4839",
+                false
+              ],
+              [
+                "set",
+                "VariableID:330:4850",
+                ""
+              ],
+              [
+                "set",
+                "VariableID:341:4861",
+                false
+              ]
+            ]
+          ],
+          [
+            null,
+            []
+          ]
+        ],
+        [
+          "if",
+          [
+            [
+              "AND",
+              [
+                "AND",
+                [
+                  "AND",
+                  [
+                    "EQUALS",
+                    [
+                      "v",
+                      "VariableID:330:4831"
+                    ],
+                    false
+                  ],
+                  [
+                    "EQUALS",
+                    [
+                      "v",
+                      "VariableID:330:4833"
+                    ],
+                    false
+                  ]
+                ],
+                [
+                  "AND",
+                  [
+                    "EQUALS",
+                    [
+                      "v",
+                      "VariableID:330:4834"
+                    ],
+                    false
+                  ],
+                  [
+                    "EQUALS",
+                    [
+                      "v",
+                      "VariableID:337:4857"
+                    ],
+                    false
+                  ]
+                ]
+              ],
+              [
+                "EQUALS",
+                [
+                  "v",
+                  "VariableID:330:4826"
+                ],
+                false
+              ]
+            ],
+            [
+              [
+                "set",
+                "VariableID:285:4689",
+                "2026-10-18"
+              ]
+            ]
+          ],
+          [
+            null,
+            []
+          ]
+        ],
+        [
+          "if",
+          [
+            [
+              "AND",
+              [
+                "AND",
+                [
+                  "AND",
+                  [
+                    "EQUALS",
+                    [
+                      "v",
+                      "VariableID:330:4831"
+                    ],
+                    false
+                  ],
+                  [
+                    "EQUALS",
+                    [
+                      "v",
+                      "VariableID:330:4833"
+                    ],
+                    false
+                  ]
+                ],
+                [
+                  "AND",
+                  [
+                    "EQUALS",
+                    [
+                      "v",
+                      "VariableID:330:4834"
+                    ],
+                    false
+                  ],
+                  [
+                    "EQUALS",
+                    [
+                      "v",
+                      "VariableID:337:4857"
+                    ],
+                    false
+                  ]
+                ]
+              ],
+              [
+                "EQUALS",
+                [
+                  "v",
+                  "VariableID:330:4826"
+                ],
+                true
+              ]
+            ],
+            [
+              [
+                "set",
+                "VariableID:285:4689",
+                [
+                  "v",
+                  "VariableID:285:4690"
+                ]
+              ]
+            ]
+          ],
+          [
+            null,
+            []
+          ]
+        ],
+        [
+          "if",
+          [
+            [
+              "AND",
+              [
+                "AND",
+                [
+                  "EQUALS",
+                  [
+                    "v",
+                    "VariableID:330:4831"
+                  ],
+                  false
+                ],
+                [
+                  "EQUALS",
+                  [
+                    "v",
+                    "VariableID:330:4833"
+                  ],
+                  false
+                ]
+              ],
+              [
+                "AND",
+                [
+                  "EQUALS",
+                  [
+                    "v",
+                    "VariableID:330:4834"
+                  ],
+                  false
+                ],
+                [
+                  "EQUALS",
+                  [
+                    "v",
+                    "VariableID:337:4857"
+                  ],
+                  false
+                ]
+              ]
+            ],
+            [
+              [
+                "set",
+                "VariableID:347:4877",
+                [
+                  "v",
+                  "VariableID:285:4690"
+                ]
+              ]
+            ]
+          ],
+          [
+            null,
+            []
+          ]
+        ]
+      ],
+      "targetEdit": [
+        [
+          "set",
+          "VariableID:285:4690",
+          "2026-10-24"
+        ],
+        [
+          "set",
+          "VariableID:330:4830",
+          true
+        ]
+      ],
+      "cancelActions": [
+        [
+          "set",
+          "VariableID:330:4822",
+          [
+            "v",
+            "VariableID:330:4824"
+          ]
+        ],
+        [
+          "set",
+          "VariableID:344:4861",
+          [
+            "NOT",
+            [
+              "v",
+              "VariableID:330:4822"
+            ]
+          ]
+        ],
+        [
+          "set",
+          "VariableID:330:4823",
+          [
+            "v",
+            "VariableID:330:4825"
+          ]
+        ],
+        [
+          "set",
+          "VariableID:330:4840",
+          [
+            "v",
+            "VariableID:330:4842"
+          ]
+        ],
+        [
+          "set",
+          "VariableID:330:4841",
+          [
+            "v",
+            "VariableID:330:4843"
+          ]
+        ],
+        [
+          "set",
+          "VariableID:330:4826",
+          [
+            "v",
+            "VariableID:330:4827"
+          ]
+        ],
+        [
+          "set",
+          "VariableID:330:4828",
+          [
+            "v",
+            "VariableID:330:4829"
+          ]
+        ],
+        [
+          "set",
+          "VariableID:330:4830",
+          false
+        ],
+        [
+          "set",
+          "VariableID:330:4835",
+          false
+        ],
+        [
+          "set",
+          "VariableID:330:4831",
+          false
+        ],
+        [
+          "set",
+          "VariableID:330:4833",
+          false
+        ],
+        [
+          "set",
+          "VariableID:330:4834",
+          false
+        ],
+        [
+          "set",
+          "VariableID:337:4857",
+          false
+        ],
+        [
+          "set",
+          "VariableID:330:4839",
+          false
+        ],
+        [
+          "set",
+          "VariableID:330:4850",
+          ""
+        ],
+        [
+          "set",
+          "VariableID:341:4861",
+          false
+        ],
+        [
+          "if",
+          [
+            [
+              "EQUALS",
+              [
+                "v",
+                "VariableID:330:4828"
+              ],
+              true
+            ],
+            [
+              [
+                "set",
+                "VariableID:330:4844",
+                "EVT 硬件封样 ▾"
+              ]
+            ]
+          ],
+          [
+            null,
+            []
+          ]
+        ],
+        [
+          "if",
+          [
+            [
+              "AND",
+              [
+                "EQUALS",
+                [
+                  "v",
+                  "VariableID:330:4828"
+                ],
+                true
+              ],
+              [
+                "EQUALS",
+                [
+                  "v",
+                  "VariableID:330:4822"
+                ],
+                true
+              ]
+            ],
+            [
+              [
+                "set",
+                "VariableID:330:4845",
+                "前置节点已完成，可填写实际完成日期。"
+              ]
+            ]
+          ],
+          [
+            null,
+            []
+          ]
+        ],
+        [
+          "if",
+          [
+            [
+              "AND",
+              [
+                "EQUALS",
+                [
+                  "v",
+                  "VariableID:330:4828"
+                ],
+                true
+              ],
+              [
+                "EQUALS",
+                [
+                  "v",
+                  "VariableID:330:4822"
+                ],
+                false
+              ]
+            ],
+            [
+              [
+                "set",
+                "VariableID:330:4845",
+                "前置节点“EVT 硬件封样”尚未完成。"
+              ]
+            ]
+          ],
+          [
+            null,
+            []
+          ]
+        ],
+        [
+          "if",
+          [
+            [
+              "EQUALS",
+              [
+                "v",
+                "VariableID:330:4828"
+              ],
+              false
+            ],
+            [
+              [
+                "set",
+                "VariableID:330:4844",
+                "不设前置 ▾"
+              ],
+              [
+                "set",
+                "VariableID:330:4845",
+                "未设置前置节点。"
+              ]
+            ]
+          ],
+          [
+            null,
+            []
+          ]
+        ],
+        [
+          "if",
+          [
+            [
+              "EQUALS",
+              [
+                "v",
+                "VariableID:330:4822"
+              ],
+              true
+            ],
+            [
+              [
+                "set",
+                "VariableID:330:4846",
+                "已完成 · 10-15"
+              ]
+            ]
+          ],
+          [
+            null,
+            []
+          ]
+        ],
+        [
+          "if",
+          [
+            [
+              "EQUALS",
+              [
+                "v",
+                "VariableID:330:4822"
+              ],
+              false
+            ],
+            [
+              [
+                "set",
+                "VariableID:330:4846",
+                "截止 10-18"
+              ]
+            ]
+          ],
+          [
+            null,
+            []
+          ]
+        ],
+        [
+          "set",
+          "VariableID:285:4690",
+          [
+            "v",
+            "VariableID:347:4877"
+          ]
+        ]
+      ],
+      "sourceIds": {
+        "saveList": "146:4117",
+        "saveFlow": "146:4272",
+        "editTarget": "146:4093",
+        "cancelAll": "146:4114"
+      },
+      "rootDefaults": {
+        "stage": "2026-10-22",
+        "draft": "2026-10-22"
+      },
+      "remainingLimits": [
+        "有限合成样例：硬件10-18、软件10-22或10-24；不是任意日期最大值算法",
+        "没有实际Presentation点击、HTTP请求或MySQL持久化验证"
+      ]
+    },
+    "visual": {
+      "initialScreenshot": "W08-node-impact.png",
+      "finalScreenshot": "W08-node-impact-final.png",
+      "result": "已查看最终 W08 影响展开截图：原因输入、修改前后列、确认/取消与保存按钮均可辨识，无明显重叠或裁切；默认收起状态已恢复。",
+      "scope": "一次初始截图和一次必要视觉修正截图；W09 及其他展开状态通过结构与配置检查，未逐状态截图。"
+    },
+    "semantics": "配置演算基于独立读取的实际 Figma reactions，在脚本局部状态按顺序求值；不是 Presentation 点击验收，不是产品业务测试。"
+  },
+  "remainingAcceptance": [
+    "尚未进行 Figma Presentation 连续点击与真实键盘输入验收。",
+    "原型原因与实际完成日期采用有限合成示例；原因框点击填入合成文本，不表示产品已支持真实文字输入或实际日期选择。",
+    "只覆盖当前硬件→软件双节点依赖；任意节点图、循环、多个下游、端点占用及复杂连线替换不由这套原型重建算法。",
+    "阶段日期联动仅覆盖硬件 10-18、软件 10-22/10-24 的现有可达样例；任意日期、部分未知日期、跨阶段移动等仍须产品实现验收。",
+    "未调用业务 API、未运行数据库或业务测试、未发布线上代码。",
+    "风险已删除恢复与客户节点逐记录保存不在本子任务范围。"
+  ],
+  "reusableToolConstraint": {
+    "reusedExistingRecord": "C:/Users/Administrator/.codex/docs/codex-runtime-errors.md:195-197",
+    "issue": "本机 Figma MCP 桥不接受 nested CONDITIONAL；多于两个 blocks 也不能假定全部保留。",
+    "resolution": "用顶层条件与二元 AND/OR，独立回读并按真实配置顺序演算。",
+    "duplicateLogCreated": false
+  }
+}

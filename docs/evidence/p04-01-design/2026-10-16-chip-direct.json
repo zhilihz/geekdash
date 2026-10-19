@@ -1,0 +1,132 @@
+{
+  "date": "2026-10-16",
+  "fileKey": "leQy2Be9GaTXPvZeooQuIF",
+  "pageId": "142:3499",
+  "rootId": "151:3978",
+  "source": "用户要求芯片与其他关键词直接选择，取消单独展开",
+  "mutation": {
+    "mutatedNodeIds": [
+      "386:4771",
+      "386:4774",
+      "386:4777",
+      "386:4780",
+      "365:5725",
+      "365:6525"
+    ],
+    "removedNodeIds": [
+      "365:6520",
+      "I365:6520;2:108",
+      "365:6524",
+      "365:6544",
+      "386:4783",
+      "386:4786"
+    ],
+    "row": {
+      "id": "365:6525",
+      "parent": "365:5725",
+      "visible": true,
+      "width": 1376
+    },
+    "actions": 22,
+    "design": "芯片与分组同级直接多选，选择后立即计算列表；无展开及应用操作"
+  },
+  "verification": {
+    "checks": [
+      {
+        "name": "STM单击立即筛选",
+        "actual": [
+          true,
+          false,
+          true
+        ],
+        "passed": true
+      },
+      {
+        "name": "STM及BLE为并集",
+        "actual": [
+          true,
+          false,
+          true
+        ],
+        "passed": true
+      },
+      {
+        "name": "取消STM只保留BLE",
+        "actual": [
+          true,
+          false,
+          false
+        ],
+        "passed": true
+      },
+      {
+        "name": "BLE及ESP为并集",
+        "actual": [
+          true,
+          true,
+          false
+        ],
+        "passed": true
+      },
+      {
+        "name": "芯片与工业分组为交集",
+        "actual": [
+          false,
+          false,
+          true
+        ],
+        "passed": true
+      },
+      {
+        "name": "同一芯片再次点击取消限制",
+        "actual": [
+          true,
+          true,
+          true
+        ],
+        "passed": true
+      },
+      {
+        "name": "全选立即恢复全部芯片",
+        "actual": [
+          true,
+          true,
+          true
+        ],
+        "passed": true
+      },
+      {
+        "name": "已隐藏行不因筛选复现",
+        "actual": [
+          true,
+          false,
+          true
+        ],
+        "passed": true
+      },
+      {
+        "name": "筛选排除的已选项目不进入导出",
+        "passed": true
+      }
+    ],
+    "method": "只读执行已保存交互配置，未执行Presentation点击；未修改变量默认值",
+    "buttons": {
+      "all": "386:4771",
+      "stm": "386:4774",
+      "ble": "386:4777",
+      "esp": "386:4780",
+      "industrial": "365:5740"
+    }
+  },
+  "screenshots": [
+    "2026-10-16-chip-direct-desktop.png",
+    "2026-10-16-chip-direct-narrow.png"
+  ],
+  "defaultRestored": "1440深色；未修改变量默认值",
+  "scope": "Figma配置及桌面/窄屏截图；网页导出尚未实施，Presentation未执行",
+  "ownerLabel": {
+    "id": "365:5763",
+    "text": "负责人：",
+    "scope": "仅筛选标签去掉@，不改说明中的原有内容"
+  }
+}

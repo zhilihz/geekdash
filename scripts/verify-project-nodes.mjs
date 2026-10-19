@@ -7,7 +7,9 @@ import { openRuntimeDatabase } from '../dist/server/infrastructure/runtime-datab
 import { hashPassword, identities } from '../dist/server/modules/identity.js';
 import { projectSaves, validateSave } from '../dist/server/modules/project-save.js';
 
+assert.equal(process.env.GEEKDASH_MIGRATION_PROBE, '1', '仅在独立测试实例执行');
 const { connection: c } = await connectDatabase('test_migrator');
+assert.equal((await c.query('SELECT @@server_uuid uuid'))[0][0].uuid, process.env.GEEKDASH_MIGRATION_PROBE_SERVER_UUID);
 const prefix = 'node_' + randomUUID().slice(0, 8), password = '节点验收 password 长短语 2026';
 const users = [], projects = [], checks = [], measurements = [];
 let app, runtime, origin, fault = '';
@@ -39,7 +41,7 @@ async function fresh(id) {
     result.receipts = (await connection.query("SELECT * FROM command_receipts WHERE command_scope LIKE CONCAT('user:%:project:',?,':%') ORDER BY command_scope,idempotency_key", [id]))[0]; return result;
   } finally { await connection.end(); }
 }
-const input = (version, changes) => ({ expectedVersion: version, idempotencyKey: randomUUID(), changes });
+const input = (version, changes, scope = 'projectNodes', target) => ({ expectedVersion: version, idempotencyKey: randomUUID(), scope, ...(target ? {target} : {}), changes });
 const add = (content = '人工风险内容🙂', level = 'high') => ({ op: 'add', tempId: randomUUID(), content, level });
 try {
   assert.equal((await c.query('SELECT DATABASE() db'))[0][0].db, 'geekdash_test');
@@ -56,25 +58,31 @@ try {
   const perform = async (ops, user = a, changes = {}) => { const body = input(await version(), { ...changes, nodeOps: ops }); const before = await fresh(id); const preview = await user.api(path + '/save-preview', 'POST', body); assert.equal(preview.expectedVersion, body.expectedVersion); assert.deepEqual(await fresh(id), before, '预览不得正式写'); const result = (await save(body, user)).result; assert.equal((await detail()).project.version, result.savedVersion); return { body, result }; };
   const addNode = (title,kind='project') => ({op:'add',tempId:randomUUID(),kind,fields:kind==='project'?{title,stage:'S4',targetDate:'2020-01-01',output:'原成果保持🙂'}:{title,targetDate:null,note:'客户原备注'}});
   const N=[addNode('节点A'),addNode('节点B'),addNode('节点C'),addNode('客户节点','customer')];
-  const first=await perform(N,a,{summaryNote:'节点与文字同事务',riskOps:[{op:'add',tempId:randomUUID(),content:'混合风险',level:'mid'}]});
-  const [A,B,C,K]=N.map(node=>first.result.nodeIdMap[node.tempId]);assert.equal(new Set([A,B,C,K]).size,4);assert.equal(first.result.nodes.length,4);assert.equal(first.result.changed,true);
-  let d=await detail();assert.equal(d.project.summaryNote,'节点与文字同事务');assert.equal(Number(d.project.progress),0);assert.equal(d.risks.length,1);
-  assert.equal(Number((await c.query('SELECT COUNT(*) n FROM audit_log WHERE project_id=? AND version_after=?',[id,first.result.savedVersion]))[0][0].n),6);
+  const mixedBefore=await fresh(id);await save(input(await version(),{nodeOps:N,summaryNote:'不得跨区夹带'}),a,400);assert.deepEqual(await fresh(id),mixedBefore);
+  const first=await perform(N.slice(0,3));
+  const customer=(await save(input(await version(),{nodeOps:[N[3]]},'customerNode',N[3].tempId))).result;
+  const [A,B,C]=N.slice(0,3).map(node=>first.result.nodeIdMap[node.tempId]),K=customer.nodeIdMap[N[3].tempId];assert.equal(new Set([A,B,C,K]).size,4);assert.equal(first.result.nodes.length,3);assert.equal(first.result.changed,true);
+  const risk=add();await save(input(await version(),{riskOps:[risk]},'risk',risk.tempId));
+  await save(input(await version(),{summaryNote:'独立摘要范围'},'summaryNote'));
+  let d=await detail();assert.equal(d.project.summaryNote,'独立摘要范围');assert.equal(Number(d.project.progress),0);assert.equal(d.risks.length,1);
+  assert.equal(Number((await c.query('SELECT COUNT(*) n FROM audit_log WHERE project_id=? AND version_after=?',[id,first.result.savedVersion]))[0][0].n),3);
   const link=(from,to,replaceEdges=[],affectedIds=[],reason='')=>({op:'link',from,to,replaceEdges,affectedIds,reason});
   await perform([link(A,B),link(B,C)]);const linked=await detail();assert.equal(linked.nodes.find(n=>n.id===B).previousNodeId,A);assert.equal(linked.nodes.find(n=>n.id===B).nextNodeId,C);
   let prior=await fresh(id);assert.equal((await save(input(await version(),{nodeOps:[{op:'complete',id:B,completedOn:'2020-01-01'}]}),a,422)).code,'NODE_PREDECESSOR_INCOMPLETE');assert.deepEqual(await fresh(id),prior);
-  await perform([{op:'complete',id:A,completedOn:'2020-01-03'},{op:'complete',id:B,completedOn:'2020-01-02'},{op:'complete',id:C,completedOn:'2020-01-01'},{op:'complete',id:K,completedOn:'2020-01-01'}]);
+  await perform([{op:'complete',id:A,completedOn:'2020-01-03'},{op:'complete',id:B,completedOn:'2020-01-02'},{op:'complete',id:C,completedOn:'2020-01-01'}]);
+  await save(input(await version(),{nodeOps:[{op:'complete',id:K,completedOn:'2020-01-01'}]},'customerNode',K));
   assert.equal((await detail()).stages.filter(s=>s.state==='completed').length,0,'节点不推进阶段；实际日期不套相邻阶段规则');
-  let uncomplete={op:'uncomplete',id:A,reason:'明确纠正原完成误录',affectedIds:[]},body=input(await version(),{nodeOps:[uncomplete],summaryNote:'失败不能提前改文字'});
+  let uncomplete={op:'uncomplete',id:A,reason:'明确纠正原完成误录',affectedIds:[]},body=input(await version(),{nodeOps:[uncomplete]});
   prior=await fresh(id);let preview=await a.api(path+'/save-preview','POST',body);assert.deepEqual(preview.requiredUncompleteIds.sort(),[B,C].sort());assert.equal(preview.confirmed,false);assert.deepEqual(await fresh(id),prior);
   assert.equal((await save(body,a,422)).code,'NODE_IMPACT_CHANGED');assert.deepEqual(await fresh(id),prior);
-  for(const ids of [[B],[B,C,K]])assert.equal((await save(input(await version(),{nodeOps:[{...uncomplete,affectedIds:ids}]}),a,422)).code,'NODE_IMPACT_CHANGED');
+  assert.equal((await save(input(await version(),{nodeOps:[{...uncomplete,affectedIds:[B]}]}),a,422)).code,'NODE_IMPACT_CHANGED');
+  assert.equal((await save(input(await version(),{nodeOps:[{...uncomplete,affectedIds:[B,C,K]}]}),a,400)).code,'SAVE_SCOPE_MISMATCH');
   await perform([{...uncomplete,affectedIds:[B,C]}]);d=await detail();assert(d.nodes.filter(n=>[A,B,C].includes(n.id)).every(n=>!n.completedOn&&n.output==='原成果保持🙂'&&n.targetDate==='2020-01-01'));assert.equal(d.nodes.find(n=>n.id===K).completedOn,'2020-01-01');
   await perform([{op:'complete',id:A,completedOn:'2020-01-03'},{op:'complete',id:B,completedOn:'2020-01-02'},{op:'complete',id:C,completedOn:'2020-01-01'}]);
   assert.equal((await save(input(await version(),{nodeOps:[{op:'complete',id:A,completedOn:'2020-01-04'}]}),a,422)).code,'NODE_CORRECTION_REASON_REQUIRED');
   await perform([{op:'complete',id:A,completedOn:'2020-01-04',reason:'完成日期原误录'}]);
   const noop=await perform([{op:'move',id:A,x:240,y:20}]);const noChange=await perform([{op:'move',id:A,x:240,y:20}]);assert.equal(noChange.result.changed,false);assert.equal(noop.result.savedVersion,noChange.result.savedVersion);
-  checks.push('两类原字段、四节点/风险/文字同事务；直接前置与同次完成、日期无额外顺序；明确下游集合、完成纠错与移动同值');
+  checks.push('两类节点/风险/摘要分别保存，跨区夹带拒绝；直接前置与同范围同次完成、日期无额外顺序；明确下游集合、完成纠错与移动同值');
   const D=addNode('新的未完成前置');const addedD=await perform([D]);const DId=addedD.result.nodeIdMap[D.tempId];
   body=input(await version(),{nodeOps:[link(DId,B,[{from:A,to:B}]) ]});preview=await a.api(path+'/save-preview','POST',body);assert.deepEqual(preview.requiredUncompleteIds.sort(),[B,C].sort());assert.equal(preview.confirmed,false);
   assert.equal((await save(input(await version(),{nodeOps:[link(DId,B)]}),a,422)).code,'NODE_REPLACEMENT_CHANGED');
@@ -83,12 +91,12 @@ try {
   prior=await fresh(id);const cyclic=input(await version(),{nodeOps:[link(C,A)]});const error=await a.api(path+'/save-preview','POST',cyclic,422);assert.equal(error.code,'NODE_CYCLE');assert(error.fields.nodeOps.includes(A)&&error.fields.nodeOps.includes(B)&&error.fields.nodeOps.includes(C));assert.equal((await save(cyclic,a,422)).code,'NODE_CYCLE');assert.deepEqual(await fresh(id),prior);
   // 明确合成来源旧循环；普通文字与移动不改关系，不能替代循环纠正。
   await c.execute('UPDATE project_nodes SET previous_node_id=? WHERE id=?',[C,A]);await c.execute('UPDATE project_nodes SET next_node_id=? WHERE id=?',[A,C]);
-  await save(input(await version(),{summaryNote:'旧循环不拦无关文字'}));await perform([{op:'move',id:DId,x:500.125,y:150.25}]);
+  await save(input(await version(),{summaryNote:'旧循环不拦无关文字'},'summaryNote'));await perform([{op:'move',id:DId,x:500.125,y:150.25}]);
   assert.equal((await save(input(await version(),{nodeOps:[{op:'complete',id:C,completedOn:'2020-01-01'}]}),a,422)).code,'NODE_CYCLE');
   await perform([{op:'unlink',from:C,to:A}]);d=await detail();assert.equal(d.nodes.find(n=>n.id===A).previousNodeId,null);assert.equal(d.nodes.find(n=>n.id===C).nextNodeId,null);
   checks.push('明确旧线替换与双向残留清除、未完成前置下游纠错；新循环拒绝路径、旧循环保留后明确拆除');
   const peerNode=addNode('另一项目节点');const peer=(await a.api('/api/projects/'+projects[1],'PATCH',input('1',{nodeOps:[peerNode]}))).result.nodeIdMap[peerNode.tempId];
-  for(const ops of [[link(A,A)],[link(K,A)],[link(A,peer)],[{op:'correct',id:peer,changes:{title:'跨项目'},reason:'不可修改'}],[{op:'correct',id:K,changes:{stage:'S1'},reason:'类型错误'}]]){const before=await fresh(id);await save(input(await version(),{nodeOps:ops,summaryNote:'非法时文字也不存'}),a,[400,404,422]);assert.deepEqual(await fresh(id),before);}
+  for(const ops of [[link(A,A)],[link(K,A)],[link(A,peer)],[{op:'correct',id:peer,changes:{title:'跨项目'},reason:'不可修改'}],[{op:'correct',id:K,changes:{stage:'S1'},reason:'类型错误'}]]){const before=await fresh(id);await save(input(await version(),{nodeOps:ops}),a,[400,404,422]);assert.deepEqual(await fresh(id),before);}
   const invalid=[{op:'add',tempId:randomUUID(),kind:'project',fields:{title:'不混客户备注',stage:'S1',output:'结果',note:'非法类型字段'}}, {op:'add',tempId:randomUUID(),kind:'project',fields:{title:'空成果',stage:'S1',output:''}}, {op:'add',tempId:randomUUID(),kind:'customer',fields:{title:'不加阶段',stage:'S1'}}, {op:'add',tempId:randomUUID(),kind:'project',fields:{title:'伪造',stage:'S1',output:'结果',actorId:users[1].id}}, {op:'correct',id:A,changes:{completedOn:null},reason:'普通字段不能清实际'}, {op:'move',id:A,x:1000000000,y:0}, {op:'move',id:A,x:1.0001,y:0}, {op:'move',id:K,x:1,y:0}, {op:'complete',id:A,completedOn:'2099-01-01',reason:'未来实际'}, {op:'complete',id:A,completedOn:'2026-02-30'}, {op:'uncomplete',id:A,reason:' ',affectedIds:[]}];
   for(const op of invalid){prior=await fresh(id);await save(input(await version(),{nodeOps:[op]}),a,[400,422]);assert.deepEqual(await fresh(id),prior);}
   await c.execute('UPDATE project_nodes SET source_key=? WHERE id=?',['明确旧节点来源',A]);await perform([{op:'correct',id:A,changes:{title:'A名称纠正',targetDate:null,output:'纠正成果'},reason:'信息误填'}]);assert.equal((await detail()).nodes.find(n=>n.id===A).sourceKey,'明确旧节点来源');
@@ -99,9 +107,9 @@ try {
   const captured=await identities(runtime).resolve(clients[3].token);await c.execute('UPDATE users SET enabled=0 WHERE id=?',[users[3].id]);await assert.rejects(projectSaves(runtime).save(id,validateSave(input(await version(),{nodeOps:[{op:'move',id:A,x:1,y:1}]})),randomUUID(),captured),e=>e.code==='AUTH_REQUIRED');
   checks.push('四会话同版本只一成功；旧版本/退出负责拒绝；事务内停用复核和本人原结果恢复');
   for(const point of ['UPDATE projects','INSERT INTO project_nodes','UPDATE project_nodes SET previous_node_id','UPDATE project_nodes SET stage_id','INSERT INTO audit_log','INSERT INTO command_receipts']) {
-    const n=addNode('写点故障');body=input(await version(),{summaryNote:'不能提前保存',nodeOps:[n,{op:'unlink',from:A,to:B},link(A,n.tempId)]});prior=await fresh(id);fault=point;const rejected=await save(body,a,500);assert.equal(rejected.code,'SAVE_ROLLED_BACK');assert.equal(rejected.outcome,'not_committed');fault='';assert.deepEqual(await fresh(id),prior,point);
+    const n=addNode('写点故障');body=input(await version(),{nodeOps:[n,{op:'unlink',from:A,to:B},link(A,n.tempId)]});prior=await fresh(id);fault=point;const rejected=await save(body,a,500);assert.equal(rejected.code,'SAVE_ROLLED_BACK');assert.equal(rejected.outcome,'not_committed');fault='';assert.deepEqual(await fresh(id),prior,point);
   }
-  const L=addNode('丢确认新节点'),M=addNode('丢确认下一节点');body=input(await version(),{nodeOps:[L,M,link(L.tempId,M.tempId),{op:'complete',id:L.tempId,completedOn:'2020-01-03'},{op:'complete',id:M.tempId,completedOn:'2020-01-01'}],summaryNote:'节点真实COMMIT确认'});
+  const L=addNode('丢确认新节点'),M=addNode('丢确认下一节点');body=input(await version(),{nodeOps:[L,M,link(L.tempId,M.tempId),{op:'complete',id:L.tempId,completedOn:'2020-01-03'},{op:'complete',id:M.tempId,completedOn:'2020-01-01'}]});
   fault='ack';assert.equal((await save(body,a,503)).code,'COMMIT_UNKNOWN');fault='';const receipt=await a.api(path+'/save-results/query','POST',body);assert.equal(receipt.outcome,'committed');prior=await fresh(id);await app.close();app=undefined;await start();assert.deepEqual((await save(body)).result,receipt.result);assert.deepEqual((await a.api(path+'/save-results/query','POST',body)).result,receipt.result);assert.deepEqual(await fresh(id),prior);
   d=await detail();assert.equal(d.nodes.find(n=>n.id===receipt.result.nodeIdMap[L.tempId]).nextNodeId,receipt.result.nodeIdMap[M.tempId]);assert.equal(d.project.status,'proposal');assert.equal(Number(d.project.progress),0);assert.equal(d.project.signal,'green');assert.equal(d.project.dueDate,null);assert.equal(d.risks.length,1);assert.equal(d.project.checkStatus.latest,null);
   checks.push('信息/位置/清线/置线/多节点/审计/回执写点全回滚；真实COMMIT丢确认后原会话/映射/关系/历史恢复，无业务自动联动');

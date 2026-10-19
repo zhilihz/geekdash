@@ -1,0 +1,37 @@
+{
+  "version": "8",
+  "nodes": [
+    {
+      "id": "124",
+      "kind": "project",
+      "stage": "S1",
+      "title": "Flow 阅读与移动验证",
+      "targetDate": null,
+      "completedOn": null,
+      "output": "合成节点，用于验证位置与明确保存",
+      "note": "",
+      "previousNodeId": null,
+      "nextNodeId": null,
+      "x": 435,
+      "y": 20,
+      "sourceKey": null,
+      "sortOrder": 0,
+      "deletedAt": null
+    }
+  ],
+  "sql": [
+    {
+      "id": "124",
+      "title": "Flow 阅读与移动验证",
+      "x": "435.000",
+      "y": "20.000"
+    }
+  ],
+  "build": {
+    "revision": "f07450eafc94f0756f09260d0026968f09102e65",
+    "dirty": true,
+    "builtAt": "2026-10-16T21:48:57.079Z",
+    "stage": "project-list",
+    "schemaVersion": "0004-project-compatibility"
+  }
+}

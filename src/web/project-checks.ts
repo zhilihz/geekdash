@@ -1,6 +1,11 @@
 import './shared/read.css';
 import './shared/detail.css';
 import './shared/project-checks.css';
+import { inspectionContent } from './shared/inspection';
+import { auditHistory } from './shared/history';
+import { PersonalPreference } from './shared/personal-state';
+import { ProjectNotifications } from './shared/notifications';
+import type { AuditPage, CheckPage } from './shared/api';
 import { esc, get, label, requireIdentity, SaveError, send, setupTheme, type CheckCommand, type CheckRuleContext, type List, type ListProject } from './shared/api';
 
 type Command = Extract<CheckCommand, { action: 'saveCheck' }>;
@@ -14,8 +19,11 @@ for (const key of [...scopeKeys, 'checkToday', 'page']) if (originalQuery.get(ke
 if (!query.has('view')) query.set('view', 'active');
 if (!query.has('checkToday')) query.set('checkToday', 'unchecked');
 let list: List | undefined, rule: CheckRuleContext | undefined;
+let notificationPending=false;
 let loading = false, busy = false, fresh = false, authFrozen = false, recoveryBroken = false, storageFailed = false;
 let ownerId = '', noticeTimer: ReturnType<typeof setTimeout> | undefined;
+let preference:PersonalPreference|undefined,restoredScroll:number|undefined,scrollTimer:ReturnType<typeof setTimeout>|undefined;
+function remember(){preference?.update({view:query.get('view'),page:Number(query.get('page') ?? 1),filters:Object.fromEntries([...query].filter(([key])=>!['view','page'].includes(key))),scrollY:window.scrollY});}
 const pending = new Map<string, Pending>();
 const key = (id: string) => `geekdash_check:${ownerId}:${id}`;
 const authCodes = ['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'PASSWORD_CHANGE_REQUIRED'];
@@ -63,7 +71,7 @@ function controls() {
   (element('check-reload') as HTMLButtonElement).disabled = frozen || !ownerId;
   document.querySelectorAll<HTMLButtonElement>('[data-check-project]').forEach(button => {
     const project = list?.items.find(item => item.id === button.dataset.checkProject);
-    button.disabled = frozen || !fresh || !rule?.rule || !project?.capabilities.canCheck || project.checkedToday || pending.has(project.id);
+    button.disabled = frozen || !fresh || !rule?.rule || !project?.inspection || !project?.capabilities.canCheck || project.checkedToday || pending.has(project.id);
   });
   document.querySelectorAll<HTMLAnchorElement>('[data-correct-project]').forEach(link => link.setAttribute('aria-disabled', String(busy || loading)));
   document.querySelectorAll<HTMLButtonElement>('[data-confirm-check],[data-retry-check]').forEach(button => button.disabled = frozen);
@@ -83,34 +91,64 @@ function renderRecovery() {
   controls();
 }
 function card(project: ListProject) {
-  const people = (role: string) => project.people.filter(person => person.role === role).map(person => person.name).join('、') || '未指定';
   const detail = new URLSearchParams({ id: project.id, returnTo: pageUrl() });
   const updatedAt = new Date(project.updatedAt);
   const updated = Number.isNaN(updatedAt.getTime()) ? '未记录' : new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(updatedAt);
   return `<article class="check-card" data-project-id="${esc(project.id)}" data-project-version="${esc(project.version)}">
-    <div class="check-card-heading"><div><h2>${esc(project.name)}</h2><p class="check-card-subtitle">${esc(project.customer || '客户未指定')} · ${esc(project.productLine || '产品线未指定')} · ${esc(project.chips.map(chip => chip.name).join(' / ') || '芯片未指定')}</p></div><div class="check-card-actions"><button class="head-btn check-pass" data-check-project="${esc(project.id)}" disabled>${project.checkedToday ? '今日已检查' : '通过检查'}</button><a class="head-btn" data-correct-project="${esc(project.id)}" href="/project-detail.html?${esc(detail)}">进入修正</a></div></div>
-    <dl class="check-card-facts"><div><dt>提案日期</dt><dd>${esc(project.proposalDate || '未记录')}</dd></div><div><dt>计划结案</dt><dd>${esc(project.dueDate || '计划未定')} · ${esc(project.deadline.label)}</dd></div><div><dt>项目状态</dt><dd>${esc(label(project.status))} · ${esc(label(project.stage))} · ${esc(project.progress)}%</dd></div><div><dt>优先级</dt><dd>${esc(label(project.priority))} · ${esc(label(project.signal))}</dd></div></dl>
-    <dl class="check-card-facts"><div><dt>项目经理</dt><dd>${esc(people('pm'))}</dd></div><div><dt>硬件负责人</dt><dd>${esc(people('hardware_owner'))}</dd></div><div><dt>软件负责人</dt><dd>${esc(people('software_owner'))}</dd></div></dl>
-    <div class="check-latest"><h3>最新状态说明</h3><p>${esc(project.statusDesc || '暂无状态说明')}</p></div>
-    <div class="check-card-foot"><span>更新于 ${esc(updated)}</span><span class="${project.capabilities.canCheck ? 'check-status-label' : 'check-warning'}">${project.capabilities.canCheck ? esc(project.checkStatus.label) : '仅项目负责人可以通过检查'}</span></div>
+    <div class="check-card-content"><div class="check-card-heading"><h2>${esc(project.name)}</h2></div>
+    <p class="check-card-subtitle">${esc(label(project.status))} · ${esc(label(project.stage))} · ${esc(project.progress)}% · ${esc(label(project.priority))}优先级 · ${esc(label(project.signal))}</p>
+    ${project.tags.length ? `<div class="check-tags">${project.tags.map(tag => `<span class="read-tag">${esc(tag.name)}</span>`).join('')}</div>` : ''}
+    ${project.inspection ? inspectionContent(project.inspection) : '<p role="alert">完整项目内容尚未读到，请重新读取后检查。</p>'}
+    <details class="inspection-section" data-inspection="历史" data-check-history="${esc(project.id)}"><summary>检查与更新历史</summary><div class="inspection-history">展开后读取记录</div></details>
+    <div class="check-card-foot"><span>${project.checkedToday ? '今日已检查' : '今日未检查'} · 更新于 ${esc(updated)}</span><span class="${project.capabilities.canCheck ? 'check-status-label' : 'check-warning'}">${project.capabilities.canCheck ? esc(project.checkStatus.label) + (project.checkStatus.updatedAfterCheck ? ' · 检查后有更新' : '') : '仅项目负责人可以通过检查'}</span></div></div>
+    <div class="check-card-actions"><button class="head-btn check-pass" data-check-project="${esc(project.id)}" disabled>${project.checkedToday ? '今日已检查' : '通过检查'}</button><a class="head-btn" data-correct-project="${esc(project.id)}" href="/project-detail.html?${esc(detail)}">进入修正</a></div>
   </article>`;
+}
+function openSections() {
+  return [...document.querySelectorAll<HTMLDetailsElement>('[data-inspection][open]')].map(section => ({ projectId: section.closest<HTMLElement>('[data-project-id]')!.dataset.projectId, name: section.dataset.inspection }));
+}
+function restoreSections(saved: unknown) {
+  if (!Array.isArray(saved)) return;
+  document.querySelectorAll<HTMLDetailsElement>('[data-inspection]').forEach(section => {
+    const projectId = section.closest<HTMLElement>('[data-project-id]')!.dataset.projectId;
+    section.open = saved.some(item => item?.projectId === projectId && item?.name === section.dataset.inspection);
+  });
 }
 function render() {
   if (!list) return;
+  const opened = openSections();
   element('check-rule').textContent = `${list.businessDate} · ${rule?.rule ? '每周' + ['一', '二', '三', '四', '五', '六', '日'][rule.rule.deadlineWeekday - 1] + '全天为检查截止' : '检查规则尚未设置'}`;
   element('check-list').innerHTML = list.items.length ? list.items.map(card).join('') : `<p class="checks-empty">${query.get('checkToday') === 'checked' ? '当前范围今天还没有检查记录' : '当前范围今天没有待检查项目'}</p>`;
   element('page-info').textContent = `第 ${list.pagination.page} / ${list.pagination.pageCount} 页 · 共 ${list.pagination.total} 个项目`;
   document.querySelectorAll<HTMLButtonElement>('[data-check-project]').forEach(button => button.onclick = () => {
     const project = list?.items.find(item => item.id === button.dataset.checkProject);
-    if (busy || loading || !fresh || authFrozen || recoveryBroken || !project?.capabilities.canCheck || project.checkedToday || !rule?.rule || pending.has(project.id)) return;
+    if (busy || loading || !fresh || authFrozen || recoveryBroken || !project?.inspection || !project?.capabilities.canCheck || project.checkedToday || !rule?.rule || pending.has(project.id)) return;
     const item: Pending = { projectId: project.id, projectName: project.name, command: { action: 'saveCheck', expectedVersion: project.version, idempotencyKey: crypto.randomUUID(), ruleVersion: rule.rule.version, previewWeek: rule.weekStart, conclusion: 'checked', note: '' } };
     pending.set(project.id, item); persist(item); renderRecovery(); void execute(project.id, false);
   });
   document.querySelectorAll<HTMLAnchorElement>('[data-correct-project]').forEach(link => link.onclick = event => {
     if (busy || loading) { event.preventDefault(); return; }
-    try { sessionStorage.setItem('geekdash_checks_return', JSON.stringify({ url: location.href, scrollY })); } catch { /* 返回位置不可用不阻止进入修正。 */ }
+    try { sessionStorage.setItem('geekdash_checks_return:'+ownerId, JSON.stringify({ url: location.href, scrollY, projectId: link.dataset.correctProject, opened: openSections() })); } catch { /* 返回位置不可用不阻止进入修正。 */ }
   });
+  document.querySelectorAll<HTMLDetailsElement>('[data-check-history]').forEach(section => section.ontoggle = () => { if (section.open && !section.dataset.loaded) void loadHistory(section); });
+  restoreSections(opened);
   controls();
+}
+async function loadHistory(section: HTMLDetailsElement, checkCursor?: string | null, auditCursor?: string | null) {
+  const id = section.dataset.checkHistory!, output = section.querySelector<HTMLElement>('.inspection-history')!;
+  if (section.dataset.loading) return;
+  section.dataset.loading = 'true';
+  try {
+    const [checks, audit] = await Promise.all([checkCursor !== null ? get<CheckPage>('/api/projects/' + id + '/checks' + (checkCursor ? '?before=' + checkCursor : '')) : undefined, auditCursor !== null ? get<AuditPage>('/api/projects/' + id + '/audit' + (auditCursor ? '?before=' + auditCursor : '')) : undefined]);
+    if (!section.isConnected) return;
+    if (!section.dataset.loaded) output.innerHTML = '<div class="inspection-check-records"></div><div class="inspection-audits"></div>';
+    if (checks) output.querySelector('.inspection-check-records')!.insertAdjacentHTML('beforeend', checks.items.map(item => `<p>${esc(item.actorName)} · ${esc(new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',dateStyle:'short',timeStyle:'short'}).format(new Date(item.checkedAt)))} · ${item.conclusion === 'checked' ? '已核对' : '需跟进'}${item.onTime === null ? '' : item.onTime ? ' · 按时' : ' · 逾期检查'}<br>${esc(item.note)}</p>`).join('') || (!section.dataset.loaded ? '<p>暂无检查记录</p>' : ''));
+    if (audit) output.querySelector('.inspection-audits')!.insertAdjacentHTML('beforeend', auditHistory(audit.items) || (!section.dataset.loaded ? '<p>暂无更新记录</p>' : ''));
+    output.querySelector('.inspection-history-more')?.remove();
+    if (checks?.nextCursor || audit?.nextCursor) { const more = document.createElement('button'); more.className = 'back-btn inspection-history-more'; more.textContent = '读取更早记录'; more.onclick = () => { void loadHistory(section,checks?.nextCursor ?? null,audit?.nextCursor ?? null); }; output.append(more); }
+    section.dataset.loaded = 'true';
+  } catch (error) { if (section.isConnected) { const retry = document.createElement('button'); retry.className = 'back-btn'; retry.textContent = '历史读取失败，重试'; retry.onclick = () => { retry.remove(); void loadHistory(section,checkCursor,auditCursor); }; output.append(retry); } freezeIdentity(error); }
+  finally { delete section.dataset.loading; }
 }
 function freezeIdentity(error: unknown) {
   if (error instanceof SaveError && authCodes.includes(error.code)) { authFrozen = true; element('login').hidden = false; }
@@ -119,20 +157,25 @@ async function load() {
   if (loading || authFrozen) return false;
   loading = true; fresh = false; controls(); element('check-loading').textContent = '正在读取项目…';
   try {
-    const [next, currentRule] = await Promise.all([get<List>('/api/projects?' + query), get<CheckRuleContext>('/api/settings/check-rule')]);
+    const [next, currentRule] = await Promise.all([get<List>('/api/projects?' + query + '&details=checks'), get<CheckRuleContext>('/api/settings/check-rule')]);
     if (authFrozen) return false;
     list = next; rule = currentRule; fresh = true;
+    renderScope();
     query.set('page', String(next.pagination.page)); history.replaceState(null, '', pageUrl());
     element('check-loading').textContent = ''; render();
+    if(restoredScroll!==undefined){scrollTo(0,restoredScroll);restoredScroll=undefined;}
     try {
-      const position = JSON.parse(sessionStorage.getItem('geekdash_checks_return') ?? 'null');
-      if (position?.url === location.href && Number.isFinite(position.scrollY)) { scrollTo(0, position.scrollY); sessionStorage.removeItem('geekdash_checks_return'); }
+      const position = JSON.parse(sessionStorage.getItem('geekdash_checks_return:'+ownerId) ?? 'null');
+      if (position?.url === location.href && Number.isFinite(position.scrollY)) {
+        restoreSections(position.opened); scrollTo(0, position.scrollY); sessionStorage.removeItem('geekdash_checks_return:'+ownerId);
+        if (position.projectId && !next.items.some(item => item.id === position.projectId)) note('返回的项目已不在当前列表，可能已检查、修改后不符合筛选或移至其他页。当前范围已重新读取。');
+      }
     } catch { /* 无返回位置时从当前视口继续。 */ }
     return true;
   } catch (error) {
     freezeIdentity(error); element('check-loading').textContent = '项目读取失败，请重新读取。';
     note((error as Error).message, true); return false;
-  } finally { loading = false; controls(); }
+  } finally { loading = false; controls();if(notificationPending && !busy && !authFrozen){notificationPending=false;void load();} }
 }
 async function execute(id: string, confirm: boolean) {
   const item = pending.get(id);
@@ -157,30 +200,32 @@ async function execute(id: string, confirm: boolean) {
     const refreshed = await load();
     note(refreshed ? `“${item.projectName}”已通过检查。` : `“${item.projectName}”的检查已保存，但列表读取失败。请刷新列表，无需再次检查。`, !refreshed);
   }
+  else if(notificationPending && !authFrozen){notificationPending=false;await load();}
 }
 
 setupTheme();
 const views: Record<string, string> = { active: '进行中', proposal: '提案 / 暂缓', closed: '已结案', maintenance: '量产维护', all: '全部项目' };
-element('check-scope').textContent = [views[query.get('view')!] ?? query.get('view'), ...scopeKeys.filter(name => name !== 'view' && query.has(name)).map(name => `${name === 'search' ? '搜索' : dimensions[name]}：${label(query.get(name))}`)].join(' · ');
-const boardQuery = new URLSearchParams();
+function renderScope() { element('check-scope').textContent = [views[query.get('view')!] ?? query.get('view'), ...scopeKeys.filter(name => name !== 'view' && query.has(name)).map(name => `${name === 'search' ? '搜索' : dimensions[name]}：${list?.optionLabels?.[name]?.[query.get(name)!] ?? label(query.get(name))}`)].join(' · '); }
+renderScope();
+function restoreBack(){const boardQuery = new URLSearchParams();
 for (const name of scopeKeys) if (query.has(name)) boardQuery.set(name, query.get(name)!);
 (element('back') as HTMLAnchorElement).href = '/?' + boardQuery;
 try {
-  const saved = JSON.parse(sessionStorage.getItem('geekdash_board_return') ?? 'null');
+  const saved = JSON.parse(sessionStorage.getItem('geekdash_board_return:'+ownerId) ?? 'null');
   if (typeof saved?.url === 'string') {
     const url = new URL(saved.url);
     if (url.origin === location.origin && ['/', '/GeekDash.html'].includes(url.pathname) && scopeKeys.every(name => (url.searchParams.get(name) ?? (name === 'view' ? 'active' : '')) === (query.get(name) ?? ''))) (element('back') as HTMLAnchorElement).href = url.href;
   }
-} catch { /* 无原首页位置时仍保留筛选范围。 */ }
+} catch { /* 无原首页位置时仍保留筛选范围。 */ }}
 element('notice-close').onclick = closeNotice;
 element('check-reload').onclick = () => { if (!busy) void load(); };
 for (const [id, offset] of [['previous', -1], ['next', 1]] as const) element(id).onclick = () => {
   if (busy || loading || !fresh || !list) return;
-  query.set('page', String(list.pagination.page + offset)); void load();
+  query.set('page', String(list.pagination.page + offset)); remember();void load();
 };
 document.querySelectorAll<HTMLButtonElement>('[data-check-today]').forEach(button => button.onclick = () => {
   if (busy || loading || authFrozen) return;
-  query.set('checkToday', button.dataset.checkToday!); query.set('page', '1'); void load();
+  query.set('checkToday', button.dataset.checkToday!); query.set('page', '1'); remember();void load();
 });
 document.addEventListener('geekdash-identity-changed', () => { authFrozen = true; element('login').hidden = false; note('账号已变化，检查已暂停。请重新登录原账号后确认尚未完成的检查。', true); controls(); });
 function refreshBusinessDay() {
@@ -190,7 +235,14 @@ function refreshBusinessDay() {
 window.addEventListener('focus', refreshBusinessDay);
 setInterval(() => { if (document.visibilityState === 'visible') refreshBusinessDay(); }, 60000);
 window.addEventListener('beforeunload', event => { if (busy || pending.size && storageFailed) event.preventDefault(); });
+window.addEventListener('scroll',()=>{if(!fresh || scrollTimer)return;scrollTimer=setTimeout(()=>{scrollTimer=undefined;remember();},2000);},{passive:true});
+window.addEventListener('pagehide',()=>{remember();void preference?.flush();});
+document.addEventListener('geekdash-preference-status',event=>note((event as CustomEvent<string>).detail,true));
 void requireIdentity().then(async identity => {
-  ownerId = identity.id; recover(); renderRecovery(); await load();
+  ownerId = identity.id;preference=new PersonalPreference('checks',text=>note(text,true));const saved=await preference.load();
+  if(!originalQuery.size){if(typeof saved.view==='string')query.set('view',saved.view);if(typeof saved.page==='number')query.set('page',String(saved.page));for(const [key,value] of Object.entries(saved.filters ?? {}))if([...scopeKeys,'checkToday'].includes(key) && typeof value==='string')query.set(key,value);restoredScroll=typeof saved.scrollY==='number'?saved.scrollY:undefined;}
+  restoreBack();recover(); renderRecovery(); await load();
+  const refresh=()=>{if(busy || loading)notificationPending=true;else if(!authFrozen)void load();};
+  new ProjectNotifications(refresh,refresh,text=>{if(text)element('message').textContent=text;});
   for (const id of pending.keys()) { if (authFrozen || recoveryBroken) break; await execute(id, true); }
 }).catch(error => { freezeIdentity(error); element('login').hidden = false; element('check-loading').textContent = '请登录后继续检查项目。'; note((error as Error).message, true); controls(); });

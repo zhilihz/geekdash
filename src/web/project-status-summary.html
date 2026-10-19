@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GeekDash · 项目状态简要</title></head>
+<body class="summary-page"><main class="page">
+<header class="summary-heading"><a class="head-btn" href="/">返回看板</a><h1>项目状态简要</h1><span id="summary-date"></span><div class="view-switch"><button data-theme="dark">深色</button><button data-theme="light">浅色</button><button data-theme="warm">暖色</button></div></header>
+<div class="summary-toolbar"><label class="report-title">报告名称<input id="report-title" value="项目状态简要"></label><button id="choose-folder">选择导出文件夹</button><label>排序<select id="summary-sort"><option value="customer">按客户</option><option value="group">按分组</option><option value="chip">按芯片</option><option value="stage">按阶段</option><option value="dueDate">按预计结案</option></select></label><button id="reset-order">重置顺序</button><button id="refresh-summary">刷新信息</button></div>
+<div class="summary-toolbar"><span id="folder-status">保存位置：浏览器下载目录</span><div class="summary-exports"><button data-export="md">导出 Markdown</button><details><summary>导出 CSV</summary><button data-export="csv">当前列表 CSV</button><button data-export="chip">芯片清单 CSV（原格式）</button></details><button data-export="pdf">导出 PDF</button><button data-export="png">一键存图</button></div></div>
+<div id="summary-filters" aria-label="项目筛选"></div><div id="summary-columns" aria-label="字段显示"></div>
+<p id="summary-feedback" role="status" aria-live="polite"></p><div class="summary-toolbar"><span id="summary-count"></span><button id="show-hidden" hidden>显示隐藏项目</button><span class="summary-hint">拖动调整行序，列标题可拖动调整顺序</span></div>
+<div class="summary-table-wrap"><table id="summary-table" aria-label="项目状态简要"></table></div>
+</main><script type="module" src="/project-status-summary.ts"></script></body></html>

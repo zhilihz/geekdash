@@ -12,6 +12,8 @@ import { projectChecks } from '../dist/server/modules/project-checks.js';
 import { addDays, businessToday, businessWeek } from '../dist/server/modules/project-dates.js';
 
 const { connection: c } = await connectDatabase('test_migrator');
+assert.equal(process.env.GEEKDASH_MIGRATION_PROBE,'1');
+assert.equal((await c.query('SELECT @@server_uuid uuid'))[0][0].uuid,process.env.GEEKDASH_MIGRATION_PROBE_SERVER_UUID);
 const prefix = 'check_' + randomUUID().slice(0, 8), password = '检查验收 password 长短语 2026';
 const users = [], projects = [], checks = [], measurements = [];
 let app, runtime, origin, fault = '', projectWrites = 0, ownConfig = false, lockGate;
@@ -103,7 +105,7 @@ try {
   assert.equal(d.project.checkStatus.onTime,true);assert.equal(d.project.checkStatus.updatedAfterCheck,false);assert.equal(d.project.checkStatus.latest.id,late.out.checkId);
   const page=await a.api(path+'/checks');assert.equal(page.items.length,2);assert.equal(page.items[0].onTime,false);assert.equal(page.items[1].onTime,true);
   await perform(id,'saveCheck',{...check(),note:'同毫秒再次检查'});assert.equal((await detail(id)).project.checkStatus.onTime,true);
-  let before=await fresh(id);await a.api(path,'PATCH',{changes:{summaryNote:'检查后正式更新'},expectedVersion:(await detail(id)).project.version,idempotencyKey:randomUUID()});assert.equal((await detail(id)).project.checkStatus.updatedAfterCheck,true);assert.deepEqual((await fresh(id)).project_checks,before.project_checks);
+  let before=await fresh(id);await a.api(path,'PATCH',{scope:'summaryNote',changes:{summaryNote:'检查后正式更新'},expectedVersion:(await detail(id)).project.version,idempotencyKey:randomUUID()});assert.equal((await detail(id)).project.checkStatus.updatedAfterCheck,true);assert.deepEqual((await fresh(id)).project_checks,before.project_checks);
   checks.push('明确检查及多人首查/晚查/同毫秒追加：真实人时周规则与前后版本、原回执、新SQL/HTTP/看板；普通更新不造检查');
   const last=(await detail(id)).project.checkStatus.latest.id;
   const corrected=await perform(id,'correctCheck',{checkId:last,conclusion:'follow_up',note:'纠正后的跟进文字',reason:'原备注有误'},b);
@@ -138,7 +140,7 @@ try {
   const raceId=await create(a),racePath='/api/projects/'+raceId;await b.api(racePath+'/responsibility','POST',{action:'join',expectedVersion:(await detail(raceId)).project.version,idempotencyKey:randomUUID()});
   const cmd=await request(raceId,'saveCheck',check()),two={...cmd,idempotencyKey:randomUUID(),note:'另一人的核对'};
   const race=await Promise.all([a.api(racePath+'/actions','POST',cmd,[200,409]),b.api(racePath+'/actions','POST',two,[200,409])]);assert.deepEqual(race.map(x=>x.httpStatus).sort(),[200,409]);assert.equal((await fresh(raceId)).project_checks.length,1);
-  const stale=await request(raceId,'correctCheck',{checkId:(await detail(raceId)).project.checkStatus.latest.id,conclusion:'checked',note:'旧文字',reason:'预览竞争'});await a.api(racePath+'/actions/preview','POST',stale);await b.api(racePath,'PATCH',{changes:{summaryNote:'他人先保存'},expectedVersion:stale.expectedVersion,idempotencyKey:randomUUID()});before=await fresh(raceId);await a.api(racePath+'/actions','POST',stale,409);assert.deepEqual(await fresh(raceId),before);
+  const stale=await request(raceId,'correctCheck',{checkId:(await detail(raceId)).project.checkStatus.latest.id,conclusion:'checked',note:'旧文字',reason:'预览竞争'});await a.api(racePath+'/actions/preview','POST',stale);await b.api(racePath,'PATCH',{scope:'summaryNote',changes:{summaryNote:'他人先保存'},expectedVersion:stale.expectedVersion,idempotencyKey:randomUUID()});before=await fresh(raceId);await a.api(racePath+'/actions','POST',stale,409);assert.deepEqual(await fresh(raceId),before);
   for(const point of ['INSERT INTO project_checks','UPDATE projects SET version','INSERT INTO audit_log','INSERT INTO command_receipts']){const body=await request(raceId,'saveCheck',check());before=await fresh(raceId);fault=point;await a.api(racePath+'/actions','POST',body,503);fault='';assert.deepEqual(await fresh(raceId),before);}
   const correction=await request(raceId,'correctCheck',{checkId:(await detail(raceId)).project.checkStatus.latest.id,conclusion:'follow_up',note:'不得部分更正',reason:'故障验证'});
   for(const point of ['UPDATE projects SET version','INSERT INTO audit_log','INSERT INTO command_receipts']){before=await fresh(raceId);fault=point;await a.api(racePath+'/actions','POST',correction,503);fault='';assert.deepEqual(await fresh(raceId),before);}

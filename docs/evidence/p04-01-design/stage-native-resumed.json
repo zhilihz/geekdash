@@ -1,0 +1,248 @@
+{
+  "version": "16",
+  "project": {
+    "id": "9007199254760016",
+    "version": "16",
+    "dataKind": "trial",
+    "name": "P04 已保存基本信息",
+    "status": "ongoing",
+    "priority": "mid",
+    "signal": "green",
+    "customer": null,
+    "odmFactory": null,
+    "productLine": null,
+    "app": null,
+    "projectGroup": null,
+    "proposalDate": "2026-10-16",
+    "dueDate": "2026-10-30",
+    "closedOn": null,
+    "closureDueDate": null,
+    "closureType": null,
+    "closurePlanKnown": "1",
+    "marketExpectation": "范围隔离真实页面验证",
+    "statusDesc": "合成验收：方案待确认，暂缓中；节点资料已保留。",
+    "maintenanceEnabled": 0,
+    "updatedAt": "2026-10-16T22:23:20.375Z",
+    "resumeStatus": null,
+    "firstCheckWeek": "2026-10-19",
+    "stage": "S1",
+    "stageState": "ready",
+    "progress": "0",
+    "filingDate": null,
+    "startDate": "2026-10-17",
+    "originalDueDate": "2026-10-30",
+    "firstCheckRuleVersion": "5",
+    "signalNote": "",
+    "detailNote": "合成验收：暂缓等待方案确认",
+    "summaryNote": "P04 浏览器备注底稿验证 2026-10-17",
+    "chipstatNote": "",
+    "summary": "简介只属于基本区",
+    "customerId": null,
+    "odmCustomerId": null,
+    "productLineId": null,
+    "appId": null,
+    "groupId": null,
+    "preCloseStatus": null,
+    "sourceImportItemId": null,
+    "closureNote": "",
+    "remainingWorkNote": "",
+    "createdBy": "28",
+    "chips": [],
+    "people": [],
+    "tags": [],
+    "managers": [
+      {
+        "id": "28",
+        "name": "p04_ui_0",
+        "enabled": 1
+      }
+    ],
+    "checkStatus": {
+      "kind": "not_due",
+      "label": "首次应检周未到",
+      "required": false,
+      "weekStart": "2026-10-12",
+      "deadlineDate": "2026-10-16",
+      "onTime": null,
+      "updatedAfterCheck": false,
+      "latest": null
+    },
+    "deadline": {
+      "kind": "upcoming",
+      "asOfDate": "2026-10-17",
+      "days": 13,
+      "label": "剩余 13 天"
+    }
+  },
+  "stages": [
+    {
+      "id": "325",
+      "code": "S1",
+      "state": "ready",
+      "plannedDays": null,
+      "note": "",
+      "startedOn": null,
+      "completedOn": null,
+      "expectedEndOn": null,
+      "nodeCount": "1",
+      "undatedNodeCount": "1"
+    },
+    {
+      "id": "326",
+      "code": "S2",
+      "state": "locked",
+      "plannedDays": null,
+      "note": "",
+      "startedOn": null,
+      "completedOn": null,
+      "expectedEndOn": null,
+      "nodeCount": "0",
+      "undatedNodeCount": "0"
+    },
+    {
+      "id": "327",
+      "code": "S3",
+      "state": "locked",
+      "plannedDays": null,
+      "note": "",
+      "startedOn": null,
+      "completedOn": null,
+      "expectedEndOn": null,
+      "nodeCount": "0",
+      "undatedNodeCount": "0"
+    },
+    {
+      "id": "328",
+      "code": "S4",
+      "state": "locked",
+      "plannedDays": null,
+      "note": "",
+      "startedOn": null,
+      "completedOn": null,
+      "expectedEndOn": null,
+      "nodeCount": "0",
+      "undatedNodeCount": "0"
+    },
+    {
+      "id": "329",
+      "code": "S5",
+      "state": "locked",
+      "plannedDays": null,
+      "note": "",
+      "startedOn": null,
+      "completedOn": null,
+      "expectedEndOn": null,
+      "nodeCount": "0",
+      "undatedNodeCount": "0"
+    },
+    {
+      "id": "330",
+      "code": "S6",
+      "state": "locked",
+      "plannedDays": null,
+      "note": "",
+      "startedOn": null,
+      "completedOn": null,
+      "expectedEndOn": null,
+      "nodeCount": "0",
+      "undatedNodeCount": "0"
+    },
+    {
+      "id": "331",
+      "code": "S7",
+      "state": "locked",
+      "plannedDays": null,
+      "note": "",
+      "startedOn": null,
+      "completedOn": null,
+      "expectedEndOn": null,
+      "nodeCount": "0",
+      "undatedNodeCount": "0"
+    }
+  ],
+  "stageSql": [
+    {
+      "code": "S1",
+      "state": "ready",
+      "startedOn": null,
+      "completedOn": null,
+      "note": ""
+    },
+    {
+      "code": "S2",
+      "state": "locked",
+      "startedOn": null,
+      "completedOn": null,
+      "note": ""
+    },
+    {
+      "code": "S3",
+      "state": "locked",
+      "startedOn": null,
+      "completedOn": null,
+      "note": ""
+    },
+    {
+      "code": "S4",
+      "state": "locked",
+      "startedOn": null,
+      "completedOn": null,
+      "note": ""
+    },
+    {
+      "code": "S5",
+      "state": "locked",
+      "startedOn": null,
+      "completedOn": null,
+      "note": ""
+    },
+    {
+      "code": "S6",
+      "state": "locked",
+      "startedOn": null,
+      "completedOn": null,
+      "note": ""
+    },
+    {
+      "code": "S7",
+      "state": "locked",
+      "startedOn": null,
+      "completedOn": null,
+      "note": ""
+    }
+  ],
+  "nodes": [
+    {
+      "id": "124",
+      "kind": "project",
+      "stage": "S1",
+      "title": "Flow 阅读与移动验证",
+      "targetDate": null,
+      "completedOn": null,
+      "output": "合成节点，用于验证位置与明确保存",
+      "note": "",
+      "previousNodeId": null,
+      "nextNodeId": null,
+      "x": 435,
+      "y": 20,
+      "sourceKey": null,
+      "sortOrder": 0,
+      "deletedAt": null
+    }
+  ],
+  "sql": [
+    {
+      "id": "124",
+      "title": "Flow 阅读与移动验证",
+      "x": "435.000",
+      "y": "20.000"
+    }
+  ],
+  "build": {
+    "revision": "f07450eafc94f0756f09260d0026968f09102e65",
+    "dirty": true,
+    "builtAt": "2026-10-16T22:14:11.265Z",
+    "stage": "project-list",
+    "schemaVersion": "0004-project-compatibility"
+  }
+}

@@ -1,0 +1,355 @@
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { writeFile,readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
+import { resolve,dirname } from 'node:path';
+import vm from 'node:vm';
+import ts from 'typescript';
+import { createApp } from '../dist/server/app.js';
+import { connectDatabase } from '../dist/server/infrastructure/db.js';
+import { openRuntimeDatabase } from '../dist/server/infrastructure/runtime-database.js';
+import { hashPassword } from '../dist/server/modules/identity.js';
+
+assert.equal(process.env.GEEKDASH_MIGRATION_PROBE,'1');
+const {connection:c}=await connectDatabase('test_migrator');
+assert.equal((await c.query('SELECT @@server_uuid uuid'))[0][0].uuid,process.env.GEEKDASH_MIGRATION_PROBE_SERVER_UUID);
+const prefix='catalog_'+randomUUID().slice(0,8),password='共享资料 test password 2026',users=[],projects=[],created=[],checks=[],views=[],errors=[],streams=[];
+const {JSDOM,VirtualConsole}=await import(process.env.GEEKDASH_DOM_LIBRARY ?? '../test-results/ui-dom-tools/node_modules/jsdom/lib/api.js');
+const original=(await c.query('SELECT * FROM system_configuration WHERE id=1'))[0][0];
+let app,origin,fault='';
+async function start(){
+  const runtime=await openRuntimeDatabase('test_app'),write=runtime.writeTransaction;
+  runtime.writeTransaction=work=>write(async lease=>{
+    const execute=lease.execute,commit=lease.commit;
+    lease.execute=function(sql,params){return fault && sql.startsWith(fault)?execute.call(this,'INSERT INTO __catalog_failure VALUES (1)'):execute.call(this,sql,params);};
+    lease.commit=async function(){await commit.call(this);if(fault==='ack')throw new Error('lost acknowledgement');};
+    try{return await work(lease);}finally{lease.execute=execute;if(fault!=='ack')lease.commit=commit;}
+  });
+  app=await createApp(runtime,{origin:'http://localhost',secure:false});origin=await app.listen({host:'127.0.0.1',port:0});
+}
+function client(){let cookie='',csrf='',account;return {
+  csrf:()=>csrf,
+  async fetch(path,options={}){const headers=new Headers(options.headers);headers.set('Cookie',cookie);headers.set('Origin','http://localhost');return fetch(origin+path,{...options,headers});},
+  async api(path,method='GET',body,expected=200){
+    const response=await fetch(origin+path,{method,headers:{Cookie:cookie,Origin:'http://localhost','Content-Type':'application/json','X-GeekDash-Request':'1','X-GeekDash-CSRF':csrf,...account?{'X-GeekDash-Account':account.id}:{}},...body?{body:JSON.stringify(body)}:{}});
+    for(const value of response.headers.getSetCookie()){const part=value.split(';')[0];if(part.startsWith('geekdash_dev='))cookie=part;if(part.startsWith('geekdash_dev_csrf='))csrf=part.split('=')[1];}
+    const result=await response.json();assert.ok((Array.isArray(expected)?expected:[expected]).includes(response.status),path+' HTTP '+response.status+' '+JSON.stringify(result));if(result.account)account=result.account;return result;
+  },async login(i){await this.api('/api/auth/login','POST',{loginName:users[i].name,password});await this.api('/api/auth/me');}
+};}
+async function waitFor(predicate,label){const end=Date.now()+10000;while(Date.now()<end){if(errors.length)throw errors[0];if(await predicate())return;await new Promise(resolve=>setTimeout(resolve,20));}throw Error('未出现预期页面状态：'+label);}
+async function page(user,session={},name='data-manage',realtime=false,query='',faults={}){
+  const console=new VirtualConsole();console.on('jsdomError',error=>errors.push(error));
+  const dom=new JSDOM(await readFile('src/web/'+name+'.html','utf8'),{url:origin+'/'+name+'.html'+query,runScripts:'outside-only',virtualConsole:console});views.push(dom);const w=dom.window;
+  Object.assign(w,{TextEncoder,TextDecoder,structuredClone,AbortSignal,AbortController});w.BroadcastChannel=class{postMessage(){}};w.confirm=()=>true;
+  w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};w.HTMLDialogElement.prototype.close=function(){this.open=false;};
+  dom.events=[];dom.streams=[];Object.assign(dom,faults);
+  if(realtime)w.EventSource=class extends w.EventTarget{
+    controller=new AbortController();closed=false;onerror=null;
+    constructor(url){super();dom.streams.push(this);void(async()=>{try{const response=await user.fetch(url,{signal:this.controller.signal});if(!response.ok)throw Error('SSE '+response.status);const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';for(;;){const next=await reader.read();if(next.done)break;buffer+=decoder.decode(next.value,{stream:true});let end;while((end=buffer.indexOf('\n\n'))>=0){const frame=buffer.slice(0,end);buffer=buffer.slice(end+2);const event=frame.match(/^event: (.+)$/m)?.[1],data=frame.match(/^data: (.+)$/m)?.[1];if(event && data){dom.events.push({event,data:JSON.parse(data)});this.dispatchEvent(new w.MessageEvent(event,{data}));}}}if(!this.closed)this.onerror?.();}catch{if(!this.closed)this.onerror?.();}})();}
+    close(){this.closed=true;this.controller.abort();}
+  };
+  w.document.cookie='geekdash_dev_csrf='+user.csrf();for(const [key,value] of Object.entries(session))w.sessionStorage.setItem(key,value);
+  w.fetch=async(path,options)=>{if(dom.failRuleRead && path==='/api/settings/check-rule' && !options?.method){dom.failRuleRead=false;throw Error('模拟规则读取失败');}if(dom.failSummaryRead && path==='/api/project-summary'){dom.failSummaryRead=false;throw Error('模拟正式回读暂时失败');}const response=await user.fetch(path,options);if(dom.dropAck && (path.startsWith('/api/catalog/') && path.endsWith('/save') || options?.method==='PATCH' || path==='/api/settings/check-rule' && options?.method==='POST')){dom.dropAck=false;await response.arrayBuffer();throw Error('模拟保存回应丢失');}return response;};
+  const context=dom.getInternalVMContext(),modules=new Map();
+  function load(path){if(path.endsWith('.css'))return {};path=resolve(path.endsWith('.ts')?path:path+'.ts');if(modules.has(path))return modules.get(path).exports;const module={exports:{}};modules.set(path,module);const code=ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2023,module:ts.ModuleKind.CommonJS}}).outputText;vm.runInContext('(function(require,exports,module){'+code+'\n})',context,{filename:path})(name=>load(resolve(dirname(path),name)),module.exports,module);return module.exports;}
+  w.scrollTo=()=>{};dom.load=load;load('src/web/'+name+'.ts');const $=selector=>w.document.querySelector(selector);
+  dom.$=$;dom.input=(selector,value)=>{const input=$(selector);assert(input,selector);input.value=value;input.dispatchEvent(new w.Event('input',{bubbles:true}));};
+  await waitFor(()=>name==='data-manage'?$('#catalog-tabs button') && !$('#catalog-reload').disabled:name==='settings'?$('#reload') && !$('#reload').disabled:$('#summary-date').textContent.startsWith('列表读取日期：') && $('#summary-table tbody tr'),'页面就绪');return dom;
+}
+const command=(id,expectedVersion,changes)=>({id,expectedVersion,changes,idempotencyKey:randomUUID()});
+let a,b;
+const read=async(kind,id)=>(await a.api('/api/catalog/'+kind)).items.find(item=>item.id===id);
+const preview=async(kind,body)=>{const p=await a.api('/api/catalog/'+kind+'/preview','POST',body);return {...body,impactToken:p.impactToken};};
+const save=(kind,body,expected=200)=>a.api('/api/catalog/'+kind+'/save','POST',body,expected);
+async function make(kind,fields){const result=await save(kind,command(null,'0',fields));created.push([kind,result.result.id]);return result.result.id;}
+try{
+  for(let i=0;i<2;i++){
+    await c.execute('INSERT INTO users (login_name,password_hash,display_name,must_change_password,created_at,updated_at) VALUES (?,?,?,0,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))',[prefix+i,await hashPassword(password),'资料测试'+i]);
+    users.push({id:(await c.query('SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0][0].id,name:prefix+i});
+  }
+  if(original)await c.execute('UPDATE system_configuration SET maintenance_user_id=? WHERE id=1',[users[0].id]);
+  else await c.execute("INSERT INTO system_configuration (id,maintenance_user_id,full_name,short_name,manager_text,name_prefix,version,updated_by,updated_at) VALUES (1,?,'','','','',1,?,UTC_TIMESTAMP(3))",[users[0].id,users[0].id]);
+  await start();a=client();b=client();await a.login(0);await b.login(1);
+  assert.equal((await b.api('/api/catalog/chips')).canMaintain,false);
+  await b.api('/api/catalog/chips/save','POST',command(null,'0',{name:prefix}),403);
+  const tag=await make('tags',{name:prefix+' 标签'});
+  const customer=await make('customers',{name:prefix+' 客户',contact:'王工\n电话：仅合成',background:'测试背景',tagIds:[tag]});
+  const chip=await make('chips',{name:prefix+' 芯片',originalModel:'MODEL-A',manufacturer:'合成厂商',firmwareVersion:'FW1'});
+  const engineer=await make('engineers',{name:prefix+' 人员',role:'硬件'});
+  const product=await make('productLines',{name:prefix+' 产品线'}),group=await make('groups',{name:prefix+' 分组'}),appId=await make('apps',{name:prefix+' APP',appVersion:'2.1.0',description:'应用描述'});
+  assert.deepEqual((await read('customers',customer)).tagIds,[tag]);assert.equal((await read('apps',appId)).appVersion,'2.1.0');
+  await save('chips',command(null,'0',{name:prefix+' 芯片'}),409);await save('chips',command(null,'0',{name:' '}),422);
+  await save('chips',command(null,'0',{name:'错误',unknown:true}),400);await save('customers',command(null,'0',{name:'错误',tagIds:['18446744073709551615']}),422);
+  checks.push('PRD9.18：八类实际字段读取、七类新增与稳定ID、客户标签/APP业务版本/芯片元资料持久化；业务账号拒绝、名称歧义/非法字段/缺失引用拒绝');
+
+  const made=await b.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+' 项目',customerId:customer,chipIds:[chip],appId,productLineId:product,groupId:group,people:[{id:engineer,role:'hardware_owner'}]}});
+  const id=made.result.projectId;projects.push(id);const path='/api/projects/'+id;
+  let input=command(chip,'1',{name:prefix+' 芯片改名',firmwareVersion:'FW2'});
+  const impact=await a.api('/api/catalog/chips/preview','POST',input);assert.deepEqual(impact.projects.map(p=>p.projectId),[id]);
+  await save('chips',input,409);input={...input,impactToken:impact.impactToken};
+  const result=await save('chips',input);assert.deepEqual(result.result.affectedProjects,[{projectId:id,version:'2'}]);
+  const detail=await b.api(path);assert.equal(detail.project.version,'2');assert.equal((await read('chips',chip)).firmwareVersion,'FW2');
+  assert.equal((await c.query('SELECT CAST(chip_id AS CHAR) id FROM project_chips WHERE project_id=?',[id]))[0][0].id,chip);
+  assert.equal((await c.query('SELECT JSON_UNQUOTE(JSON_EXTRACT(before_json,\'$.name\')) name FROM audit_log WHERE project_id=? AND action=\'catalog.chips.save\'',[id]))[0][0].name,prefix+' 芯片');
+  assert.deepEqual((await save('chips',input)).result,result.result);
+  await save('chips',{...input,changes:{name:'伪重试'}},409);
+  await b.api(path,'PATCH',{expectedVersion:'1',idempotencyKey:randomUUID(),scope:'status',changes:{statusDesc:'旧快照'}},409);
+  checks.push('PRD9.18/9.17：项目真实选择正式资料→改名预览引用→资料与项目版本同次更新→新GET/SQL稳定关联与历史旧名；旧项目版本及复用回执键覆盖均拒绝');
+
+  let pending=await preview('customers',command(customer,'1',{contact:'新的联系方式'}));
+  await b.api(path,'PATCH',{expectedVersion:'2',idempotencyKey:randomUUID(),scope:'status',changes:{statusDesc:'项目已另有更新'}});
+  await save('customers',pending,409);assert.equal((await read('customers',customer)).contact,'王工\n电话：仅合成');
+  pending=await preview('customers',pending);await save('customers',pending);assert.equal((await b.api(path)).project.version,'4');
+  pending=await preview('chips',command(chip,'2',{enabled:false}));await save('chips',pending);
+  await b.api(path,'PATCH',{expectedVersion:'5',idempotencyKey:randomUUID(),scope:'basic',changes:{name:prefix+' 保留停用芯片',chipIds:[chip]}});
+  await b.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+' 不可创建',chipIds:[chip]}},422);
+  await save('chips',await preview('chips',command(chip,'3',{enabled:true})));
+  const tagInput=await preview('tags',command(tag,'1',{name:prefix+' 标签改名'}));
+  assert.equal((await a.api('/api/catalog/tags/preview','POST',tagInput)).customers[0].id,customer);
+  await save('tags',tagInput);assert.equal((await b.api(path)).project.version,'8');
+  checks.push('PRD9.18：引用项目更新使预览失效；停用旧引用仍可保留、首次选择拒绝、重新启用；客户标签间接引用也联动项目版本');
+
+  pending=await preview('chips',command(chip,'4',{manufacturer:'事务回滚测试'}));
+  fault='INSERT INTO command_receipts';await save('chips',pending,503);fault='';
+  assert.equal((await read('chips',chip)).manufacturer,'合成厂商');assert.equal((await b.api(path)).project.version,'8');
+  assert.equal((await a.api('/api/catalog/chips/results/query','POST',pending)).outcome,'not_found');
+  fault='ack';assert.equal((await save('chips',pending,503)).outcome,'unknown');fault='';
+  await app.close();app=undefined;await start();await a.login(0);await b.login(1);
+  const recovered=await a.api('/api/catalog/chips/results/query','POST',pending);assert.equal(recovered.outcome,'committed');
+  assert.equal((await read('chips',chip)).manufacturer,'事务回滚测试');assert.equal((await b.api(path)).project.version,'9');
+  assert.deepEqual((await save('chips',pending)).result,recovered.result);
+  const unchanged=await save('chips',command(chip,'5',{manufacturer:'事务回滚测试'}));assert.equal(unchanged.result.changed,false);assert.equal((await b.api(path)).project.version,'9');
+  checks.push('PRD9.1/9.18：回执写失败资料/项目/审计全回滚；COMMIT丢回应后重建应用核对原回执、不重复修改；无变化保存不推进版本');
+
+  const company=await read('company','1');await save('company',command('1',company.version,{fullName:prefix+' 合成企业',shortName:'合成',managerText:'测试负责人',namePrefix:'GD'}));
+  assert.equal((await read('company','1')).fullName,prefix+' 合成企业');assert.equal((await b.api(path)).project.version,'9');
+  await save('company',command('1',company.version,{fullName:'过期覆盖'}),409);
+  await b.api('/api/catalog/company/save','POST',command('1',company.version,{fullName:'越权'}),403);
+  checks.push('PRD9.18：企业信息独立版本与维护权限，保存不虚构项目业务变更');
+  pending=await preview('chips',command(chip,'5',{originalModel:'MODEL-B'}));
+  const added=await b.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+' 新引用',chipIds:[chip],customerId:customer}});projects.push(added.result.projectId);
+  await save('chips',pending,409);assert.equal((await read('chips',chip)).originalModel,'MODEL-A');
+  pending=await preview('chips',pending);
+  const both=await Promise.all([save('chips',pending),save('chips',pending)]);
+  assert.deepEqual(both[0].result,both[1].result);assert.equal(both[0].result.affectedProjects.length,2);
+  assert.equal((await b.api('/api/projects/'+added.result.projectId)).project.version,'2');
+  const next=await preview('chips',command(chip,'6',{originalModel:'MODEL-C'}));
+  const competing={...next,idempotencyKey:randomUUID()};
+  const outcomes=await Promise.all([save('chips',next,[200,409]),save('chips',competing,[200,409])]);
+  assert.equal(outcomes.filter(value=>value.result?.savedVersion==='7').length,1);assert.equal(outcomes.filter(value=>value.code==='CATALOG_VERSION_CONFLICT').length,1);
+  checks.push('PRD9.18：预览后新增引用拒绝旧影响清单；并发同一操作只提交一次、另一操作旧资料版本拒绝，两个引用项目各推进一次');
+  const ui=await page(a);ui.$('[data-kind="chips"]').click();
+  await waitFor(()=>ui.$('[data-kind="chips"]').getAttribute('aria-current')==='true' && !ui.$('#catalog-reload').disabled,'芯片分类');
+  ui.$('#catalog-new').click();ui.input('#catalog-name',prefix+' 页面芯片');ui.input('#catalog-originalModel','UI-MODEL');ui.input('#catalog-manufacturer','UI厂商');ui.input('#catalog-firmwareVersion','UI-FW');ui.$('#catalog-save').click();
+  await waitFor(()=>ui.$('#catalog-detail').textContent.includes('UI-FW') && ui.$('#catalog-edit') && !ui.$('#catalog-edit').disabled,'页面新增并回读');
+  const uiChip=(await a.api('/api/catalog/chips')).items.find(item=>item.name===prefix+' 页面芯片');assert(uiChip);created.push(['chips',uiChip.id]);
+  assert.equal((await read('chips',uiChip.id)).originalModel,'UI-MODEL');
+  const uiProject=await b.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+' 页面引用',chipIds:[uiChip.id]}});projects.push(uiProject.result.projectId);
+  ui.$('#catalog-edit').click();ui.input('#catalog-name',prefix+' 页面改名');ui.$('#catalog-save').click();
+  await waitFor(()=>ui.$('#catalog-apply') && !ui.$('#catalog-apply').disabled,'改名影响预览');
+  assert.match(ui.$('.comparison-table').textContent,/页面芯片/);assert.match(ui.$('.comparison-table').textContent,/页面改名/);assert.match(ui.$('.catalog-impact').textContent,/1 个项目/);
+  ui.dropAck=true;ui.$('#catalog-apply').click();
+  await waitFor(()=>ui.$('#catalog-confirm') && !ui.$('#catalog-confirm').disabled,'保存回应未知保留原操作');
+  const session=Object.fromEntries(Array.from({length:ui.window.sessionStorage.length},(_,i)=>ui.window.sessionStorage.key(i)).map(key=>[key,ui.window.sessionStorage.getItem(key)]));
+  const recoveredPage=await page(a,session);
+  await waitFor(()=>recoveredPage.$('#catalog-edit') && !recoveredPage.$('#catalog-edit').disabled && !recoveredPage.$('#catalog-confirm'),'重新打开核对原结果');
+  assert.match(recoveredPage.$('#catalog-detail').textContent,/页面改名/);assert.equal((await b.api('/api/projects/'+uiProject.result.projectId)).project.version,'2');
+  recoveredPage.$('#catalog-edit').click();recoveredPage.input('#catalog-name',prefix+' 芯片改名');recoveredPage.$('#catalog-save').click();
+  await waitFor(()=>recoveredPage.$('#catalog-message').textContent.includes('重复'),'名称冲突反馈');assert.equal(recoveredPage.$('#catalog-name').value,prefix+' 芯片改名');
+  recoveredPage.$('#catalog-cancel').click();assert.match(recoveredPage.$('#catalog-detail').textContent,/页面改名/);
+  const readonly=await page(b);assert.equal(readonly.$('#catalog-new').hidden,true);assert.equal(readonly.$('#catalog-edit'),null);
+  assert.equal(errors.length,0);
+  checks.push('PRD9.18页面→真实HTTP/MySQL：原位新增完整芯片、项目引用、名称前后同表预览、保存回应丢失后新页面核对、冲突输入保留与取消、普通账号只读；未替代浏览器视觉验收');
+  const uiPath='/api/projects/'+uiProject.result.projectId;
+  await b.api(uiPath,'PATCH',{expectedVersion:'2',idempotencyKey:randomUUID(),scope:'status',changes:{statusDesc:'已保存 @张工，@王工\n@张工 确认 "样机", <检查>'}});
+  await b.api(uiPath,'PATCH',{expectedVersion:'3',idempotencyKey:randomUUID(),scope:'summaryNote',changes:{summaryNote:'状态简要备注\n含,逗号与"引号"'}});
+  await b.api(uiPath,'PATCH',{expectedVersion:'4',idempotencyKey:randomUUID(),scope:'chipstatNote',changes:{chipstatNote:'=芯片备注'} });
+  await b.api(uiPath,'PATCH',{expectedVersion:'5',idempotencyKey:randomUUID(),scope:'projectNodes',changes:{nodeOps:[{op:'add',tempId:randomUUID(),kind:'project',fields:{title:'导出项目节点',stage:'S1',output:'验收样机',targetDate:'2026-12-20'}}]}});
+  const customerTemp=randomUUID();await b.api(uiPath,'PATCH',{expectedVersion:'6',idempotencyKey:randomUUID(),scope:'customerNode',target:customerTemp,changes:{nodeOps:[{op:'add',tempId:customerTemp,kind:'customer',fields:{title:'不混入客户节点',targetDate:'2026-12-21'}}]}});
+  const snapshot=await b.api('/api/project-summary'),summary=snapshot.items.find(row=>row.id===uiProject.result.projectId);
+  assert.equal(summary.version,'7');assert.deepEqual(summary.statusOwners,['张工','王工']);assert.deepEqual(summary.pendingNodes.map(node=>node.title),['导出项目节点']);assert.equal(summary.canEdit,true);
+  assert.equal((await a.api('/api/project-summary')).items.find(row=>row.id===summary.id).canEdit,false,'提名或维护账号都不授予项目编辑');
+  assert.equal(summary.chips[0].name,prefix+' 页面改名');assert.equal(summary.summaryNote,'状态简要备注\n含,逗号与"引号"');assert.equal(summary.chipstatNote,'=芯片备注');
+  assert.equal(snapshot.company.namePrefix,'GD');assert.equal((await b.api('/api/projects?view=all')).company.shortName,'合成');
+  const model=ui.load('src/web/shared/summary.ts'),filters={group:[],status:[],owner:['王工'],chip:[uiChip.id]};
+  const filtered=model.summaryRows(snapshot.items,filters,'chip');assert.deepEqual(filtered.map(row=>row.id),[summary.id]);
+  assert.equal(model.summaryRows(snapshot.items,{...filters,owner:['资料测试0']},'chip').length,0,'状态提名筛选不当项目经理');
+  assert.equal(model.summaryRows(snapshot.items,filters,'chip',[],[summary.id]).length,0);
+  assert.throws(()=>model.selectedSummary(filtered,new Set()),/选择/);
+  const selected=model.selectedSummary(filtered,new Set([summary.id])),columns=model.visibleColumns(undefined,['chipNote']);
+  const csv=model.summaryCsv(selected,columns),chipCsv=model.summaryCsv(selected,columns,true),md=model.summaryMarkdown(selected,columns,'合成导出',snapshot);
+  await writeFile('test-results/p04-summary.csv',csv);await writeFile('test-results/p04-chip-summary.csv',chipCsv);await writeFile('test-results/p04-summary.md',md);
+  assert.match(csv,/核心芯片/);assert.match(csv,/页面改名/);assert.match(csv,/状态简要备注/);assert(!csv.includes('=芯片备注'));
+  assert.match(chipCsv,/"'=芯片备注"/);assert(!chipCsv.includes('状态简要备注'));assert.equal(chipCsv.split('\r\n')[0].split(',').length,10);
+  assert.match(md,/原始项目状态/);assert.match(md,/展示状态依据/);assert.match(md,/&lt;检查&gt;/);assert(!md.includes('不混入客户节点'));
+  await b.api(uiPath,'PATCH',{expectedVersion:'7',idempotencyKey:randomUUID(),scope:'status',changes:{statusDesc:'生成期间的后续更新'}});
+  assert.equal(model.summaryCsv(selected,columns),csv,'本次输出固定正式快照，不拼入后来数据');
+  checks.push('PRD9.20/SPEC020局部：完整正式摘要、提名去重与权限区分、仅有效项目节点、备注独立、资料/企业消费；组合筛选、隐藏及空选择；真实CSV/原芯片CSV/Markdown文件生成及快照固定，PDF/PNG/统一页交互仍待验');
+  const controller=new AbortController(),events=[];
+  const response=await b.fetch('/api/events?'+new URLSearchParams({accountId:users[1].id,instanceId:randomUUID(),projectId:summary.id}),{signal:controller.signal});assert.equal(response.status,200);
+  const done=(async()=>{const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';try{for(;;){const item=await reader.read();if(item.done)break;buffer+=decoder.decode(item.value,{stream:true});let boundary;while((boundary=buffer.indexOf('\n\n'))>=0){const frame=buffer.slice(0,boundary);buffer=buffer.slice(boundary+2);const event=frame.match(/^event: (.+)$/m)?.[1],data=frame.match(/^data: (.+)$/m)?.[1];if(event && data)events.push({event,data:JSON.parse(data)});}}}catch(error){if(!controller.signal.aborted)throw error;}})();streams.push({controller,done});
+  await waitFor(()=>events.some(event=>event.event==='connected'),'资料消费SSE连通');
+  const metadata=await preview('chips',command(uiChip.id,'2',{firmwareVersion:'资料固件改名测试'}));await save('chips',metadata);
+  await waitFor(()=>events.some(event=>event.event==='project' && event.data.operationId===metadata.idempotencyKey),'资料事务提交后真实SSE');
+  const notification=events.find(event=>event.data.operationId===metadata.idempotencyKey).data;
+  assert.deepEqual(notification,{projectId:summary.id,version:'9',operationId:metadata.idempotencyKey});assert(!JSON.stringify(events).includes('资料固件改名测试'));
+  assert.equal((await b.api('/api/project-summary')).items.find(row=>row.id===summary.id).version,'9');
+  controller.abort();await done;
+  checks.push('PRD9.17/9.18：芯片元资料维护提交后经真实SSE发送项目版本，另账号重新读取统一摘要得到同版本，消息不携带资料正文');
+  const summaryUi=await page(b,{},'project-status-summary'),sw=summaryUi.window,s$=summaryUi.$,rowSelector=`tr[data-row="${summary.id}"]`;
+  assert.equal(sw.document.querySelectorAll('[data-select]:checked').length,0,'普通入口不预选');
+  assert.equal(new URL(s$(rowSelector+' a').href).searchParams.get('returnTo'),'/project-status-summary.html','详情链接携带同页返回来源');
+  assert(s$(`[data-filter="chip"][value="${uiChip.id}"]`),'芯片同级直接选择');
+  const change=selector=>{const input=s$(selector);input.checked=!input.checked;input.dispatchEvent(new sw.Event('change',{bubbles:true}));};
+  change(`[data-filter="chip"][value="${uiChip.id}"]`);assert.equal(sw.document.querySelectorAll('tbody tr[data-row]').length,1);
+  change('[data-column-toggle="chipNote"]');
+  s$(rowSelector+' [data-edit="summaryNote"]').click();s$(rowSelector+' [data-edit="chipstatNote"]').click();
+  summaryUi.input(rowSelector+' [data-note="summaryNote"] textarea','页面保存备注');summaryUi.input(rowSelector+' [data-note="chipstatNote"] textarea','另一格待保存');
+  s$(rowSelector+' [data-note="summaryNote"] [data-note-action="save"]').click();
+  await waitFor(()=>!s$(rowSelector+' [data-note="summaryNote"]'),'当前格保存完成');
+  assert.equal((await b.api(uiPath)).project.summaryNote,'页面保存备注');assert.equal((await b.api(uiPath)).project.chipstatNote,'=芯片备注');
+  assert.equal(s$(rowSelector+' [data-note="chipstatNote"] textarea').value,'另一格待保存');assert.equal(s$(rowSelector+' [data-note-action="save"]').disabled,false,'自己保存接续另一格版本');
+  summaryUi.dropAck=true;s$(rowSelector+' [data-note-action="save"]').click();await waitFor(()=>s$(rowSelector+' [data-note-action="query"]') && !s$(rowSelector+' [data-note-action="query"]').disabled,'未知回应入口');
+  const summarySession=Object.fromEntries(Object.entries(sw.sessionStorage)),resumed=await page(b,summarySession,'project-status-summary');
+  if(!resumed.$('[data-column-toggle="chipNote"]').checked){const toggle=resumed.$('[data-column-toggle="chipNote"]');toggle.checked=true;toggle.dispatchEvent(new resumed.window.Event('change',{bubbles:true}));}
+  await waitFor(()=>resumed.$(rowSelector+' td[data-column="chipNote"] .summary-note-text')?.textContent==='另一格待保存','换页核对原备注结果');
+  assert.equal((await b.api(uiPath)).project.chipstatNote,'另一格待保存');
+  resumed.$(rowSelector+' [data-edit="summaryNote"]').click();resumed.input(rowSelector+' textarea','冲突后仍保留');
+  const current=(await b.api(uiPath)).project.version;await b.api(uiPath,'PATCH',{expectedVersion:current,idempotencyKey:randomUUID(),scope:'status',changes:{statusDesc:'另页状态更新'}});
+  resumed.$(rowSelector+' [data-note-action="save"]').click();await waitFor(()=>resumed.$(rowSelector+' [data-note-action="save"]')?.disabled && resumed.$(rowSelector+' [data-note] p')?.textContent.includes('更新'),'旧版拒绝');
+  assert.equal(resumed.$(rowSelector+' textarea').value,'冲突后仍保留');assert.equal((await b.api(uiPath)).project.summaryNote,'页面保存备注');
+  resumed.$(rowSelector+' [data-hide]').click();assert(!resumed.$(rowSelector));resumed.$('#show-hidden').click();assert.equal(resumed.$(rowSelector+' textarea').value,'冲突后仍保留');
+  const readonlySummary=await page(a,{},'project-status-summary');assert(!readonlySummary.$(rowSelector+' [data-edit]'));
+  checks.push('PRD9.20统一页真实DOM→HTTP→MySQL：普通入口不选、同级芯片筛选、独立两种备注、本人保存接续另一格输入、丢回应换页原请求核对、旧版拒绝且保留、隐藏恢复、非负责人只读；原生视觉/PDF/PNG下载仍待验');
+  const draftPage=await page(b,{},'project-status-summary');draftPage.$(rowSelector+' [data-edit="summaryNote"]').click();draftPage.input(rowSelector+' textarea','跨会话服务器备注草稿');
+  const beforeDraft=(await b.api(uiPath)).project.version;let cloud;
+  await waitFor(async()=>{cloud=(await b.api('/api/personal/drafts?projectId='+summary.id)).items.find(row=>row.payload.values?.summaryNote==='跨会话服务器备注草稿');return !!cloud;},'云端备注底稿');
+  assert.equal((await b.api(uiPath)).project.version,beforeDraft,'自动底稿不推进正式版本');
+  const otherSession=client();await otherSession.login(1);const restoredPage=await page(otherSession,{},'project-status-summary');
+  restoredPage.$(rowSelector+' [data-edit="summaryNote"]').click();restoredPage.$(rowSelector+' [data-note-action="drafts"]').click();
+  await waitFor(()=>restoredPage.$(`dialog[open] [data-draft-id="${cloud.clientDraftId}"] [data-restore]`),'另会话读取底稿');
+  restoredPage.$(`dialog[open] [data-draft-id="${cloud.clientDraftId}"] [data-restore]`).click();assert.equal(restoredPage.$(rowSelector+' textarea').value,'跨会话服务器备注草稿');
+  restoredPage.failSummaryRead=true;restoredPage.$(rowSelector+' [data-note-action="save"]').click();
+  await waitFor(()=>restoredPage.$(rowSelector+' [data-note] p')?.textContent.includes('新信息尚未读回'),'已提交但回读失败');
+  assert.equal((await otherSession.api(uiPath)).project.summaryNote,'跨会话服务器备注草稿');const afterDraft=(await otherSession.api(uiPath)).project.version;
+  assert.equal(afterDraft,String(BigInt(beforeDraft)+1n));assert.equal(restoredPage.$(rowSelector+' textarea').value,'跨会话服务器备注草稿');
+  restoredPage.$(rowSelector+' [data-note-action="query"]').click();await waitFor(()=>!restoredPage.$(rowSelector+' [data-note="summaryNote"]'),'原回执恢复并新读');
+  assert.equal((await otherSession.api(uiPath)).project.version,afterDraft);
+  assert.equal((await c.query("SELECT COUNT(*) n FROM project_drafts WHERE user_id=? AND project_id=? AND state='committed'",[users[1].id,summary.id]))[0][0].n>=1,true);
+  restoredPage.$(rowSelector+' [data-edit="summaryNote"]').click();restoredPage.input(rowSelector+' textarea','明确取消这份备注');let cancelDraft;
+  await waitFor(async()=>{cancelDraft=(await otherSession.api('/api/personal/drafts?projectId='+summary.id)).items.find(row=>row.payload.values?.summaryNote==='明确取消这份备注');return !!cancelDraft;},'可取消的云稿');
+  restoredPage.$(rowSelector+' [data-note-action="cancel"]').click();await waitFor(()=>!restoredPage.$(rowSelector+' [data-note="summaryNote"]'),'取消本格底稿');
+  assert.equal((await c.query('SELECT state FROM project_drafts WHERE client_draft_id=?',[cancelDraft.clientDraftId]))[0][0].state,'discarded');assert.equal((await otherSession.api(uiPath)).project.version,afterDraft);
+  checks.push('PRD9.15/9.20：备注自动保存MySQL底稿但不改正式项目；另一登录会话无本机副本时读取恢复；正式提交终结精确底稿，回读失败保留原命令再核对不重写；取消仅丢弃本格云稿且不改正式版本');
+  const live=await page(b,{},'project-status-summary',true);await waitFor(()=>live.events.some(e=>e.event==='connected'),'统一页真实通知连接');
+  const liveProject=await otherSession.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+' 通知新增项目'}}),liveId=liveProject.result.projectId;projects.push(liveId);const liveRow=`tr[data-row="${liveId}"]`,livePath='/api/projects/'+liveId;
+  await waitFor(()=>live.$(liveRow),'新项目通知进入完整列表');
+  live.$(liveRow+' [data-edit="summaryNote"]').click();live.input(liveRow+' textarea','输入法文字保留');const composing=live.$(liveRow+' textarea');composing.focus();composing.setSelectionRange(2,4);composing.dispatchEvent(new live.window.CompositionEvent('compositionstart',{bubbles:true}));
+  const statusOp=randomUUID();await otherSession.api(livePath,'PATCH',{expectedVersion:'1',idempotencyKey:statusOp,scope:'status',changes:{statusDesc:'通知后的正式说明'}});
+  await waitFor(()=>live.events.some(e=>e.data.operationId===statusOp),'收到状态更新');assert.equal(live.$(liveRow+' textarea'),composing,'中文组合输入期间不拆输入节点');
+  composing.dispatchEvent(new live.window.CompositionEvent('compositionend',{bubbles:true}));
+  await waitFor(()=>live.$(liveRow+' [data-column="status"]').textContent==='通知后的正式说明','组合输入后更新静态值');
+  assert.equal(live.$(liveRow+' textarea').value,'输入法文字保留');assert.equal(live.window.document.activeElement,live.$(liveRow+' textarea'));assert.equal(live.$(liveRow+' textarea').selectionStart,2);
+  assert(live.$(liveRow+' [data-note-action="save"]').disabled,'他人更新后旧稿不直接保存');
+  live.window.dispatchEvent(new live.window.PageTransitionEvent('pagehide',{persisted:true}));assert(live.streams.every(stream=>stream.closed));
+  await otherSession.api(livePath,'PATCH',{expectedVersion:'2',idempotencyKey:randomUUID(),scope:'status',changes:{statusDesc:'返回时新读取'}});
+  live.window.dispatchEvent(new live.window.PageTransitionEvent('pageshow',{persisted:true}));
+  await waitFor(()=>live.$(liveRow+' [data-column="status"]').textContent==='返回时新读取' && live.events.filter(e=>e.event==='connected').length>=2,'缓存页返回重新连接并读取');
+  checks.push('PRD9.16/9.17/9.20：真实SSE新建项目进入统一列表；他人更新刷新静态信息、保留备注并拒绝旧版保存；中文组合输入不中断、焦点选区保留；缓存页返回重连并读取新结果');
+  const boardScope=await b.api('/api/projects?view=all&dashboard=1&pageSize=1&search='+prefix);
+  assert.equal(boardScope.items.length,1);assert(boardScope.pagination.total>1);
+  for(const [kind,ids] of Object.entries(boardScope.quickRanges)){assert.equal(ids.length,boardScope.stats[kind],kind+'统计与完整范围一致');assert.equal(new Set(ids).size,ids.length);}
+  assert(boardScope.quickRanges.total.includes(liveId));assert(boardScope.quickRanges.total.includes(summary.id));
+  const quickKey=randomUUID(),quickContext={ids:boardScope.quickRanges.total,title:'当前范围',sourceUrl:'/?view=all&search='+prefix};
+  const quickPage=await page(b,{['geekdash_quick:'+users[1].id+':'+quickKey]:JSON.stringify(quickContext)},'project-status-summary',false,'?quick='+quickKey);
+  assert.equal(quickPage.window.document.querySelectorAll('tbody tr[data-row]').length,boardScope.pagination.total);
+  assert.equal(quickPage.window.document.querySelectorAll('[data-select]:checked').length,boardScope.pagination.total);
+  assert.equal(quickPage.$('.summary-heading a').search,'?view=all&search='+prefix);
+  const unchecked=quickPage.$('[data-select]');unchecked.checked=false;unchecked.dispatchEvent(new quickPage.window.Event('change',{bubbles:true}));
+  quickPage.input('#report-title','返回后继续整理的报告');
+  quickPage.window.document.addEventListener('click',event=>event.preventDefault());quickPage.$('tbody tr[data-row] a').click();
+  const returnSession=Object.fromEntries(Object.entries(quickPage.window.sessionStorage));
+  const returned=await page(b,returnSession,'project-status-summary',false,'?quick='+quickKey);
+  assert.equal(returned.window.document.querySelectorAll('[data-select]:checked').length,boardScope.pagination.total-1,'返回不重新勾选全部范围');
+  assert.equal(returned.$('#report-title').value,'返回后继续整理的报告');
+  assert.equal(returned.window.sessionStorage.getItem('geekdash_page:'+users[1].id+':summary-return'),null,'返回上下文只消费一次');
+  const lostScope=await page(b,{},'project-status-summary',false,'?quick='+randomUUID());
+  assert.equal(lostScope.window.document.querySelectorAll('tbody tr[data-row]').length,0);assert.match(lostScope.$('#summary-feedback').textContent,/原统计范围无法恢复/);
+  checks.push('PRD9.20原快速范围：分页1条时统计范围仍含全部筛选命中、各统计数字与ID集合一致；统一页限定该集合并首次勾选，返回原看板筛选；缺失本机范围时保留空范围并提示，不扩大到全库');
+  checks.push('PRD9.16/9.20：手动取消部分勾选并修改报告名称后进入详情，返回保留选择及标题，不重置为全部勾选；账号隔离返回上下文仅消费一次');
+  const exporting=await page(b,{},'project-status-summary'),ew=exporting.window,exportRow=`tr[data-row="${liveId}"]`;
+  const pick=exporting.$(`[data-select="${liveId}"]`);pick.checked=true;pick.dispatchEvent(new ew.Event('change',{bubbles:true}));
+  exporting.$(exportRow+' [data-edit="summaryNote"]').click();exporting.input(exportRow+' textarea','未保存的输出验证备注');
+  const beforeExport=await b.api(livePath);ew.Blob=Blob;let aborted=false,fileWrites=0,failWrite=true,lastFile='',savedText='';
+  ew.showDirectoryPicker=async()=>({name:'独立测试输出目录',async getFileHandle(name){lastFile=name;return {async createWritable(){return {async write(blob){fileWrites++;if(failWrite)throw Error('模拟磁盘写入失败');savedText=await blob.text();await writeFile('test-results/p04-output-current.csv',savedText);},async close(){},async abort(){aborted=true;}};}};}});
+  exporting.$('#choose-folder').click();await waitFor(()=>exporting.$('#folder-status').textContent.includes('独立测试输出目录'),'选择输出目录');
+  ew.showDirectoryPicker=async()=>{throw new ew.DOMException('cancel','AbortError');};exporting.$('#choose-folder').click();
+  await waitFor(()=>exporting.$('#summary-feedback').textContent.includes('已取消选择'),'取消目录');assert.match(exporting.$('#folder-status').textContent,/独立测试输出目录/);
+  exporting.$('[data-export="csv"]').click();await waitFor(()=>exporting.$('#summary-feedback').textContent.includes('模拟磁盘写入失败'),'写入失败');assert(aborted);assert.equal(fileWrites,1);
+  assert.equal(exporting.$(exportRow+' textarea').value,'未保存的输出验证备注');assert.equal(exporting.window.document.querySelectorAll('[data-select]:checked').length,1);
+  failWrite=false;exporting.$('[data-export="csv"]').click();await waitFor(()=>exporting.$('#summary-feedback').textContent.includes('已保存到'),'重新输出');
+  assert(lastFile.endsWith('.csv'));assert.equal(savedText,await readFile('test-results/p04-output-current.csv','utf8'));
+  assert(savedText.includes(beforeExport.project.name));assert(savedText.includes('返回时新读取'));assert(!savedText.includes('未保存的输出验证备注'));assert.match(exporting.$('#summary-feedback').textContent,/未保存备注未进入导出/);
+  ew.open=()=>null;exporting.$('[data-export="pdf"]').click();await waitFor(()=>exporting.$('#summary-feedback').textContent.includes('打印窗口被浏览器拦截'),'PDF拦截恢复');
+  assert.equal(exporting.$(exportRow+' textarea').value,'未保存的输出验证备注');assert.equal((await b.api(livePath)).project.version,beforeExport.project.version,'导出成功和失败均不保存项目');
+  checks.push('PRD9.20实际页面输出：取消目录保持原位置；磁盘写失败终止写入并保留选择/备注，重试生成可读CSV只含所选正式值；PDF窗口拦截明确提示，全部操作不推进项目版本。目录API为受控适配，原生目录授权及PDF落盘仍待验');
+  ew.showDirectoryPicker=undefined;exporting.$('#choose-folder').click();
+  await waitFor(()=>exporting.$('#summary-feedback').textContent.includes('此浏览器不支持选择文件夹'),'无目录API反馈');
+  const getContext=ew.HTMLCanvasElement.prototype.getContext;
+  ew.HTMLCanvasElement.prototype.getContext=()=>null;
+  exporting.$('[data-export="png"]').click();
+  await waitFor(()=>exporting.$('#summary-feedback').textContent.includes('浏览器无法生成图片'),'画布不可用反馈');
+  ew.HTMLCanvasElement.prototype.getContext=getContext;
+  assert.equal(exporting.$(exportRow+' textarea').value,'未保存的输出验证备注');
+  assert.equal(exporting.window.document.querySelectorAll('[data-select]:checked').length,1);
+  assert.equal((await b.api(livePath)).project.version,beforeExport.project.version);
+  for(const kind of ['group','status','owner','chip'])exporting.$(`[data-all="${kind}"]`).click();
+  exporting.$('#show-hidden').click();
+  const rowIds=()=>[...ew.document.querySelectorAll('tbody [data-row]')].map(row=>row.dataset.row);
+  const initialRows=rowIds();assert(initialRows.length>1);
+  const lastId=initialRows.at(-1),firstId=initialRows[0];
+  exporting.$(`[data-row-drag="${lastId}"]`).dispatchEvent(new ew.Event('dragstart',{bubbles:true}));
+  exporting.$(`[data-row="${firstId}"]`).dispatchEvent(new ew.Event('drop',{bubbles:true,cancelable:true}));
+  assert.deepEqual(rowIds(),[lastId,...initialRows.slice(0,-1)]);
+  const firstColumn=ew.document.querySelector('[data-column-drag]').dataset.columnDrag;
+  const movedColumn=firstColumn==='customer'?'name':'customer';
+  exporting.$(`[data-column-drag="${movedColumn}"]`).dispatchEvent(new ew.Event('dragstart',{bubbles:true}));
+  exporting.$(`[data-column-drag="${firstColumn}"]`).dispatchEvent(new ew.Event('drop',{bubbles:true,cancelable:true}));
+  assert.equal(ew.document.querySelector('[data-column-drag]').dataset.columnDrag,movedColumn);
+  const allRows=exporting.$('#select-all');allRows.checked=true;allRows.dispatchEvent(new ew.Event('change',{bubbles:true}));
+  assert.equal(ew.document.querySelectorAll('[data-select]:checked').length,initialRows.length);
+  const writesBefore=fileWrites;exporting.$('[data-export="csv"]').click();
+  await waitFor(()=>fileWrites>writesBefore && exporting.$('#summary-feedback').textContent.includes('已保存到'),'排序后多项目输出');
+  assert(savedText.replace(/^\uFEFF/,'').startsWith('"'+model.summaryColumns[movedColumn]+'","'+model.summaryColumns[firstColumn]+'"'));
+  const latestSnapshot=await b.api('/api/project-summary');
+  for(const id of initialRows)assert(savedText.includes(latestSnapshot.items.find(row=>row.id===id).name));
+  assert(savedText.indexOf(latestSnapshot.items.find(row=>row.id===lastId).name)<savedText.indexOf(latestSnapshot.items.find(row=>row.id===firstId).name));
+  assert.equal(exporting.$(exportRow+' textarea').value,'未保存的输出验证备注');
+  assert.equal((await b.api(livePath)).project.version,beforeExport.project.version);
+  exporting.$('#reset-order').click();assert.deepEqual(rowIds(),initialRows);
+  const rules=await page(a,{},'settings',false,'',{failRuleRead:true});assert.match(rules.$('#message').textContent,/读取/);assert.equal(rules.$('#weekday'),null);rules.$('#reload').click();await waitFor(()=>rules.$('#weekday'),'首次读取失败后重试');
+  const initialRule=await a.api('/api/settings/check-rule'),chosen=initialRule.rule?.deadlineWeekday===1?7:1;
+  rules.input('#weekday',String(chosen));rules.$('#weekday').dispatchEvent(new rules.window.Event('change',{bubbles:true}));
+  await save('company',command('1',initialRule.configVersion,{shortName:'设置竞态合成'}));
+  rules.$('#rule-form').dispatchEvent(new rules.window.Event('submit',{bubbles:true,cancelable:true}));await waitFor(()=>rules.$('#message').textContent.includes('版本') && !rules.$('#reload')?.disabled,'旧配置拒绝');assert.equal(Number(rules.$('#weekday').value),chosen);assert.equal((await a.api('/api/settings/check-rule')).rule?.version,initialRule.rule?.version);
+  rules.$('#reload').click();await waitFor(()=>!rules.$('#reload').disabled,'重新读取配置');assert.equal(Number(rules.$('#weekday').value),chosen);
+  rules.dropAck=true;rules.$('#rule-form').dispatchEvent(new rules.window.Event('submit',{bubbles:true,cancelable:true}));await waitFor(()=>rules.$('#confirm') && !rules.$('#confirm').disabled,'规则丢回应待确认');
+  const ruleSession=Object.fromEntries(Object.keys(rules.window.sessionStorage).map(key=>[key,rules.window.sessionStorage.getItem(key)]));
+  const restoredRule=await page(a,ruleSession,'settings',false,'',{failRuleRead:true});assert.equal(restoredRule.$('#weekday'),null);restoredRule.$('#reload').click();await waitFor(()=>restoredRule.$('#weekday') && !restoredRule.$('#confirm') && !restoredRule.$('#reload').disabled,'重开读取失败后确认原规则');
+  assert.equal((await a.api('/api/settings/check-rule')).rule.deadlineWeekday,chosen);const ruleCount=Number((await c.query('SELECT COUNT(*) n FROM check_rule_revisions WHERE saved_by=?',[users[0].id]))[0][0].n);assert.equal(ruleCount,1);
+  restoredRule.$('#rule-form').dispatchEvent(new restoredRule.window.Event('submit',{bubbles:true,cancelable:true}));await waitFor(()=>restoredRule.$('#message').textContent.includes('无变化'),'同星期不新增规则');assert.equal(Number((await c.query('SELECT COUNT(*) n FROM check_rule_revisions WHERE saved_by=?',[users[0].id]))[0][0].n),1);
+  const readonlyRule=await page(b,{},'settings');assert.equal(readonlyRule.$('#weekday'),null);assert.match(readonlyRule.$('#settings').textContent,/维护账号/);
+  checks.push('PRD9.19：规则页首次读取失败可重试；配置竞态拒绝且重读保留所选星期；真实提交丢回应后重开再次读失败仍能核对原结果，SQL仅一条规则；同星期无变化、普通账号只读');
+  checks.push('PRD9.20：无目录API明确说明浏览器下载；画布不可用明确失败并保留选择和备注，正式项目版本不变');
+  checks.push('PRD9.20：真实页面拖动行列、全选多项目并生成可读CSV，顺序与字段一致且逐项目完整，重置顺序恢复；未保存备注及正式版本保持');
+  await writeFile('test-results/catalog.json',JSON.stringify({status:'passed',checks,browserTested:false},null,2));console.log(JSON.stringify({status:'passed',checks:checks.length,evidence:'test-results/catalog.json'}));
+}catch(error){console.error(error);throw error;}finally{
+  fault='';for(const stream of streams)stream.controller.abort();await Promise.allSettled(streams.map(stream=>stream.done));for(const dom of views){for(const stream of dom.streams ?? [])stream.close();dom.window.close();}if(app)await app.close();
+  if(users.length)await c.query('DELETE FROM project_drafts WHERE user_id IN (?)',[users.map(u=>u.id)]);
+  if(projects.length){for(const table of ['audit_log','project_checks','schedule_changes','project_changes','project_risks','project_nodes','project_stages','project_people','project_chips','project_tags','project_responsibilities'])await c.query(`DELETE FROM ${table} WHERE project_id IN (?)`,[projects]);await c.query('DELETE FROM projects WHERE id IN (?)',[projects]);}
+  for(const [kind,id] of [...created].reverse()){if(kind==='customers')await c.execute('DELETE FROM customer_tags WHERE customer_id=?',[id]);const table={groups:'project_groups',productLines:'product_lines'}[kind]??kind;await c.execute(`DELETE FROM ${table} WHERE id=?`,[id]);}
+  if(original)await c.query('UPDATE system_configuration SET ? WHERE id=1',[original]);else await c.execute('DELETE FROM system_configuration WHERE id=1');
+  if(users.length)await c.query('DELETE FROM check_rule_revisions WHERE saved_by IN (?)',[users.map(user=>user.id)]);
+  const ids=users.map(u=>u.id);if(ids.length){for(const table of ['command_receipts','audit_log'])await c.query(`DELETE FROM ${table} WHERE actor_id IN (?)`,[ids]);for(const table of ['project_drafts','user_preferences','sessions'])await c.query(`DELETE FROM ${table} WHERE user_id IN (?)`,[ids]);await c.query('DELETE FROM users WHERE id IN (?)',[ids]);}
+  await c.end();
+}

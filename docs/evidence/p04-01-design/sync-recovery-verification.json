@@ -1,0 +1,139 @@
+{
+  "date": "2026-10-15",
+  "designOnly": true,
+  "method": "读取最后一次现存 reactions，在独立内存推演；不修改 Figma 默认变量，不是 Presentation 或业务验证",
+  "checks": [
+    {
+      "name": "重连确认最新后恢复保存",
+      "passed": true,
+      "expected": {
+        "VariableID:323:5489": true,
+        "VariableID:323:5492": false,
+        "VariableID:332:4793": 1
+      },
+      "actual": {
+        "VariableID:323:5489": true,
+        "VariableID:323:5492": false,
+        "VariableID:332:4793": 1
+      }
+    },
+    {
+      "name": "重连发现旧版本保持冻结",
+      "passed": true,
+      "expected": {
+        "VariableID:323:5489": false,
+        "VariableID:332:4793": 0.4,
+        "navigation": "155:4407"
+      },
+      "actual": {
+        "VariableID:323:5489": false,
+        "VariableID:332:4793": 0.4000000059604645,
+        "navigation": "155:4407"
+      }
+    },
+    {
+      "name": "重连发现失权显示恢复提示",
+      "passed": true,
+      "expected": {
+        "VariableID:323:5489": false,
+        "VariableID:303:5488": true
+      },
+      "actual": {
+        "VariableID:323:5489": false,
+        "VariableID:303:5488": true
+      }
+    },
+    {
+      "name": "仍离线不改变输入或解冻",
+      "passed": true,
+      "expected": {
+        "VariableID:323:5489": false,
+        "VariableID:279:4667": "未保存文字",
+        "VariableID:323:5493": "暂时无法重新连接，输入仍保留在此设备。"
+      },
+      "actual": {
+        "VariableID:323:5489": false,
+        "VariableID:279:4667": "未保存文字",
+        "VariableID:323:5493": "暂时无法重新连接，输入仍保留在此设备。"
+      }
+    },
+    {
+      "name": "草稿确认同步消除重试入口",
+      "passed": true,
+      "expected": {
+        "VariableID:331:5544": false,
+        "VariableID:303:5506": "草稿已同步，仅你可见"
+      },
+      "actual": {
+        "VariableID:331:5544": false,
+        "VariableID:303:5506": "草稿已同步，仅你可见"
+      }
+    },
+    {
+      "name": "草稿再次失败保留输入",
+      "passed": true,
+      "expected": {
+        "VariableID:331:5544": true,
+        "VariableID:279:4667": "未保存文字"
+      },
+      "actual": {
+        "VariableID:331:5544": true,
+        "VariableID:279:4667": "未保存文字"
+      }
+    },
+    {
+      "name": "旧稿重试冻结保存",
+      "passed": true,
+      "expected": {
+        "VariableID:323:5489": false,
+        "VariableID:303:5500": true,
+        "VariableID:332:4793": 0.4
+      },
+      "actual": {
+        "VariableID:323:5489": false,
+        "VariableID:303:5500": true,
+        "VariableID:332:4793": 0.4000000059604645
+      }
+    },
+    {
+      "name": "冻结时取消不会清除输入",
+      "passed": true,
+      "expected": {
+        "VariableID:279:4664": "2026-11-09",
+        "VariableID:225:4586": true
+      },
+      "actual": {
+        "VariableID:279:4664": "2026-11-09",
+        "VariableID:225:4586": true
+      }
+    },
+    {
+      "name": "可编辑时选择结案类型",
+      "passed": true,
+      "expected": {
+        "VariableID:321:5463": "中途终止",
+        "VariableID:331:5546": false
+      },
+      "actual": {
+        "VariableID:321:5463": "中途终止",
+        "VariableID:331:5546": false
+      }
+    },
+    {
+      "name": "冻结时不能改结案类型",
+      "passed": true,
+      "expected": {
+        "VariableID:321:5463": "正常完成"
+      },
+      "actual": {
+        "VariableID:321:5463": "正常完成"
+      }
+    }
+  ],
+  "passed": 10,
+  "total": 10,
+  "mutation": [
+    "331:5555",
+    "331:5558"
+  ]
+}

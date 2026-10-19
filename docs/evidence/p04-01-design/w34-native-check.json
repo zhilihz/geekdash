@@ -1,0 +1,35 @@
+{
+  "target": {
+    "id": "9007199254760174",
+    "version": "3",
+    "ruleId": "5",
+    "userId": "28"
+  },
+  "sql": [
+    {
+      "projectId": "9007199254760174",
+      "actorId": "28",
+      "observedVersion": "3",
+      "resultVersion": "4",
+      "conclusion": "checked",
+      "note": ""
+    }
+  ],
+  "checkCount": 1,
+  "listCount": 1,
+  "checkedToday": true,
+  "version": "4",
+  "risk": [
+    {
+      "content": "合成风险：样机功耗仍待验证",
+      "resolved": 0
+    }
+  ],
+  "build": {
+    "revision": "f07450eafc94f0756f09260d0026968f09102e65",
+    "dirty": true,
+    "builtAt": "2026-10-16T21:25:15.206Z",
+    "stage": "project-list",
+    "schemaVersion": "0004-project-compatibility"
+  }
+}

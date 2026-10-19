@@ -1,14 +1,20 @@
 # GeekDash 文档目录
 
-导航更新：2026-10-14。项目仓库：[zhilihz/geekdash](https://github.com/zhilihz/geekdash)。全部项目文档在本目录；协作与分类规则只维护于根目录[AGENTS.md](../AGENTS.md)。
+导航更新：2026-10-19。项目仓库：[zhilihz/geekdash](https://github.com/zhilihz/geekdash)。全部项目文档在本目录；协作与分类规则只维护于根目录[AGENTS.md](../AGENTS.md)。
 
 ## 本轮阅读入口
 
+当前工作：先看[当前结论](status/current-system-truth.md#1-一句话结论)与[交接](handoff/handoff.md)，再看[P04完整计划](implementation/execution-plan.md#12-p04完整实施计划2026-10-15)、[验收矩阵](testing/reports/2026-10-17-p04-acceptance-matrix.md)及[阶段证据](testing/reports/2026-10-16-p04-scoped-save.md)。候选、本地运行及公网交付分别以系统真相为准，不能把此前“从P04-03开始”的接续位置当作当前进度。P04涵盖E04～E08，各E段归属查[第69节](status/current-system-truth.md#69-2026-10-15任务归属与剩余工作核对)。
+
 当前交付：[UI12首页与检查报告](testing/reports/2026-10-14-e04-ui12-home-checks.md)、[系统真相68](status/current-system-truth.md#68-ui12首页与项目检查已部署2026-10-14)及[部署记录](operations/deployments/2026-10-14-e04-ui12.md)。实现cf49780已合并远端main并固定部署；施工方法查[计划14.9.22](implementation/execution-plan.md#14922-ui12认可设计的首页与检查链路实施2026-10-14)。
+
+2026-10-16整链方案已按DEC-127收口：检查信息补全归[P04-09](implementation/execution-plan.md#p04-09-保留阶段动作与检查的原业务闭环)，跨页面消费归P04-15；布局只查[PRD](product/PRD.md#检查信息完整性已确认dec-127)，读取及修正返回只查SPEC-005，执行范围/共同实现方法只查计划1.2。Q-031已解决；设计与实际实现状态查系统真相及阶段报告，不据早期缺口描述重复施工。
+
+用户进一步要求逐行为列全结果，已按DEC-128补[PRD第9节](product/PRD.md#9-逐行为结果与恢复清单)：共用结果、各功能专有结果、输入去向与恢复入口，以及现有16步对应表。处理入口和故障验证方法在执行计划1.2与[测试策略](testing/testing.md#按prd行为结果验收dec-128)，它们是待实施/待验要求，实际状态见真相73。
 
 1. [交接](handoff/handoff.md)与[当前运行事实](status/current-system-truth.md#68-ui12首页与项目检查已部署2026-10-14)：接续详情分区编辑、账号分工和新建同构，准确通过/未测范围查UI12报告；旧UI07及其验收边界仍保留为历史记录。
 2. [首页完整筛选](product/PRD.md#首页完整筛选)、[视觉意图](product/PRD.md#813-ui09正式视觉稿2026-10-14设计中)、[UI11设计报告](testing/reports/2026-10-14-ui11-complete-filters.md)及[Figma文件](https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=142-3499)：用户已认可当前设计，实施沿同一稿。[PRD8.12](product/PRD.md#812-ui08全站结构与日常操作2026-10-14结构评审稿)为结构与操作依据；历史设计范围仍可查[UI08](testing/reports/2026-10-14-ui08-wireframes.md)、[UI09](testing/reports/2026-10-14-ui09-visual-design.md)、[UI10](testing/reports/2026-10-14-ui10-reference-style.md)，不作为当前部署状态。
-3. [E04前端固定施工](implementation/execution-plan.md#14921-e04前端固定与流程修正2026-10-12)：实现方法；准确业务规则仍查[规格书](specifications/specification.md)。
+3. [P04剩余工作计划](implementation/execution-plan.md#12-p04完整实施计划2026-10-15)：当前施工入口；[旧E04前端固定施工](implementation/execution-plan.md#14921-e04前端固定与流程修正2026-10-12)只用于追溯。准确业务规则仍查[规格书](specifications/specification.md)。
 4. [UI07提示与副本报告](testing/reports/2026-10-13-e04-ui07-notifications.md)、[UI07部署与恢复](operations/deployments/2026-10-13-e04-ui07.md)、[UI06网页报告](testing/reports/2026-10-13-e04-ui06-frontend.md)、[UI06部署与恢复](operations/deployments/2026-10-13-e04-ui06.md)、[看板及已有入口报告](testing/reports/2026-10-12-e04-ui03-c.md)、[上下文动作报告](testing/reports/2026-10-12-e04-ui03-b.md)、[详情结构报告](testing/reports/2026-10-12-e04-ui03-a.md)、[设计核查报告](testing/reports/2026-10-12-e04-ui01-design.md)及[实际设计回读](evidence/2026-10-12-e04-ui01-design-audit.json)：分别核查实现、设计子集与未测范围。
 5. [六阶段目标任务](implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)、[代决记录](decisions/autonomous-decisions.md)、[代码管理](operations/release-maintenance.md#2-代码管理)：持续施工和交付入口。
 
@@ -94,6 +100,12 @@ docs/
 接手工作先读 handoff 与系统真相，再读技术栈、需求和本次相关规格。字段反推及正式实体关系图读 ERD（内含核心 PNG 与完整 SVG 入口）；规则确认查 decisions；实施和文档维护遵循根目录 AGENTS。需求到规格、测试的完整映射只在 requirements 维护。
 
 实际施工接着读[执行文档](implementation/execution-plan.md)。图示可打开[深接口架构](evidence/diagrams/geekdash-execution.html)和[项目保存时序](evidence/diagrams/geekdash-save.html)，静态预览与浏览器核验范围见[图示复核记录](evidence/diagrams/execution-review.json)。
+
+P04已产生的[个人草稿与偏好API](specifications/api/personal-state.md)记录候选协议；当前验证和未完成范围仍查系统真相及报告，不以协议存在推定已经发布。
+
+P04协作候选的[SSE与编辑名单API](specifications/api/notifications.md)记录消息和恢复协议，运行事实仍归系统真相。
+
+P04共享资料候选的[资料维护API](specifications/api/catalog.md)记录完整分类与影响核对协议；是否可用、验收和发布状态仍查系统真相。
 
 ## 独立本地版 V1.051
 

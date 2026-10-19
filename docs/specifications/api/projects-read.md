@@ -2,7 +2,23 @@
 
 日期：2026-10-14；来源src/server/modules/projects.ts及routes/projects.ts，E04-UI12。当前业务查询要求可信登录，身份协议归[项目主干](project-core.md)；以下是读取协议，部署状态归系统真相，不能由本文推导。业务语义引用SPEC-002/004/005/014/018。
 
+2026-10-16 P04-02本地候选补充（基线f07450e+未提交改动，结构0004，未部署）：dashboard=1的items另含独立summary，既有summaryNote保留；详情project同样新增summary。stages.expectedEndOn由有效项目节点的最晚target_date投影，nodeCount及undatedNodeCount分别为有效项目节点总数及无目标日数量；无可用日期返回null，不回退旧独立阶段计划。risks及结案剩余风险排除deleted_at非空行。验证与旧值保留范围见[P04-02报告](../../testing/reports/2026-10-16-p04-02-compatibility.md)；前端消费仍待后续步骤。
+
+## 统一状态简要读取（2026-10-17本地候选）
+
+`GET /api/project-summary`，需要可信登录，不接受查询参数。返回`items`、`businessDate`、`capturedAt`、`company`、`ownerOptions`；同次一致读取全部正式项目，无500条硬限制。筛选、行列整理和选择由统一页面维护，含义引用SPEC-020，不另设芯片视图。
+
+- `items`复用项目查询投影与关联，额外提供`summary`、`detailNote`、`summaryNote`、`chipstatNote`，分别保存独立含义。
+- `statusOwners`由已保存状态说明提取并去重；`ownerOptions`合并基础工程师姓名和当前说明中姓名。两者不授予权限。
+- `pendingNodes`只含有效未完成项目节点的`id/title/targetDate`，排除客户节点。
+- `canEdit`按当前账号与项目负责关系读取；备注写入继续用项目范围保存协议，scope分别为`summaryNote`/`chipstatNote`，不新增自动正式写入。
+- `company`可能为空；正式输出使用本次`capturedAt`对应快照，不拼接生成期间后来数据。真实运行及格式验证范围见P04阶段内报告。
+
 ## 1. 看板列表
+
+2026-10-17本地P04候选新增`company`，包含企业全称、简称、负责人资料文字、名称前缀及资料版本；与项目列表同次快照读取。首页标题消费名称前缀/简称，负责人资料文字不用于账号授权。
+
+`dashboard=1`另返回`quickRanges`，键与`stats`相同，每项为当前看板及全部筛选命中该统计条件的项目ID字符串数组。与统计在同一数据库读取快照，范围不限于当前分页；不包含项目正文或未保存输入。前端将选中统计范围保存在账号隔离的标签页上下文，再进入统一摘要；缺少该上下文时提示重新选择，不能回退为全部项目。语义归SPEC-020。
 
 `GET /api/projects`
 

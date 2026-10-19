@@ -1,0 +1,309 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-16T21:56:18.311Z",
+  "checks": [
+    "白名单、身份/负责范围、前置、未开始直接完成及非法/未来日期拒绝，持久数据保持",
+    "负责人S1开始→新连接/另一账号详情与阶段状态；进度0、总体不变、原编号只执行一次及账号回执隔离",
+    "阶段更新、审计及回执实际SQL故障，阶段/解锁/项目版本/历史/回执全部回滚",
+    "S1同日完成/说明原文→只解锁S2、不启动项目/阶段；新GET/看板/历史一致，旧版本拒绝",
+    "独立进行中夹具：仅相邻日期校验；普通保存/动作同版本竞争、真实COMMIT丢回执、应用重建后会话与原结果恢复",
+    "暂缓/结案禁止推进、事务内拒绝已停用身份、未知前置日期及非法序列明确核对，不自动修复",
+    "通用七阶段与原版累计进度，全部完成仍不自动结案/检查，不改灯色/优先级/阶段评述"
+  ],
+  "requestCount": 57,
+  "measurements": [
+    {
+      "path": "/api/auth/login",
+      "status": 200,
+      "ms": 133.66361500000005
+    },
+    {
+      "path": "/api/auth/me",
+      "status": 200,
+      "ms": 6.330556000000001
+    },
+    {
+      "path": "/api/auth/login",
+      "status": 200,
+      "ms": 60.64038300000004
+    },
+    {
+      "path": "/api/auth/me",
+      "status": 200,
+      "ms": 5.274926999999934
+    },
+    {
+      "path": "/api/auth/login",
+      "status": 200,
+      "ms": 43.75783200000001
+    },
+    {
+      "path": "/api/auth/me",
+      "status": 200,
+      "ms": 3.6338020000000597
+    },
+    {
+      "path": "/api/projects",
+      "status": 200,
+      "ms": 45.68497500000012
+    },
+    {
+      "path": "/api/projects/9007199254760211/audit",
+      "status": 200,
+      "ms": 6.558866999999964
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 403,
+      "ms": 11.876185999999961
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 400,
+      "ms": 8.157519000000093
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 422,
+      "ms": 10.608377000000019
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 422,
+      "ms": 12.49997099999996
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 422,
+      "ms": 7.262155000000121
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 422,
+      "ms": 9.961957999999868
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 422,
+      "ms": 17.938359999999875
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 422,
+      "ms": 12.21560599999998
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 422,
+      "ms": 20.58155600000009
+    },
+    {
+      "path": "/api/projects/9007199254760211/responsibility",
+      "status": 200,
+      "ms": 17.10042599999997
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 200,
+      "ms": 16.075440999999955
+    },
+    {
+      "path": "/api/projects/9007199254760211",
+      "status": 200,
+      "ms": 19.898215000000164
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 200,
+      "ms": 8.199501999999939
+    },
+    {
+      "path": "/api/projects/9007199254760211/action-results/query",
+      "status": 200,
+      "ms": 5.482214000000113
+    },
+    {
+      "path": "/api/projects/9007199254760211/action-results/query",
+      "status": 200,
+      "ms": 5.17694900000015
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 409,
+      "ms": 6.770031000000017
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 422,
+      "ms": 11.715928000000076
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 422,
+      "ms": 11.60123899999985
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 503,
+      "ms": 13.475899000000027
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 503,
+      "ms": 45.63206300000002
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 503,
+      "ms": 16.567994999999883
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 200,
+      "ms": 18.595890999999938
+    },
+    {
+      "path": "/api/projects/9007199254760211",
+      "status": 200,
+      "ms": 13.82467900000006
+    },
+    {
+      "path": "/api/projects/9007199254760211/audit",
+      "status": 200,
+      "ms": 6.293740000000071
+    },
+    {
+      "path": "/api/projects?view=proposal&search=stage_812d7d37",
+      "status": 200,
+      "ms": 22.52649099999985
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 422,
+      "ms": 8.647899999999936
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 409,
+      "ms": 9.260772999999972
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 422,
+      "ms": 11.161146000000144
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 200,
+      "ms": 22.38997100000006
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 503,
+      "ms": 13.757098999999926
+    },
+    {
+      "path": "/api/projects/9007199254760211/action-results/query",
+      "status": 200,
+      "ms": 7.613137999999935
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 200,
+      "ms": 7.678051000000096
+    },
+    {
+      "path": "/api/projects/9007199254760211/audit",
+      "status": 200,
+      "ms": 6.701117999999951
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 422,
+      "ms": 7.683811999999989
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 422,
+      "ms": 8.843484999999873
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 422,
+      "ms": 15.30784000000017
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 422,
+      "ms": 10.199112000000014
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 200,
+      "ms": 16.22184100000004
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 200,
+      "ms": 12.672160000000076
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 200,
+      "ms": 12.051542000000154
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 200,
+      "ms": 12.949153000000024
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 200,
+      "ms": 12.561216000000059
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 200,
+      "ms": 13.285816999999952
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 200,
+      "ms": 12.104252000000088
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 200,
+      "ms": 14.83851100000038
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 200,
+      "ms": 14.500073000000157
+    },
+    {
+      "path": "/api/projects/9007199254760211/actions",
+      "status": 200,
+      "ms": 13.25894500000004
+    },
+    {
+      "path": "/api/projects/9007199254760211",
+      "status": 200,
+      "ms": 13.650072999999793
+    },
+    {
+      "path": "/api/health/live",
+      "status": 200,
+      "ms": 2.196038000000044
+    }
+  ],
+  "build": {
+    "revision": "f07450eafc94f0756f09260d0026968f09102e65",
+    "dirty": true,
+    "builtAt": "2026-10-16T21:48:57.079Z",
+    "stage": "project-list",
+    "schemaVersion": "0004-project-compatibility"
+  },
+  "isolatedTestDatabase": true
+}

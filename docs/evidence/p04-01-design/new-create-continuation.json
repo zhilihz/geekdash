@@ -1,0 +1,472 @@
+{
+  "date": "2026-10-15",
+  "fileKey": "leQy2Be9GaTXPvZeooQuIF",
+  "pageId": "142:3499",
+  "scope": {
+    "changedFrame": "149:4200",
+    "boardConditionalLayerParent": "144:3499",
+    "unchanged": [
+      "产品代码",
+      "权威文档",
+      "后端与业务数据",
+      "其余画板及共享组件",
+      "既有变量默认值"
+    ]
+  },
+  "designChanges": [
+    "取消或返回保留本次独立输入，看板可继续填写",
+    "成功创建消费本次保存快照，看板可再次进入同一项目",
+    "明确失败保留输入并允许再次提交",
+    "未知结果隐藏提交、冻结输入，只核对原提交快照；核对结果为已创建/未创建/仍待确认",
+    "创建后的合并修改和最新状态说明仍分别保存"
+  ],
+  "write": {
+    "createdNodeIds": [
+      "331:5634",
+      "331:5635",
+      "331:5636",
+      "331:5637",
+      "331:5638",
+      "331:5639",
+      "331:5640",
+      "331:5641",
+      "I331:5641;2:108",
+      "331:5644",
+      "331:5645",
+      "331:5646",
+      "331:5648",
+      "331:5650",
+      "331:5651",
+      "331:5652",
+      "331:5653",
+      "331:5654",
+      "331:5655",
+      "I331:5655;2:108",
+      "331:5658",
+      "331:5659",
+      "331:5660",
+      "331:5661",
+      "331:5662",
+      "331:5663",
+      "331:5664",
+      "331:5665",
+      "331:5666",
+      "331:5667",
+      "I331:5667;2:108"
+    ],
+    "mutatedNodeIds": [
+      "167:4442",
+      "167:4444",
+      "167:4350",
+      "331:5641",
+      "331:5646",
+      "167:4354",
+      "331:5648",
+      "167:4436",
+      "144:3502",
+      "331:5655",
+      "331:5667",
+      "149:4200",
+      "247:4585"
+    ],
+    "createdVariables": [
+      {
+        "id": "VariableID:331:5606",
+        "name": "P04/新建续链/看板上下文显示",
+        "type": "BOOLEAN",
+        "value": false
+      },
+      {
+        "id": "VariableID:331:5607",
+        "name": "P04/新建续链/待完成入口显示",
+        "type": "BOOLEAN",
+        "value": false
+      },
+      {
+        "id": "VariableID:331:5608",
+        "name": "P04/新建续链/已创建入口显示",
+        "type": "BOOLEAN",
+        "value": false
+      },
+      {
+        "id": "VariableID:331:5609",
+        "name": "P04/新建续链/结果未知",
+        "type": "BOOLEAN",
+        "value": false
+      },
+      {
+        "id": "VariableID:331:5610",
+        "name": "P04/新建续链/明确未创建",
+        "type": "BOOLEAN",
+        "value": false
+      },
+      {
+        "id": "VariableID:331:5611",
+        "name": "P04/新建续链/允许提交",
+        "type": "BOOLEAN",
+        "value": true
+      },
+      {
+        "id": "VariableID:331:5612",
+        "name": "P04/新建续链/演示提交结果",
+        "type": "STRING",
+        "value": "success"
+      },
+      {
+        "id": "VariableID:331:5613",
+        "name": "P04/新建续链/演示核对结果",
+        "type": "STRING",
+        "value": "success"
+      },
+      {
+        "id": "VariableID:331:5614",
+        "name": "P04/新建续链/恢复输入提示",
+        "type": "BOOLEAN",
+        "value": false
+      },
+      {
+        "id": "VariableID:331:5615",
+        "name": "P04/新建续链/核对提示",
+        "type": "STRING",
+        "value": "暂时无法确认是否创建成功。请先核对本次结果，避免重复创建。"
+      },
+      {
+        "id": "VariableID:331:5616",
+        "name": "P04/新建续链/待核对快照/客户",
+        "type": "STRING",
+        "value": ""
+      },
+      {
+        "id": "VariableID:331:5617",
+        "name": "P04/新建续链/待核对快照/产品线",
+        "type": "STRING",
+        "value": ""
+      },
+      {
+        "id": "VariableID:331:5618",
+        "name": "P04/新建续链/待核对快照/ODM 工厂",
+        "type": "STRING",
+        "value": ""
+      },
+      {
+        "id": "VariableID:331:5619",
+        "name": "P04/新建续链/待核对快照/分组",
+        "type": "STRING",
+        "value": ""
+      },
+      {
+        "id": "VariableID:331:5620",
+        "name": "P04/新建续链/待核对快照/APP",
+        "type": "STRING",
+        "value": ""
+      },
+      {
+        "id": "VariableID:331:5621",
+        "name": "P04/新建续链/待核对快照/芯片",
+        "type": "STRING",
+        "value": ""
+      },
+      {
+        "id": "VariableID:331:5622",
+        "name": "P04/新建续链/待核对快照/参与人员",
+        "type": "STRING",
+        "value": ""
+      },
+      {
+        "id": "VariableID:331:5623",
+        "name": "P04/新建续链/待核对快照/硬件负责人",
+        "type": "STRING",
+        "value": ""
+      },
+      {
+        "id": "VariableID:331:5624",
+        "name": "P04/新建续链/待核对快照/软件负责人",
+        "type": "STRING",
+        "value": ""
+      },
+      {
+        "id": "VariableID:331:5625",
+        "name": "P04/新建续链/待核对快照/项目名称",
+        "type": "STRING",
+        "value": ""
+      },
+      {
+        "id": "VariableID:331:5626",
+        "name": "P04/新建续链/待核对快照/项目简介",
+        "type": "STRING",
+        "value": ""
+      },
+      {
+        "id": "VariableID:331:5627",
+        "name": "P04/新建续链/待核对快照/市场预期",
+        "type": "STRING",
+        "value": ""
+      },
+      {
+        "id": "VariableID:331:5628",
+        "name": "P04/新建续链/待核对快照/详细说明",
+        "type": "STRING",
+        "value": ""
+      },
+      {
+        "id": "VariableID:331:5629",
+        "name": "P04/新建续链/待核对快照/预计结案日期",
+        "type": "STRING",
+        "value": ""
+      },
+      {
+        "id": "VariableID:331:5630",
+        "name": "P04/新建续链/待核对快照/最新状态说明",
+        "type": "STRING",
+        "value": ""
+      }
+    ],
+    "defaultsPreserved": true,
+    "entry": {
+      "create": "167:4442",
+      "cancel": "167:4444",
+      "back": "167:4350",
+      "lookup": "331:5641",
+      "resume": "331:5655",
+      "enter": "331:5667",
+      "unknownBox": "331:5637",
+      "failureBox": "331:5634",
+      "context": "331:5650",
+      "createdCard": "331:5658"
+    },
+    "pending": [
+      {
+        "target": "VariableID:314:5452",
+        "source": "VariableID:299:5461",
+        "pending": "VariableID:331:5616"
+      },
+      {
+        "target": "VariableID:314:5453",
+        "source": "VariableID:299:5467",
+        "pending": "VariableID:331:5617"
+      },
+      {
+        "target": "VariableID:314:5454",
+        "source": "VariableID:299:5473",
+        "pending": "VariableID:331:5618"
+      },
+      {
+        "target": "VariableID:314:5455",
+        "source": "VariableID:299:5479",
+        "pending": "VariableID:331:5619"
+      },
+      {
+        "target": "VariableID:314:5456",
+        "source": "VariableID:299:5485",
+        "pending": "VariableID:331:5620"
+      },
+      {
+        "target": "VariableID:314:5457",
+        "source": "VariableID:299:5491",
+        "pending": "VariableID:331:5621"
+      },
+      {
+        "target": "VariableID:314:5458",
+        "source": "VariableID:299:5497",
+        "pending": "VariableID:331:5622"
+      },
+      {
+        "target": "VariableID:314:5459",
+        "source": "VariableID:299:5503",
+        "pending": "VariableID:331:5623"
+      },
+      {
+        "target": "VariableID:314:5460",
+        "source": "VariableID:299:5509",
+        "pending": "VariableID:331:5624"
+      },
+      {
+        "target": "VariableID:314:5461",
+        "source": "VariableID:305:5456",
+        "pending": "VariableID:331:5625"
+      },
+      {
+        "target": "VariableID:314:5462",
+        "source": "VariableID:305:5458",
+        "pending": "VariableID:331:5626"
+      },
+      {
+        "target": "VariableID:314:5463",
+        "source": "VariableID:305:5460",
+        "pending": "VariableID:331:5627"
+      },
+      {
+        "target": "VariableID:314:5464",
+        "source": "VariableID:305:5462",
+        "pending": "VariableID:331:5628"
+      },
+      {
+        "target": "VariableID:314:5465",
+        "source": "VariableID:305:5464",
+        "pending": "VariableID:331:5629"
+      },
+      {
+        "target": "VariableID:314:5466",
+        "source": "VariableID:305:5466",
+        "pending": "VariableID:331:5630"
+      }
+    ],
+    "bounds": {
+      "w14": {
+        "w": 1440,
+        "h": 1396
+      },
+      "unknown": {
+        "w": 838,
+        "h": 100
+      },
+      "card": {
+        "w": 1344,
+        "h": 100
+      }
+    },
+    "keyboardScenarios": "Shift+Alt+F=failure/U=unknown/S=success; P=pending/N=not-created/R=found",
+    "scope": "仅W14及W01新增本次项目条件入口；有限合成原型，不是业务实现"
+  },
+  "fix": {
+    "mutatedNodeIds": [
+      "167:4442",
+      "331:5641",
+      "331:5645"
+    ],
+    "conditionalActions": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "lookupConditionalActions": [
+      1,
+      1,
+      1
+    ],
+    "newDefaultValuesChanged": false
+  },
+  "verification": {
+    "tests": [
+      {
+        "name": "空名仅报错不创建",
+        "passed": true
+      },
+      {
+        "name": "取消回看板保留全部输入",
+        "passed": true
+      },
+      {
+        "name": "继续填写回同一草稿",
+        "passed": true
+      },
+      {
+        "name": "成功保存本次输入快照",
+        "passed": true
+      },
+      {
+        "name": "看板再进入同一新建结果",
+        "passed": true
+      },
+      {
+        "name": "重复点击不重复创建",
+        "passed": true
+      },
+      {
+        "name": "明确失败不写结果并保留输入",
+        "passed": true
+      },
+      {
+        "name": "明确未创建后可重试",
+        "passed": true
+      },
+      {
+        "name": "未知结果冻结并记录原快照",
+        "passed": true
+      },
+      {
+        "name": "未知时创建无效",
+        "passed": true
+      },
+      {
+        "name": "仍未知继续等待且不提交",
+        "passed": true
+      },
+      {
+        "name": "核对成功恢复原提交快照",
+        "passed": true
+      },
+      {
+        "name": "仅确认未创建后重新允许提交",
+        "passed": true
+      },
+      {
+        "name": "确认未创建后可完成本次创建",
+        "passed": true
+      },
+      {
+        "name": "合并区修改保持说明独立",
+        "passed": true
+      },
+      {
+        "name": "说明独立保存",
+        "passed": true
+      },
+      {
+        "name": "看板使用新建已保存名称",
+        "passed": true
+      },
+      {
+        "name": "所有新增导航仅W01/W14",
+        "passed": true
+      }
+    ],
+    "passed": 18,
+    "total": 18,
+    "mode": "Figma现存配置回读与独立内存推演，未执行Presentation/后端",
+    "defaultValuesChanged": false,
+    "frames": [
+      "149:4200",
+      "144:3499"
+    ],
+    "scenarioKeys": "Shift+Alt+F=明确失败，U=提交未知，S=成功；核对P=仍未知、N=未创建、R=已创建",
+    "uncovered": [
+      "任意文本输入",
+      "真实网络和MySQL",
+      "草稿跨设备持久化",
+      "窄屏/主题",
+      "Presentation连续点击",
+      "多次新建不同项目"
+    ]
+  },
+  "screenshot": {
+    "screenshot": "new-create-unknown.png",
+    "bytes": 160126,
+    "temporaryVariables": [
+      "VariableID:331:5609",
+      "VariableID:331:5611"
+    ],
+    "defaultsRestored": true,
+    "mutatedNodeIds": [],
+    "scope": "仅本轮新增变量短暂切换设计状态并还原；未改既有默认值",
+    "path": "new-create-unknown.png",
+    "sha256": "1ddef68864ead1f3499561c484753e4edce6ca81f883101c472f7d9ef0d17a36",
+    "visualReviewed": true,
+    "observed": "未知提示在表单上方，核对入口可见，创建入口隐藏，文本无可见裁切。",
+    "limitations": "截图只临时启用本轮独立未知状态变量，现有输入保持空默认，非真实提交或播放器状态截图。"
+  },
+  "toolingRecovery": {
+    "beforeFix": "多条件块回读仅保留if/else，首次配置推演11/18通过；未作为验收结论。",
+    "fix": "所有分支改为独立单条件动作，按success/edit/unknown/failure排序防止同次重复执行；重新回读18/18通过。"
+  },
+  "remaining": [
+    "任意文本输入",
+    "真实网络和MySQL",
+    "草稿跨设备持久化",
+    "窄屏/主题",
+    "Presentation连续点击",
+    "多次新建不同项目"
+  ]
+}

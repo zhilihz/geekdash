@@ -1,0 +1,16 @@
+{
+  "verifiedAt": "2026-10-16T20:38:31.662Z",
+  "scope": "isolated P04 synthetic project; Edge actual input/save and independent SQL",
+  "project": {
+    "id": "9007199254760016",
+    "version": "3",
+    "summaryNote": "P04 浏览器备注底稿验证 2026-10-17",
+    "chipstatNote": ""
+  },
+  "drafts": [
+    {
+      "formKind": "summaryNote",
+      "state": "committed"
+    }
+  ]
+}

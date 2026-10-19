@@ -14,14 +14,19 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
   const core = database ? projectCore(database) : undefined;
   const checks = database ? projectChecks(database) : undefined;
   const actions = database ? projectActions(database) : undefined;
-  app.get<{ Params: { id: string }; Querystring: { pageSize?: number; before?: string } }>('/api/projects/:id/deleted-nodes', {
-    schema: { querystring: { type: 'object', additionalProperties: false, properties: { pageSize: { type: 'integer', minimum: 1, maximum: 100 }, before: { type: 'string', pattern: '^[1-9][0-9]{0,19}$' } } } },
+  app.get('/api/project-summary',{schema:{querystring:{type:'object',additionalProperties:false,properties:{}}}},request=>{
+    if(!request.actor)throw Object.assign(new Error('AUTH_REQUIRED'),{code:'AUTH_REQUIRED',status:401});
+    if(!reads)throw Object.assign(new Error('DATABASE_UNAVAILABLE'),{code:'DATABASE_UNAVAILABLE',status:503});
+    return reads.summary(request.actor.id);
+  });
+  app.get<{ Params: { id: string }; Querystring: { pageSize?: number; before?: string; kind?: 'project' | 'customer' } }>('/api/projects/:id/deleted-nodes', {
+    schema: { querystring: { type: 'object', additionalProperties: false, properties: { kind: { type: 'string', enum: ['project','customer'] }, pageSize: { type: 'integer', minimum: 1, maximum: 100 }, before: { type: 'string', pattern: '^[1-9][0-9]{0,19}$' } } } },
   }, (request, reply) => {
     reply.header('Cache-Control', 'no-store');
     if (!request.actor) return reply.code(401).send({ code: 'AUTH_REQUIRED' });
     if (!validId(request.params.id) || request.query.before && !validId(request.query.before)) return reply.code(400).send({ code: 'INVALID_CURSOR_OR_PROJECT' });
     if (!database) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE' });
-    return deletedNodes(database, request.params.id, request.query.pageSize ?? 20, request.query.before);
+    return deletedNodes(database, request.params.id, request.query.pageSize ?? 20, request.query.before, request.query.kind);
   });
   async function actionHandler(request: import('fastify').FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: import('fastify').FastifyReply, confirm: boolean) {
     if (!request.actor) return reply.code(401).send({ code: 'AUTH_REQUIRED', outcome: 'not_committed' });
@@ -62,6 +67,11 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
     if (!saves) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE', outcome: 'not_committed' });
     try {
       const input: SaveRequest = validateSave(request.body);
+      if (request.actor && !input.scope && !confirm) {
+        const prior = await saves.confirm(request.params.id, input, request.actor);
+        if (prior.outcome === 'committed') return { ...prior, requestId: request.id };
+        return reply.code(409).send({ code: 'SAVE_PROTOCOL_CHANGED', outcome: 'not_committed', requestId: request.id });
+      }
       const result = confirm ? await saves.confirm(request.params.id, input, request.actor) : await saves.save(request.params.id, input, request.id, request.actor);
       return confirm ? { ...result, requestId: request.id } : { outcome: 'committed', result, requestId: request.id };
     } catch (error) {
@@ -80,7 +90,9 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
     if (!request.actor) return reply.code(401).send({ code: 'AUTH_REQUIRED', outcome: 'not_committed' });
     if (!validId(request.params.id)) return reply.code(400).send({ code: 'INVALID_PROJECT_ID', outcome: 'not_committed' });
     if (!saves) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE', outcome: 'not_committed' });
-    return saves.preview(request.params.id, validateSave(request.body), request.actor);
+    const input = validateSave(request.body);
+    if (!input.scope) return reply.code(409).send({ code: 'SAVE_PROTOCOL_CHANGED', outcome: 'not_committed' });
+    return saves.preview(request.params.id, input, request.actor);
   });
   app.get<{ Params: { id: string }; Querystring: { pageSize?: number; before?: string } }>('/api/projects/:id/audit', {
     schema: { querystring: { type: 'object', additionalProperties: false, properties: { pageSize: { type: 'integer', minimum: 1, maximum: 100 }, before: { type: 'string', pattern: '^[1-9][0-9]{0,19}$' } } } },
@@ -104,6 +116,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
   for (const key of ['search', 'customer', 'productLine', 'odmFactory', 'app', 'group', 'chip', 'tags', 'owner']) properties[key] = { type: 'string', maxLength: 255 };
   properties.view = { type: 'string', enum: ['active', 'proposal', 'closed', 'maintenance', 'all'] };
   properties.dashboard = { type: 'string', enum: ['1'] };
+  properties.details = { type: 'string', enum: ['checks'] };
   properties.status = { type: 'string', enum: ['proposal', 'ongoing', 'paused', 'closed'] };
   properties.priority = { type: 'string', enum: ['high', 'mid', 'low'] };
   properties.signal = { type: 'string', enum: ['green', 'yellow', 'red'] };

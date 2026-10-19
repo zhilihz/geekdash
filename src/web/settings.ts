@@ -12,7 +12,7 @@ function persist() {
   catch { message.textContent = '本标签恢复存储不可用，请保留页面，完成原结果确认。'; }
 }
 function render() {
-  if (!context) return;
+  if (!context) { panel.innerHTML = '<button class="back-btn" id="reload">重新读取规则</button>'; const reload = document.getElementById('reload') as HTMLButtonElement; reload.disabled = busy || frozen; reload.onclick = () => { void load().then(() => { if (context && pending) void save(true); }); }; return; }
   panel.innerHTML = `<h2>周检查截止</h2><p>本周：${esc(context.weekStart)} · 业务今天：${esc(context.businessDate)} · 设置版本：${esc(context.configVersion ?? '配置未建立')}</p>${context.rule ? `<p>已保存：星期${context.rule.deadlineWeekday} · 本周截止日 ${esc(context.deadlineDate)}（全天有效） · 规则版本 ${esc(context.rule.version)}</p>` : '<p>检查规则未初始化；周五仅是尚未保存的建议。</p>'}${context.canMaintain && context.configVersion ? `<form id="rule-form"><label for="weekday">截止星期</label><select id="weekday">${['一', '二', '三', '四', '五', '六', '日'].map((day, index) => `<option value="${index + 1}"${index + 1 === weekday ? ' selected' : ''}>星期${day}</option>`).join('')}</select><p>保存后本周立即生效，以后每周沿用。保存不修改项目版本、首次义务或原检查时间。</p><button class="head-btn" type="submit">保存检查规则</button></form>` : `<p>仅专用维护账号可以修改共同规则。</p>`}${pending ? '<p>原操作结果待确认，请保留原编号及正文。</p><button class="back-btn" id="confirm">确认原设置结果</button><button class="back-btn" id="retry">重试原设置操作</button>' : '<button class="back-btn" id="reload">重新读取规则</button>'}`;
   const select = document.getElementById('weekday') as HTMLSelectElement | null; if (select) select.onchange = () => { weekday = Number(select.value); };
   const form = document.getElementById('rule-form') as HTMLFormElement | null;
@@ -22,9 +22,10 @@ function render() {
   panel.querySelectorAll<HTMLButtonElement | HTMLSelectElement>('button,select').forEach(element => { element.disabled = busy || frozen || !!pending && !['confirm', 'retry'].includes(element.id); });
 }
 async function load() {
-  if (busy || pending || frozen) return;
+  if (busy || frozen) return;
+  const keepChoice = !!context && weekday !== (context.rule?.deadlineWeekday ?? 5);
   busy = true; render();
-  try { context = await get<CheckRuleContext>('/api/settings/check-rule'); weekday = context.rule?.deadlineWeekday ?? 5; message.textContent = ''; }
+  try { context = await get<CheckRuleContext>('/api/settings/check-rule'); weekday = pending?.deadlineWeekday ?? (keepChoice ? weekday : context.rule?.deadlineWeekday ?? 5); message.textContent = ''; }
   catch (error) { message.textContent = (error as Error).message + ' 当前规则展示保留，点击重新读取恢复。'; }
   finally { busy = false; render(); }
 }
@@ -49,4 +50,4 @@ void requireIdentity().then(async () => {
   try { pending = JSON.parse(sessionStorage.getItem(key()) ?? 'null') ?? undefined; } catch { message.textContent = '恢复信息无法读取，请保留原页面并核对规则。'; }
   context = await get<CheckRuleContext>('/api/settings/check-rule'); weekday = pending?.deadlineWeekday ?? context.rule?.deadlineWeekday ?? 5; render();
   if (pending) await save(true);
-}).catch(error => { message.textContent = (error as Error).message; const link = document.createElement('a'); link.href = '/login.html'; link.textContent = '登录 GeekDash'; message.append(' ', link); });
+}).catch(error => { message.textContent = (error as Error).message; if (account) { render(); return; } const link = document.createElement('a'); link.href = '/login.html'; link.textContent = '登录 GeekDash'; message.append(' ', link); });

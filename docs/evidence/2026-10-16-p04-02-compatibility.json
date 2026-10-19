@@ -1,0 +1,367 @@
+{
+  "date": "2026-10-16",
+  "scope": "P04-02兼容子步骤，未发布",
+  "build": {
+    "revision": "f07450eafc94f0756f09260d0026968f09102e65",
+    "dirty": true,
+    "builtAt": "2026-10-16T05:47:44.432Z",
+    "stage": "project-list",
+    "schemaVersion": "0004-project-compatibility"
+  },
+  "sourceHashes": {
+    "package.json": "52be50b996ee9d2ffed051a7e904bf6c77ce6d278967a8d83aadcdd703a88d63",
+    "scripts/build.mjs": "b6ed7fa1c2828a058f54c277f31bb6d6fe0e17f235a89a196937a51e92dc8838",
+    "scripts/verify-migrations.mjs": "45f9ee2c3a63cf3279d7f1d88456713914449a30a6e8a4959bab6c46d43ff94f",
+    "scripts/verify-readiness.mjs": "294a71dcb18e407ff4710c2444cda23716c0da9c97043c86200ddb447904e35e",
+    "src/server/infrastructure/schema.ts": "af923f078ee149a2ba61ed6d837900ea0ceab1c362c58fab26abca7feb205319",
+    "src/server/modules/project-closures.ts": "8fbb8e11808268f757c39569217d7d28e58c9e1132fecbed0cab6c44035e9b37",
+    "src/server/modules/project-core.ts": "554824186f031f9937764ff7f5d86b393dd0536ec9156c3f571daa0ac3cd662d",
+    "src/server/modules/project-records.ts": "cf2120dd68775be94e4c57ec8237c56efd36179568949d70f03d17f643ed7723",
+    "src/server/modules/project-save.ts": "4850a962e540819b3d2571e641c60a720383c13fbd457742bcb2ee004b58ffad",
+    "src/server/modules/projects.ts": "b5ca7e2d49ac53917c67e493bb9f436559399886167ce55cd6f8d21c9e684336",
+    "migrations/0004-project-compatibility.json": "98ea64154f89c74ca08274f0d74be2998616d9b4ae4749fc9f544fb80f160e8a",
+    "scripts/verify-project-compatibility.mjs": "1b6207696324b839f7bda3f267f29cd22122e953ef97fbd2dd217eb21a1337f4",
+    "src/server/commands/compatibility-review.ts": "b23fd825df9fa46e4c645d063a429166315183f087ef4602f47eddc42da2f55e"
+  },
+  "compatibility": {
+    "status": "passed",
+    "checkedAt": "2026-10-16T06:02:39.157Z",
+    "checks": [
+      "独立新库0001至0004完整迁移：34表317列55外键",
+      "含数据0003升级：额外结构拒绝、首个DDL后进程死亡及精确续跑、旧值/计划/来源/责任/历史/回执全部保留、重复迁移不变",
+      "已应用资源摘要保护；不兼容0003构建拒绝；只读迁移差异不改旧备注及计划",
+      "新GET阶段日期排除客户/删除节点，区分无节点/部分未知/全部未知；风险读取与结案排除删除行，删除行候选拒绝且文字一同回滚",
+      "真实登录后简介/两类备注独立保存、新建、列表消费、新连接SQL；兼容应用重启后同会话、删除过滤及升级前原回执保持"
+    ],
+    "structure": {
+      "database": "geekdash_test",
+      "version": "0004-project-compatibility",
+      "checksum": "98ea64154f89c74ca08274f0d74be2998616d9b4ae4749fc9f544fb80f160e8a",
+      "tables": 34,
+      "columns": 317,
+      "foreignKeys": 55,
+      "differences": 0
+    },
+    "source": "独立MySQL实例、合成旧数据、真实HTTP和新连接；常驻两库未升级",
+    "productRiskDeleteEnabled": false,
+    "frontendAcceptance": "未执行，按P04后续页面步骤接入"
+  },
+  "readonlyReview": {
+    "status": "review_required",
+    "structure": {
+      "database": "geekdash_test",
+      "version": "0004-project-compatibility",
+      "checksum": "98ea64154f89c74ca08274f0d74be2998616d9b4ae4749fc9f544fb80f160e8a",
+      "tables": 34,
+      "columns": 317,
+      "foreignKeys": 55,
+      "differences": 0
+    },
+    "changesApplied": false,
+    "summarySources": [
+      {
+        "projectId": "1",
+        "field": "summary_note",
+        "status": "source_review_required",
+        "retained": true
+      }
+    ],
+    "stagePlans": [
+      {
+        "projectId": "1",
+        "stageCode": "S1",
+        "legacyExpectedEndOn": "2020-06-01",
+        "expectedEndOn": "2020-02-03",
+        "nodeCount": "3",
+        "undatedNodeCount": "1",
+        "differs": true
+      },
+      {
+        "projectId": "1",
+        "stageCode": "S2",
+        "legacyExpectedEndOn": "2020-06-01",
+        "expectedEndOn": null,
+        "nodeCount": "0",
+        "undatedNodeCount": "0",
+        "differs": true
+      }
+    ],
+    "legacyManagers": [
+      {
+        "projectId": "1",
+        "engineerId": "1",
+        "status": "legacy_engineer_reference",
+        "grantsPermission": false
+      }
+    ]
+  },
+  "regressions": [
+    {
+      "scriptResult": "migration-check",
+      "status": "passed",
+      "checks": [
+        {
+          "check": "initial-ddl-interruption",
+          "status": "skipped-already-complete",
+          "reason": "已有完整版本；保留现有表，不清库重测首次建表"
+        },
+        {
+          "check": "resume-and-two-migration-processes",
+          "outcomes": [
+            {
+              "exitCode": 0,
+              "result": {
+                "status": "verified",
+                "applied": false,
+                "database": "geekdash_test",
+                "version": "0004-project-compatibility",
+                "checksum": "98ea64154f89c74ca08274f0d74be2998616d9b4ae4749fc9f544fb80f160e8a",
+                "tables": 34,
+                "columns": 317,
+                "foreignKeys": 55,
+                "differences": 0
+              }
+            },
+            {
+              "exitCode": 0,
+              "result": {
+                "status": "verified",
+                "applied": false,
+                "database": "geekdash_test",
+                "version": "0004-project-compatibility",
+                "checksum": "98ea64154f89c74ca08274f0d74be2998616d9b4ae4749fc9f544fb80f160e8a",
+                "tables": 34,
+                "columns": 317,
+                "foreignKeys": 55,
+                "differences": 0
+              }
+            }
+          ],
+          "structure": {
+            "database": "geekdash_test",
+            "version": "0004-project-compatibility",
+            "checksum": "98ea64154f89c74ca08274f0d74be2998616d9b4ae4749fc9f544fb80f160e8a",
+            "tables": 34,
+            "columns": 317,
+            "foreignKeys": 55,
+            "differences": 0
+          }
+        },
+        {
+          "check": "repeat-keeps-history-unchanged",
+          "passed": true
+        },
+        {
+          "check": "changed-applied-resource-rejected",
+          "passed": true
+        },
+        {
+          "check": "lock-timeout-without-ddl",
+          "passed": true
+        },
+        {
+          "check": "complete-ddl-unregistered-process-death-and-recovery",
+          "passed": true
+        },
+        {
+          "check": "fixed-empty-text-default-accepted-dynamic-default-rejected",
+          "passed": true
+        },
+        {
+          "check": "full-version-with-missing-foreign-key-rejected",
+          "passed": true
+        },
+        {
+          "check": "check-unique-null-orphan-cross-project-and-fresh-readback",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "scriptResult": "readiness-check",
+      "status": "passed",
+      "checks": [
+        {
+          "check": "actual-start-invalid-runtime-config-exits-nonzero-with-field",
+          "passed": true
+        },
+        {
+          "check": "runtime-role-and-future-version-rejected-before-listening",
+          "passed": true
+        },
+        {
+          "check": "full-startup-schema-runtime-grants-and-twenty-http-requests",
+          "passed": true
+        },
+        {
+          "check": "checksum-failure-and-missing-constraint-block-startup-or-recovery",
+          "passed": true
+        },
+        {
+          "check": "eight-connections-exhausted-fails-fast-and-recovers",
+          "passed": true
+        },
+        {
+          "check": "real-slow-sql-timeout-live-responsive-and-new-connection-recovery",
+          "passed": true
+        },
+        {
+          "check": "actual-start-process-sigterm-clean-exit-within-budget",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "scriptResult": "project-reads-check",
+      "status": "passed",
+      "checks": [
+        {
+          "check": "actual-http-list-views-filters-pagination-literal-search-id-validation-no-write",
+          "passed": true
+        },
+        {
+          "check": "complete-project-snapshot-with-all-read-collections-and-bigint-precision",
+          "passed": true
+        },
+        {
+          "check": "real-concurrent-commit-does-not-mix-detail-versions-fresh-request-sees-new-version",
+          "passed": true
+        },
+        {
+          "check": "four-concurrent-real-list-reads-and-pool-exhaustion-recovery",
+          "passed": true,
+          "requests": 20,
+          "p95Ms": 110
+        }
+      ]
+    },
+    {
+      "scriptResult": "project-saves-check",
+      "status": "passed",
+      "checks": [
+        {
+          "check": "four-fields-atomic-save-bigint-fresh-connection-http-board-and-audit",
+          "passed": true
+        },
+        {
+          "check": "concurrent-idempotent-replay-canonical-field-order-and-key-reuse",
+          "passed": true
+        },
+        {
+          "check": "same-version-winner-only-stale-rejected-no-change-receipt-and-old-result",
+          "passed": true
+        },
+        {
+          "check": "whitelist-scope-null-type-unicode-byte-capacity-and-no-partial-write",
+          "passed": true
+        },
+        {
+          "check": "real-audit-receipt-sql-failure-rolls-back-and-real-commit-lost-ack-confirmed-once",
+          "passed": true
+        },
+        {
+          "check": "inflight-not-found-read-only-process-restart-replay-pool-failure-and-recovery",
+          "passed": true
+        },
+        {
+          "check": "four-concurrent-actual-writes-five-rounds-and-fresh-readback",
+          "passed": true,
+          "requests": 20,
+          "p95Ms": 22
+        },
+        {
+          "check": "audit-default20-max100-unbounded-total-stable-cursor-legacy-separated-index",
+          "passed": true,
+          "totalRead": 515,
+          "selectedIndex": "PRIMARY",
+          "accessType": "range"
+        }
+      ]
+    },
+    {
+      "scriptResult": "project-core-report",
+      "status": "passed",
+      "checks": [
+        "真实临时登录、强制改密、CSRF、改密后重新登录和旧会话撤销",
+        "创建项目及七阶段、真实创建者、自动负责、重复创建对账、非负责人只读和最后退出拒绝",
+        "本人加入、实名普通保存及新连接回读、回执账号隔离、统一版本冲突及实名历史",
+        "保存及创建审计故障：项目、七阶段、关系、版本和回执整体回滚",
+        "同时退出仅一个成功，提交后丢失响应、应用重建后原责任回执与持久会话接续",
+        "四个真实账号同版本并发保存仅一个成功，其他冲突可恢复",
+        "事务内拒绝已停用身份快照；旧匿名历史保留且只读确认，不伪造实名",
+        "后台请求不续期、真实前台活动续期、到期不可复活、明确退出撤销当前会话"
+      ]
+    },
+    {
+      "scriptResult": "project-risks-check",
+      "status": "passed",
+      "checks": [
+        "新增与文字统一一次版本/事务、预览不写、实名/正式ID及新SQL/HTTP/历史消费，旧正文规范化重投保持",
+        "原稳定风险内容/等级/说明纠错、真人解除/撤销与复发新增；原创建/解除人时间及历史快照不改，同值无审计版本，同次临时引用",
+        "内容/枚举/原因、跨项目/未知/重复临时键、重复动作与有限白名单拒绝整份，未指定风险保持，不允许注入时间身份状态或删除",
+        "四真实会话同版本只有一次提交，旧版/失权/事务内停用与CSRF不能绕过；失败保留持久状态",
+        "各SQL写点完整回滚；真实COMMIT后丢确认、应用重建原会话/正文/ID映射与新读保持，旧成功重投不重写"
+      ]
+    },
+    {
+      "scriptResult": "project-nodes-check",
+      "status": "passed",
+      "checks": [
+        "两类原字段、四节点/风险/文字同事务；直接前置与同次完成、日期无额外顺序；明确下游集合、完成纠错与移动同值",
+        "明确旧线替换与双向残留清除、未完成前置下游纠错；新循环拒绝路径、旧循环保留后明确拆除",
+        "项目/客户字段白名单、同项目ID/阶段/临时引用与日期位置边界；旧来源保持，非法混合整份不提交",
+        "四会话同版本只一成功；旧版本/退出负责拒绝；事务内停用复核和本人原结果恢复",
+        "信息/位置/清线/置线/多节点/审计/回执写点全回滚；真实COMMIT丢确认后原会话/映射/关系/历史恢复，无业务自动联动"
+      ]
+    },
+    {
+      "scriptResult": "project-close-check",
+      "status": "passed",
+      "checks": [
+        "提案人工结案保留0%与计划快照、当前日期未知/类型/说明纠错、原审计不变、维护分类/无变化、重开保留最新普通及当前计划、两周期绑定",
+        "真实S1启动/S2、进行中与暂缓结案三目标重开、暂停来源保持、闭案日期纠错继续有效、真实进度/首次义务保持且不生成检查",
+        "合成全阶段完成仍人工结案、真实节点/风险遗留必填及保留、全完成重开不凭空开工、没有遗留时说明可空",
+        "旧完结合成事实保留过去日期/未知来源、不重演结案、不伪造身份、可靠重开依据门槛",
+        "两负责人同版本一赢家、只读/普通PATCH不能越界、原编号绑定账号与正文、快照/版本/审计/回执故障全回滚、真实COMMIT丢确认后原会话与全部原结果恢复",
+        "重开/维护/当前纠错分别与另一负责人普通保存竞争，仅一次新版本；已停用账号拒绝，无业务副作用",
+        "可控业务时钟：结案结果跨日保持、关闭默认检查、真实日期与操作时间分离、首次义务不重置"
+      ]
+    }
+  ],
+  "resident": {
+    "checkedAt": "2026-10-16T06:13:16.411Z",
+    "scope": "常驻geekdash-dev实例只读结构核验",
+    "results": [
+      {
+        "database": "geekdash_dev",
+        "version": "0003-node-recovery",
+        "checksum": "4a5b38bd7c84ea230d9d2b1b0b7f93c575107f20c5df9968109901c09296e578",
+        "tables": 34,
+        "columns": 315,
+        "foreignKeys": 55,
+        "differences": 0
+      },
+      {
+        "database": "geekdash_test",
+        "version": "0003-node-recovery",
+        "checksum": "4a5b38bd7c84ea230d9d2b1b0b7f93c575107f20c5df9968109901c09296e578",
+        "tables": 34,
+        "columns": 315,
+        "foreignKeys": 55,
+        "differences": 0
+      }
+    ]
+  },
+  "foundation": {
+    "status": "passed",
+    "source": "test-results/p04-foundation.log",
+    "checks": "真实HTTP、构建资源、未就绪反馈、源码隔离、无效配置、失败构建保留旧产物"
+  },
+  "notVerified": [
+    "网页新字段消费与新版交互",
+    "实际部署镜像切换回退",
+    "全量备份恢复",
+    "真实数据导入",
+    "公网运行回读"
+  ]
+}

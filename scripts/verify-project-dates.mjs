@@ -9,6 +9,8 @@ import { projectReads } from '../dist/server/modules/projects.js';
 import { addDays, businessToday, deadlineResult, validDate } from '../dist/server/modules/project-dates.js';
 
 const { connection: c } = await connectDatabase('test_migrator');
+assert.equal(process.env.GEEKDASH_MIGRATION_PROBE,'1');
+assert.equal((await c.query('SELECT @@server_uuid uuid'))[0][0].uuid,process.env.GEEKDASH_MIGRATION_PROBE_SERVER_UUID);
 const prefix = 'dates_' + randomUUID().slice(0, 8), password = '日期验收 password 长短语 2026';
 const users = [], projects = [], checks = [], measurements = [];
 let runtime, app, origin, fault = '', projectWrites = 0, ownConfig = false;
@@ -124,7 +126,7 @@ try {
   fault = ''; assert.deepEqual(await fresh(id), before, '历史更正与当前计划的审计失败一起回滚');
   await b.api(path + '/responsibility', 'POST', { action: 'join', expectedVersion: version, idempotencyKey: randomUUID() }); version = String(BigInt(version) + 1n);
   const stale = command(version, 'setPlan', { dueDate: current }); await a.api(path + '/actions/preview', 'POST', stale);
-  version = (await b.api(path, 'PATCH', { expectedVersion: version, idempotencyKey: randomUUID(), changes: { detailNote: '他人先保存' } })).result.savedVersion;
+  version = (await b.api(path, 'PATCH', { scope:'basic', expectedVersion: version, idempotencyKey: randomUUID(), changes: { detailNote: '他人先保存' } })).result.savedVersion;
   await a.api(path + '/actions', 'POST', stale, 409);
   const race = await Promise.allSettled([a.api(path + '/actions', 'POST', command(version, 'setPlan', { dueDate: current })), b.api(path + '/actions', 'POST', command(version, 'setPlan', { dueDate: addDays(today, 1) }))]);
   assert.equal(race.filter(result => result.status === 'fulfilled').length, 1); version = (await a.api(path)).project.version;
@@ -177,7 +179,7 @@ try {
   for (const invalid of ['2025-02-29', '2024-02-30', '2026-13-01', '0000-01-01']) assert(!validDate(invalid));
   assert.equal(deadlineResult({ status: 'ongoing', dueDate: '2024-02-28' }, '2024-03-01').days, 2);
   assert.equal(deadlineResult({ status: 'ongoing', dueDate: '2025-12-31' }, '2026-01-01').days, 1);
-  await a.api(path, 'PATCH', { expectedVersion: version, idempotencyKey: randomUUID(), changes: { manualDelayed: true } }, 400);
+  await a.api(path, 'PATCH', { scope:'basic', expectedVersion: version, idempotencyKey: randomUUID(), changes: { manualDelayed: true } }, 400);
   checks.push('统一服务器业务日、全部未结案/结案/终止/未知结果、同条件筛选与范围聚合、闰日年末/午夜两侧，原人工值不参与且直接写拒绝，跨日不写项目/历史');
   const build = (await a.api('/api/health/live')).build;
   await mkdir('test-results', { recursive: true }); await writeFile('test-results/project-dates-check.json', JSON.stringify({ status: 'passed', checkedAt: new Date().toISOString(), checks, requestCount: measurements.length, measurements, build, isolatedTestDatabase: true }, null, 2) + '\n');

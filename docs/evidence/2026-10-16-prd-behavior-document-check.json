@@ -1,0 +1,41 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-16T08:41:44.502114+00:00",
+  "markdownFiles": 21,
+  "localLinks": 611,
+  "anchors": 124,
+  "unchangedMigrations": {
+    "migrations/0001-foundation.json": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+    "migrations/0002-trial-save.json": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695",
+    "migrations/0003-node-recovery.json": "4a5b38bd7c84ea230d9d2b1b0b7f93c575107f20c5df9968109901c09296e578"
+  },
+  "nextCandidateNotValidatedByDocumentCheck": true,
+  "commonOutcomeRows": 24,
+  "featureGroups": 19,
+  "featureOutcomeRows": 204,
+  "phaseInternalSteps": 16,
+  "businessTestsExecuted": false,
+  "sections": {
+    "9.1": 24,
+    "9.2": 10,
+    "9.3": 9,
+    "9.4": 14,
+    "9.5": 8,
+    "9.6": 8,
+    "9.7": 13,
+    "9.8": 14,
+    "9.9": 9,
+    "9.10": 12,
+    "9.11": 7,
+    "9.12": 16,
+    "9.13": 18,
+    "9.14": 7,
+    "9.15": 12,
+    "9.16": 7,
+    "9.17": 9,
+    "9.18": 10,
+    "9.19": 7,
+    "9.20": 14,
+    "9.22": 16
+  }
+}

@@ -7,7 +7,9 @@ import { openRuntimeDatabase } from '../dist/server/infrastructure/runtime-datab
 import { hashPassword, identities } from '../dist/server/modules/identity.js';
 import { projectActions, validateAction } from '../dist/server/modules/project-actions.js';
 
+assert.equal(process.env.GEEKDASH_MIGRATION_PROBE, '1', '仅在独立测试实例执行');
 const { connection: c } = await connectDatabase('test_migrator');
+assert.equal((await c.query('SELECT @@server_uuid uuid'))[0][0].uuid, process.env.GEEKDASH_MIGRATION_PROBE_SERVER_UUID);
 const prefix = 'stage_' + randomUUID().slice(0, 8), password = '阶段验收 password 长短语 2026';
 const users = [], projects = [], checks = [], measurements = [];
 let app, runtime, origin, fault = '';
@@ -101,7 +103,7 @@ try {
   await c.execute("UPDATE projects SET status='ongoing',started_on='2026-10-09' WHERE id=?", [id]);
   await a.api(actionPath, 'POST', command('4', 'startStage', 'S2', '2020-01-01'), 422);
   const s2 = command('4', 'startStage', 'S2');
-  const races = await Promise.allSettled([a.api(actionPath, 'POST', s2), b.api(path, 'PATCH', { expectedVersion: '4', idempotencyKey: randomUUID(), changes: { detailNote: '并发普通保存' } })]);
+  const races = await Promise.allSettled([a.api(actionPath, 'POST', s2), b.api(path, 'PATCH', { expectedVersion: '4', idempotencyKey: randomUUID(), scope: 'basic', changes: { detailNote: '并发普通保存' } })]);
   assert.equal(races.filter(r => r.status === 'fulfilled').length, 1); assert.equal((await fresh(id)).p.version, '5');
   if ((await fresh(id)).stages[1].state !== 'active') await a.api(actionPath, 'POST', command('5', 'startStage', 'S2'));
   let version = (await fresh(id)).p.version;

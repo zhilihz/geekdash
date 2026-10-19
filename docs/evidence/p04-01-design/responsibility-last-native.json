@@ -1,0 +1,4 @@
+{
+  "projectId": "9007199254760274",
+  "state": "Browser tab: 1064368100, Title: \"GeekDash 项目详情\", URL: \"http://127.0.0.1:41865/project-detail.html?id=9007199254760274\".\nThe following is a diff from the previous accessibility tree with ~ and + representing changed and added elements, respectively. Removed elements are summarized by ID range.\nRemoved element IDs: 98-99\n~\t\t\t22 button 修改标签, ID: tags-edit\n~\t\t32 button 本次检查\n~\t\t33 button 重新进入项目, ID: reload\n~\t\t\t\t37 button 修改, ID: basic-edit\n~\t\t\t\t\t97 button 本人退出, ID: responsibility-save\n~\t\t\t\t43 text entry area (settable) Description: 最新状态说明, Value: 原生协作验收：正式说明已更新，等待下一轮联调。 @P04原生工程师1017, ID: edit-statusDesc\n+\t98 container project-notice\n+\t\t99 text 需要处理\n+\t\t100 text 请先由其他人加入负责范围，再退出。\n+\t\t101 button Description: 关闭提示, ID: notice-close\nThe focused UI element is 0 AXWebArea GeekDash 项目详情, URL: 127.0.0.1:41865/project-detail.html?id=9007199254760274"
+}

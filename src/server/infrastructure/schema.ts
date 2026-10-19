@@ -23,7 +23,7 @@ export async function loadSchema() {
   let manifest = structuredClone(foundation);
   const history = [{ version: foundation.version, checksum: createHash('sha256').update(bytes).digest() }];
   const increments: { previous: Manifest; manifest: Manifest; steps: { table: string; sql: string; columns?: Column[]; indexes?: Index[]; checks?: Check[] }[] }[] = [];
-  for (const [version, count] of [['0002-trial-save', 3], ['0003-node-recovery', 1]] as const) {
+  for (const [version, count] of [['0002-trial-save', 3], ['0003-node-recovery', 1], ['0004-project-compatibility', 2]] as const) {
     const bytes = await readFile(new URL('../../migrations/' + version + '.json', import.meta.url));
     const delta = JSON.parse(bytes.toString('utf8')) as { version: string; steps: typeof increments[number]['steps'] };
     if (delta.version !== version || delta.steps.length !== count) fail('DB_MIGRATION_RESOURCE_INVALID');
@@ -78,10 +78,12 @@ async function readStructure(connection: Connection) {
       fkMap.get(fk.name)!.references.push(fk.ref);
     }
     if (checks.some(row => row.tbl === tbl && row.enforced !== 'YES')) fail('DB_CHECK_NOT_ENFORCED');
-    if (columns.some(row => row.tbl === tbl && !['', 'auto_increment'].includes(row.extra))) fail('DB_COLUMN_EXTRA_UNSUPPORTED');
+    // MySQL将TEXT空串默认值标为DEFAULT_GENERATED；只接受这个固定字面量，仍拒绝计算列和动态默认值。
+    const emptyTextDefault = (row: RowDataPacket) => row.extra === 'DEFAULT_GENERATED' && row.type === 'text' && row.def === "_utf8mb4\\'\\'";
+    if (columns.some(row => row.tbl === tbl && !['', 'auto_increment'].includes(row.extra) && !emptyTextDefault(row))) fail('DB_COLUMN_EXTRA_UNSUPPORTED');
     result.set(tbl, {
       name: tbl, engine: table.engine, collation: table.collation,
-      columns: columns.filter(row => row.tbl === tbl).map(row => ({ name: row.name, type: row.type.replace(/(tinyint|smallint|int|bigint)\(\d+\)/g, '$1'), nullable: row.nullable === 'YES', default: row.def, autoIncrement: row.extra === 'auto_increment', charset: row.charset, collation: row.collation })),
+      columns: columns.filter(row => row.tbl === tbl).map(row => ({ name: row.name, type: row.type.replace(/(tinyint|smallint|int|bigint)\(\d+\)/g, '$1'), nullable: row.nullable === 'YES', default: emptyTextDefault(row) ? "''" : row.def, autoIncrement: row.extra === 'auto_increment', charset: row.charset, collation: row.collation })),
       indexes: [...indexMap.values()],
       checks: checks.filter(row => row.tbl === tbl).map(row => ({ name: row.name, expression: normalizeCheck(row.expression) })),
       foreignKeys: [...fkMap.values()],

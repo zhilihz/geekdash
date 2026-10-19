@@ -10,6 +10,8 @@ import { projectReads } from '../dist/server/modules/projects.js';
 import { addDays, businessToday } from '../dist/server/modules/project-dates.js';
 
 const { connection: c } = await connectDatabase('test_migrator');
+assert.equal(process.env.GEEKDASH_MIGRATION_PROBE,'1');
+assert.equal((await c.query('SELECT @@server_uuid uuid'))[0][0].uuid,process.env.GEEKDASH_MIGRATION_PROBE_SERVER_UUID);
 const prefix = 'close_' + randomUUID().slice(0, 8), password = '结案验收 password 长短语 2026';
 const users = [], projects = [], checks = [], measurements = [];
 let app, runtime, origin, fault = '', projectWrites = 0, ownConfig = false;
@@ -85,7 +87,7 @@ try {
   assert.deepEqual((await fresh(id)).audit_log.find(item => String(item.id) === firstClosure), oldAudit, '原结案行不改写');
   await perform(id, 'setMaintenance', { enabled: true, reason: '结案后持续支持' }); const noChange = await perform(id, 'setMaintenance', { enabled: true, reason: '再核对开关' }); assert.equal(noChange.out.changed, false);
   assert((await a.api('/api/projects?view=maintenance&search=' + prefix)).items.some(item => item.id === id)); assert(!(await a.api('/api/projects?view=closed&search=' + prefix)).items.some(item => item.id === id));
-  d = await detail(id); await a.api(path, 'PATCH', { expectedVersion: d.project.version, idempotencyKey: randomUUID(), changes: { summaryNote: '闭案期间最新说明', signal: 'red', priority: 'high' } });
+  for (const [scope,changes] of [['summaryNote',{summaryNote:'闭案期间最新说明'}],['signal',{signal:'red'}],['basic',{priority:'high'}]]) { d=await detail(id);await a.api(path,'PATCH',{expectedVersion:d.project.version,idempotencyKey:randomUUID(),scope,changes}); }
   d = await detail(id); await a.api(path + '/actions', 'POST', command(d.project.version, 'reschedulePlan', { dueDate: addDays(today, 15), reason: '当前计划另行调整', measures: '' }));
   await perform(id, 'reopenProject', { closureAuditId: firstClosure, reason: '恢复项目核对' }); d = await detail(id);
   assert.equal(d.project.status, 'proposal'); assert.equal(d.project.maintenanceEnabled, 0); assert.equal(d.project.summaryNote, '闭案期间最新说明'); assert.equal(d.project.dueDate, addDays(today, 15)); assert.equal(d.project.signal, 'red'); assert.equal(d.currentClosure, null);
@@ -153,7 +155,7 @@ try {
   await committed.user.api(rp + '/actions', 'POST', { ...committed.body, closureNote: '改变正文复用编号' }, 409);
   d = await detail(raceId); before = await fresh(raceId);
   await maint.api(rp + '/actions', 'POST', command(d.project.version, 'setMaintenance', { enabled: true, reason: '非负责人' }), 403); assert.deepEqual(await fresh(raceId), before);
-  await a.api(rp, 'PATCH', { expectedVersion: d.project.version, idempotencyKey: randomUUID(), changes: { maintenanceEnabled: true } }, 400); assert.deepEqual(await fresh(raceId), before);
+  await a.api(rp, 'PATCH', { scope:'basic', expectedVersion: d.project.version, idempotencyKey: randomUUID(), changes: { maintenanceEnabled: true } }, 400); assert.deepEqual(await fresh(raceId), before);
   const reopen = { closureAuditId: d.currentClosure.auditId, reason: '故障检查' };
   for (const point of ['middle', 'INSERT INTO audit_log', 'INSERT INTO command_receipts']) { fault = point; projectWrites = 0; await a.api(rp + '/actions', 'POST', command(d.project.version, 'reopenProject', reopen), 503); fault = ''; assert.deepEqual(await fresh(raceId), before, point + '全部回滚'); }
   const ackBody = command(d.project.version, 'reopenProject', reopen); fault = 'ack'; await a.api(rp + '/actions', 'POST', ackBody, 503); fault = '';
@@ -172,7 +174,7 @@ try {
     d = await detail(raceId); const originalVersion = d.project.version, source = d.currentClosure.auditId;
     const extra = action === 'reopenProject' ? { closureAuditId: source, reason: '并发重开' } : action === 'setMaintenance' ? { enabled: !d.project.maintenanceEnabled, reason: '并发维护' } : { closureAuditId: source, changes: { closureNote: '并发纠正' }, reason: '并发纠错' };
     before = await fresh(raceId);
-    const responses = await Promise.all([a.api(rp + '/actions', 'POST', command(originalVersion, action, extra), [200,409]), b.api(rp, 'PATCH', { expectedVersion: originalVersion, idempotencyKey: randomUUID(), changes: { summaryNote: '另一负责人新文字 ' + action } }, [200,409])]);
+    const responses = await Promise.all([a.api(rp + '/actions', 'POST', command(originalVersion, action, extra), [200,409]), b.api(rp, 'PATCH', { scope:'summaryNote', expectedVersion: originalVersion, idempotencyKey: randomUUID(), changes: { summaryNote: '另一负责人新文字 ' + action } }, [200,409])]);
     assert.deepEqual(responses.map(item => item.httpStatus).sort(), [200,409]); assert.equal((await fresh(raceId)).audit_log.length, before.audit_log.length + 1);
   }
   checks.push('重开/维护/当前纠错分别与另一负责人普通保存竞争，仅一次新版本；已停用账号拒绝，无业务副作用');

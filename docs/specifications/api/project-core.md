@@ -20,7 +20,7 @@
 
 | 方法/路径 | 输入 | 成功 |
 |---|---|---|
-| POST /api/projects | idempotencyKey、fields（name 必填，marketExpectation/detailNote/summaryNote 可选） | committed；result 包含 projectId/savedVersion/operationId/changed/responsible；新建测试项目、七阶段、创建者责任、审计及回执同事务 |
+| POST /api/projects | idempotencyKey、fields（name 必填，marketExpectation/detailNote/summaryNote 可选；P04-02本地候选另接受独立summary，未部署） | committed；result 包含 projectId/savedVersion/operationId/changed/responsible；新建测试项目、七阶段、创建者责任、审计及回执同事务 |
 | POST /api/projects/create-results/query | 原创建正文 | committed 或 not_found；只读确认 |
 | POST /api/projects/:id/responsibility | expectedVersion、idempotencyKey、action（join/leave） | committed；只修改当前本人关系，变化共用项目版本 |
 | POST /api/projects/:id/responsibility-results/query | 原责任变更正文 | committed 或 not_found；只读确认 |

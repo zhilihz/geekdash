@@ -1,36 +1,117 @@
-import './shared/read.css';
 import './shared/detail.css';
-import './shared/forms.css';
-import { requireIdentity, send, SaveError, account, setupTheme, setupDateZone } from './shared/api';
+import './shared/read.css';
+import './shared/reference-picker.css';
+import { requireIdentity, get, send, SaveError, account, setupTheme, setupDateZone, esc, type EditValues, type Catalog, type CheckRuleContext } from './shared/api';
+import { basicFields, referenceSelect, type BasicIntent } from './shared/project-form';
+import { scopeFields } from './shared/scoped-editor';
+import { mountReferencePickers, syncReferencePickers } from './shared/reference-picker';
+import { PersonalDrafts, type DraftRef } from './shared/personal-state';
 setupTheme(); setupDateZone();
 const form = document.getElementById('create') as HTMLFormElement;
 const message = document.getElementById('message')!;
-type Command = { idempotencyKey: string; fields: Record<string, string> };
-let pending: Command | undefined, busy = false;
-let identityChanged = false;
+document.addEventListener('geekdash-preference-status',event=>{message.textContent=(event as CustomEvent<string>).detail;});
+type Fields = Partial<EditValues> & { filingDate?: string | null; dueDate?: string | null };
+type Command = { idempotencyKey: string; fields: Fields; draft?: DraftRef };
+let personalDrafts: PersonalDrafts | undefined;
+let pending: Command | undefined, busy = false, identityChanged = false, leaving = false;
+let catalog: Catalog | undefined, businessDate = '', errors: Record<string, string> = {};
+const value: EditValues = { name: '', summary: '', marketExpectation: '', detailNote: '', summaryNote: '', statusDesc: '', chipstatNote: '', signalNote: '', signal: 'green', priority: 'mid', customerId: null, odmCustomerId: null, productLineId: null, appId: null, groupId: null, chipIds: [], tagIds: [], people: [] };
+const draft: BasicIntent = { filingDate: '', startDate: '', dueDate: '', closedOn: '', proposalDate: '', originalDueDate: '', state: 'proposal', planKind: 'reschedule', reason: '', measures: '', closureType: 'normal', closureNote: '', remainingWorkNote: '', maintenance: false };
 const key = () => `geekdash_create:${account!.id}`;
+function fields(): Fields { return { ...Object.fromEntries(scopeFields.basic.map(key => [key, structuredClone(value[key])])), statusDesc: value.statusDesc, tagIds:value.tagIds, filingDate: draft.filingDate || null, dueDate: draft.dueDate || null }; }
+const emptyFields=JSON.stringify(fields());
+const hasInput=()=>JSON.stringify(fields())!==emptyFields;
+async function leave(destination='/'){
+  if(busy || leaving)return;
+  const choose=async(text:string,choices:[string,string][])=>{
+    const dialog=document.createElement('dialog');dialog.className='draft-dialog';dialog.innerHTML=`<h2>离开新建项目</h2><p>${esc(text)}</p><div class="entry-actions">${choices.map(([key,title])=>`<button class="back-btn" data-choice="${key}">${esc(title)}</button>`).join('')}</div>`;
+    document.body.append(dialog);dialog.querySelectorAll<HTMLButtonElement>('[data-choice]').forEach(button=>button.onclick=()=>dialog.close(button.dataset.choice));
+    const result=new Promise<string>(resolve=>dialog.addEventListener('close',()=>resolve(dialog.returnValue || 'cancel'),{once:true}));dialog.showModal();const selected=await result;dialog.remove();return selected;
+  };
+  if(hasInput() || pending){
+    const choice=await choose(pending?'原创建结果尚未确认，保留原请求后可继续核对。':'信息尚未创建为正式项目，怎样处理这些输入？',[['cancel','继续填写'],['keep','保留草稿并离开'],...pending?[]:[['discard','明确丢弃并离开'] as [string,string]]]);
+    if(choice==='cancel')return;
+    if(choice==='discard'){
+      try{await personalDrafts?.discardAll();sessionStorage.removeItem(key());}catch(error){message.textContent='尚未完成丢弃，输入已保留。'+(error as Error).message;return;}
+    }else{
+      remember();const synced=await personalDrafts?.sync();
+      if(!synced && await choose('草稿尚未全部同步，当前设备保留了副本。仍要离开吗？',[['cancel','留在这里'],['leave','保留本机副本并离开']])!=='leave')return;
+    }
+  }
+  leaving=true;location.href=destination;
+}
+function remember() {
+  if (!account || identityChanged) return;
+  try { sessionStorage.setItem(key(), JSON.stringify({ fields: fields(), pending })); }
+  catch { message.textContent = '本页恢复存储不可用，请保留页面直到保存完成。'; }
+  if(!pending)personalDrafts?.capture('create',undefined,null,{values:fields(),submission:{fields:fields()}});
+}
 function controls() {
-  form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input,textarea').forEach(input => input.disabled = busy || !!pending);
-  (document.getElementById('save') as HTMLButtonElement).disabled = busy || !!pending || !account || identityChanged;
-  for (const name of ['confirm', 'retry']) { const button = document.getElementById(name) as HTMLButtonElement; button.hidden = !pending; button.disabled = busy; }
+  form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input,textarea,select').forEach(input => input.disabled = busy || !!pending || identityChanged || !account || input.dataset.reference === 'true' && !catalog);
+  (document.getElementById('save') as HTMLButtonElement | null)?.toggleAttribute('disabled', busy || !!pending || !account || identityChanged);
+  for (const name of ['confirm', 'retry']) { const button = document.getElementById(name) as HTMLButtonElement; button.hidden = !pending; button.disabled = busy || identityChanged; }
+  syncReferencePickers();
+}
+function render() {
+  const reference = (key: string, table: string, role?: string) => {
+    const ids = key === 'people' ? value.people.filter(person => person.role === role).map(person => person.id) : value[key as keyof EditValues];
+    return referenceSelect(key, catalog?.[table] ?? [], Array.isArray(ids) ? ids as string[] : ids ? [String(ids)] : [], [], role);
+  };
+  form.innerHTML = `<section class="project-info"><h2>基本信息与项目分工</h2>${basicFields({ project: { status: 'proposal', chips: [], people: [] }, businessDate, stages: [], nodes: [], risks: [] }, value, draft, true, reference, errors, true)}</section><section class="status-editor"><h2>最新状态说明</h2><textarea id="edit-statusDesc" rows="4" aria-label="最新状态说明">${esc(value.statusDesc)}</textarea><span class="field-error">${esc(errors.statusDesc)}</span></section><div class="entry-actions"><button id="save" type="submit" class="save-btn">保存并进入项目</button><button id="cancel" type="button" class="back-btn">取消</button></div>`;
+  document.getElementById('responsibility')!.textContent = account ? account.name + '（保存后负责）' : '读取当前账号…';
+  form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input[id^="edit-"],textarea[id^="edit-"]').forEach(input => {
+    input.oninput = () => { const name = input.id.slice(5); if (input.dataset.basic) Object.assign(draft, { [input.dataset.basic]: input.value }); else Object.assign(value, { [name]: input.value }); delete errors[name]; const error = document.getElementById('error-' + name); if (error) error.textContent = ''; remember(); };
+  });
+  form.querySelectorAll<HTMLSelectElement>('select').forEach(input => input.onchange = () => {
+    const name = input.id.replace(/^edit-|-source$/g, '');
+    if (name.startsWith('people-')) {
+      const role = name.slice(7); value.people = [...value.people.filter(person => person.role !== role), ...[...input.selectedOptions].map(option => ({ id: option.value, role }))];
+    } else Object.assign(value, { [name]: input.multiple ? [...input.selectedOptions].map(option => option.value) : input.value || null });
+    remember();
+  });
+  document.getElementById('cancel')!.onclick = () => { void leave(); };
+  mountReferencePickers(form); controls();
 }
 async function execute(confirm: boolean) {
-  if (!pending || busy) return; busy = true; controls();
+  if (!pending || busy || identityChanged) return; busy = true; controls();
   try {
-    const result = await send<{ outcome: string; result?: { projectId: string } }>(confirm ? '/api/projects/create-results/query' : '/api/projects', 'POST', pending, !confirm);
-    if (result.outcome === 'committed') { sessionStorage.removeItem(key()); pending = undefined; form.reset(); location.replace('/project-detail.html?id=' + result.result!.projectId); }
+    const result = await send<{ outcome: string; result?: { projectId: string;operationId:string;savedVersion:string;draft?:DraftRef&{instanceId:string;state:string} } }>(confirm ? '/api/projects/create-results/query' : '/api/projects', 'POST', pending, !confirm);
+    if (result.outcome === 'committed') { await personalDrafts?.advance(result.result!,{kind:'create'});sessionStorage.removeItem(key()); pending = undefined; leaving = true; location.replace('/project-detail.html?id=' + result.result!.projectId); }
     else message.textContent = '暂未查到原创建结果；可重试原创建，不要另建重复项目。';
   } catch (error) {
     message.textContent = error instanceof SaveError && error.fields ? Object.values(error.fields).join('；') : (error as Error).message;
-    if (error instanceof SaveError && error.outcome === 'not_committed' && !['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID'].includes(error.code)) { pending = undefined; sessionStorage.removeItem(key()); }
+    if (error instanceof SaveError && error.outcome === 'not_committed' && !['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'OPERATION_KEY_REUSED'].includes(error.code)) {
+      pending = undefined; errors = error.fields ?? {}; remember(); render(); document.getElementById('edit-' + Object.keys(errors)[0])?.focus();
+    }
   } finally { busy = false; controls(); }
 }
-form.onsubmit = event => { event.preventDefault(); if (pending || busy || !account) return; pending = { idempotencyKey: crypto.randomUUID(), fields: Object.fromEntries(new FormData(form)) as Record<string, string> }; try { sessionStorage.setItem(key(), JSON.stringify(pending)); } catch { message.textContent = '恢复存储不可用，请保留此页面直到结果确认。'; } void execute(false); };
+form.onsubmit = event => { event.preventDefault(); if (pending || busy || !account || identityChanged) return; void(async()=>{
+  remember();busy=true;controls();const submitted=fields(),ref=await personalDrafts?.prepare('create');
+  if(identityChanged){busy=false;controls();return;}
+  pending={idempotencyKey:crypto.randomUUID(),fields:submitted,...ref?{draft:ref}:{}};busy=false;remember();await execute(false);
+})(); };
 document.getElementById('confirm')!.onclick = () => { void execute(true); };
 document.getElementById('retry')!.onclick = () => { void execute(false); };
+document.getElementById('options-retry')!.onclick = () => { void loadCatalog(); };
+async function loadCatalog() {
+  try { catalog = await get<Catalog>('/api/project-options'); document.getElementById('options-retry')!.hidden = true; render(); }
+  catch { document.getElementById('options-retry')!.hidden = false; message.textContent = '候选资料暂未读到，输入已保留。可重试读取，或先创建已填写的内容。'; controls(); }
+}
 document.addEventListener('geekdash-identity-changed', () => { identityChanged = true; message.textContent = '账号已变化，请保留本页输入，重新登录原账号再核对。'; controls(); });
-window.addEventListener('beforeunload', event => { if (pending || [...form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input,textarea')].some(input => !!input.value)) event.preventDefault(); });
-void requireIdentity().then(() => {
-  const saved = sessionStorage.getItem(key()); if (saved) { pending = JSON.parse(saved); for (const [name, value] of Object.entries(pending!.fields)) (form.elements.namedItem(name) as HTMLInputElement).value = value; }
-  controls(); if (pending) void execute(true);
+document.querySelectorAll<HTMLAnchorElement>('.project-nav a, .topbar a.back-btn').forEach(link=>{link.onclick=event=>{event.preventDefault();void leave(link.href);};});
+window.addEventListener('beforeunload', event => { if (!leaving && (pending || hasInput())){remember();event.preventDefault();} });
+void requireIdentity().then(async () => {
+  personalDrafts=new PersonalDrafts(null,()=>({version:null,editable:!identityChanged && !pending && !busy}),row=>{
+    if(pending || busy || identityChanged)return false;
+    if(hasInput() && !confirm('恢复底稿将替换当前新建输入，是否继续？'))return false;
+    const restored=row.payload.values;if(!restored)return false;
+    for(const name of Object.keys(value))if(Object.hasOwn(restored,name))Object.assign(value,{[name]:structuredClone(restored[name])});
+    draft.filingDate=String(restored.filingDate ?? '');draft.dueDate=String(restored.dueDate ?? '');render();remember();message.textContent='底稿已恢复，点击保存才会创建正式项目。';return true;
+  });
+  const saved = sessionStorage.getItem(key());
+  if (saved) try { const stored = JSON.parse(saved); pending = stored.idempotencyKey ? stored : stored.pending; const restored = stored.fields; if (restored && typeof restored === 'object' && (pending || confirm('发现本标签页的新建底稿，是否恢复？恢复后仍需明确保存项目。'))) { for (const name of Object.keys(value)) if (Object.hasOwn(restored, name)) Object.assign(value, { [name]: restored[name] }); draft.filingDate = restored.filingDate ?? ''; draft.dueDate = restored.dueDate ?? ''; } }
+  catch { message.textContent = '本页旧稿无法读取，请核对后重新填写。'; }
+  render();
+  try { businessDate = (await get<CheckRuleContext>('/api/settings/check-rule')).businessDate; } catch { /* 日期最终由服务器按业务时区校验。 */ }
+  await loadCatalog(); if (pending) void execute(true);
 }).catch(error => { message.textContent = (error as Error).message; document.getElementById('login')!.hidden = false; controls(); });

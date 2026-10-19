@@ -1,0 +1,2542 @@
+{
+  "date": "2026-10-16",
+  "kind": "Figma设计收口；未进入应用",
+  "source": {
+    "fileKey": "leQy2Be9GaTXPvZeooQuIF",
+    "pageId": "142:3499",
+    "branch": "codex/p04-plan-reassessment",
+    "baseline": "f07450eafc94f0756f09260d0026968f09102e65"
+  },
+  "component": {
+    "createdNodeIds": [
+      "425:3546",
+      "425:3543",
+      "425:3544",
+      "425:3545"
+    ],
+    "mutatedNodeIds": [],
+    "componentId": "425:3546",
+    "properties": {
+      "label": "标签#425:0",
+      "value": "内容#425:1"
+    },
+    "width": 360,
+    "height": 121
+  },
+  "componentReplacements": {
+    "createdNodeIds": [
+      "426:4721",
+      "I426:4721;425:3543",
+      "I426:4721;425:3544",
+      "I426:4721;425:3545",
+      "426:4728",
+      "I426:4728;425:3543",
+      "I426:4728;425:3544",
+      "I426:4728;425:3545",
+      "426:4735",
+      "I426:4735;425:3543",
+      "I426:4735;425:3544",
+      "I426:4735;425:3545",
+      "426:4739",
+      "I426:4739;425:3543",
+      "I426:4739;425:3544",
+      "I426:4739;425:3545",
+      "426:4743",
+      "I426:4743;425:3543",
+      "I426:4743;425:3544",
+      "I426:4743;425:3545",
+      "426:4747",
+      "I426:4747;425:3543",
+      "I426:4747;425:3544",
+      "I426:4747;425:3545",
+      "426:4751",
+      "I426:4751;425:3543",
+      "I426:4751;425:3544",
+      "I426:4751;425:3545",
+      "426:4755",
+      "I426:4755;425:3543",
+      "I426:4755;425:3544",
+      "I426:4755;425:3545",
+      "426:4759",
+      "I426:4759;425:3543",
+      "I426:4759;425:3544",
+      "I426:4759;425:3545",
+      "426:4763",
+      "I426:4763;425:3543",
+      "I426:4763;425:3544",
+      "I426:4763;425:3545",
+      "426:4767",
+      "I426:4767;425:3543",
+      "I426:4767;425:3544",
+      "I426:4767;425:3545",
+      "426:4771",
+      "I426:4771;425:3543",
+      "I426:4771;425:3544",
+      "I426:4771;425:3545",
+      "426:4775",
+      "I426:4775;425:3543",
+      "I426:4775;425:3544",
+      "I426:4775;425:3545"
+    ],
+    "mutatedNodeIds": [
+      "400:4820",
+      "400:4979",
+      "400:5138",
+      "405:4775",
+      "405:4915",
+      "166:4363",
+      "405:5013",
+      "405:4815",
+      "405:5111",
+      "166:4391",
+      "406:4902"
+    ],
+    "removedNodeIds": [
+      "414:5046",
+      "414:5047",
+      "414:5048",
+      "414:5049",
+      "414:5050",
+      "414:5051",
+      "414:5052",
+      "414:5053",
+      "414:5054",
+      "414:5055",
+      "414:5056",
+      "414:5057",
+      "414:5058",
+      "414:5059",
+      "414:5060",
+      "414:5061",
+      "414:5062",
+      "414:5063",
+      "414:5064",
+      "414:5065",
+      "414:5066",
+      "414:5067",
+      "414:5068",
+      "414:5069",
+      "414:5070",
+      "414:5071",
+      "414:5072",
+      "414:5073",
+      "414:5074",
+      "414:5075",
+      "414:5076",
+      "414:5077",
+      "414:5078",
+      "414:5079",
+      "414:5080",
+      "414:5081",
+      "414:5082",
+      "414:5083",
+      "414:5084",
+      "414:5085",
+      "414:5086",
+      "414:5087",
+      "414:5088",
+      "414:5089",
+      "414:5090",
+      "414:5091",
+      "414:5092",
+      "414:5093",
+      "414:5094",
+      "414:5095",
+      "414:5096",
+      "414:5097"
+    ],
+    "replacements": [
+      {
+        "old": "414:5046",
+        "current": "426:4721",
+        "binding": "VariableID:400:4793"
+      },
+      {
+        "old": "414:5050",
+        "current": "426:4728",
+        "binding": "VariableID:400:4952"
+      },
+      {
+        "old": "414:5054",
+        "current": "426:4735",
+        "binding": "VariableID:400:5111"
+      },
+      {
+        "old": "414:5058",
+        "current": "426:4739",
+        "binding": "VariableID:405:4858"
+      },
+      {
+        "old": "414:5062",
+        "current": "426:4743",
+        "binding": "VariableID:405:4864"
+      },
+      {
+        "old": "414:5066",
+        "current": "426:4747",
+        "binding": "VariableID:405:4956"
+      },
+      {
+        "old": "414:5070",
+        "current": "426:4751",
+        "binding": "VariableID:405:4962"
+      },
+      {
+        "old": "414:5074",
+        "current": "426:4755",
+        "binding": "VariableID:405:5054"
+      },
+      {
+        "old": "414:5078",
+        "current": "426:4759",
+        "binding": "VariableID:405:5060"
+      },
+      {
+        "old": "414:5082",
+        "current": "426:4763",
+        "binding": "VariableID:406:4954"
+      },
+      {
+        "old": "414:5086",
+        "current": "426:4767",
+        "binding": "VariableID:406:4956"
+      },
+      {
+        "old": "414:5090",
+        "current": "426:4771",
+        "binding": "VariableID:406:5122"
+      },
+      {
+        "old": "414:5094",
+        "current": "426:4775",
+        "binding": "VariableID:406:5124"
+      }
+    ],
+    "componentId": "425:3546"
+  },
+  "nodeDatesAndCycle": {
+    "createdNodeIds": [
+      "427:5053",
+      "427:5055",
+      "I427:5055;2:108",
+      "427:5058",
+      "I427:5058;2:108",
+      "427:5061",
+      "I427:5061;2:108",
+      "427:5064",
+      "427:5065",
+      "I427:5065;2:108"
+    ],
+    "mutatedNodeIds": [
+      "427:5053",
+      "146:4081",
+      "I146:4093;2:120",
+      "146:4093",
+      "I427:5055;2:108",
+      "427:5055",
+      "I427:5058;2:108",
+      "427:5058",
+      "I427:5061;2:108",
+      "427:5061",
+      "427:5064",
+      "I427:5065;2:108",
+      "427:5065",
+      "330:4880",
+      "330:4882",
+      "146:4117",
+      "146:4272"
+    ],
+    "variables": {
+      "节点日期展开": "VariableID:427:5050",
+      "阶段节点日期不齐": "VariableID:427:5051",
+      "本次节点可保存": "VariableID:427:5052"
+    },
+    "controls": {
+      "date/open": "146:4093",
+      "date/2026-10-22": "427:5055",
+      "date/2026-10-24": "427:5058",
+      "date/待确定": "427:5061",
+      "dependency/cycle": "427:5065",
+      "dependency/330:4880": "330:4880",
+      "dependency/330:4882": "330:4882",
+      "save/146:4011": "146:4117",
+      "save/146:4119": "146:4272"
+    },
+    "scope": "有限候选和错误反馈；任意日期汇总、循环检测及跨阶段移动在P04-08工程验收"
+  },
+  "retainedRecordInputs": {
+    "createdNodeIds": [
+      "428:5057",
+      "428:5058",
+      "428:5059",
+      "428:5060",
+      "428:5062",
+      "428:5064",
+      "428:5065",
+      "428:5066",
+      "428:5068",
+      "428:5069",
+      "428:5070",
+      "428:5072",
+      "428:5073",
+      "428:5074",
+      "428:5076",
+      "428:5077",
+      "428:5078",
+      "428:5079",
+      "428:5081",
+      "428:5083",
+      "428:5084",
+      "428:5085",
+      "428:5087",
+      "428:5088",
+      "428:5089",
+      "428:5091",
+      "428:5092",
+      "428:5093",
+      "428:5095",
+      "428:5096",
+      "428:5097",
+      "428:5098",
+      "428:5100",
+      "428:5102",
+      "428:5103",
+      "428:5104",
+      "428:5106",
+      "428:5107",
+      "428:5108",
+      "428:5110",
+      "428:5111",
+      "428:5112",
+      "428:5114",
+      "428:5115",
+      "428:5116",
+      "428:5117",
+      "428:5119",
+      "428:5121",
+      "428:5122",
+      "428:5123",
+      "428:5125",
+      "428:5126",
+      "428:5127",
+      "428:5129",
+      "428:5130",
+      "428:5131",
+      "428:5133",
+      "428:5134",
+      "428:5135",
+      "428:5136",
+      "428:5138",
+      "428:5140",
+      "428:5141",
+      "428:5142",
+      "428:5144",
+      "428:5145",
+      "428:5146",
+      "428:5148",
+      "428:5149",
+      "428:5150",
+      "428:5152",
+      "428:5153",
+      "428:5154",
+      "428:5155",
+      "428:5157",
+      "428:5159",
+      "428:5160",
+      "428:5161",
+      "428:5163",
+      "428:5164",
+      "428:5165",
+      "428:5167",
+      "428:5168",
+      "428:5169",
+      "428:5171",
+      "428:5172",
+      "428:5173",
+      "428:5174",
+      "428:5176",
+      "428:5178",
+      "428:5179",
+      "428:5180",
+      "428:5182",
+      "428:5183",
+      "428:5184",
+      "428:5186",
+      "428:5187",
+      "428:5188",
+      "428:5190",
+      "428:5191",
+      "428:5192",
+      "428:5193",
+      "428:5195",
+      "428:5197",
+      "428:5198",
+      "428:5199",
+      "428:5201",
+      "428:5202",
+      "428:5203",
+      "428:5205",
+      "428:5206",
+      "428:5207",
+      "428:5209",
+      "428:5210",
+      "428:5211",
+      "428:5212",
+      "428:5214",
+      "428:5216",
+      "428:5217",
+      "428:5218",
+      "428:5220",
+      "428:5221",
+      "428:5222",
+      "428:5223",
+      "428:5224",
+      "428:5225",
+      "428:5226",
+      "428:5227",
+      "428:5228",
+      "428:5229",
+      "428:5230",
+      "428:5231",
+      "428:5232",
+      "428:5233",
+      "428:5234",
+      "428:5235",
+      "428:5236",
+      "428:5237",
+      "428:5238",
+      "428:5239",
+      "428:5240",
+      "428:5241",
+      "428:5242",
+      "428:5243",
+      "428:5244",
+      "428:5245",
+      "428:5246",
+      "428:5247",
+      "428:5248",
+      "428:5249",
+      "428:5250",
+      "428:5251",
+      "428:5252",
+      "428:5253",
+      "428:5254",
+      "428:5255",
+      "428:5256",
+      "428:5257",
+      "428:5258",
+      "428:5259",
+      "428:5260",
+      "428:5261",
+      "428:5262",
+      "428:5263",
+      "428:5264",
+      "428:5265",
+      "428:5266",
+      "428:5267",
+      "428:5268",
+      "428:5269",
+      "428:5270",
+      "428:5271",
+      "428:5272",
+      "428:5273",
+      "428:5274",
+      "428:5275",
+      "428:5276",
+      "428:5277",
+      "428:5278",
+      "428:5279",
+      "428:5280",
+      "428:5281",
+      "428:5282",
+      "428:5283",
+      "428:5284",
+      "428:5285",
+      "428:5286",
+      "428:5287",
+      "428:5288",
+      "428:5289",
+      "428:5290",
+      "428:5291",
+      "428:5292",
+      "428:5293",
+      "428:5294",
+      "428:5295",
+      "428:5296",
+      "428:5297",
+      "428:5298",
+      "428:5299",
+      "428:5300",
+      "428:5301",
+      "428:5302",
+      "428:5303",
+      "428:5304",
+      "428:5305",
+      "428:5306",
+      "428:5307",
+      "428:5308",
+      "428:5309",
+      "428:5310",
+      "428:5311",
+      "428:5312",
+      "428:5313",
+      "428:5314",
+      "428:5315",
+      "428:5316",
+      "428:5317",
+      "428:5318",
+      "428:5319",
+      "428:5320",
+      "428:5321",
+      "428:5322",
+      "428:5323",
+      "428:5324",
+      "428:5325",
+      "428:5326",
+      "428:5327",
+      "428:5328",
+      "428:5329",
+      "428:5330",
+      "428:5331",
+      "428:5332",
+      "428:5333",
+      "428:5334",
+      "428:5335",
+      "428:5336",
+      "428:5337",
+      "428:5338",
+      "428:5339",
+      "428:5340",
+      "428:5341",
+      "428:5342",
+      "428:5343",
+      "428:5344",
+      "428:5345",
+      "428:5474",
+      "428:5475",
+      "428:5476",
+      "I428:5476;2:108",
+      "428:5479",
+      "428:5480",
+      "428:5481",
+      "I428:5481;2:108",
+      "428:5529",
+      "428:5530",
+      "428:5531",
+      "I428:5531;2:108",
+      "428:5579",
+      "428:5580",
+      "428:5581",
+      "I428:5581;2:108"
+    ],
+    "mutatedNodeIds": [
+      "428:5057",
+      "428:5060",
+      "428:5066",
+      "428:5064",
+      "428:5070",
+      "428:5068",
+      "428:5074",
+      "428:5072",
+      "428:5078",
+      "428:5076",
+      "428:5079",
+      "428:5085",
+      "428:5083",
+      "428:5089",
+      "428:5087",
+      "428:5093",
+      "428:5091",
+      "428:5097",
+      "428:5095",
+      "428:5098",
+      "428:5104",
+      "428:5102",
+      "428:5108",
+      "428:5106",
+      "428:5112",
+      "428:5110",
+      "428:5116",
+      "428:5114",
+      "428:5117",
+      "428:5123",
+      "428:5121",
+      "428:5127",
+      "428:5125",
+      "428:5131",
+      "428:5129",
+      "428:5135",
+      "428:5133",
+      "428:5136",
+      "428:5142",
+      "428:5140",
+      "428:5146",
+      "428:5144",
+      "428:5150",
+      "428:5148",
+      "428:5154",
+      "428:5152",
+      "428:5155",
+      "428:5161",
+      "428:5159",
+      "428:5165",
+      "428:5163",
+      "428:5169",
+      "428:5167",
+      "428:5173",
+      "428:5171",
+      "428:5174",
+      "428:5180",
+      "428:5178",
+      "428:5184",
+      "428:5182",
+      "428:5188",
+      "428:5186",
+      "428:5192",
+      "428:5190",
+      "428:5193",
+      "428:5199",
+      "428:5197",
+      "428:5203",
+      "428:5201",
+      "428:5207",
+      "428:5205",
+      "428:5211",
+      "428:5209",
+      "428:5212",
+      "428:5218",
+      "428:5216",
+      "428:5222",
+      "428:5220",
+      "428:5223",
+      "155:4453",
+      "323:5498",
+      "303:5472",
+      "303:5484",
+      "303:5496",
+      "428:5474",
+      "I428:5476;2:108",
+      "428:5476",
+      "247:4581",
+      "428:5479",
+      "I428:5481;2:108",
+      "428:5481",
+      "247:4583",
+      "428:5529",
+      "I428:5531;2:108",
+      "428:5531",
+      "247:4580",
+      "428:5579",
+      "I428:5581;2:108",
+      "428:5581",
+      "250:4575"
+    ],
+    "variables": {
+      "交期风险/有修改": "VariableID:428:5061",
+      "交期风险/风险内容/变化": "VariableID:428:5063",
+      "交期风险/风险等级/变化": "VariableID:428:5067",
+      "交期风险/处理情况/变化": "VariableID:428:5071",
+      "交期风险/解除说明/变化": "VariableID:428:5075",
+      "功耗风险/有修改": "VariableID:428:5080",
+      "功耗风险/风险内容/变化": "VariableID:428:5082",
+      "功耗风险/风险等级/变化": "VariableID:428:5086",
+      "功耗风险/处理情况/变化": "VariableID:428:5090",
+      "功耗风险/解除说明/变化": "VariableID:428:5094",
+      "新增风险/有修改": "VariableID:428:5099",
+      "新增风险/风险内容/变化": "VariableID:428:5101",
+      "新增风险/风险等级/变化": "VariableID:428:5105",
+      "新增风险/处理情况/变化": "VariableID:428:5109",
+      "新增风险/解除说明/变化": "VariableID:428:5113",
+      "离线记录变更/有修改": "VariableID:428:5118",
+      "离线记录变更/来源/变化": "VariableID:428:5120",
+      "离线记录变更/决定/变化": "VariableID:428:5124",
+      "离线记录变更/需求内容/变化": "VariableID:428:5128",
+      "离线记录变更/决定理由/变化": "VariableID:428:5132",
+      "新增需求变更/有修改": "VariableID:428:5137",
+      "新增需求变更/来源/变化": "VariableID:428:5139",
+      "新增需求变更/决定/变化": "VariableID:428:5143",
+      "新增需求变更/需求内容/变化": "VariableID:428:5147",
+      "新增需求变更/决定理由/变化": "VariableID:428:5151",
+      "客户节点 · 样品/有修改": "VariableID:428:5156",
+      "客户节点 · 样品/名称/变化": "VariableID:428:5158",
+      "客户节点 · 样品/截止/变化": "VariableID:428:5162",
+      "客户节点 · 样品/完成/变化": "VariableID:428:5166",
+      "客户节点 · 样品/备注/变化": "VariableID:428:5170",
+      "客户节点 · 外观/有修改": "VariableID:428:5175",
+      "客户节点 · 外观/名称/变化": "VariableID:428:5177",
+      "客户节点 · 外观/截止/变化": "VariableID:428:5181",
+      "客户节点 · 外观/完成/变化": "VariableID:428:5185",
+      "客户节点 · 外观/备注/变化": "VariableID:428:5189",
+      "客户节点 · 新增/有修改": "VariableID:428:5194",
+      "客户节点 · 新增/名称/变化": "VariableID:428:5196",
+      "客户节点 · 新增/截止/变化": "VariableID:428:5200",
+      "客户节点 · 新增/完成/变化": "VariableID:428:5204",
+      "客户节点 · 新增/备注/变化": "VariableID:428:5208",
+      "项目节点 · EVT 软件联调/有修改": "VariableID:428:5213",
+      "项目节点 · EVT 软件联调/预期完成/变化": "VariableID:428:5215",
+      "项目节点 · EVT 软件联调/实际完成/变化": "VariableID:428:5219"
+    },
+    "controls": {
+      "copy/155:4453": "155:4453",
+      "copy/323:5498": "323:5498",
+      "copy/303:5472": "303:5472",
+      "copy/303:5484": "303:5484",
+      "copy/303:5496": "303:5496",
+      "frozen/149:3793": "428:5476",
+      "frozen/149:3986": "428:5481",
+      "frozen/146:4011": "428:5531",
+      "frozen/146:4119": "428:5581"
+    },
+    "copySheet": "428:5057",
+    "fields": [
+      {
+        "node": "428:5066",
+        "draft": "VariableID:405:4858",
+        "saved": "VariableID:405:4857",
+        "visibility": "VariableID:428:5063"
+      },
+      {
+        "node": "428:5070",
+        "draft": "VariableID:405:4860",
+        "saved": "VariableID:405:4859",
+        "visibility": "VariableID:428:5067"
+      },
+      {
+        "node": "428:5074",
+        "draft": "VariableID:405:4862",
+        "saved": "VariableID:405:4861",
+        "visibility": "VariableID:428:5071"
+      },
+      {
+        "node": "428:5078",
+        "draft": "VariableID:405:4864",
+        "saved": "VariableID:405:4863",
+        "visibility": "VariableID:428:5075"
+      },
+      {
+        "node": "428:5085",
+        "draft": "VariableID:405:4956",
+        "saved": "VariableID:405:4955",
+        "visibility": "VariableID:428:5082"
+      },
+      {
+        "node": "428:5089",
+        "draft": "VariableID:405:4958",
+        "saved": "VariableID:405:4957",
+        "visibility": "VariableID:428:5086"
+      },
+      {
+        "node": "428:5093",
+        "draft": "VariableID:405:4960",
+        "saved": "VariableID:405:4959",
+        "visibility": "VariableID:428:5090"
+      },
+      {
+        "node": "428:5097",
+        "draft": "VariableID:405:4962",
+        "saved": "VariableID:405:4961",
+        "visibility": "VariableID:428:5094"
+      },
+      {
+        "node": "428:5104",
+        "draft": "VariableID:405:5054",
+        "saved": "VariableID:405:5053",
+        "visibility": "VariableID:428:5101"
+      },
+      {
+        "node": "428:5108",
+        "draft": "VariableID:405:5056",
+        "saved": "VariableID:405:5055",
+        "visibility": "VariableID:428:5105"
+      },
+      {
+        "node": "428:5112",
+        "draft": "VariableID:405:5058",
+        "saved": "VariableID:405:5057",
+        "visibility": "VariableID:428:5109"
+      },
+      {
+        "node": "428:5116",
+        "draft": "VariableID:405:5060",
+        "saved": "VariableID:405:5059",
+        "visibility": "VariableID:428:5113"
+      },
+      {
+        "node": "428:5123",
+        "draft": "VariableID:406:4950",
+        "saved": "VariableID:406:4949",
+        "visibility": "VariableID:428:5120"
+      },
+      {
+        "node": "428:5127",
+        "draft": "VariableID:406:4952",
+        "saved": "VariableID:406:4951",
+        "visibility": "VariableID:428:5124"
+      },
+      {
+        "node": "428:5131",
+        "draft": "VariableID:406:4954",
+        "saved": "VariableID:406:4953",
+        "visibility": "VariableID:428:5128"
+      },
+      {
+        "node": "428:5135",
+        "draft": "VariableID:406:4956",
+        "saved": "VariableID:406:4955",
+        "visibility": "VariableID:428:5132"
+      },
+      {
+        "node": "428:5142",
+        "draft": "VariableID:406:5118",
+        "saved": "VariableID:406:5117",
+        "visibility": "VariableID:428:5139"
+      },
+      {
+        "node": "428:5146",
+        "draft": "VariableID:406:5120",
+        "saved": "VariableID:406:5119",
+        "visibility": "VariableID:428:5143"
+      },
+      {
+        "node": "428:5150",
+        "draft": "VariableID:406:5122",
+        "saved": "VariableID:406:5121",
+        "visibility": "VariableID:428:5147"
+      },
+      {
+        "node": "428:5154",
+        "draft": "VariableID:406:5124",
+        "saved": "VariableID:406:5123",
+        "visibility": "VariableID:428:5151"
+      },
+      {
+        "node": "428:5161",
+        "draft": "VariableID:400:4787",
+        "saved": "VariableID:400:4786",
+        "visibility": "VariableID:428:5158"
+      },
+      {
+        "node": "428:5165",
+        "draft": "VariableID:400:4789",
+        "saved": "VariableID:400:4788",
+        "visibility": "VariableID:428:5162"
+      },
+      {
+        "node": "428:5169",
+        "draft": "VariableID:400:4791",
+        "saved": "VariableID:400:4790",
+        "visibility": "VariableID:428:5166"
+      },
+      {
+        "node": "428:5173",
+        "draft": "VariableID:400:4793",
+        "saved": "VariableID:400:4792",
+        "visibility": "VariableID:428:5170"
+      },
+      {
+        "node": "428:5180",
+        "draft": "VariableID:400:4946",
+        "saved": "VariableID:400:4945",
+        "visibility": "VariableID:428:5177"
+      },
+      {
+        "node": "428:5184",
+        "draft": "VariableID:400:4948",
+        "saved": "VariableID:400:4947",
+        "visibility": "VariableID:428:5181"
+      },
+      {
+        "node": "428:5188",
+        "draft": "VariableID:400:4950",
+        "saved": "VariableID:400:4949",
+        "visibility": "VariableID:428:5185"
+      },
+      {
+        "node": "428:5192",
+        "draft": "VariableID:400:4952",
+        "saved": "VariableID:400:4951",
+        "visibility": "VariableID:428:5189"
+      },
+      {
+        "node": "428:5199",
+        "draft": "VariableID:400:5105",
+        "saved": "VariableID:400:5104",
+        "visibility": "VariableID:428:5196"
+      },
+      {
+        "node": "428:5203",
+        "draft": "VariableID:400:5107",
+        "saved": "VariableID:400:5106",
+        "visibility": "VariableID:428:5200"
+      },
+      {
+        "node": "428:5207",
+        "draft": "VariableID:400:5109",
+        "saved": "VariableID:400:5108",
+        "visibility": "VariableID:428:5204"
+      },
+      {
+        "node": "428:5211",
+        "draft": "VariableID:400:5111",
+        "saved": "VariableID:400:5110",
+        "visibility": "VariableID:428:5208"
+      },
+      {
+        "node": "428:5218",
+        "draft": "VariableID:285:4690",
+        "saved": "VariableID:347:4877",
+        "visibility": "VariableID:428:5215"
+      },
+      {
+        "node": "428:5222",
+        "draft": "VariableID:330:4841",
+        "saved": "VariableID:330:4843",
+        "visibility": "VariableID:428:5219"
+      }
+    ],
+    "scope": "只展示当前各记录实际变化的待存值；真实剪贴板、服务器草稿及跨设备恢复归工程验证"
+  },
+  "responsive": {
+    "createdNodeIds": [],
+    "mutatedNodeIds": [
+      "144:3786",
+      "144:3787",
+      "144:3801",
+      "247:4576",
+      "162:4364",
+      "321:5486",
+      "321:5487",
+      "321:5494",
+      "321:5512",
+      "321:5519",
+      "162:4404",
+      "321:5526",
+      "I162:4428;2:121",
+      "162:4447",
+      "162:4452",
+      "323:5506",
+      "428:5223",
+      "428:5226",
+      "428:5228",
+      "428:5231",
+      "428:5234",
+      "428:5237",
+      "428:5240",
+      "428:5242",
+      "428:5245",
+      "428:5248",
+      "428:5251",
+      "428:5254",
+      "428:5256",
+      "428:5259",
+      "428:5262",
+      "428:5265",
+      "428:5268",
+      "428:5270",
+      "428:5273",
+      "428:5276",
+      "428:5279",
+      "428:5282",
+      "428:5284",
+      "428:5287",
+      "428:5290",
+      "428:5293",
+      "428:5296",
+      "428:5298",
+      "428:5301",
+      "428:5304",
+      "428:5307",
+      "428:5310",
+      "428:5312",
+      "428:5315",
+      "428:5318",
+      "428:5321",
+      "428:5324",
+      "428:5326",
+      "428:5329",
+      "428:5332",
+      "428:5335",
+      "428:5338",
+      "428:5340",
+      "428:5343",
+      "144:3804",
+      "162:4378",
+      "162:4379",
+      "162:4383",
+      "162:4387",
+      "162:4391",
+      "162:4392",
+      "162:4396",
+      "162:4400",
+      "162:4405",
+      "162:4406",
+      "162:4410",
+      "162:4414",
+      "279:4691",
+      "162:4418",
+      "162:4419",
+      "162:4423",
+      "162:4427",
+      "162:4428",
+      "162:4437",
+      "279:4710",
+      "279:4713",
+      "279:4724",
+      "162:4365",
+      "162:4433",
+      "162:4448",
+      "144:3809",
+      "331:5549",
+      "I162:4370;2:122",
+      "321:5493",
+      "321:5505",
+      "321:5511",
+      "321:5513",
+      "324:5552",
+      "321:5520",
+      "324:5553",
+      "321:5532",
+      "303:5503",
+      "I162:4419;2:122",
+      "I162:4423;2:122",
+      "I162:4428;2:122",
+      "I279:4696;2:122",
+      "303:5505",
+      "162:4453",
+      "162:4454",
+      "323:5507",
+      "323:5508",
+      "323:5509",
+      "323:5510",
+      "323:5511",
+      "323:5512",
+      "428:5224",
+      "428:5225",
+      "428:5227",
+      "428:5229",
+      "428:5230",
+      "428:5232",
+      "428:5233",
+      "428:5235",
+      "428:5236",
+      "428:5238",
+      "428:5239",
+      "428:5241",
+      "428:5243",
+      "428:5244",
+      "428:5246",
+      "428:5247",
+      "428:5249",
+      "428:5250",
+      "428:5252",
+      "428:5253",
+      "428:5255",
+      "428:5257",
+      "428:5258",
+      "428:5260",
+      "428:5261",
+      "428:5263",
+      "428:5264",
+      "428:5266",
+      "428:5267",
+      "428:5269",
+      "428:5271",
+      "428:5272",
+      "428:5274",
+      "428:5275",
+      "428:5277",
+      "428:5278",
+      "428:5280",
+      "428:5281",
+      "428:5283",
+      "428:5285",
+      "428:5286",
+      "428:5288",
+      "428:5289",
+      "428:5291",
+      "428:5292",
+      "428:5294",
+      "428:5295",
+      "428:5297",
+      "428:5299",
+      "428:5300",
+      "428:5302",
+      "428:5303",
+      "428:5305",
+      "428:5306",
+      "428:5308",
+      "428:5309",
+      "428:5311",
+      "428:5313",
+      "428:5314",
+      "428:5316",
+      "428:5317",
+      "428:5319",
+      "428:5320",
+      "428:5322",
+      "428:5323",
+      "428:5325",
+      "428:5327",
+      "428:5328",
+      "428:5330",
+      "428:5331",
+      "428:5333",
+      "428:5334",
+      "428:5336",
+      "428:5337",
+      "428:5339",
+      "428:5341",
+      "428:5342",
+      "428:5344",
+      "428:5345",
+      "144:3783"
+    ],
+    "before": [
+      {
+        "id": "144:3786",
+        "paddingLeft": 300,
+        "paddingRight": 300,
+        "counterAxisAlignItems": "MIN",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "144:3787",
+        "layoutSizingHorizontal": "FIXED",
+        "maxWidth": null
+      },
+      {
+        "id": "144:3801",
+        "layoutSizingHorizontal": "FIXED",
+        "maxWidth": null
+      },
+      {
+        "id": "247:4576",
+        "layoutSizingHorizontal": "FIXED",
+        "maxWidth": null
+      },
+      {
+        "id": "162:4364",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "321:5486",
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "321:5487",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "321:5494",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "321:5512",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "321:5519",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "162:4404",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "321:5526",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "I162:4428;2:121",
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "162:4447",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "162:4452",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "323:5506",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5223",
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "428:5226",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5228",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5231",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5234",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5237",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5240",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5242",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5245",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5248",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5251",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5254",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5256",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5259",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5262",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5265",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5268",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5270",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5273",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5276",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5279",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5282",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5284",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5287",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5290",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5293",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5296",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5298",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5301",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5304",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5307",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5310",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5312",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5315",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5318",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5321",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5324",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5326",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5329",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5332",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5335",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5338",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5340",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5343",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "144:3804",
+        "layoutSizingHorizontal": "FIXED",
+        "layoutWrap": "NO_WRAP",
+        "counterAxisSpacing": 0
+      },
+      {
+        "id": "144:3787",
+        "layoutSizingHorizontal": "FILL",
+        "layoutWrap": "NO_WRAP",
+        "counterAxisSpacing": 0
+      },
+      {
+        "id": "162:4378",
+        "layoutSizingHorizontal": "FIXED",
+        "layoutWrap": "NO_WRAP",
+        "counterAxisSpacing": 0
+      },
+      {
+        "id": "162:4379",
+        "minWidth": null,
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "162:4383",
+        "minWidth": null,
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "162:4387",
+        "minWidth": null,
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "162:4391",
+        "layoutSizingHorizontal": "FIXED",
+        "layoutWrap": "NO_WRAP",
+        "counterAxisSpacing": 0
+      },
+      {
+        "id": "162:4392",
+        "minWidth": null,
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "162:4396",
+        "minWidth": null,
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "162:4400",
+        "minWidth": null,
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "162:4405",
+        "layoutSizingHorizontal": "FILL",
+        "layoutWrap": "NO_WRAP",
+        "counterAxisSpacing": 0
+      },
+      {
+        "id": "162:4406",
+        "minWidth": null,
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "162:4410",
+        "minWidth": null,
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "162:4414",
+        "minWidth": null,
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "279:4691",
+        "minWidth": null,
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "162:4418",
+        "layoutSizingHorizontal": "FIXED",
+        "layoutWrap": "NO_WRAP",
+        "counterAxisSpacing": 0
+      },
+      {
+        "id": "162:4419",
+        "minWidth": null,
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "162:4423",
+        "minWidth": null,
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "162:4427",
+        "layoutSizingHorizontal": "FIXED",
+        "layoutWrap": "NO_WRAP",
+        "counterAxisSpacing": 0
+      },
+      {
+        "id": "162:4428",
+        "minWidth": null,
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "162:4437",
+        "layoutSizingHorizontal": "FILL",
+        "layoutWrap": "NO_WRAP",
+        "counterAxisSpacing": 0
+      },
+      {
+        "id": "279:4710",
+        "minWidth": null,
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "279:4713",
+        "minWidth": null,
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "279:4724",
+        "minWidth": null,
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "162:4365",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "162:4433",
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "162:4448",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "144:3801",
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "144:3809",
+        "layoutSizingHorizontal": "FIXED",
+        "clipsContent": true,
+        "overflowDirection": "NONE"
+      },
+      {
+        "id": "331:5549",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "I162:4370;2:122",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "321:5493",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "321:5505",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "321:5511",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "321:5513",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "324:5552",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "321:5520",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "324:5553",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "321:5532",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "303:5503",
+        "textAutoResize": "NONE",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "I162:4419;2:122",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "I162:4423;2:122",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "I162:4428;2:122",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "I279:4696;2:122",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "303:5505",
+        "textAutoResize": "NONE",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "162:4453",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "162:4454",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "323:5507",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "323:5508",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "323:5509",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "323:5510",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "323:5511",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "323:5512",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FILL"
+      },
+      {
+        "id": "428:5224",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5225",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5227",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5229",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5230",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5232",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5233",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5235",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5236",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5238",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5239",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5241",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5243",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5244",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5246",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5247",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5249",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5250",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5252",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5253",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5255",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5257",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5258",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5260",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5261",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5263",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5264",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5266",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5267",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5269",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5271",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5272",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5274",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5275",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5277",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5278",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5280",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5281",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5283",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5285",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5286",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5288",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5289",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5291",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5292",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5294",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5295",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5297",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5299",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5300",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5302",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5303",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5305",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5306",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5308",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5309",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5311",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5313",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5314",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5316",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5317",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5319",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5320",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5322",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5323",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5325",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5327",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5328",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5330",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5331",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5333",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5334",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5336",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5337",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5339",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5341",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5342",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5344",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      },
+      {
+        "id": "428:5345",
+        "textAutoResize": "HEIGHT",
+        "layoutSizingHorizontal": "FIXED"
+      }
+    ],
+    "width": 390,
+    "scope": "W04同一画板在窄屏下换行；原宽屏840内容宽度保持，未添加另一页面"
+  },
+  "layoutAndOpacityFix": {
+    "createdNodeIds": [],
+    "mutatedNodeIds": [
+      "323:5523",
+      "323:5503",
+      "331:5550",
+      "303:5472",
+      "303:5473",
+      "303:5484",
+      "303:5485",
+      "303:5496",
+      "303:5497",
+      "300:5493",
+      "155:4455",
+      "321:5487",
+      "321:5494",
+      "321:5512",
+      "321:5519",
+      "321:5532",
+      "162:4364",
+      "162:4369",
+      "162:4370",
+      "162:4374",
+      "279:4695",
+      "279:4696",
+      "279:4700"
+    ],
+    "removedNodeIds": [
+      "321:5486"
+    ],
+    "opacityVariable": "VariableID:332:4793",
+    "opacityDefault": {
+      "30:0": 100
+    },
+    "buttonOpacity": 1
+  },
+  "verification": {
+    "tests": [
+      {
+        "name": "展开日期只展开候选不改日期",
+        "passed": true
+      },
+      {
+        "name": "节点日期待确定保存后取硬件日期并提示不齐",
+        "passed": true
+      },
+      {
+        "name": "Flow保存较晚日期清除不齐提示",
+        "passed": true
+      },
+      {
+        "name": "冻结后节点保存不变更已存值且保留待存输入",
+        "passed": true
+      },
+      {
+        "name": "有待确认影响时不保存节点日期",
+        "passed": true
+      },
+      {
+        "name": "循环候选提示具体环并保留原连线",
+        "passed": true
+      },
+      {
+        "name": "无改动的记录不进入保留输入列表",
+        "passed": true
+      },
+      {
+        "name": "不同记录只展示实际变化字段，保留原待存值和正式值",
+        "passed": true
+      },
+      {
+        "name": "各子记录冻结提示可转至保留输入且不清空",
+        "passed": true
+      },
+      {
+        "name": "13处多行输入均复用同一组件且保留草稿绑定",
+        "passed": true
+      },
+      {
+        "name": "34项恢复展示读取待存变量",
+        "passed": true
+      },
+      {
+        "name": "390宽下首行换行且保存按钮可见",
+        "passed": true
+      }
+    ],
+    "passed": 12,
+    "total": 12,
+    "componentChecks": [
+      {
+        "id": "426:4721",
+        "main": "425:3546",
+        "height": 121,
+        "inputHeight": 86,
+        "bound": true
+      },
+      {
+        "id": "426:4728",
+        "main": "425:3546",
+        "height": 121,
+        "inputHeight": 86,
+        "bound": true
+      },
+      {
+        "id": "426:4735",
+        "main": "425:3546",
+        "height": 121,
+        "inputHeight": 86,
+        "bound": true
+      },
+      {
+        "id": "426:4739",
+        "main": "425:3546",
+        "height": 121,
+        "inputHeight": 86,
+        "bound": true
+      },
+      {
+        "id": "426:4743",
+        "main": "425:3546",
+        "height": 121,
+        "inputHeight": 86,
+        "bound": true
+      },
+      {
+        "id": "426:4747",
+        "main": "425:3546",
+        "height": 121,
+        "inputHeight": 86,
+        "bound": true
+      },
+      {
+        "id": "426:4751",
+        "main": "425:3546",
+        "height": 121,
+        "inputHeight": 86,
+        "bound": true
+      },
+      {
+        "id": "426:4755",
+        "main": "425:3546",
+        "height": 121,
+        "inputHeight": 86,
+        "bound": true
+      },
+      {
+        "id": "426:4759",
+        "main": "425:3546",
+        "height": 121,
+        "inputHeight": 86,
+        "bound": true
+      },
+      {
+        "id": "426:4763",
+        "main": "425:3546",
+        "height": 121,
+        "inputHeight": 86,
+        "bound": true
+      },
+      {
+        "id": "426:4767",
+        "main": "425:3546",
+        "height": 121,
+        "inputHeight": 86,
+        "bound": true
+      },
+      {
+        "id": "426:4771",
+        "main": "425:3546",
+        "height": 121,
+        "inputHeight": 86,
+        "bound": true
+      },
+      {
+        "id": "426:4775",
+        "main": "425:3546",
+        "height": 121,
+        "inputHeight": 86,
+        "bound": true
+      }
+    ],
+    "method": "读取实际reactions并独立内存推演；未修改原型变量，不是Presentation或数据库验证"
+  },
+  "verificationSource": "\nawait figma.setCurrentPageAsync(await figma.getNodeByIdAsync('142:3499'));\nfigma.skipInvisibleInstanceChildren=false;const controls={\"date/open\":\"146:4093\",\"date/2026-10-22\":\"427:5055\",\"date/2026-10-24\":\"427:5058\",\"date/待确定\":\"427:5061\",\"dependency/cycle\":\"427:5065\",\"dependency/330:4880\":\"330:4880\",\"dependency/330:4882\":\"330:4882\",\"save/146:4011\":\"146:4117\",\"save/146:4119\":\"146:4272\",\"copy/155:4453\":\"155:4453\",\"copy/323:5498\":\"323:5498\",\"copy/303:5472\":\"303:5472\",\"copy/303:5484\":\"303:5484\",\"copy/303:5496\":\"303:5496\",\"frozen/149:3793\":\"428:5476\",\"frozen/149:3986\":\"428:5481\",\"frozen/146:4011\":\"428:5531\",\"frozen/146:4119\":\"428:5581\"}, fields=[{\"node\":\"428:5066\",\"draft\":\"VariableID:405:4858\",\"saved\":\"VariableID:405:4857\",\"visibility\":\"VariableID:428:5063\"},{\"node\":\"428:5070\",\"draft\":\"VariableID:405:4860\",\"saved\":\"VariableID:405:4859\",\"visibility\":\"VariableID:428:5067\"},{\"node\":\"428:5074\",\"draft\":\"VariableID:405:4862\",\"saved\":\"VariableID:405:4861\",\"visibility\":\"VariableID:428:5071\"},{\"node\":\"428:5078\",\"draft\":\"VariableID:405:4864\",\"saved\":\"VariableID:405:4863\",\"visibility\":\"VariableID:428:5075\"},{\"node\":\"428:5085\",\"draft\":\"VariableID:405:4956\",\"saved\":\"VariableID:405:4955\",\"visibility\":\"VariableID:428:5082\"},{\"node\":\"428:5089\",\"draft\":\"VariableID:405:4958\",\"saved\":\"VariableID:405:4957\",\"visibility\":\"VariableID:428:5086\"},{\"node\":\"428:5093\",\"draft\":\"VariableID:405:4960\",\"saved\":\"VariableID:405:4959\",\"visibility\":\"VariableID:428:5090\"},{\"node\":\"428:5097\",\"draft\":\"VariableID:405:4962\",\"saved\":\"VariableID:405:4961\",\"visibility\":\"VariableID:428:5094\"},{\"node\":\"428:5104\",\"draft\":\"VariableID:405:5054\",\"saved\":\"VariableID:405:5053\",\"visibility\":\"VariableID:428:5101\"},{\"node\":\"428:5108\",\"draft\":\"VariableID:405:5056\",\"saved\":\"VariableID:405:5055\",\"visibility\":\"VariableID:428:5105\"},{\"node\":\"428:5112\",\"draft\":\"VariableID:405:5058\",\"saved\":\"VariableID:405:5057\",\"visibility\":\"VariableID:428:5109\"},{\"node\":\"428:5116\",\"draft\":\"VariableID:405:5060\",\"saved\":\"VariableID:405:5059\",\"visibility\":\"VariableID:428:5113\"},{\"node\":\"428:5123\",\"draft\":\"VariableID:406:4950\",\"saved\":\"VariableID:406:4949\",\"visibility\":\"VariableID:428:5120\"},{\"node\":\"428:5127\",\"draft\":\"VariableID:406:4952\",\"saved\":\"VariableID:406:4951\",\"visibility\":\"VariableID:428:5124\"},{\"node\":\"428:5131\",\"draft\":\"VariableID:406:4954\",\"saved\":\"VariableID:406:4953\",\"visibility\":\"VariableID:428:5128\"},{\"node\":\"428:5135\",\"draft\":\"VariableID:406:4956\",\"saved\":\"VariableID:406:4955\",\"visibility\":\"VariableID:428:5132\"},{\"node\":\"428:5142\",\"draft\":\"VariableID:406:5118\",\"saved\":\"VariableID:406:5117\",\"visibility\":\"VariableID:428:5139\"},{\"node\":\"428:5146\",\"draft\":\"VariableID:406:5120\",\"saved\":\"VariableID:406:5119\",\"visibility\":\"VariableID:428:5143\"},{\"node\":\"428:5150\",\"draft\":\"VariableID:406:5122\",\"saved\":\"VariableID:406:5121\",\"visibility\":\"VariableID:428:5147\"},{\"node\":\"428:5154\",\"draft\":\"VariableID:406:5124\",\"saved\":\"VariableID:406:5123\",\"visibility\":\"VariableID:428:5151\"},{\"node\":\"428:5161\",\"draft\":\"VariableID:400:4787\",\"saved\":\"VariableID:400:4786\",\"visibility\":\"VariableID:428:5158\"},{\"node\":\"428:5165\",\"draft\":\"VariableID:400:4789\",\"saved\":\"VariableID:400:4788\",\"visibility\":\"VariableID:428:5162\"},{\"node\":\"428:5169\",\"draft\":\"VariableID:400:4791\",\"saved\":\"VariableID:400:4790\",\"visibility\":\"VariableID:428:5166\"},{\"node\":\"428:5173\",\"draft\":\"VariableID:400:4793\",\"saved\":\"VariableID:400:4792\",\"visibility\":\"VariableID:428:5170\"},{\"node\":\"428:5180\",\"draft\":\"VariableID:400:4946\",\"saved\":\"VariableID:400:4945\",\"visibility\":\"VariableID:428:5177\"},{\"node\":\"428:5184\",\"draft\":\"VariableID:400:4948\",\"saved\":\"VariableID:400:4947\",\"visibility\":\"VariableID:428:5181\"},{\"node\":\"428:5188\",\"draft\":\"VariableID:400:4950\",\"saved\":\"VariableID:400:4949\",\"visibility\":\"VariableID:428:5185\"},{\"node\":\"428:5192\",\"draft\":\"VariableID:400:4952\",\"saved\":\"VariableID:400:4951\",\"visibility\":\"VariableID:428:5189\"},{\"node\":\"428:5199\",\"draft\":\"VariableID:400:5105\",\"saved\":\"VariableID:400:5104\",\"visibility\":\"VariableID:428:5196\"},{\"node\":\"428:5203\",\"draft\":\"VariableID:400:5107\",\"saved\":\"VariableID:400:5106\",\"visibility\":\"VariableID:428:5200\"},{\"node\":\"428:5207\",\"draft\":\"VariableID:400:5109\",\"saved\":\"VariableID:400:5108\",\"visibility\":\"VariableID:428:5204\"},{\"node\":\"428:5211\",\"draft\":\"VariableID:400:5111\",\"saved\":\"VariableID:400:5110\",\"visibility\":\"VariableID:428:5208\"},{\"node\":\"428:5218\",\"draft\":\"VariableID:285:4690\",\"saved\":\"VariableID:347:4877\",\"visibility\":\"VariableID:428:5215\"},{\"node\":\"428:5222\",\"draft\":\"VariableID:330:4841\",\"saved\":\"VariableID:330:4843\",\"visibility\":\"VariableID:428:5219\"}], groups={\"交期风险/有修改\":\"VariableID:428:5061\",\"交期风险/风险内容/变化\":\"VariableID:428:5063\",\"交期风险/风险等级/变化\":\"VariableID:428:5067\",\"交期风险/处理情况/变化\":\"VariableID:428:5071\",\"交期风险/解除说明/变化\":\"VariableID:428:5075\",\"功耗风险/有修改\":\"VariableID:428:5080\",\"功耗风险/风险内容/变化\":\"VariableID:428:5082\",\"功耗风险/风险等级/变化\":\"VariableID:428:5086\",\"功耗风险/处理情况/变化\":\"VariableID:428:5090\",\"功耗风险/解除说明/变化\":\"VariableID:428:5094\",\"新增风险/有修改\":\"VariableID:428:5099\",\"新增风险/风险内容/变化\":\"VariableID:428:5101\",\"新增风险/风险等级/变化\":\"VariableID:428:5105\",\"新增风险/处理情况/变化\":\"VariableID:428:5109\",\"新增风险/解除说明/变化\":\"VariableID:428:5113\",\"离线记录变更/有修改\":\"VariableID:428:5118\",\"离线记录变更/来源/变化\":\"VariableID:428:5120\",\"离线记录变更/决定/变化\":\"VariableID:428:5124\",\"离线记录变更/需求内容/变化\":\"VariableID:428:5128\",\"离线记录变更/决定理由/变化\":\"VariableID:428:5132\",\"新增需求变更/有修改\":\"VariableID:428:5137\",\"新增需求变更/来源/变化\":\"VariableID:428:5139\",\"新增需求变更/决定/变化\":\"VariableID:428:5143\",\"新增需求变更/需求内容/变化\":\"VariableID:428:5147\",\"新增需求变更/决定理由/变化\":\"VariableID:428:5151\",\"客户节点 · 样品/有修改\":\"VariableID:428:5156\",\"客户节点 · 样品/名称/变化\":\"VariableID:428:5158\",\"客户节点 · 样品/截止/变化\":\"VariableID:428:5162\",\"客户节点 · 样品/完成/变化\":\"VariableID:428:5166\",\"客户节点 · 样品/备注/变化\":\"VariableID:428:5170\",\"客户节点 · 外观/有修改\":\"VariableID:428:5175\",\"客户节点 · 外观/名称/变化\":\"VariableID:428:5177\",\"客户节点 · 外观/截止/变化\":\"VariableID:428:5181\",\"客户节点 · 外观/完成/变化\":\"VariableID:428:5185\",\"客户节点 · 外观/备注/变化\":\"VariableID:428:5189\",\"客户节点 · 新增/有修改\":\"VariableID:428:5194\",\"客户节点 · 新增/名称/变化\":\"VariableID:428:5196\",\"客户节点 · 新增/截止/变化\":\"VariableID:428:5200\",\"客户节点 · 新增/完成/变化\":\"VariableID:428:5204\",\"客户节点 · 新增/备注/变化\":\"VariableID:428:5208\",\"项目节点 · EVT 软件联调/有修改\":\"VariableID:428:5213\",\"项目节点 · EVT 软件联调/预期完成/变化\":\"VariableID:428:5215\",\"项目节点 · EVT 软件联调/实际完成/变化\":\"VariableID:428:5219\"},components=[{\"old\":\"414:5046\",\"current\":\"426:4721\",\"binding\":\"VariableID:400:4793\"},{\"old\":\"414:5050\",\"current\":\"426:4728\",\"binding\":\"VariableID:400:4952\"},{\"old\":\"414:5054\",\"current\":\"426:4735\",\"binding\":\"VariableID:400:5111\"},{\"old\":\"414:5058\",\"current\":\"426:4739\",\"binding\":\"VariableID:405:4858\"},{\"old\":\"414:5062\",\"current\":\"426:4743\",\"binding\":\"VariableID:405:4864\"},{\"old\":\"414:5066\",\"current\":\"426:4747\",\"binding\":\"VariableID:405:4956\"},{\"old\":\"414:5070\",\"current\":\"426:4751\",\"binding\":\"VariableID:405:4962\"},{\"old\":\"414:5074\",\"current\":\"426:4755\",\"binding\":\"VariableID:405:5054\"},{\"old\":\"414:5078\",\"current\":\"426:4759\",\"binding\":\"VariableID:405:5060\"},{\"old\":\"414:5082\",\"current\":\"426:4763\",\"binding\":\"VariableID:406:4954\"},{\"old\":\"414:5086\",\"current\":\"426:4767\",\"binding\":\"VariableID:406:4956\"},{\"old\":\"414:5090\",\"current\":\"426:4771\",\"binding\":\"VariableID:406:5122\"},{\"old\":\"414:5094\",\"current\":\"426:4775\",\"binding\":\"VariableID:406:5124\"}];\nconst actions={};for(const [k,id]of Object.entries(controls))actions[k]=(await figma.getNodeByIdAsync(id)).reactions.flatMap(r=>r.actions||[r.action]).filter(Boolean);\nconst defaults={};for(const v of await figma.variables.getLocalVariablesAsync())defaults[v.id]=v.valuesByMode['30:0'];\nfunction ev(x,s){if(x.type==='VARIABLE_ALIAS')return s[x.value.id];if(x.type!=='EXPRESSION')return x.value;const a=x.value.expressionArguments.map(v=>ev(v,s));switch(x.value.expressionFunction){case'EQUALS':return a[0]===a[1];case'NOT_EQUAL':return a[0]!==a[1];case'AND':return a.every(Boolean);case'OR':return a.some(Boolean);case'NOT':return !a[0];case'LESS_THAN_OR_EQUAL':return a[0]<=a[1];default:throw Error(x.value.expressionFunction);}}\nfunction run(k,s){function apply(as){for(const a of as){if(a.type==='SET_VARIABLE')s[a.variableId]=ev(a.variableValue,s);else if(a.type==='CONDITIONAL'){for(const b of a.conditionalBlocks)if(!b.condition||ev(b.condition,s)){apply(b.actions);break;}}else if(a.type==='NODE')s.__navigation=a.destinationId;else throw Error(a.type);}}apply(actions[k]);}\n\nconst tests=[],fresh=()=>({...defaults});\nfunction ok(b,m){if(!b)throw Error(m);}function test(name,f){try{f(fresh());tests.push({name,passed:true});}catch(e){tests.push({name,passed:false,error:String(e)});}}\nconst date='VariableID:285:4690',saved='VariableID:347:4877',phase='VariableID:285:4689',partial='VariableID:427:5051',can='VariableID:323:5489';\ntest('展开日期只展开候选不改日期',s=>{run('date/open',s);ok(s['VariableID:427:5050']&&s[date]===defaults[date],'提前改变日期');});\ntest('节点日期待确定保存后取硬件日期并提示不齐',s=>{run('date/待确定',s);ok(s[phase]===defaults[phase],'保存前改阶段');run('save/146:4011',s);ok(s[saved]==='待确定'&&s[phase]==='2026-10-18'&&s[partial],'未汇总或未提示');});\ntest('Flow保存较晚日期清除不齐提示',s=>{s[partial]=true;run('date/2026-10-24',s);run('save/146:4119',s);ok(s[saved]==='2026-10-24'&&s[phase]==='2026-10-24'&&!s[partial],'Flow未消费同一日期');});\ntest('冻结后节点保存不变更已存值且保留待存输入',s=>{run('date/2026-10-24',s);s[can]=false;run('save/146:4011',s);ok(s[saved]===defaults[saved]&&s[date]==='2026-10-24'&&s['VariableID:341:4861'],'冻结覆盖');});\ntest('有待确认影响时不保存节点日期',s=>{run('date/待确定',s);s['VariableID:330:4831']=true;run('save/146:4011',s);ok(s[saved]===defaults[saved]&&!s[partial],'绕过影响确认');});\ntest('循环候选提示具体环并保留原连线',s=>{const prev=s['VariableID:330:4844'],linked=s['VariableID:330:4828'];run('dependency/cycle',s);ok(s['VariableID:341:4861']&&s['VariableID:330:4850'].includes('软件联调 → 可靠性测试 → 软件联调'),'缺路径');ok(s['VariableID:330:4844']===prev&&s['VariableID:330:4828']===linked,'覆盖原连线');run('dependency/330:4880',s);ok(!s['VariableID:341:4861'],'有效选择未恢复');});\ntest('无改动的记录不进入保留输入列表',s=>{for(const f of fields)s[f.draft]=s[f.saved];run('copy/155:4453',s);ok(fields.every(f=>s[f.visibility]===false),'冗余未改字段');});\ntest('不同记录只展示实际变化字段，保留原待存值和正式值',s=>{for(const f of fields)s[f.draft]=s[f.saved];const choices=[fields[0],fields[14],fields[23],fields[32]];for(const f of choices)s[f.draft]='收口核对 / '+f.draft;const before={...s};run('copy/155:4453',s);ok(fields.every(f=>s[f.visibility]===choices.includes(f)),'变化范围错误');ok(fields.every(f=>s[f.draft]===before[f.draft]&&s[f.saved]===before[f.saved]),'恢复入口改数据');});\ntest('各子记录冻结提示可转至保留输入且不清空',s=>{s[can]=false;s[fields[0].draft]='保留风险内容';for(const k of Object.keys(controls).filter(k=>k.startsWith('frozen/'))){run(k,s);ok(s.__navigation==='155:4407'&&s[fields[0].draft]==='保留风险内容','未到恢复页或丢输入');}});\nconst componentChecks=[];for(const c of components){const n=await figma.getNodeByIdAsync(c.current),main=await n.getMainComponentAsync(),texts=n.findAll(x=>x.type==='TEXT');componentChecks.push({id:c.current,main:main.id,height:n.height,inputHeight:(await figma.getNodeByIdAsync('I'+n.id+';425:3544')).height,bound:texts.some(t=>t.boundVariables.characters?.id===c.binding)});}\ntest('13处多行输入均复用同一组件且保留草稿绑定',s=>ok(componentChecks.length===13&&componentChecks.every(c=>c.main==='425:3546'&&c.inputHeight===86&&c.bound),'组件尺寸或绑定错误'));\nconst boundChecks=[];for(const f of fields){const n=await figma.getNodeByIdAsync(f.node);boundChecks.push(n.boundVariables.characters?.id===f.draft);}\ntest('34项恢复展示读取待存变量',s=>ok(boundChecks.length===34&&boundChecks.every(Boolean),'恢复值源错误'));\nconst root=await figma.getNodeByIdAsync('144:3783'),save=await figma.getNodeByIdAsync('162:4367'),name=await figma.getNodeByIdAsync('162:4369'),empty=await figma.getNodeByIdAsync('321:5486');\ntest('390宽下首行换行且保存按钮可见',s=>ok(root.width===390&&name.width<390&&name.layoutWrap==='WRAP'&&save.opacity===1&&!empty,'窄屏错误'));\nreturn {tests,passed:tests.filter(t=>t.passed).length,total:tests.length,componentChecks,method:'读取实际reactions并独立内存推演；未修改原型变量，不是Presentation或数据库验证'};\n",
+  "screenshotStates": {
+    "createdNodeIds": [],
+    "mutatedNodeIds": [
+      "144:3783"
+    ],
+    "restore": [
+      {
+        "id": "VariableID:225:4585",
+        "value": "✓ 基础信息已保存"
+      },
+      {
+        "id": "VariableID:225:4586",
+        "value": false
+      },
+      {
+        "id": "VariableID:285:4689",
+        "value": "2026-10-22"
+      },
+      {
+        "id": "VariableID:285:4690",
+        "value": "2026-10-22"
+      },
+      {
+        "id": "VariableID:300:5300",
+        "value": false
+      },
+      {
+        "id": "VariableID:300:5301",
+        "value": true
+      },
+      {
+        "id": "VariableID:330:4850",
+        "value": ""
+      },
+      {
+        "id": "VariableID:341:4861",
+        "value": false
+      },
+      {
+        "id": "VariableID:347:4877",
+        "value": "2026-10-22"
+      },
+      {
+        "id": "VariableID:400:4793",
+        "value": "交付 10 套样品，附功耗测试报告。"
+      },
+      {
+        "id": "VariableID:405:4858",
+        "value": "供应商尚未确认到货日，可能影响首轮送样；备选器件正在验证。"
+      },
+      {
+        "id": "VariableID:406:4954",
+        "value": "客户提出增加离线开锁记录。"
+      },
+      {
+        "id": "VariableID:427:5051",
+        "value": false
+      },
+      {
+        "id": "VariableID:427:5052",
+        "value": false
+      },
+      {
+        "id": "VariableID:428:5061",
+        "value": false
+      },
+      {
+        "id": "VariableID:428:5063",
+        "value": false
+      },
+      {
+        "id": "VariableID:428:5118",
+        "value": false
+      },
+      {
+        "id": "VariableID:428:5128",
+        "value": false
+      },
+      {
+        "id": "VariableID:428:5156",
+        "value": false
+      },
+      {
+        "id": "VariableID:428:5170",
+        "value": false
+      }
+    ],
+    "changes": [
+      {
+        "id": "VariableID:225:4585",
+        "value": "✓ 节点已保存，阶段预计日期已更新"
+      },
+      {
+        "id": "VariableID:225:4586",
+        "value": true
+      },
+      {
+        "id": "VariableID:285:4689",
+        "value": "2026-10-18"
+      },
+      {
+        "id": "VariableID:285:4690",
+        "value": "待确定"
+      },
+      {
+        "id": "VariableID:300:5300",
+        "value": true
+      },
+      {
+        "id": "VariableID:300:5301",
+        "value": false
+      },
+      {
+        "id": "VariableID:330:4850",
+        "value": "无法设置此前置：软件联调 → 可靠性测试 → 软件联调形成循环。请选择其他节点；原连线保留。"
+      },
+      {
+        "id": "VariableID:341:4861",
+        "value": true
+      },
+      {
+        "id": "VariableID:347:4877",
+        "value": "待确定"
+      },
+      {
+        "id": "VariableID:400:4793",
+        "value": "客户补充：样品附带测试报告。"
+      },
+      {
+        "id": "VariableID:405:4858",
+        "value": "供应商交期已确认，仍需跟进小批量到货。"
+      },
+      {
+        "id": "VariableID:406:4954",
+        "value": "增加离线记录功能，联网后同步。"
+      },
+      {
+        "id": "VariableID:427:5051",
+        "value": true
+      },
+      {
+        "id": "VariableID:427:5052",
+        "value": true
+      },
+      {
+        "id": "VariableID:428:5061",
+        "value": true
+      },
+      {
+        "id": "VariableID:428:5063",
+        "value": true
+      },
+      {
+        "id": "VariableID:428:5118",
+        "value": true
+      },
+      {
+        "id": "VariableID:428:5128",
+        "value": true
+      },
+      {
+        "id": "VariableID:428:5156",
+        "value": true
+      },
+      {
+        "id": "VariableID:428:5170",
+        "value": true
+      }
+    ],
+    "width": 1440,
+    "theme": {
+      "VariableCollectionId:2:4": "2:3"
+    },
+    "scope": "合成截图状态；随后恢复全部变量与深色模式"
+  },
+  "restoration": {
+    "createdNodeIds": [],
+    "mutatedNodeIds": [],
+    "restoredVariables": [
+      {
+        "id": "VariableID:225:4585",
+        "matches": true
+      },
+      {
+        "id": "VariableID:225:4586",
+        "matches": true
+      },
+      {
+        "id": "VariableID:285:4689",
+        "matches": true
+      },
+      {
+        "id": "VariableID:285:4690",
+        "matches": true
+      },
+      {
+        "id": "VariableID:300:5300",
+        "matches": true
+      },
+      {
+        "id": "VariableID:300:5301",
+        "matches": true
+      },
+      {
+        "id": "VariableID:330:4850",
+        "matches": true
+      },
+      {
+        "id": "VariableID:341:4861",
+        "matches": true
+      },
+      {
+        "id": "VariableID:347:4877",
+        "matches": true
+      },
+      {
+        "id": "VariableID:400:4793",
+        "matches": true
+      },
+      {
+        "id": "VariableID:405:4858",
+        "matches": true
+      },
+      {
+        "id": "VariableID:406:4954",
+        "matches": true
+      },
+      {
+        "id": "VariableID:427:5051",
+        "matches": true
+      },
+      {
+        "id": "VariableID:427:5052",
+        "matches": true
+      },
+      {
+        "id": "VariableID:428:5061",
+        "matches": true
+      },
+      {
+        "id": "VariableID:428:5063",
+        "matches": true
+      },
+      {
+        "id": "VariableID:428:5118",
+        "matches": true
+      },
+      {
+        "id": "VariableID:428:5128",
+        "matches": true
+      },
+      {
+        "id": "VariableID:428:5156",
+        "matches": true
+      },
+      {
+        "id": "VariableID:428:5170",
+        "matches": true
+      }
+    ],
+    "allRestored": true
+  },
+  "images": [
+    {
+      "source": "closureNarrowFinal",
+      "file": "2026-10-16-detail-narrow.png"
+    },
+    {
+      "source": "closureRecoveryShot",
+      "file": "2026-10-16-retained-record-inputs.png"
+    },
+    {
+      "source": "closureNodeShot",
+      "file": "2026-10-16-node-cycle-feedback.png"
+    },
+    {
+      "source": "closurePartialShot",
+      "file": "2026-10-16-stage-partial-dates.png"
+    },
+    {
+      "source": "closureWarmShot",
+      "file": "2026-10-16-detail-warm.png"
+    },
+    {
+      "source": "closureLightShot",
+      "file": "2026-10-16-detail-light.png"
+    },
+    {
+      "source": "closureTechShot",
+      "file": "2026-10-16-detail-tech.png"
+    },
+    {
+      "source": "closureDarkFinal",
+      "file": "2026-10-16-detail-dark.png"
+    }
+  ],
+  "finalTheme": {
+    "width": 1440,
+    "contentWidth": 840,
+    "mode": "2:1"
+  },
+  "browser": {
+    "method": "web-access / Edge",
+    "result": "Hmm, we couldn't find that one; Design file may have been deleted, moved, or made unavailable.",
+    "connector": "可以读写同一文件",
+    "presentation": "未执行",
+    "cause": "未知；不推断文件删除",
+    "ownTabClosed": true
+  },
+  "boundaries": [
+    "12项为实际reactions的独立内存推演与结构检查，不是Presentation实际点击。",
+    "窄屏仅W04正常合并编辑态390宽；四主题仅W04的1440宽，不能外推全站或弹窗。",
+    "子记录恢复为34个字段的有限示例展示，真实剪贴板、私人草稿存储及跨设备恢复尚未验证。",
+    "任意节点图/日期聚合、全量历史追加、真实查询/导出及事务持久化按P04后续工程步骤验收。",
+    "当前P04-01保留原型实点和其余视觉覆盖待验，不能关闭整个P04。"
+  ],
+  "finalRead": {
+    "page": "142:3499",
+    "frames": 37,
+    "width": 1440,
+    "theme": {
+      "VariableCollectionId:2:4": "2:1"
+    },
+    "saveOpacity": 1,
+    "vars": [
+      {
+        "id": "VariableID:300:5300",
+        "value": false
+      },
+      {
+        "id": "VariableID:427:5051",
+        "value": false
+      },
+      {
+        "id": "VariableID:341:4861",
+        "value": false
+      }
+    ]
+  },
+  "documentValidation": {
+    "markdown": 17,
+    "localLinks": 548,
+    "anchors": 104,
+    "json": 12,
+    "brokenLinks": 0,
+    "gitDiffCheck": "通过"
+  }
+}

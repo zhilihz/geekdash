@@ -4,6 +4,8 @@
 
 ## PATCH /api/projects/:id
 
+P04-02本地候选（f07450e基线+本轮改动，未部署）在原文字字段之外接受独立summary；缺省不写、空串明确清空，旧summaryNote不移动或覆盖。沿用原事务、版本和回执，旧请求摘要保持兼容；本补充不表示P04分区保存协议已实现。
+
 输入示例：
 
 ```json
@@ -14,7 +16,7 @@ id/expectedVersion 范围为1至UINT64_MAX；操作编号为小写 UUID v4。同
 
 | 字段 | JSON 类型/编码 |
 |---|---|
-| name/marketExpectation/detailNote/summaryNote/statusDesc/signalNote/chipstatNote | 字符串；说明可明确空字符串 |
+| name/marketExpectation/detailNote/summaryNote/summary/statusDesc/signalNote/chipstatNote | 字符串；说明可明确空字符串；summary为上述P04候选新增 |
 | signal | green/yellow/red |
 | priority | high/mid/low |
 | customerId/odmCustomerId/productLineId/appId/groupId | 十进制 ID 字符串或 null |

@@ -5,6 +5,11 @@ import { assertActor, type Actor } from './identity.js';
 import { failure, validId } from './project-save.js';
 import { checkContext, validDate } from './project-dates.js';
 
+export async function companyInformation(c: import('mysql2/promise').PoolConnection) {
+  const [rows]=await c.query<RowDataPacket[]>('SELECT full_name fullName,short_name shortName,manager_text managerText,name_prefix namePrefix,CAST(version AS CHAR) version FROM system_configuration WHERE id=1');
+  return rows[0] ?? null;
+}
+
 export type RuleCommand = { action: 'initializeCheckRule' | 'modifyCheckRule'; deadlineWeekday: number; expectedVersion: string; previewWeek: string; idempotencyKey: string };
 export function validateRule(value: unknown): RuleCommand {
   if (!value || typeof value !== 'object' || Array.isArray(value)) failure('INVALID_CHECK_RULE_COMMAND', 400);

@@ -9,8 +9,9 @@ export type RiskOperation =
   | { op: 'add'; tempId: string; content: string; level: RiskFields['level'] }
   | { op: 'correct'; id: string; changes: Partial<RiskFields>; reason: string }
   | { op: 'resolve'; id: string; resolution: string }
-  | { op: 'undoResolve'; id: string; reason: string };
-type Risk = RowDataPacket & RiskFields & { id: string; resolved: number; resolvedAt: string | null; actorId: string | null; createdAt: string; sourceKey: string | null; sortOrder: number; createdByName: string | null; resolvedByName: string | null };
+  | { op: 'undoResolve'; id: string; reason: string }
+  | { op: 'delete'; id: string };
+type Risk = RowDataPacket & RiskFields & { id: string; resolved: number; resolvedAt: string | null; deletedAt: string | null; actorId: string | null; createdAt: string; sourceKey: string | null; sortOrder: number; createdByName: string | null; resolvedByName: string | null };
 type RiskEvent = { op: RiskOperation['op']; id: string; before: Risk | null; after: Risk; reason: string };
 const uuid = (value: unknown): value is string => typeof value === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value);
 const object = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
@@ -19,20 +20,20 @@ const fieldKeys = ['content', 'level', 'resolution'] as const;
 export function validateRiskOps(value: unknown): RiskOperation[] {
   if (!Array.isArray(value) || !value.length) failure('INVALID_RISK_OPERATIONS', 400);
   const fields: Record<string, string> = {}, added = new Set<string>();
-  function text(value: unknown, key: string) {
+  function text(value: unknown, key: string, required = true) {
     if (typeof value !== 'string') failure('INVALID_RISK_OPERATIONS', 400);
-    if (!value.trim() || !value.isWellFormed() || Buffer.byteLength(value, 'utf8') > 65535) fields[key] = '请填写有效的非空文字，最多65535字节';
+    if (required && !value.trim() || !value.isWellFormed() || Buffer.byteLength(value, 'utf8') > 65535) fields[key] = '请填写有效的非空文字，最多65535字节';
   }
   const operations = value.map((item, index) => {
     if (!object(item)) failure('INVALID_RISK_OPERATIONS', 400);
-    const keys = item.op === 'add' ? ['op', 'tempId', 'content', 'level'] : item.op === 'correct' ? ['op', 'id', 'changes', 'reason'] : item.op === 'resolve' ? ['op', 'id', 'resolution'] : item.op === 'undoResolve' ? ['op', 'id', 'reason'] : [];
+    const keys = item.op === 'add' ? ['op', 'tempId', 'content', 'level'] : item.op === 'correct' ? ['op', 'id', 'changes', 'reason'] : item.op === 'resolve' ? ['op', 'id', 'resolution'] : item.op === 'undoResolve' ? ['op', 'id', 'reason'] : item.op === 'delete' ? ['op', 'id'] : [];
     if (!keys.length || keys.length !== Object.keys(item).length || keys.some(key => !Object.hasOwn(item, key))) failure('INVALID_RISK_OPERATIONS', 400);
     if (item.op === 'add') {
       if (!uuid(item.tempId) || added.has(item.tempId)) failure('INVALID_RISK_OPERATIONS', 400);
       added.add(item.tempId);
     } else if (!validId(item.id) && !(uuid(item.id) && added.has(item.id))) failure('INVALID_RISK_OPERATIONS', 400);
     const prefix = 'riskOps.' + index + '.';
-    if (Object.hasOwn(item, 'reason')) text(item.reason, prefix + 'reason');
+    if (Object.hasOwn(item, 'reason')) text(item.reason, prefix + 'reason', item.op !== 'correct');
     const values = item.op === 'correct' ? item.changes : item.op === 'add' ? { content: item.content, level: item.level } : item.op === 'resolve' ? { resolution: item.resolution } : {};
     if (!object(values) || item.op === 'correct' && (!Object.keys(values).length || Object.keys(values).some(key => !fieldKeys.includes(key as typeof fieldKeys[number])))) failure('INVALID_RISK_OPERATIONS', 400);
     for (const [key, value] of Object.entries(values)) {
@@ -47,7 +48,7 @@ export function validateRiskOps(value: unknown): RiskOperation[] {
 }
 async function query(connection: PoolConnection, sql: string, values: unknown[] = []) { return (await connection.query<RowDataPacket[]>({ sql, timeout: 3000 }, values))[0]; }
 export async function riskRows(connection: PoolConnection, id: string): Promise<Risk[]> {
-  const rows = await query(connection, "SELECT CAST(id AS CHAR) id,content,level,resolved,resolution,DATE_FORMAT(resolved_at,'%Y-%m-%dT%H:%i:%s.%fZ') resolvedAt,CAST(actor_id AS CHAR) actorId,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%s.%fZ') createdAt,source_key sourceKey,sort_order sortOrder FROM project_risks WHERE project_id=? ORDER BY sort_order,project_risks.id", [id]) as Risk[];
+  const rows = await query(connection, "SELECT CAST(id AS CHAR) id,content,level,resolved,resolution,DATE_FORMAT(deleted_at,'%Y-%m-%dT%H:%i:%s.%fZ') deletedAt,DATE_FORMAT(resolved_at,'%Y-%m-%dT%H:%i:%s.%fZ') resolvedAt,CAST(actor_id AS CHAR) actorId,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%s.%fZ') createdAt,source_key sourceKey,sort_order sortOrder FROM project_risks WHERE project_id=? AND deleted_at IS NULL ORDER BY sort_order,project_risks.id", [id]) as Risk[];
   if (!rows.length) return rows;
   const placeholders = rows.map(() => '?').join(',');
   const facts = await query(connection, `SELECT CAST(a.entity_id AS CHAR) id,a.action,a.actor_display_name name FROM (
@@ -65,25 +66,27 @@ export async function riskCandidate(connection: PoolConnection, id: string, oper
     let row: Risk;
     if (operation.op === 'add') {
       if (order > 4294967295) failure('RISK_ORDER_EXHAUSTED', 422);
-      row = { id: operation.tempId, content: operation.content, level: operation.level, resolved: 0, resolution: '', resolvedAt: null, actorId: actor.id, createdAt: timestamp, sourceKey: null, sortOrder: order++, createdByName: actor.name, resolvedByName: null } as Risk;
+      row = { id: operation.tempId, content: operation.content, level: operation.level, deletedAt: null, resolved: 0, resolution: '', resolvedAt: null, actorId: actor.id, createdAt: timestamp, sourceKey: null, sortOrder: order++, createdByName: actor.name, resolvedByName: null } as Risk;
       candidates.push(row); targets.set(row.id, row); events.push({ op: 'add', id: row.id, before: null, after: structuredClone(row), reason: '' }); continue;
     }
     row = targets.get(operation.id)!;
-    if (!row) failure('RISK_NOT_FOUND', 404);
+    if (!row || row.deletedAt) failure('RISK_NOT_FOUND', 404);
     const before = structuredClone(row);
     if (operation.op === 'correct') {
       if (Object.hasOwn(operation.changes, 'resolution') && !row.resolved) failure('RISK_RESOLUTION_REQUIRES_RESOLVED', 422, { fields: { ['riskOps.' + index]: '预警中的风险不能更正解除说明，请选择明确解除' } });
+      if (operation.changes.level !== undefined && operation.changes.level !== row.level && !operation.reason.trim()) failure('INVALID_PROJECT_FIELDS', 422, { fields: { ['riskOps.' + index + '.reason']: '修改风险等级需要说明原因' } });
       Object.assign(row, operation.changes);
     } else if (operation.op === 'resolve') {
       if (row.resolved) failure('RISK_ALREADY_RESOLVED', 422);
       Object.assign(row, { resolved: 1, resolution: operation.resolution, resolvedAt: timestamp, resolvedByName: actor.name });
+    } else if (operation.op === 'delete') { row.deletedAt = timestamp;
     } else {
       if (!row.resolved) failure('RISK_NOT_RESOLVED', 422);
       Object.assign(row, { resolved: 0, resolution: '', resolvedAt: null, resolvedByName: null });
     }
     if (JSON.stringify(before) !== JSON.stringify(row)) events.push({ op: operation.op, id: row.id, before, after: structuredClone(row), reason: 'reason' in operation ? operation.reason : '' });
   }
-  return { rows: candidates, events };
+  return { rows: candidates.filter(row => !row.deletedAt), events };
 }
 export async function writeRisks(connection: PoolConnection, id: string, candidate: Awaited<ReturnType<typeof riskCandidate>>, actor: Actor, versionBefore: string, versionAfter: string, requestId: string, timestamp: string) {
   const idMap: Record<string, string> = {};
@@ -92,7 +95,8 @@ export async function writeRisks(connection: PoolConnection, id: string, candida
     if (event.op === 'add') {
       await connection.execute('INSERT INTO project_risks (project_id,content,level,resolved,resolution,resolved_at,actor_id,created_at,sort_order) VALUES (?,?,?,0,\'\',NULL,?,?,?)', [id, after.content, after.level, actor.id, timestamp, after.sortOrder]);
       idMap[event.id] = (await query(connection, 'SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0].id;
-    } else await connection.execute('UPDATE project_risks SET content=?,level=?,resolved=?,resolution=?,resolved_at=? WHERE project_id=? AND id=?', [after.content, after.level, after.resolved, after.resolution, after.resolvedAt?.slice(0, 23).replace('T', ' ') ?? null, id, target]);
+    } else if (event.op === 'delete') await connection.execute('UPDATE project_risks SET deleted_at=? WHERE project_id=? AND id=?', [timestamp, id, target]);
+    else await connection.execute('UPDATE project_risks SET content=?,level=?,resolved=?,resolution=?,resolved_at=? WHERE project_id=? AND id=?', [after.content, after.level, after.resolved, after.resolution, after.resolvedAt?.slice(0, 23).replace('T', ' ') ?? null, id, target]);
     const stableId = idMap[event.id] ?? event.id;
     const before = event.before ? { ...event.before, id: stableId } : null;
     await connection.execute(`INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,version_before,version_after,before_json,after_json,request_id,created_at)
@@ -109,9 +113,9 @@ const changeFieldKeys = ['source', 'content', 'decision', 'reason'] as const;
 export function validateChangeOps(value: unknown): ChangeOperation[] {
   if (!Array.isArray(value) || !value.length) failure('INVALID_CHANGE_OPERATIONS', 400);
   const fields: Record<string, string> = {}, added = new Set<string>();
-  const text = (value: unknown, key: string) => {
+  const text = (value: unknown, key: string, required = true) => {
     if (typeof value !== 'string') failure('INVALID_CHANGE_OPERATIONS', 400);
-    if (!value.trim() || !value.isWellFormed() || Buffer.byteLength(value, 'utf8') > 65535) fields[key] = '请填写有效的非空文字，最多65535字节';
+    if (required && !value.trim() || !value.isWellFormed() || Buffer.byteLength(value, 'utf8') > 65535) fields[key] = '请填写有效的非空文字，最多65535字节';
   };
   const operations = value.map((item, index) => {
     if (!object(item)) failure('INVALID_CHANGE_OPERATIONS', 400);
@@ -123,7 +127,7 @@ export function validateChangeOps(value: unknown): ChangeOperation[] {
     } else if (!validId(item.id) && !(uuid(item.id) && added.has(item.id))) failure('INVALID_CHANGE_OPERATIONS', 400);
     const prefix = 'changeOps.' + index + '.', data = item.op === 'correct' ? item.changes : Object.fromEntries(changeFieldKeys.map(key => [key, item[key]]));
     if (!object(data) || !Object.keys(data).length || Object.keys(data).some(key => !changeFieldKeys.includes(key as typeof changeFieldKeys[number]))) failure('INVALID_CHANGE_OPERATIONS', 400);
-    if (item.op === 'correct') text(item.correctionReason, prefix + 'correctionReason');
+    if (item.op === 'correct') text(item.correctionReason, prefix + 'correctionReason', false);
     for (const [key, value] of Object.entries(data)) {
       if (key === 'source' || key === 'decision') { if (!(key === 'source' ? ['客户', '业务'] : ['accept', 'reject']).includes(value as string)) fields[prefix + key] = '请选择原面板的有效选项'; }
       else text(value, prefix + key);
@@ -153,6 +157,7 @@ export async function changeCandidate(connection: PoolConnection, id: string, op
       candidates.push(row); targets.set(row.id, row); events.push({ op: 'add', id: row.id, before: null, after: structuredClone(row), correctionReason: '' });
     } else {
       const row = targets.get(operation.id); if (!row) failure('CHANGE_NOT_FOUND', 404);
+      if (['source', 'decision'].some(key => Object.hasOwn(operation.changes, key) && operation.changes[key as keyof ChangeFields] !== row[key as keyof ChangeFields]) && !operation.correctionReason.trim()) failure('INVALID_PROJECT_FIELDS', 422, { fields: { correctionReason: '修改来源或接受/拒绝决定需要说明原因' } });
       const before = structuredClone(row); Object.assign(row, operation.changes);
       if (JSON.stringify(before) !== JSON.stringify(row)) events.push({ op: 'correct', id: row.id, before, after: structuredClone(row), correctionReason: operation.correctionReason });
     }
@@ -209,7 +214,7 @@ export function validateNodeOps(value: unknown): NodeOperation[] {
     } else if ('id' in item ? !target(item.id) : !target(item.from) || !target(item.to)) failure('INVALID_NODE_OPERATIONS', 400);
     if ((item.op === 'delete' || item.op === 'restore') && !validId(item.id)) failure('INVALID_NODE_OPERATIONS', 400);
     const prefix = 'nodeOps.' + index + '.';
-    if (Object.hasOwn(item, 'reason')) text(item.reason, prefix + 'reason', item.op === 'correct' || item.op === 'uncomplete' || item.op === 'restore');
+    if (Object.hasOwn(item, 'reason')) text(item.reason, prefix + 'reason', item.op === 'uncomplete' || item.op === 'restore');
     if (item.op === 'add' || item.op === 'correct') {
       const data = item.op === 'add' ? item.fields : item.changes;
       if (!object(data) || !Object.keys(data).length || Object.keys(data).some(key => !nodeFieldKeys.includes(key as typeof nodeFieldKeys[number]))) failure('INVALID_NODE_OPERATIONS', 400);
@@ -240,11 +245,11 @@ export async function nodeRows(connection: PoolConnection, id: string, deletedId
   const rows = await query(connection, `SELECT ${nodeColumns} FROM project_nodes n LEFT JOIN project_stages s ON s.id=n.stage_id WHERE n.project_id=? AND (n.deleted_at IS NULL${deletedIds.length ? ' OR n.id IN (' + deletedIds.map(() => '?').join(',') + ')' : ''}) ORDER BY n.sort_order,n.id`, [id, ...deletedIds]) as Node[];
   return numericPositions(rows);
 }
-export function deletedNodes(database: RuntimeDatabase, id: string, pageSize: number, before?: string) {
+export function deletedNodes(database: RuntimeDatabase, id: string, pageSize: number, before?: string, kind?: 'project' | 'customer') {
   return database.readSnapshot(async connection => {
     const projects = await query(connection, 'SELECT CAST(version AS CHAR) version FROM projects WHERE id=?', [id]);
     if (!projects.length) failure('PROJECT_NOT_FOUND', 404);
-    const rows = numericPositions(await query(connection, `SELECT ${nodeColumns} FROM project_nodes n LEFT JOIN project_stages s ON s.id=n.stage_id WHERE n.project_id=? AND n.deleted_at IS NOT NULL${before ? ' AND n.id<?' : ''} ORDER BY n.id DESC LIMIT ?`, [id, ...before ? [before] : [], pageSize + 1]) as Node[]);
+    const rows = numericPositions(await query(connection, `SELECT ${nodeColumns} FROM project_nodes n LEFT JOIN project_stages s ON s.id=n.stage_id WHERE n.project_id=? AND n.deleted_at IS NOT NULL${kind ? ' AND n.kind=?' : ''}${before ? ' AND n.id<?' : ''} ORDER BY n.id DESC LIMIT ?`, [id, ...kind ? [kind] : [], ...before ? [before] : [], pageSize + 1]) as Node[]);
     const hasMore = rows.length > pageSize; if (hasMore) rows.pop();
     const facts = rows.length ? await query(connection, `SELECT CAST(a.id AS CHAR) id,CAST(a.entity_id AS CHAR) nodeId,a.actor_display_name actorName,DATE_FORMAT(a.created_at,'%Y-%m-%dT%H:%i:%s.%fZ') createdAt,a.before_json beforeValues,a.after_json afterValues FROM (SELECT MAX(id) id FROM audit_log WHERE entity_type='project_node' AND entity_id IN (${rows.map(() => '?').join(',')}) AND JSON_TYPE(JSON_EXTRACT(after_json,'$.node.deletedAt'))='STRING' GROUP BY entity_id) targets JOIN audit_log a ON a.id=targets.id`, rows.map(row => row.id)) : [];
     const byId = new Map(facts.map(fact => [fact.nodeId, fact]));
@@ -293,6 +298,8 @@ export async function nodeCandidate(connection: PoolConnection, id: string, oper
     }
     const row = target(operation.id); touch(row.id, operation);
     if (operation.op === 'correct') {
+      const previous = target(operation.id);
+      if (['stage', 'targetDate'].some(key => Object.hasOwn(operation.changes, key) && operation.changes[key as keyof NodeFields] !== previous[key as keyof NodeFields]) && !operation.reason.trim()) failure('NODE_CORRECTION_REASON_REQUIRED', 422);
       if (row.kind === 'customer' && (Object.hasOwn(operation.changes, 'stage') || Object.hasOwn(operation.changes, 'output')) || row.kind === 'project' && Object.hasOwn(operation.changes, 'note')) failure('INVALID_NODE_OPERATIONS', 400);
       Object.assign(row, operation.changes);
     } else if (operation.op === 'move') {

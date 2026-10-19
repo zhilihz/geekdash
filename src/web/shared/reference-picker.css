@@ -3,7 +3,7 @@
 .reference-picker .reference-box:focus-within { border-color: var(--accent); outline: 1px solid var(--accent); }
 .reference-picker .reference-values { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: 5px; min-width: 0; }
 .reference-picker .reference-chips { display: contents; }
-.trial-editor .reference-picker input { flex: 1; width: 0; min-width: 96px; height: 28px; padding: 0; background: transparent; border: 0; border-radius: 0; outline: 0; font: inherit; font-size: 13px; }
+.reference-picker .reference-values input { flex: 1; width: 0; min-width: 96px; height: 28px; padding: 0; background: transparent; border: 0; border-radius: 0; outline: 0; font: inherit; font-size: 13px; }
 .reference-picker input::placeholder { color: var(--text-faint); }
 .reference-picker button { color: var(--text-dim); background: transparent; border: 0; border-radius: 4px; font: inherit; cursor: pointer; }
 .reference-picker .reference-box > button { flex: 0 0 24px; width: 24px; height: 28px; font-size: 17px; }

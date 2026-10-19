@@ -1,0 +1,15 @@
+{
+  "version": "0004-project-compatibility",
+  "steps": [
+    {
+      "table": "projects",
+      "sql": "ALTER TABLE projects ADD COLUMN summary text NOT NULL DEFAULT ('')",
+      "columns": [{"name":"summary","type":"text","nullable":false,"default":"''","autoIncrement":false,"charset":"utf8mb4","collation":"utf8mb4_0900_ai_ci"}]
+    },
+    {
+      "table": "project_risks",
+      "sql": "ALTER TABLE project_risks ADD COLUMN deleted_at datetime(3) NULL DEFAULT NULL",
+      "columns": [{"name":"deleted_at","type":"datetime(3)","nullable":true,"default":null,"autoIncrement":false,"charset":null,"collation":null}]
+    }
+  ]
+}

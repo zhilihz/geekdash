@@ -53,7 +53,7 @@ export async function closureCandidate(c: PoolConnection, id: string, project: L
   const before = Object.fromEntries(Object.keys(closureColumns).map(key => [key, project[key as keyof typeof closureColumns]]));
   const next = { ...project }, source = await currentClosure(c, id, project);
   const [nodes] = await c.query<RowDataPacket[]>("SELECT CAST(id AS CHAR) id,title,kind FROM project_nodes WHERE project_id=? AND deleted_at IS NULL AND completed_on IS NULL ORDER BY project_nodes.id", [id]);
-  const [risks] = await c.query<RowDataPacket[]>("SELECT CAST(id AS CHAR) id,content,level FROM project_risks WHERE project_id=? AND resolved=0 ORDER BY project_risks.id", [id]);
+  const [risks] = await c.query<RowDataPacket[]>("SELECT CAST(id AS CHAR) id,content,level FROM project_risks WHERE project_id=? AND resolved=0 AND deleted_at IS NULL ORDER BY project_risks.id", [id]);
   const remaining = { stages: Array.from({ length: 7 }, (_, index) => facts.find(fact => fact.code === 'S' + (index + 1)) ?? { code: 'S' + (index + 1), state: 'unconfigured', startedOn: null, completedOn: null }).filter(fact => fact.state !== 'completed'), nodes, risks: risks.map(risk => ({ id: risk.id, level: risk.level })) };
   const hasRemaining = !!(remaining.stages.length || nodes.length || risks.length);
   if (body.action === 'closeProject') {

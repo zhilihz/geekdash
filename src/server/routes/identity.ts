@@ -47,7 +47,8 @@ export function registerIdentity(app: FastifyInstance, database: RuntimeDatabase
     request.actor = await identity.resolve(token, active);
     if (!path.startsWith('/api/auth/')) {
       if (request.actor.mustChangePassword) failure('PASSWORD_CHANGE_REQUIRED', 403);
-      if (request.headers['x-geekdash-account'] !== request.actor.id) failure('AUTH_CONTEXT_CHANGED', 409);
+      const expectedAccount=path==='/api/events' && request.method==='GET'?(request.query as {accountId?:string}).accountId:request.headers['x-geekdash-account'];
+      if (expectedAccount !== request.actor.id) failure('AUTH_CONTEXT_CHANGED', 409);
     }
     if (!['GET', 'HEAD'].includes(request.method)) {
       source(request);

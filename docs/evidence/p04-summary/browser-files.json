@@ -1,0 +1,30 @@
+{
+  "at": "2026-10-17T04:28:00+08:00",
+  "selected": 1,
+  "files": [
+    {
+      "name": "browser-chip.csv",
+      "bytes": 259,
+      "sha256": "33DD09C6D38BE42E97AE70CED0C99639B6A61157DF3884EBF1DC13D8AAB83E70"
+    },
+    {
+      "name": "browser-selected.csv",
+      "bytes": 274,
+      "sha256": "A7700BC6E8734A95755FBCF17025FC2B1A7F6B13C153FF0BFEB7C38647CF7DDE"
+    },
+    {
+      "name": "browser-selected.md",
+      "bytes": 696,
+      "sha256": "E44F49D7FBA786EB265A8344FC3C0F2356CD96207DF756D27E8A4ACE73F865D3"
+    },
+    {
+      "name": "browser-selected.png",
+      "bytes": 27678,
+      "sha256": "C8F19F1E7138CED553526EC93311F12A9D3DF9B667F5159DC4F00CAD9317BC09"
+    }
+  ],
+  "build": "2026-10-16T20:14:24.775Z",
+  "pdf": "print document inspected; PDF file not saved",
+  "projectId": "9007199254760016",
+  "source": "Edge extension real page 127.0.0.1:41865"
+}

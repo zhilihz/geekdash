@@ -7,6 +7,9 @@ import type { RuntimeDatabase } from './infrastructure/runtime-database.js';
 import { registerProjectReads } from './routes/projects.js';
 import { registerIdentity, readAuthConfig, type AuthConfig } from './routes/identity.js';
 import { registerSettings } from './routes/settings.js';
+import { registerPersonalState } from './routes/personal-state.js';
+import { registerNotifications } from './infrastructure/notifications.js';
+import { registerCatalog } from './routes/catalog.js';
 
 export async function createApp(database?: RuntimeDatabase, auth?: AuthConfig) {
   const build = JSON.parse(await readFile(new URL('../build-info.json', import.meta.url), 'utf8'));
@@ -52,6 +55,10 @@ export async function createApp(database?: RuntimeDatabase, auth?: AuthConfig) {
   if (database && (auth || database.fact.database !== 'geekdash_test')) registerIdentity(app, database, auth ?? readAuthConfig());
   registerProjectReads(app, database);
   registerSettings(app, database);
+  registerPersonalState(app, database);
+  registerCatalog(app, database);
+  registerNotifications(app, database);
   app.get('/GeekDash.html', (_request, reply) => reply.sendFile('index.html'));
+  app.get('/chip-statistics.html', (_request, reply) => reply.redirect('/project-status-summary.html'));
   return app;
 }

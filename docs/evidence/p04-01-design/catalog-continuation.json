@@ -1,0 +1,1234 @@
+{
+  "date": "2026-10-15",
+  "fileKey": "leQy2Be9GaTXPvZeooQuIF",
+  "pageId": "142:3499",
+  "frameId": "151:4158",
+  "scope": "仅W17及其后代；Figma有限合成状态。未改产品代码、业务库、服务器或权威文档。",
+  "source": "D:/geekwon/geekdash-local-releases/GeekDash1051/data-manage.html",
+  "sourceFields": {
+    "customer": "626–650；客户标签候选654–659",
+    "engineer": "710–723",
+    "productline": "755–767",
+    "app": "800–819",
+    "tag": "878–903",
+    "company": "480–505",
+    "group": "948–973",
+    "chip": "1018–1041"
+  },
+  "mutation": {
+    "createdNodeIds": [
+      "369:5135",
+      "369:5136",
+      "369:5137",
+      "369:5138",
+      "369:5139",
+      "369:5140",
+      "369:5141",
+      "369:5142",
+      "369:5143",
+      "369:5144",
+      "369:5145",
+      "369:5146",
+      "369:5147",
+      "369:5148",
+      "369:5149",
+      "369:5150",
+      "I369:5150;2:120",
+      "I369:5150;2:121",
+      "I369:5150;2:122",
+      "369:5154",
+      "369:5155",
+      "369:5156",
+      "369:5157",
+      "I369:5157;2:120",
+      "I369:5157;2:121",
+      "I369:5157;2:122",
+      "369:5161",
+      "369:5162",
+      "369:5163",
+      "369:5164",
+      "I369:5164;2:120",
+      "I369:5164;2:121",
+      "I369:5164;2:122",
+      "369:5168",
+      "369:5169",
+      "369:5170",
+      "369:5171",
+      "I369:5171;2:120",
+      "I369:5171;2:121",
+      "I369:5171;2:122",
+      "369:5175",
+      "369:5176",
+      "I369:5176;2:108",
+      "369:5178"
+    ],
+    "mutatedNodeIds": [
+      "151:4161",
+      "151:4177",
+      "151:4194",
+      "151:4252",
+      "151:4176",
+      "151:4195",
+      "151:4197",
+      "151:4199",
+      "151:4201",
+      "151:4213",
+      "151:4215",
+      "151:4217",
+      "151:4219",
+      "327:5495",
+      "151:4238",
+      "151:4240",
+      "151:4239",
+      "151:4241",
+      "151:4246",
+      "151:4247",
+      "151:4248",
+      "327:5498",
+      "327:5499",
+      "327:5500",
+      "327:5503",
+      "225:4605",
+      "225:4606",
+      "151:4178",
+      "151:4180",
+      "151:4182",
+      "151:4184",
+      "151:4186",
+      "151:4188",
+      "151:4190",
+      "151:4192",
+      "369:5139",
+      "369:5141",
+      "369:5150",
+      "369:5157",
+      "369:5164",
+      "369:5171",
+      "369:5176",
+      "151:4250",
+      "327:5490",
+      "327:5488",
+      "327:5489",
+      "327:5493",
+      "327:5494"
+    ],
+    "removedNodeIds": [
+      "151:4202",
+      "151:4203",
+      "151:4204",
+      "151:4205",
+      "151:4206",
+      "151:4207",
+      "151:4208",
+      "151:4209",
+      "151:4210",
+      "151:4211",
+      "151:4212",
+      "151:4214",
+      "151:4216",
+      "151:4218",
+      "151:4220",
+      "151:4221",
+      "151:4222",
+      "151:4223",
+      "151:4224",
+      "151:4225",
+      "151:4226",
+      "151:4227",
+      "151:4228",
+      "151:4229",
+      "151:4230",
+      "151:4231",
+      "151:4232",
+      "151:4233",
+      "151:4234",
+      "151:4235",
+      "151:4236",
+      "151:4237"
+    ],
+    "createdVariableIds": [
+      "VariableID:369:5050",
+      "VariableID:369:5051",
+      "VariableID:369:5052",
+      "VariableID:369:5053",
+      "VariableID:369:5054",
+      "VariableID:369:5055",
+      "VariableID:369:5056",
+      "VariableID:369:5057",
+      "VariableID:369:5058",
+      "VariableID:369:5059",
+      "VariableID:369:5060",
+      "VariableID:369:5061",
+      "VariableID:369:5062",
+      "VariableID:369:5063",
+      "VariableID:369:5064",
+      "VariableID:369:5065",
+      "VariableID:369:5066",
+      "VariableID:369:5067",
+      "VariableID:369:5068",
+      "VariableID:369:5069",
+      "VariableID:369:5070",
+      "VariableID:369:5071",
+      "VariableID:369:5072",
+      "VariableID:369:5073",
+      "VariableID:369:5074",
+      "VariableID:369:5075",
+      "VariableID:369:5076",
+      "VariableID:369:5077",
+      "VariableID:369:5078",
+      "VariableID:369:5079",
+      "VariableID:369:5080",
+      "VariableID:369:5081",
+      "VariableID:369:5082",
+      "VariableID:369:5083",
+      "VariableID:369:5084",
+      "VariableID:369:5085",
+      "VariableID:369:5086",
+      "VariableID:369:5087",
+      "VariableID:369:5088",
+      "VariableID:369:5089",
+      "VariableID:369:5090",
+      "VariableID:369:5091",
+      "VariableID:369:5092",
+      "VariableID:369:5093",
+      "VariableID:369:5094",
+      "VariableID:369:5095",
+      "VariableID:369:5096",
+      "VariableID:369:5097",
+      "VariableID:369:5098",
+      "VariableID:369:5099",
+      "VariableID:369:5100",
+      "VariableID:369:5101",
+      "VariableID:369:5102",
+      "VariableID:369:5103",
+      "VariableID:369:5104",
+      "VariableID:369:5105",
+      "VariableID:369:5106",
+      "VariableID:369:5107",
+      "VariableID:369:5108",
+      "VariableID:369:5109",
+      "VariableID:369:5110",
+      "VariableID:369:5111",
+      "VariableID:369:5112",
+      "VariableID:369:5113",
+      "VariableID:369:5114",
+      "VariableID:369:5115",
+      "VariableID:369:5116",
+      "VariableID:369:5117",
+      "VariableID:369:5118",
+      "VariableID:369:5119",
+      "VariableID:369:5120",
+      "VariableID:369:5121",
+      "VariableID:369:5122",
+      "VariableID:369:5123",
+      "VariableID:369:5124",
+      "VariableID:369:5125",
+      "VariableID:369:5126",
+      "VariableID:369:5127",
+      "VariableID:369:5128",
+      "VariableID:369:5129",
+      "VariableID:369:5130",
+      "VariableID:369:5131",
+      "VariableID:369:5132",
+      "VariableID:369:5133",
+      "VariableID:369:5134"
+    ],
+    "bindings": {
+      "selected": "VariableID:369:5050",
+      "view": "VariableID:369:5053",
+      "editing": "VariableID:327:5473",
+      "role": "VariableID:327:5471",
+      "draft": [
+        "VariableID:369:5066",
+        "VariableID:369:5070",
+        "VariableID:369:5074",
+        "VariableID:369:5078"
+      ],
+      "current": [
+        "VariableID:369:5067",
+        "VariableID:369:5071",
+        "VariableID:369:5075",
+        "VariableID:369:5079"
+      ],
+      "labels": [
+        "VariableID:369:5065",
+        "VariableID:369:5069",
+        "VariableID:369:5073",
+        "VariableID:369:5077"
+      ],
+      "shown": [
+        "VariableID:369:5068",
+        "VariableID:369:5072",
+        "VariableID:369:5076",
+        "VariableID:369:5080"
+      ],
+      "renamePrompt": "VariableID:369:5059",
+      "changedName": "VariableID:369:5060",
+      "newVisible": "VariableID:369:5063",
+      "modeNew": "VariableID:369:5051"
+    },
+    "fields": [
+      "369:5150",
+      "369:5157",
+      "369:5164",
+      "369:5171"
+    ],
+    "views": [
+      [
+        "369:5147",
+        "369:5148",
+        "369:5149"
+      ],
+      [
+        "369:5154",
+        "369:5155",
+        "369:5156"
+      ],
+      [
+        "369:5161",
+        "369:5162",
+        "369:5163"
+      ],
+      [
+        "369:5168",
+        "369:5169",
+        "369:5170"
+      ]
+    ],
+    "actions": {
+      "save": "151:4248",
+      "cancel": "151:4250",
+      "renameConfirm": "369:5176",
+      "new": "151:4199",
+      "row": "369:5139",
+      "newRow": "369:5141"
+    },
+    "categories": [
+      {
+        "key": "customer",
+        "tab": "151:4178",
+        "labels": [
+          "客户名称",
+          "主要联系人",
+          "客户标签",
+          "客户背景信息"
+        ],
+        "saved": [
+          "VariableID:327:5475",
+          "VariableID:369:5082",
+          "VariableID:369:5084",
+          "VariableID:369:5086"
+        ],
+        "fresh": [
+          "VariableID:369:5081",
+          "VariableID:369:5083",
+          "VariableID:369:5085",
+          "VariableID:369:5087"
+        ],
+        "exists": "VariableID:369:5088",
+        "status": "VariableID:327:5476",
+        "refs": 8
+      },
+      {
+        "key": "engineer",
+        "tab": "151:4180",
+        "labels": [
+          "姓名",
+          "业务角色"
+        ],
+        "saved": [
+          "VariableID:369:5089",
+          "VariableID:369:5091"
+        ],
+        "fresh": [
+          "VariableID:369:5090",
+          "VariableID:369:5092"
+        ],
+        "exists": "VariableID:369:5093",
+        "status": "VariableID:369:5094",
+        "refs": 3
+      },
+      {
+        "key": "productline",
+        "tab": "151:4182",
+        "labels": [
+          "产品线名称"
+        ],
+        "saved": [
+          "VariableID:369:5095"
+        ],
+        "fresh": [
+          "VariableID:369:5096"
+        ],
+        "exists": "VariableID:369:5097",
+        "status": "VariableID:369:5098",
+        "refs": 5
+      },
+      {
+        "key": "app",
+        "tab": "151:4184",
+        "labels": [
+          "APP 名称",
+          "版本信息",
+          "APP 描述"
+        ],
+        "saved": [
+          "VariableID:369:5099",
+          "VariableID:369:5101",
+          "VariableID:369:5103"
+        ],
+        "fresh": [
+          "VariableID:369:5100",
+          "VariableID:369:5102",
+          "VariableID:369:5104"
+        ],
+        "exists": "VariableID:369:5105",
+        "status": "VariableID:369:5106",
+        "refs": 2
+      },
+      {
+        "key": "tag",
+        "tab": "151:4186",
+        "labels": [
+          "项目标签名称"
+        ],
+        "saved": [
+          "VariableID:369:5107"
+        ],
+        "fresh": [
+          "VariableID:369:5108"
+        ],
+        "exists": "VariableID:369:5109",
+        "status": "VariableID:369:5110",
+        "refs": 4
+      },
+      {
+        "key": "company",
+        "tab": "151:4188",
+        "labels": [
+          "企业全称",
+          "企业简称",
+          "负责人展示名称",
+          "系统名称前缀"
+        ],
+        "saved": [
+          "VariableID:369:5111",
+          "VariableID:369:5113",
+          "VariableID:369:5115",
+          "VariableID:369:5117"
+        ],
+        "fresh": [
+          "VariableID:369:5112",
+          "VariableID:369:5114",
+          "VariableID:369:5116",
+          "VariableID:369:5118"
+        ],
+        "exists": "VariableID:369:5119",
+        "status": "VariableID:369:5120",
+        "refs": 0
+      },
+      {
+        "key": "group",
+        "tab": "151:4190",
+        "labels": [
+          "分组名称"
+        ],
+        "saved": [
+          "VariableID:369:5121"
+        ],
+        "fresh": [
+          "VariableID:369:5122"
+        ],
+        "exists": "VariableID:369:5123",
+        "status": "VariableID:369:5124",
+        "refs": 6
+      },
+      {
+        "key": "chip",
+        "tab": "151:4192",
+        "labels": [
+          "芯片型号",
+          "原始型号",
+          "厂商",
+          "固件版本名称"
+        ],
+        "saved": [
+          "VariableID:369:5125",
+          "VariableID:369:5127",
+          "VariableID:369:5129",
+          "VariableID:369:5131"
+        ],
+        "fresh": [
+          "VariableID:369:5126",
+          "VariableID:369:5128",
+          "VariableID:369:5130",
+          "VariableID:369:5132"
+        ],
+        "exists": "VariableID:369:5133",
+        "status": "VariableID:369:5134",
+        "refs": 7
+      }
+    ],
+    "bounds": [
+      1440,
+      372,
+      1312,
+      20
+    ],
+    "scope": "仅W17及其后代；复用原维护权限与已存客户名；有限合成样例"
+  },
+  "layoutFix": {
+    "mutatedNodeIds": [
+      "369:5137",
+      "151:4201",
+      "151:4238",
+      "151:4239",
+      "151:4213",
+      "151:4178",
+      "151:4180",
+      "151:4182",
+      "151:4184",
+      "151:4186",
+      "151:4188",
+      "151:4190",
+      "151:4192",
+      "369:5139",
+      "369:5141",
+      "151:4248",
+      "369:5176"
+    ],
+    "createdVariableIds": [
+      "VariableID:371:4830"
+    ],
+    "layout": [
+      [
+        "151:4158",
+        1440,
+        714,
+        "AUTO",
+        "AUTO",
+        "FIXED"
+      ],
+      [
+        "369:5137",
+        1312,
+        362,
+        "AUTO",
+        "FIXED",
+        "AUTO"
+      ],
+      [
+        "151:4201",
+        360,
+        188,
+        "AUTO",
+        "AUTO",
+        "FIXED"
+      ],
+      [
+        "151:4238",
+        928,
+        362,
+        "AUTO",
+        "AUTO",
+        "FIXED"
+      ]
+    ]
+  },
+  "visualFix": {
+    "mutatedNodeIds": [
+      "369:5135",
+      "369:5140",
+      "369:5178",
+      "327:5495",
+      "327:5500",
+      "151:4178",
+      "151:4180",
+      "151:4182",
+      "151:4184",
+      "151:4186",
+      "151:4188",
+      "151:4190",
+      "151:4192"
+    ],
+    "createdVariableIds": [
+      "VariableID:373:4830"
+    ],
+    "bounds": [
+      1440,
+      731
+    ]
+  },
+  "checks": {
+    "checks": [
+      [
+        "customer字段",
+        true
+      ],
+      [
+        "engineer字段",
+        true
+      ],
+      [
+        "productline字段",
+        true
+      ],
+      [
+        "app字段",
+        true
+      ],
+      [
+        "tag字段",
+        true
+      ],
+      [
+        "company字段",
+        true
+      ],
+      [
+        "group字段",
+        true
+      ],
+      [
+        "chip字段",
+        true
+      ],
+      [
+        "普通联系修改直接保存",
+        true
+      ],
+      [
+        "已引用改名先展示影响",
+        true
+      ],
+      [
+        "改名明确保存后同步原客户变量",
+        true
+      ],
+      [
+        "未存切分类保留输入",
+        true
+      ],
+      [
+        "取消恢复正式值",
+        true
+      ],
+      [
+        "新增不覆盖已有客户",
+        true
+      ],
+      [
+        "只读不能修改保存停用",
+        true
+      ],
+      [
+        "停用先提示影响",
+        true
+      ],
+      [
+        "确认停用保留名称",
+        true
+      ]
+    ],
+    "bounds": [
+      1440,
+      372
+    ],
+    "frames": [
+      [
+        "369:5137",
+        "资料列表与原位详情",
+        1312,
+        20,
+        64,
+        237,
+        "HORIZONTAL",
+        "AUTO"
+      ],
+      [
+        "151:4201",
+        "表格",
+        360,
+        180,
+        0,
+        0,
+        "VERTICAL",
+        "FIXED"
+      ],
+      [
+        "151:4238",
+        "修改客户",
+        928,
+        400,
+        384,
+        0,
+        "VERTICAL",
+        "FIXED"
+      ],
+      [
+        "369:5144",
+        "资料只读内容",
+        880,
+        228,
+        25,
+        25,
+        "VERTICAL",
+        "AUTO"
+      ]
+    ],
+    "counts": {
+      "FRAME": 31,
+      "TEXT": 65,
+      "INSTANCE": 33
+    },
+    "imageNodes": [],
+    "fonts": [
+      "{\"family\":\"Noto Sans SC\",\"style\":\"Bold\",\"variationSettings\":{\"wght\":700}}",
+      "{\"family\":\"Noto Sans SC\",\"style\":\"Regular\",\"variationSettings\":{\"wght\":400}}"
+    ],
+    "fields": [
+      [
+        "369:5150",
+        {
+          "值#2:8": {
+            "boundVariables": {
+              "value": {
+                "type": "VARIABLE_ALIAS",
+                "id": "VariableID:369:5066"
+              }
+            },
+            "type": "TEXT",
+            "value": "演示客户"
+          },
+          "标题#2:7": {
+            "boundVariables": {
+              "value": {
+                "type": "VARIABLE_ALIAS",
+                "id": "VariableID:369:5065"
+              }
+            },
+            "type": "TEXT",
+            "value": "客户名称"
+          }
+        },
+        {
+          "itemSpacing": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:89"
+          },
+          "paddingLeft": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:88"
+          },
+          "paddingTop": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:88"
+          },
+          "paddingRight": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:88"
+          },
+          "paddingBottom": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:88"
+          },
+          "visible": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:369:5068"
+          },
+          "topLeftRadius": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:89"
+          },
+          "topRightRadius": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:89"
+          },
+          "bottomLeftRadius": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:89"
+          },
+          "bottomRightRadius": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:89"
+          }
+        },
+        880,
+        75
+      ],
+      [
+        "369:5157",
+        {
+          "值#2:8": {
+            "boundVariables": {
+              "value": {
+                "type": "VARIABLE_ALIAS",
+                "id": "VariableID:369:5070"
+              }
+            },
+            "type": "TEXT",
+            "value": "林女士 · 产品负责人"
+          },
+          "标题#2:7": {
+            "boundVariables": {
+              "value": {
+                "type": "VARIABLE_ALIAS",
+                "id": "VariableID:369:5069"
+              }
+            },
+            "type": "TEXT",
+            "value": "主要联系人"
+          }
+        },
+        {
+          "itemSpacing": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:89"
+          },
+          "paddingLeft": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:88"
+          },
+          "paddingTop": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:88"
+          },
+          "paddingRight": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:88"
+          },
+          "paddingBottom": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:88"
+          },
+          "visible": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:369:5072"
+          },
+          "topLeftRadius": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:89"
+          },
+          "topRightRadius": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:89"
+          },
+          "bottomLeftRadius": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:89"
+          },
+          "bottomRightRadius": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:89"
+          }
+        },
+        880,
+        75
+      ],
+      [
+        "369:5164",
+        {
+          "值#2:8": {
+            "boundVariables": {
+              "value": {
+                "type": "VARIABLE_ALIAS",
+                "id": "VariableID:369:5074"
+              }
+            },
+            "type": "TEXT",
+            "value": "品牌客户、ODM"
+          },
+          "标题#2:7": {
+            "boundVariables": {
+              "value": {
+                "type": "VARIABLE_ALIAS",
+                "id": "VariableID:369:5073"
+              }
+            },
+            "type": "TEXT",
+            "value": "客户标签"
+          }
+        },
+        {
+          "itemSpacing": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:89"
+          },
+          "paddingLeft": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:88"
+          },
+          "paddingTop": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:88"
+          },
+          "paddingRight": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:88"
+          },
+          "paddingBottom": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:88"
+          },
+          "visible": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:369:5076"
+          },
+          "topLeftRadius": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:89"
+          },
+          "topRightRadius": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:89"
+          },
+          "bottomLeftRadius": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:89"
+          },
+          "bottomRightRadius": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:89"
+          }
+        },
+        880,
+        75
+      ],
+      [
+        "369:5171",
+        {
+          "值#2:8": {
+            "boundVariables": {
+              "value": {
+                "type": "VARIABLE_ALIAS",
+                "id": "VariableID:369:5078"
+              }
+            },
+            "type": "TEXT",
+            "value": "智能硬件品牌，关注样机功耗与交付进度。"
+          },
+          "标题#2:7": {
+            "boundVariables": {
+              "value": {
+                "type": "VARIABLE_ALIAS",
+                "id": "VariableID:369:5077"
+              }
+            },
+            "type": "TEXT",
+            "value": "客户背景信息"
+          }
+        },
+        {
+          "itemSpacing": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:89"
+          },
+          "paddingLeft": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:88"
+          },
+          "paddingTop": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:88"
+          },
+          "paddingRight": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:88"
+          },
+          "paddingBottom": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:88"
+          },
+          "visible": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:369:5080"
+          },
+          "topLeftRadius": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:89"
+          },
+          "topRightRadius": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:89"
+          },
+          "bottomLeftRadius": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:89"
+          },
+          "bottomRightRadius": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:2:89"
+          }
+        },
+        880,
+        75
+      ]
+    ],
+    "defaultTexts": [
+      [
+        "369:5138",
+        "当前分类资料"
+      ],
+      [
+        "151:4213",
+        "演示客户"
+      ],
+      [
+        "151:4215",
+        "8 个项目引用"
+      ],
+      [
+        "151:4217",
+        "启用"
+      ],
+      [
+        "151:4219",
+        "修改"
+      ],
+      [
+        "I327:5495;2:108",
+        "停用"
+      ],
+      [
+        "369:5148",
+        "客户名称"
+      ],
+      [
+        "369:5149",
+        "演示客户"
+      ],
+      [
+        "369:5155",
+        "主要联系人"
+      ],
+      [
+        "369:5156",
+        "林女士 · 产品负责人"
+      ],
+      [
+        "369:5162",
+        "客户标签"
+      ],
+      [
+        "369:5163",
+        "品牌客户、ODM"
+      ],
+      [
+        "369:5169",
+        "客户背景信息"
+      ],
+      [
+        "369:5170",
+        "智能硬件品牌，关注样机功耗与交付进度。"
+      ],
+      [
+        "I369:5150;2:120",
+        "客户名称"
+      ],
+      [
+        "I369:5150;2:122",
+        "演示客户"
+      ],
+      [
+        "I369:5157;2:120",
+        "主要联系人"
+      ],
+      [
+        "I369:5157;2:122",
+        "林女士 · 产品负责人"
+      ],
+      [
+        "I369:5164;2:120",
+        "客户标签"
+      ],
+      [
+        "I369:5164;2:122",
+        "品牌客户、ODM"
+      ],
+      [
+        "I369:5171;2:120",
+        "客户背景信息"
+      ],
+      [
+        "I369:5171;2:122",
+        "智能硬件品牌，关注样机功耗与交付进度。"
+      ],
+      [
+        "I151:4242;2:120",
+        "客户名称"
+      ],
+      [
+        "I151:4242;2:122",
+        "演示客户"
+      ],
+      [
+        "I151:4248;2:106",
+        "保存资料"
+      ],
+      [
+        "I151:4250;2:108",
+        "取消"
+      ],
+      [
+        "I327:5500;2:108",
+        "确认停用"
+      ],
+      [
+        "I327:5503;2:108",
+        "取消"
+      ],
+      [
+        "369:5175",
+        "客户标签仅用于客户分类。联系人可包含职位和电话。"
+      ],
+      [
+        "I151:4253;2:108",
+        "系统设置"
+      ],
+      [
+        "I151:4259;2:108",
+        "账号管理"
+      ],
+      [
+        "I225:4607;2:108",
+        "×"
+      ]
+    ]
+  },
+  "defaultRestore": {
+    "mutatedNodeIds": [],
+    "mutatedVariableIds": [
+      "VariableID:369:5050",
+      "VariableID:369:5054",
+      "VariableID:369:5051",
+      "VariableID:369:5052",
+      "VariableID:327:5473",
+      "VariableID:369:5053",
+      "VariableID:369:5059",
+      "VariableID:369:5060",
+      "VariableID:327:5480",
+      "VariableID:369:5058",
+      "VariableID:369:5055",
+      "VariableID:369:5056",
+      "VariableID:369:5063",
+      "VariableID:369:5064",
+      "VariableID:369:5057",
+      "VariableID:369:5065",
+      "VariableID:369:5068",
+      "VariableID:369:5067",
+      "VariableID:369:5066",
+      "VariableID:369:5069",
+      "VariableID:369:5072",
+      "VariableID:369:5071",
+      "VariableID:369:5070",
+      "VariableID:369:5073",
+      "VariableID:369:5076",
+      "VariableID:369:5075",
+      "VariableID:369:5074",
+      "VariableID:369:5077",
+      "VariableID:369:5080",
+      "VariableID:369:5079",
+      "VariableID:369:5078",
+      "VariableID:371:4830"
+    ],
+    "checks": [
+      [
+        "重新启用不再次弹停用确认",
+        true
+      ],
+      [
+        "客户默认恢复",
+        true
+      ],
+      [
+        "客户根变量保持",
+        true
+      ]
+    ],
+    "bounds": [
+      1440,
+      731
+    ],
+    "buttonBounds": [
+      [
+        "369:5135",
+        98,
+        39,
+        "AUTO"
+      ],
+      [
+        "369:5140",
+        96,
+        39,
+        "AUTO"
+      ],
+      [
+        "369:5178",
+        150,
+        39,
+        "AUTO"
+      ]
+    ]
+  },
+  "visualReview": {
+    "customer": "W17-catalog-customer-final.png",
+    "chip": "W17-catalog-chip.png",
+    "supersededBeforeFix": "W17-catalog-customer.png",
+    "result": "默认客户与芯片查看布局可读，新增/停用按钮原先裁切已修复；Noto Sans SC，未使用整页图片。"
+  },
+  "retained": {
+    "maintainerVariable": "VariableID:327:5471",
+    "readOnlyVariable": "VariableID:327:5472",
+    "savedCustomerVariable": "VariableID:327:5475",
+    "customerStatusVariable": "VariableID:327:5476"
+  },
+  "coverage": [
+    "八类分类切换及完整字段",
+    "默认只读资料，修改后原位输入",
+    "普通元资料直接保存",
+    "已引用名称修改明确影响确认",
+    "新增示例保存不覆盖原条目",
+    "未存切分类保留当前输入",
+    "取消恢复已存值",
+    "只读角色动作不能改变资料",
+    "停用确认保留原关联",
+    "重新启用恢复可选语义",
+    "关闭提示不变更资料"
+  ],
+  "limitations": [
+    "未执行Figma Presentation真人操作；检查为新请求读取实际配置后的有限状态推演。",
+    "每类一个既有合成条目及一个新增示例槽，不模拟任意条目数量或任意输入。",
+    "字段点击采用固定合成替换值；客户标签候选下拉/自定义文字及真实检索尚未作为交互引擎模拟。",
+    "改名引用数量为明确合成样例，未连真实API/数据库；除客户旧变量外，不宣称其他页面真实资料读取已接入。",
+    "未增加服务器监控或项目运行状态管理；工程师业务角色、企业负责人文字不授予账号权限。",
+    "全场景长文本、移动宽度、真实搜索、跨账号竞争及持久化验收仍属于产品实施。"
+  ],
+  "toolRecovery": "复用全局GE-20261009-004输出限额和顶层CONDITIONAL约束；前两次写入错误工具均报告safeToRetryWithoutCanvasRead=true，修正后成功。",
+  "closeFix": {
+    "mutatedNodeIds": [
+      "225:4607",
+      "151:4242"
+    ],
+    "checks": [
+      [
+        "关闭提示只清提示变量",
+        true
+      ],
+      [
+        "旧隐藏字段无孤立修改",
+        true
+      ]
+    ]
+  },
+  "navigationRefresh": {
+    "date": "2026-10-15",
+    "reason": "按用户最新决定移除独立芯片统计导航，芯片资料分类保留",
+    "changedBy": "root",
+    "navigationNode": "151:4168",
+    "visible": false,
+    "customerScreenshot": "W17-catalog-customer-final.png",
+    "chipScreenshot": "W17-catalog-chip.png",
+    "review": "两图重新读取并覆盖，导航无空白占位或内容裁切；已恢复customer默认只读状态",
+    "scope": "仅视觉刷新，未扩展功能"
+  }
+}

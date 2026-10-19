@@ -16,14 +16,15 @@
 .read-label { display: block; color: var(--text-dim); font-size: 12px; margin: 8px 0; }
 .detail-tabs, .filter-row { flex-wrap: wrap; }
 .trial-editor { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 20px; }
-.trial-editor input, .trial-editor textarea, .trial-editor select, .copy-text { width: 100%; box-sizing: border-box; background: var(--bg-soft); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font: inherit; }
+.trial-editor input, .trial-editor textarea, .trial-editor select, .status-editor textarea, .copy-text { width: 100%; box-sizing: border-box; background: var(--bg-soft); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font: inherit; }
 .trial-editor select[multiple] { min-height: 125px; }
 .trial-editor textarea, .copy-text { resize: vertical; }
 .field-error { color: var(--p-high); font-size: 13px; }
 .edit-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
 button:disabled { opacity: .5; cursor: not-allowed; }
-#editor-dialog, #draft-dialog { color: var(--text); background: var(--card); border: 1px solid var(--border); border-radius: 12px; max-width: 560px; width: calc(100% - 32px); box-sizing: border-box; padding: 24px; inset: clamp(72px, 14dvh, 128px) 0 auto; margin: 0 auto; max-height: calc(100dvh - 160px); overflow: auto; box-shadow: 0 16px 48px #0004; }
-#editor-dialog::backdrop, #draft-dialog::backdrop { background: #0009; }
+#editor-dialog, #draft-dialog, .draft-dialog { color: var(--text); background: var(--card); border: 1px solid var(--border); border-radius: 12px; max-width: 560px; width: calc(100% - 32px); box-sizing: border-box; padding: 24px; inset: clamp(72px, 14dvh, 128px) 0 auto; margin: 0 auto; max-height: calc(100dvh - 160px); overflow: auto; box-shadow: 0 16px 48px #0004; }
+#editor-dialog::backdrop, #draft-dialog::backdrop, .draft-dialog::backdrop { background: #0009; }
+.draft-dialog pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .feedback-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .feedback-heading h2 { font-size: 18px; margin: 0; }
 .feedback-detail { color: var(--text-dim); font-size: 13px; line-height: 1.7; }
@@ -59,3 +60,22 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .auth-panel { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
 .auth-panel h2 { font-size: 22px; text-align: center; }
 .auth-page form.detail-section button { justify-self: center; }
+
+/* P04：已有详情结构中的独立保存区域。 */
+.section-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:20px; }
+.project-detail-page .section-heading h2 { font-size:18px; margin:0; }
+.project-info .basic-primary { grid-template-columns:2fr 1fr; }
+.project-info .basic-references { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.project-info .field-grid { gap:20px 28px; margin-bottom:24px; }
+.project-info .project-key-dates { padding:18px; margin:8px 0 24px; border:1px solid var(--border); border-radius:8px; background:var(--bg-soft); gap:20px; }
+.project-info .field-fact { padding:8px 0; line-height:1.6; white-space:pre-wrap; overflow-wrap:anywhere; }
+.project-info .division-heading { margin:24px 0 16px; font-size:16px; }
+.status-editor { border-top:1px solid var(--border); padding-top:24px; margin-top:8px; }
+.status-editor textarea { width:100%; box-sizing:border-box; }
+.basic-impact { border-left:3px solid var(--accent); padding:0 16px; }
+.basic-impact > label { display:block; margin:12px 0; }
+.manager-action { font-size:12px; padding:4px 10px; }
+@media(max-width:760px) { .project-info .basic-references, .project-info .basic-primary { grid-template-columns:1fr; } .project-info .project-key-dates { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+.risk-item, .chg-item { margin:16px 0; padding:20px; }
+.risk-content,.chg-content { line-height:1.7; overflow-wrap:anywhere; }

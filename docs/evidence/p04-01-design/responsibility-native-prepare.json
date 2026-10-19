@@ -1,0 +1,19 @@
+{
+  "id": "9007199254760319",
+  "project": {
+    "version": "1",
+    "statusDesc": ""
+  },
+  "members": [
+    {
+      "id": "29"
+    }
+  ],
+  "apiMembers": [
+    {
+      "id": "29",
+      "name": "p04_ui_1",
+      "enabled": 1
+    }
+  ]
+}

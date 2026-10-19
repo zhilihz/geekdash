@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
 import vm from 'node:vm';
 import ts from 'typescript';
 import { createApp } from '../dist/server/app.js';
@@ -18,6 +20,8 @@ const stageSource = (await readFile('geekdashdesktop/projects-data.js', 'utf8'))
 assert(stageSource);
 const stages = vm.runInNewContext(stageSource[1], Object.create(null), { timeout: 1000 });
 const { connection: c } = await connectDatabase('test_migrator');
+assert.equal(process.env.GEEKDASH_MIGRATION_PROBE, '1');
+assert.equal((await c.query('SELECT @@server_uuid uuid'))[0][0].uuid, process.env.GEEKDASH_MIGRATION_PROBE_SERVER_UUID);
 let app, origin, ownRule, requestCount = 0;
 const reject = error => errors.push(error);
 process.on('unhandledRejection', reject);
@@ -56,10 +60,13 @@ async function page(user, path, { storage = {}, holdConfirm = false } = {}) {
   }
   Object.assign(w, { TextEncoder, TextDecoder, structuredClone, AbortController, AbortSignal, __GEEKDASH_STAGES__: stages });
   w.BroadcastChannel = class { postMessage() {} }; w.scrollTo = () => {};
+  w.performance.getEntriesByType = () => [];
   w.HTMLDialogElement.prototype.showModal = function() { this.open = true; this.returnValue = ''; };
   w.HTMLDialogElement.prototype.close = function(value = '') { this.returnValue = value; this.open = false; this.dispatchEvent(new w.Event('close')); };
   for (const [key, value] of Object.entries(storage)) w.sessionStorage.setItem(key, value);
   w.fetch = async (url, options = {}) => {
+    if (panel.failHistory && /\/(checks|audit)(\?|$)/.test(url)) throw new Error('模拟历史读取失败');
+    if (panel.failNextList && url.startsWith('/api/projects?')) { panel.failNextList = false; throw new Error('模拟提交后列表读取失败'); }
     const entry = { path: url, method: options.method ?? 'GET', body: options.body ? JSON.parse(options.body) : undefined }; requests.push(entry);
     const response = await user.fetch(url, options); entry.status = response.status;
     if (entry.method === 'GET' && url.startsWith('/api/projects') && response.ok) reads.push({ path: url, data: await response.clone().json() });
@@ -68,12 +75,18 @@ async function page(user, path, { storage = {}, holdConfirm = false } = {}) {
     return response;
   };
   const context = dom.getInternalVMContext();
-  const compile = source => ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.CommonJS } }).outputText;
-  const module = source => { context.exports = {}; context.module = { exports: context.exports }; vm.runInContext('(function(exports,module){' + compile(source) + '\n})(exports,module)', context); return context.module.exports; };
-  const shared = module(sources['src/web/shared/api.ts']);
-  const picker = detail ? module(sources['src/web/shared/reference-picker.ts']) : undefined;
-  context.require = name => { if (name === './shared/api') return shared; if (name === './shared/reference-picker') return picker; if (name.endsWith('.css')) return {}; throw new Error('未预期的页面依赖：' + name); };
-  vm.runInContext('(function(){' + compile(sources[detail ? 'src/web/detail.ts' : 'src/web/project-checks.ts']) + '\n})()', context);
+  const modules = new Map();
+  function load(path) {
+    if (path.endsWith('.css')) return {};
+    path = resolve(path.endsWith('.ts') ? path : path + '.ts');
+    if (modules.has(path)) return modules.get(path).exports;
+    const module = { exports: {} }; modules.set(path, module);
+    const source = readFileSync(path, 'utf8'); sources[path] = source;
+    const code = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.CommonJS } }).outputText;
+    vm.runInContext('(function(require,exports,module){' + code + '\n})', context, { filename: path })(name => load(resolve(dirname(path), name)), module.exports, module);
+    return module.exports;
+  }
+  load(detail ? 'src/web/detail.ts' : 'src/web/project-checks.ts');
   panel.$ = selector => w.document.querySelector(selector);
   panel.click = selector => { const node = panel.$(selector); assert(node, selector); assert.equal(node.closest('[hidden]'), null, selector + ' 必须可见'); assert(!node.disabled, selector + ' 不应禁用'); const dialog = node.closest('dialog'); if (dialog) assert(dialog.open); node.click(); };
   panel.input = (selector, value) => { const node = panel.$(selector); assert(node && !node.disabled, selector); node.value = value; node.dispatchEvent(new w.Event('input', { bubbles: true })); };
@@ -114,13 +127,40 @@ try {
     const user = name === 'denied' ? b : a;
     const created = await user.api('/api/projects', 'POST', { idempotencyKey: randomUUID(), fields: { name: prefix + '_' + name, summaryNote: '独立检查页面合成项目' } });
     ids[name] = created.result.projectId; projects.push(created.result.projectId);
-    await user.api('/api/projects/' + ids[name], 'PATCH', { expectedVersion: created.result.savedVersion, idempotencyKey: randomUUID(), changes: { statusDesc: '资料已核对\n原说明保持只读' } });
+    await user.api('/api/projects/' + ids[name], 'PATCH', { scope: 'status', expectedVersion: created.result.savedVersion, idempotencyKey: randomUUID(), changes: { statusDesc: '资料已核对\n原说明保持只读' } });
+  }
+  const recordPath='/api/projects/'+ids.success;
+  const recordSave=async(scope,changes,target)=>{
+    const detail=await a.api(recordPath);
+    return a.api(recordPath,'PATCH',{scope,expectedVersion:detail.project.version,idempotencyKey:randomUUID(),changes,...(target?{target}:{})});
+  };
+  const nodeA=randomUUID(),nodeB=randomUUID(),customerNode=randomUUID();
+  const nodeSaved=await recordSave('projectNodes',{nodeOps:[
+    {op:'add',tempId:nodeA,kind:'project',fields:{title:'检查已完节点',stage:'S1',output:'完整成果甲',targetDate:'2030-10-01'}},
+    {op:'add',tempId:nodeB,kind:'project',fields:{title:'检查待完节点',stage:'S1',output:'完整成果乙',targetDate:null}}
+  ]});
+  await recordSave('projectNodes',{nodeOps:[{op:'complete',id:nodeSaved.result.nodeIdMap[nodeA],completedOn:'2020-01-01'}]});
+  await recordSave('customerNode',{nodeOps:[{op:'add',tempId:customerNode,kind:'customer',fields:{title:'检查客户交付',note:'完整客户备注',targetDate:'2030-11-01'}}]},customerNode);
+  for(const resolved of [false,true]){
+    const tempId=randomUUID();const saved=await recordSave('risk',{riskOps:[{op:'add',tempId,content:resolved?'检查已解除风险':'检查预警风险',level:'high'}]},tempId);
+    if(resolved)await recordSave('risk',{riskOps:[{op:'resolve',id:saved.result.riskIdMap[tempId],resolution:'已验证解除'}]},saved.result.riskIdMap[tempId]);
+  }
+  for(const decision of ['accept','reject']){
+    const tempId=randomUUID();await recordSave('change',{changeOps:[{op:'add',tempId,source:'客户',content:'检查需求'+decision,decision,reason:'人工决定依据'}]},tempId);
   }
   const listPath = '/api/projects?view=proposal&search=' + prefix;
   const entry = '/project-checks.html?view=proposal&search=' + prefix + '&layout=dashboard';
   const panel = await page(a, entry); await waitFor(() => settled(panel), '初次检查页面就绪');
   assert.equal(panel.w.document.querySelectorAll('#check-list article').length, 5);
   assert.equal(panel.$('#check-list input,#check-list textarea,#check-list select'), null, '检查页最新说明只读');
+  const inspected=panel.$(card(ids.success));
+  for(const [section,summary,rows] of [['项目阶段','需求立项 · 待开始',7],['项目节点','1 项未完成',2],['客户节点','1 项未完成',1],['风险','1 项预警中',2],['需求变更','1 项已接受，1 项已拒绝',2]]){
+    const region=inspected.querySelector(`[data-inspection="${section}"]`);
+    assert.equal(region.open,false);assert(region.querySelector('summary').textContent.includes(summary));
+    region.open=true;assert.equal(region.querySelectorAll('tbody tr').length,rows);
+  }
+  for(const text of ['完整成果甲','完整成果乙','完整客户备注','检查预警风险','已验证解除','检查需求accept','检查需求reject'])assert(inspected.textContent.includes(text));
+  const originalRecords=(await a.api(recordPath));
   assert.equal(new URL(panel.w.location.href).searchParams.has('layout'), false);
   assert.equal(new URL(panel.w.location.href).searchParams.get('checkToday'), 'unchecked');
   assert.match(panel.$('#check-scope').textContent, /提案 \/ 暂缓/);
@@ -142,35 +182,51 @@ try {
   assert.equal(success.records[0].actorId, users[0].id); assert.equal(success.records[0].observedVersion, version);
   assert.equal(success.records[0].resultVersion, success.project.version); assert.equal(success.records[0].conclusion, 'checked'); assert.equal(success.records[0].note, '');
   assert.equal(success.audit[0].entityId, success.records[0].id);
+  const checkedRecords=await a.api(recordPath);
+  for(const key of ['stages','nodes','risks','changes'])assert.deepEqual(checkedRecords[key],originalRecords[key],'通过检查不修改'+key);
+  checks.push('PRD9.13完整卡：折叠即读当前阶段、未完节点、预警风险和决定数量；展开完整首末记录且只读，有风险/未完节点仍可人工通过，实际新GET确认不改业务记录');
   const freshList = await a.api(listPath); assert(freshList.items.find(item => item.id === ids.success).checkedToday);
   assert.equal((await a.api(listPath + '&checkToday=unchecked')).pagination.total, 4);
   assert.equal((await a.api('/api/projects/' + ids.success + '/checks')).items[0].id, success.records[0].id);
   panel.click('[data-check-today="checked"]'); await waitFor(() => settled(panel) && panel.$(card(ids.success)), '切到今日已检查');
   assert(panel.$(pass(ids.success)).disabled); assert.equal(panel.w.document.querySelectorAll('#check-list article').length, 1);
+  const savedHistory = panel.$(card(ids.success) + ' [data-check-history]'); savedHistory.open = true;
+  await waitFor(() => savedHistory.dataset.loaded === 'true', '已查卡历史实际读取');
+  assert.match(savedHistory.querySelector('.inspection-audits').textContent, /检查结论：已核对/);
+  assert.doesNotMatch(savedHistory.querySelector('.inspection-audits').textContent, /actorName|检查结论：checked/);
   panel.click('[data-check-today="unchecked"]'); await waitFor(() => settled(panel) && panel.$(card(ids.correct)), '返回未检查范围');
   checks.push('客户端跨日focus/可见60秒回调触发真实新GET且保持范围，同日不重复刷新；真实页面通过检查→原actions事务→独立连接SQL检查事实/审计/回执→新GET待查消失、首页当日标记、已查页与检查历史一致');
 
   const correctionLink = panel.$(`[data-correct-project="${ids.correct}"]`);
+  const stageSection = panel.$(card(ids.correct) + ' [data-inspection="项目阶段"]'); stageSection.open = true;
+  panel.failHistory = true;
+  const historySection = panel.$(card(ids.correct) + ' [data-check-history]'); historySection.open = true;
+  await waitFor(() => historySection.textContent.includes('历史读取失败'), '历史失败在原卡提供重试');
+  assert.match(panel.$(card(ids.correct)).textContent, /资料已核对/); assert(!panel.$(pass(ids.correct)).disabled, '历史失败不阻止当前信息检查');
+  panel.failHistory = false; historySection.querySelector('button').click();
+  await waitFor(() => historySection.dataset.loaded === 'true', '历史重试成功');
   correctionLink.addEventListener('click', event => event.preventDefault()); correctionLink.click();
   const target = new URL(correctionLink.href), returnTo = target.searchParams.get('returnTo');
   assert.equal(target.origin, origin); assert.equal(target.pathname, '/project-detail.html');
   assert.equal(returnTo, panel.w.location.pathname + panel.w.location.search);
-  assert.equal(JSON.parse(panel.w.sessionStorage.getItem('geekdash_checks_return')).url, panel.w.location.href);
+  assert.equal(JSON.parse(panel.w.sessionStorage.getItem('geekdash_checks_return:' + users[0].id)).url, panel.w.location.href);
   const detail = await page(a, target.pathname + target.search);
   assert.equal(detail.$('#back').href, origin + returnTo); assert.match(detail.$('#back').textContent, /返回项目检查/);
   detail.input('#edit-statusDesc', '直接修正最新说明，尚未通过检查');
   detail.click('#back'); await waitFor(() => detail.$('[data-choice="cancel"]'), '返回仍保留原未保存保护');
   detail.click('[data-choice="cancel"]'); assert.equal(detail.$('#edit-statusDesc').value, '直接修正最新说明，尚未通过检查');
-  detail.click('#save'); await waitFor(() => detail.$('#save').disabled && !detail.$('#reload').disabled && detail.reads.some(item => item.data.project?.statusDesc === '直接修正最新说明，尚未通过检查'), '详情修正保存后的新GET');
+  detail.click('[data-save-scope="status"]'); await waitFor(() => !detail.$('#reload').disabled && detail.reads.some(item => item.data.project?.statusDesc === '直接修正最新说明，尚未通过检查'), '详情修正保存后的新GET');
   const corrected = await facts(ids.correct); assert.equal(corrected.project.status_description, '直接修正最新说明，尚未通过检查'); assert.equal(corrected.records.length, 0);
   const returned = await page(a, returnTo, { storage: Object.fromEntries(Object.entries(panel.w.sessionStorage)) });
   assert.match(returned.$(card(ids.correct)).textContent, /直接修正最新说明/); assert(!returned.$(pass(ids.correct)).disabled);
+  assert(returned.$(card(ids.correct) + ' [data-inspection="项目阶段"]').open, '返回保留原项目阶段展开');
+  assert(returned.$(card(ids.correct) + ' [data-check-history]').open, '返回历史展开后重新读取');
   const unsafe = await page(a, '/project-detail.html?id=' + ids.correct + '&returnTo=' + encodeURIComponent('https://invalid.example/project-checks.html'));
   assert.equal(new URL(unsafe.$('#back').href).origin, origin); assert.notEqual(new URL(unsafe.$('#back').href).pathname, '/project-checks.html');
   checks.push('进入修正保留同站检查范围/位置；真实详情输入→返回取消仍保留→正式保存→新GET/独立SQL；修正不自动检查，外站returnTo被拒绝');
 
   const conflictBefore = await facts(ids.conflict), staleVersion = returned.$(card(ids.conflict)).dataset.projectVersion;
-  await a.api('/api/projects/' + ids.conflict, 'PATCH', { expectedVersion: staleVersion, idempotencyKey: randomUUID(), changes: { statusDesc: '另一个页面已更新，需要重新核对' } });
+  await a.api('/api/projects/' + ids.conflict, 'PATCH', { scope: 'status', expectedVersion: staleVersion, idempotencyKey: randomUUID(), changes: { statusDesc: '另一个页面已更新，需要重新核对' } });
   returned.click(pass(ids.conflict));
   await waitFor(() => settled(returned) && /他人更新/.test(returned.$('#message').textContent), '旧展示版本409');
   assert(returned.requests.some(item => item.path === '/api/projects/' + ids.conflict + '/actions' && item.status === 409 && item.body.expectedVersion === staleVersion));
@@ -223,12 +279,23 @@ try {
   assert.equal(errors.length, 0);
   checks.push('无负责关系仍可读完整卡片但按钮禁用且不发请求；直接HTTP越权403，独立SQL事实/审计/版本保持');
 
+  recovered.failNextList = true; recovered.click(pass(ids.correct));
+  await waitFor(() => settled(recovered) && /检查已保存，但列表读取失败/.test(recovered.$('#message').textContent), '已提交但列表失败明确反馈');
+  const confirmed = await facts(ids.correct); assert.equal(confirmed.records.length, 1);
+  assert(recovered.$(pass(ids.correct)).disabled); assert.equal(recovered.w.sessionStorage.getItem(`geekdash_check:${users[0].id}:${ids.correct}`), null);
+  const submits = recovered.requests.filter(item => item.path.endsWith('/actions')).length;
+  recovered.click('#check-reload'); await waitFor(() => settled(recovered) && !recovered.$(card(ids.correct)), '仅重读恢复待查列表');
+  assert.equal(recovered.requests.filter(item => item.path.endsWith('/actions')).length, submits);
+  assert.deepEqual(await facts(ids.correct), confirmed);
+  checks.push('PRD9.13：历史读取失败就地重试不阻止当前信息核对；修正返回恢复阶段/历史展开并新读；检查已提交但列表失败明确告知，禁用旧卡且仅重读恢复，无重复事实');
+
   const build = (await a.api('/api/health/live')).build;
   const result = { status: 'passed', checkedAt: new Date().toISOString(), checks, requestCount, build, sourceHashes: Object.fromEntries(Object.entries(sources).map(([name, value]) => [name, createHash('sha256').update(value).digest('hex')])), isolatedTestDatabase: true, syntheticOnly: true, domExecution: true, nativeBrowserAcceptance: false, visualAcceptance: false };
   await mkdir('test-results', { recursive: true }); await writeFile('test-results/project-checks-ui-check.json', JSON.stringify(result, null, 2) + '\n');
   console.log(JSON.stringify({ status: result.status, groups: checks.length, requestCount }));
 } finally {
   for (const view of views) view.window.close(); if (app) await app.close();
+  for (const user of users) for (const table of ['project_drafts', 'user_preferences']) await c.execute('DELETE FROM ' + table + ' WHERE user_id=?', [user.id]);
   for (const id of projects) {
     await c.execute('UPDATE project_nodes SET previous_node_id=NULL,next_node_id=NULL WHERE project_id=?', [id]);
     for (const table of ['project_changes', 'project_risks', 'project_nodes', 'project_checks', 'schedule_changes', 'audit_log', 'project_stages', 'project_responsibilities', 'project_chips', 'project_people', 'project_tags']) await c.execute('DELETE FROM ' + table + ' WHERE project_id=?', [id]);

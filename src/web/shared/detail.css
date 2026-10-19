@@ -87,7 +87,11 @@ html, body {
    顶部栏
    ========================================================================== */
 .topbar { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
-.back-btn {
+.project-nav { display:flex; align-items:center; flex-wrap:wrap; gap:20px; padding-bottom:18px; margin-bottom:20px; border-bottom:1px solid var(--border); }
+.project-nav a { color:var(--text-dim); text-decoration:none; font-size:13px; }
+.project-nav a:hover { color:var(--text); }
+.project-nav .project-brand { color:var(--text); font-size:20px; font-weight:700; }
+.back-btn, .project-detail-page .head-btn {
   background: transparent;
   color: var(--text-dim);
   border: 1px solid var(--border);
@@ -96,7 +100,8 @@ html, body {
   font-size: 13px;
   cursor: pointer;
 }
-.back-btn:hover { color: var(--text); background: var(--card-hover); }
+.back-btn:hover, .project-detail-page .head-btn:hover { color: var(--text); background: var(--card-hover); }
+.project-detail-page .head-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-left: auto; }
 .topbar .crumb { color: var(--text-faint); font-size: 13px; }
 
 /* 主题切换 */

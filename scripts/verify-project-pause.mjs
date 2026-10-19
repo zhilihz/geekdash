@@ -10,6 +10,8 @@ import { projectReads } from '../dist/server/modules/projects.js';
 import { addDays, businessToday } from '../dist/server/modules/project-dates.js';
 
 const { connection: c } = await connectDatabase('test_migrator');
+assert.equal(process.env.GEEKDASH_MIGRATION_PROBE,'1');
+assert.equal((await c.query('SELECT @@server_uuid uuid'))[0][0].uuid,process.env.GEEKDASH_MIGRATION_PROBE_SERVER_UUID);
 const prefix = 'pause_' + randomUUID().slice(0, 8), password = '暂缓验收 password 长短语 2026';
 const users = [], projects = [], checks = [], measurements = [];
 let app, runtime, origin, fault = '', projectWrites = 0, ownConfig = false;
@@ -72,7 +74,7 @@ try {
   const pauseId = detail.lifecycleNotes[0].id, pauseAudit = (await fresh(id)).audit_log.find(row => String(row.id) === pauseId);
   await a.api(path + '/actions', 'POST', command(version, 'pauseProject', { reason: '重复暂缓拒绝' }), 422);
   await a.api(path + '/actions', 'POST', command(version, 'startStage', { stageCode: 'S1', actualDate: today }), 422);
-  const ordinary = await a.api(path, 'PATCH', { expectedVersion: version, idempotencyKey: randomUUID(), changes: { summaryNote: '暂缓期间最新说明', signal: 'red', priority: 'high' } }); version = ordinary.result.savedVersion;
+  for (const [scope,changes] of [['summaryNote',{summaryNote:'暂缓期间最新说明'}],['signal',{signal:'red'}],['basic',{priority:'high'}]]) version = (await a.api(path,'PATCH',{expectedVersion:version,idempotencyKey:randomUUID(),scope,changes})).result.savedVersion;
   await perform('resumeProject', { note: '客户已确认' }); detail = await a.api(path); assert.equal(detail.project.status, 'proposal'); assert.equal(detail.project.resumeStatus, null); assert.equal(detail.project.summaryNote, '暂缓期间最新说明'); assert.equal(detail.project.signal, 'red'); assert.equal(detail.project.priority, 'high'); assert.equal(detail.project.firstCheckWeek, null);
   checks.push('可信身份/负责范围、严格字段及原因、提案暂缓保存此前状态、阶段推进拒绝、普通信息继续可存、恢复使用最新事实、不制造启动或首次义务');
 

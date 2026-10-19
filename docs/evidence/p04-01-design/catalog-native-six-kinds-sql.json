@@ -1,0 +1,101 @@
+{
+  "uuid": "017e6895-c927-11f1-9c73-46ad6b6ac97c",
+  "engineers": [
+    {
+      "id": "39",
+      "name": "P04原生工程师1017",
+      "role": "硬件",
+      "enabled": 1,
+      "version": "1",
+      "created_at": "2026-10-16T23:31:51.280Z",
+      "updated_at": "2026-10-16T23:31:51.280Z"
+    }
+  ],
+  "product_lines": [
+    {
+      "id": "34",
+      "name": "P04原生产品线1017",
+      "enabled": 1,
+      "version": "1",
+      "created_at": "2026-10-16T23:32:20.579Z",
+      "updated_at": "2026-10-16T23:32:20.579Z"
+    }
+  ],
+  "apps": [
+    {
+      "id": "34",
+      "name": "P04原生APP1017",
+      "app_version": "1.0-test",
+      "description": "本地合成验收：移动端联调",
+      "enabled": 1,
+      "version": "1",
+      "created_at": "2026-10-16T23:32:48.959Z",
+      "updated_at": "2026-10-16T23:32:48.959Z"
+    }
+  ],
+  "tags": [
+    {
+      "id": "28",
+      "name": "P04原生标签1017",
+      "enabled": 1,
+      "version": "1",
+      "created_at": "2026-10-16T23:33:16.544Z",
+      "updated_at": "2026-10-16T23:33:16.544Z"
+    }
+  ],
+  "project_groups": [
+    {
+      "id": "34",
+      "name": "P04原生分组1017",
+      "enabled": 1,
+      "version": "1",
+      "created_at": "2026-10-16T23:33:44.343Z",
+      "updated_at": "2026-10-16T23:33:44.343Z"
+    }
+  ],
+  "chips": [
+    {
+      "id": "56",
+      "name": "P04原生芯片1017",
+      "original_model": "TEST-1017",
+      "manufacturer": "合成厂商",
+      "firmware_version": "fw-test-1",
+      "enabled": 1,
+      "version": "1",
+      "created_at": "2026-10-16T23:34:12.818Z",
+      "updated_at": "2026-10-16T23:34:12.818Z"
+    }
+  ],
+  "project": [
+    {
+      "id": "9007199254760274",
+      "version": "5",
+      "customer_id": "34",
+      "product_line_id": "34",
+      "group_id": "34",
+      "app_id": "34"
+    }
+  ],
+  "project_chips": [
+    {
+      "project_id": "9007199254760274",
+      "chip_id": "56",
+      "sort_order": 0
+    }
+  ],
+  "project_people": [
+    {
+      "project_id": "9007199254760274",
+      "engineer_id": "39",
+      "role": "hardware_owner",
+      "sort_order": 0
+    }
+  ],
+  "project_tags": [
+    {
+      "project_id": "9007199254760274",
+      "tag_id": "28",
+      "sort_order": 0
+    }
+  ]
+}

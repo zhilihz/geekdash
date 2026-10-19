@@ -1,0 +1,44 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-17T00:31:26.810Z",
+  "checks": [
+    "PRD9.13完整卡：折叠即读当前阶段、未完节点、预警风险和决定数量；展开完整首末记录且只读，有风险/未完节点仍可人工通过，实际新GET确认不改业务记录",
+    "客户端跨日focus/可见60秒回调触发真实新GET且保持范围，同日不重复刷新；真实页面通过检查→原actions事务→独立连接SQL检查事实/审计/回执→新GET待查消失、首页当日标记、已查页与检查历史一致",
+    "进入修正保留同站检查范围/位置；真实详情输入→返回取消仍保留→正式保存→新GET/独立SQL；修正不自动检查，外站returnTo被拒绝",
+    "并发真实普通保存使原卡片版本过期；旧版本409无检查写入，关闭提示仍冻结；主动刷新读取新说明后明确通过",
+    "真实COMMIT后丢响应：普通按钮冻结、原命令按账号项目暂存；显式重试及刷新确认均使用同一key，不重复检查/审计；确认遇到真实会话失效401仍保留原请求，重新登录同账号恢复；不同账号不重放或删除原账号请求",
+    "无负责关系仍可读完整卡片但按钮禁用且不发请求；直接HTTP越权403，独立SQL事实/审计/版本保持",
+    "PRD9.13：历史读取失败就地重试不阻止当前信息核对；修正返回恢复阶段/历史展开并新读；检查已提交但列表失败明确告知，禁用旧卡且仅重读恢复，无重复事实"
+  ],
+  "requestCount": 116,
+  "build": {
+    "revision": "f07450eafc94f0756f09260d0026968f09102e65",
+    "dirty": true,
+    "builtAt": "2026-10-17T00:19:37.242Z",
+    "stage": "project-list",
+    "schemaVersion": "0004-project-compatibility"
+  },
+  "sourceHashes": {
+    "src/web/project-checks.html": "a2505c233a0209f3d67b94389dfbed343b53265f01bde3d18e33d196bc1fd8a4",
+    "src/web/project-checks.ts": "c9ac2d359f9f53c913cce318399eaf850648d8ebfc485b88b5d13c4067bf5a55",
+    "src/web/project-detail.html": "cdccfb77cd7abd16700fe63870058cda788ae7150744ea277f20db155cbbd093",
+    "src/web/detail.ts": "f2970bcfdda3c82710b674a8554f39748ae4efd44ae8f84a1e857c31b12f2d8a",
+    "src/web/shared/api.ts": "5b6136bf312885855f5373f145c8bb0b5d36aec16c8518287e56998922bee72f",
+    "src/web/shared/reference-picker.ts": "072d316ea2dffc6d6f2e4fc082a5517908ce578decbdd9ec38bc43a9fc253a44",
+    "/workspace/src/web/project-checks.ts": "c9ac2d359f9f53c913cce318399eaf850648d8ebfc485b88b5d13c4067bf5a55",
+    "/workspace/src/web/shared/inspection.ts": "b18c7d4097ac114192a67e90d1c19405848880cdf8eca8f8d35e7826a8b0a2c0",
+    "/workspace/src/web/shared/api.ts": "5b6136bf312885855f5373f145c8bb0b5d36aec16c8518287e56998922bee72f",
+    "/workspace/src/web/shared/personal-state.ts": "15565a12dae796c95e4ba046cfcc389d3b8e0174d5043b5fef37e917d4835fb6",
+    "/workspace/src/web/shared/history.ts": "7e8e411c3ff9d30027447a79b9a89ee76e597eb1fe0aa2a64c70414fcbad345f",
+    "/workspace/src/web/shared/notifications.ts": "e9e2ae9fd4dba63f897c20d01fffa32f3c7db74df05196001f0785bb48700d3b",
+    "/workspace/src/web/detail.ts": "f2970bcfdda3c82710b674a8554f39748ae4efd44ae8f84a1e857c31b12f2d8a",
+    "/workspace/src/web/shared/reference-picker.ts": "072d316ea2dffc6d6f2e4fc082a5517908ce578decbdd9ec38bc43a9fc253a44",
+    "/workspace/src/web/shared/project-form.ts": "5a84eea5b9a3625568b501ebe64b3d064dc4b29bce9a40978d9b44a7ed2c11da",
+    "/workspace/src/web/shared/scoped-editor.ts": "3168bd5052568056b5c7c33c7350280b996339cb1ec4d5521e985d399ee9833e"
+  },
+  "isolatedTestDatabase": true,
+  "syntheticOnly": true,
+  "domExecution": true,
+  "nativeBrowserAcceptance": false,
+  "visualAcceptance": false
+}

@@ -92,6 +92,10 @@ B 中均缺失。保存与新建来源同上；closeReason 另见 `project-detai
 | flowLinks | 新建从草稿透传数组 | 所读当前连线操作实际写 nodes.prevId/nextId；此数组保留受控来源，不能假设已确定元素契约 |
 | milestones | 新建从草稿透传数组 | C 有兼容归一化结构，但未发现所读页面调用该归一化器处理实际节点操作；保留原内容，不自动转成返工子项目 |
 
+#### 1.3.1 1051项目简介的独立来源（2026-10-15核对）
+
+本机参考目录 `D:/geekwon/geekdash-local-releases/GeekDash1051/` 的 `project-detail.html:2408～2409、3344、3457` 分别读取、修改及新建 `p.summary`，用途是项目简介及项目卡片；它不是上表B/C已实测字段的补计，也不是浏览器 `summary_notes` 容器。目标映射为 `p.summary` → `projects.summary`，增量字段及兼容边界唯一见5.11。`statusDesc`、`detailNote`、`summary_notes`、`chipstat_notes` 继续各自映射，不能因都能填写文字而合并。
+
 ### 1.4 嵌套对象完整字段
 
 C 来源：`projects-data.js:984～1105`。B 只有 stages 和 statusHistory 的对象可核对；其他数组为空，不能据源码声称存在真实样本。
@@ -122,12 +126,14 @@ C 来源：`projects-data.js:984～1105`。B 只有 stages 和 statusHistory 的
 | engineers | C：id/name/role | engineers；role 是业务资料角色，不是账号权限；同一人可在 project_people 担任不同项目角色 |
 | productLines | C：id/name | product_lines；项目多对一可空 |
 | apps | C：id/name/version/desc | apps.app_version；旧 version 为 APP 资料版本，不是项目并发 version |
-| tags | C：id/name | tags + project_tags/customer_tags；名称数组存在自由输入，客户标签来源需核对 |
+| tags | C：id/name | tags + project_tags/customer_tags；旧项目标签库与客户标签候选不是同一来源，迁移不得只按同名合并资料身份 |
 | groups | B/C：id/name | project_groups；项目多对一可空 |
 | chips | B/C：id/name/originalModel/manufacturer/firmwareVersion | chips + project_chips；名称不是天然唯一标识；NFKC/大小写/空白归一化只辅助匹配，不默认合并资料 |
 | company | B/C：fullName/shortName/manager/namePrefix | system_configuration 单例企业信息；展示负责人不授予权限，namePrefix 是命名配置 |
 
 `projects-data.js:514～522` 对旧 customer.type 转成 tags 后删除 type；这是兼容转换，不能据此为真实 B 备份补造字段。原始未知字段留在受控导入项，不直接采用旧归一化器丢弃字段。
+
+2026-10-15补核1051 `data-manage.html:639～666`：客户标签候选来自预设`CUSTOMER_TAG_SUGGESTIONS`、各客户已有标签及当前草稿，允许输入后回车加入；不读取项目标签库。目标仍复用既有标签实体和各自关联表，但旧来源先分别映射并保留来源，不能仅凭相同文字认定是同一资料；选择器不能因此把客户标签全量混进项目标签候选。旧版删除标签跨客户移除的行为不覆盖服务器已确认的引用保护规则。
 
 ### 1.6 浏览器状态与业务内容
 
@@ -137,8 +143,8 @@ V1.050 的备份白名单共 25 键，见 `projects-data.js:22～31`。下表为
 |---|---|---|
 | 个人显示 | theme、display_mode、meeting_float、zone_settings、activity_settings、filter_settings、filter_collapsed_default、welcome_dismissed、kb_auto_sync | user_preferences；旧来源不证明属于哪个登录用户，分配/默认使用边界待 Q-017 |
 | 检查显示/规则 | check_mode、check_rule | check_mode 的个人显示与 check_rule 的公共业务设置分别处理；不能导入某浏览器值直接改写服务器公共规则；SPEC-019 |
-| 纪要布局 | summary_order、summary_hidden、summary_sort、summary_show_note、summary_show_node | user_preferences 的对应 scope |
-| 芯片统计布局 | chipstat_order、chipstat_hidden、chipstat_sort、chipstat_show_note、chipstat_show_node、chipstat_colvis | user_preferences 的对应 scope |
+| 旧纪要布局 | summary_order、summary_hidden、summary_sort、summary_show_note、summary_show_node | 保留旧键来源，目标为user_preferences中统一状态简要的页面上下文；合并及冲突处理见SPEC-020 |
+| 旧芯片统计布局 | chipstat_order、chipstat_hidden、chipstat_sort、chipstat_show_note、chipstat_show_node、chipstat_colvis | 保留旧键来源，与旧纪要布局收敛到同一个页面上下文，不创建第二份当前布局；迁移见SPEC-020 |
 | 页面业务备注 | summary_notes、chipstat_notes | projects.summary_note / projects.chipstat_note；两者都按项目 ID 存储，并不是按芯片名称存储；同项目两份备注互不覆盖，服务器修改按项目负责范围 |
 | Bug/建议 | feedback | C `settings.html:631～664`：id/type/author/date/content；author 是手填文字，不是可信用户；保留来源，服务器 feedback_entries 的处理流程待确认 |
 
@@ -454,12 +460,12 @@ erDiagram
 | system_configuration | `id:I`、`maintenance_user_id:I`、`full_name:V255`、`short_name:V128`、`manager_text:X`、`name_prefix:V128`、`version:R`、`updated_by:I`、`updated_at:T` | PK(id)，单例 id=1（不使用 AUTO_INCREMENT）；维护人与企业信息同一配置聚合。 | 一个公共配置入口；合并旧 company_profile，避免两个单例表互相同步。 |
 | check_rule_revisions | `version:I`、`deadline_weekday:S`、`effective_week:D`、`saved_at:T`、`saved_by:I` | PK(version)，AUTO_INCREMENT 单调递增修订号；CHECK(deadline_weekday BETWEEN 1 AND 7)；IDX(effective_week,version)。 | 截止修订必须追加，不能用当前配置覆盖旧周和报告依据；version 同时是修订 ID。 |
 | projects | `id:I`、`name:V255`、`customer_id:I?`、`odm_customer_id:I?`、`product_line_id:I?`、`app_id:I?`、`group_id:I?`、`created_by:I?`、`source_import_item_id:I?`、`source_namespace:V64?`、`source_key:V128?`、`status:V16`、`version:R`、`proposed_on:D?`、`filed_on:D?`、`started_on:D?`、`original_due_date:D?`、`current_due_date:D?`、`manual_delayed:B`、`priority:V16`、`signal:V16`、`signal_note:X`、`market_expectation:X`、`status_description:X`、`status_description_updated_at:T?`、`detail_note:X`、`summary_note:X`、`chipstat_note:X`、`closure_due_date:D?`、`resume_status:V16?`、`pre_close_status:V16?`、`closure_type:V16?`、`closed_on:D?`、`closure_note:X`、`remaining_work_note:X`、`maintenance_enabled:B`、`first_check_week:D?`、`first_check_rule_version:I?`、`created_at:T`、`updated_at:T` | PK(id)；UK(source_namespace,source_key)，两个来源字段同时空或同时有值由模块校验；IDX(status,id)、IDX(customer_id,status,id)、IDX(current_due_date,id)。 | 项目聚合根、统一版本及筛选字段；两份固定页面备注并入项目；来源身份防止同库重复新增。 |
-| project_responsibilities | `project_id:I`、`user_id:I`、`joined_at:T` | 联合 PK(project_id,user_id)；IDX(user_id,project_id)。 | 当前修改授权，与业务 PM/工程师不同；退出历史由审计承接，不再复制历史表。 |
+| project_responsibilities | `project_id:I`、`user_id:I`、`joined_at:T` | 联合 PK(project_id,user_id)；IDX(user_id,project_id)。 | 项目修改授权；DEC-117目标中同时作为分工里的项目经理账号来源，仍不赋予系统维护权限。与旧业务PM姓名区别，退出历史由审计承接，不复制另一份经理授权表；新入口尚未实施。 |
 | project_stages | `id:I`、`project_id:I`、`stage_code:V2`、`state:V16`、`planned_days:S?`、`note:X`、`started_on:D?`、`completed_on:D?`、`expected_end_on:D?` | PK(id)；UK(project_id,stage_code)，UK(project_id,id) 支持节点的同项目复合外键；七阶段完整性/前置状态在项目事务校验。 | 七阶段的独立状态、工期与实际日期；查询按 project_id 一次取七行，不把状态存在页面偏好中。 |
 | project_nodes | `id:I`、`project_id:I`、`kind:V16`、`stage_id:I?`、`title:V255`、`target_date:D?`、`completed_on:D?`、`output:X`、`note:X`、`previous_node_id:I?`、`next_node_id:I?`、`x:DEC?`、`y:DEC?`、`sort_order:N`、`source_key:V128?` | PK(id)；UK(project_id,id)；IDX(project_id,kind,sort_order,id)。阶段、前后节点分别用(project_id,引用ID)复合 FK；来源 ID 非正式 PK。 | 此行是0001/0002既有列；合并两种节点，保留不同业务字段和布局，节点恢复新增列只定义于5.8，不另建连线/子节点实体。 |
-| project_people | `project_id:I`、`engineer_id:I`、`role:V32`、`sort_order:N` | 联合 PK(project_id,engineer_id,role)；IDX(engineer_id,project_id)。pm/hardware_owner/software_owner 每角色最多一人由项目事务校验；participant 可多行。 | 业务人员的角色与排序；同一人员可任多角色，不能把参与人员写成逗号字符串或授予登录权限。 |
+| project_people | `project_id:I`、`engineer_id:I`、`role:V32`、`sort_order:N` | 联合 PK(project_id,engineer_id,role)；IDX(engineer_id,project_id)。现有pm/hardware_owner/software_owner每角色最多一人，participant可多行；此为既有表达，不能用pm单人约束限制目标中的多个账号经理。 | 业务人员角色与排序，不授予登录权限。旧pm数据保留来源、不按姓名自动授权；DEC-117目标经理账号取project_responsibilities，切换兼容须在实施时处理，不据本行改写已有数据。 |
 | customers | `id:I`、`name:V255`、`contact:X`、`background:X`、`enabled:B`、`version:R`、`created_at:T`、`updated_at:T` | PK(id)；IDX(enabled,name,id)；名称不设未经确认的唯一约束，不按归一化名称自动合并。 | 客户背景/联系方式与 ODM 引用；不是账号或标签。 |
-| engineers | `id:I`、`name:V255`、`role:V64`、`enabled:B`、`version:R`、`created_at:T`、`updated_at:T` | PK(id)；IDX(enabled,name,id)；名称不设未经确认的唯一约束，不按归一化名称自动合并。 | 业务工程师可多于五个账号且未必登录，不能并入 users。 |
+| engineers | `id:I`、`name:V255`、`role:V64`、`enabled:B`、`version:R`、`created_at:T`、`updated_at:T` | PK(id)；IDX(enabled,name,id)；名称不设未经确认的唯一约束，不按归一化名称自动合并。 | 业务工程师与登录账号不是同一集合，不能并入 users。 |
 | product_lines | `id:I`、`name:V255`、`enabled:B`、`version:R`、`created_at:T`、`updated_at:T` | PK(id)；IDX(enabled,name,id)；名称不设未经确认的唯一约束，不按归一化名称自动合并。 | 产品线与 APP/分组具有不同选择与引用语义。 |
 | apps | `id:I`、`name:V255`、`app_version:V64`、`description:X`、`enabled:B`、`version:R`、`created_at:T`、`updated_at:T` | PK(id)；IDX(enabled,name,id)；名称不设未经确认的唯一约束，不按归一化名称自动合并。 | APP 业务版本和描述；app_version 不承担并发保护。 |
 | project_groups | `id:I`、`name:V255`、`enabled:B`、`version:R`、`created_at:T`、`updated_at:T` | PK(id)；IDX(enabled,name,id)；名称不设未经确认的唯一约束，不按归一化名称自动合并。 | 项目分组的独立选项与停用引用。 |
@@ -557,6 +563,7 @@ erDiagram
 | projects.status_description | 当前多行进展描述；历史由审计读取 |
 | projects.status_description_updated_at | 描述最近业务更新时刻；旧值需可验证，不冒充服务器审计 |
 | projects.detail_note | 项目详情备注；保留原版独立说明 |
+| projects.summary（0004增量） | 1051独立项目简介；类型、来源与旧值保护见5.11；隔离库验证范围见P04-02报告，常驻及线上未升级 |
 | projects.summary_note | 状态纪要中的项目共享备注；受同一项目版本保护 |
 | projects.chipstat_note | 芯片统计中的项目共享备注；不覆盖纪要备注 |
 | projects.closure_due_date | 当前有效结案的计划快照；普通改期不重写。按PROP-011建议重开后置空，旧结果从追加结案/更正审计读取；导入缺失快照保持未知，不能取今日计划补造 |
@@ -582,7 +589,7 @@ erDiagram
 | project_stages.note | 该对象的业务说明；供详情/检查阅读与明确保存 |
 | project_stages.started_on | 实际开始日；DEC-108明确未知纠错用NULL，真实开始由state/审计保持，校验归SPEC-003 |
 | project_stages.completed_on | 实际完成日；DEC-108明确未知纠错用NULL，完成事实/进度仍取state，不从日期非空推断阶段已完成 |
-| project_stages.expected_end_on | 阶段预计结束日；保留计划值，区别实际完成 |
+| project_stages.expected_end_on | 既有独立阶段计划列，原值保留供迁移核对；DEC-119目标中的当前预计完成日改为从project_nodes.target_date及stage_id关系派生，行为归SPEC-003，不再形成第二份可编辑计划。既有列尚未迁移，不能把当前结构描述为已实现新来源 |
 | project_nodes.id | 稳定对象标识；供关联、定位及游标使用 |
 | project_nodes.project_id | 所属正式项目；供项目聚合读取、授权与外键隔离 |
 | project_nodes.kind | 项目/客户节点类别；复用表并保留不同业务字段 |
@@ -868,7 +875,7 @@ erDiagram
 | 看板/筛选/统计 | 显式选择摘要列，不返回长说明、全部子记录、审计或原始 JSON；统一过滤集合；进度由七阶段统一计算 | projects 状态/客户/交期索引；先用真实查询 EXPLAIN ANALYZE，再决定组合索引是否保留 |
 | 项目详情 | 根记录、七阶段及所需子表按 project_id 批量读；历史按 ID/来源顺序游标分页；不每条子记录查人员 | 子表 project_id 前缀、人员/芯片反查索引；核查无 N+1 查询 |
 | 资料改名影响 | 反查外键与关联表，准确计数；保留稳定 ID | project_chips/chip_id、各项目引用列及 tag 反查索引；无需扫描所有项目 JSON |
-| 草稿/偏好 | 每次仅当前 scope 或一份草稿，按本人隔离；同步去抖/节流；草稿列表不含 payload | preferences 联合 PK、drafts 的 user/state/project 索引；观察四人持续输入的写入量 |
+| 草稿/偏好 | 每次仅当前 scope 或一份草稿，按本人隔离；同步去抖/节流；草稿列表不含 payload | preferences 联合 PK、drafts 的 user/state/project 索引；按实际并发规模观察多人持续输入的写入量 |
 | 导入卡片 | 按批次/状态游标分页，卡片按需读原值与修正；一次已选择提交限额以测量定 | items(batch_id,status,id)；混合冲突/成功和重复请求验证；不加载整批文件供每张卡片重复解析 |
 | 幂等恢复 | 唯一键一次定位回执，再核对可信身份及实际结果 | command_receipts 联合 PK；不能靠轮询全部审计猜是否保存 |
 | 周检查 | 以项目及自然周找真实记录，规则按生效周/修订查询 | checks(project_id,week_start,id)、rule(effective_week,version)；跨日/修改本周不全库重写派生状态 |
@@ -878,11 +885,11 @@ erDiagram
 
 ### 5.4 字段与表的“实践考验”如何成立
 
-当前证据：B 备份结构、C 实际读写与函数诊断、T 已确认目标。**本地初始 MySQL 表与完整结构已核验，实际范围见 F02/F03 报告；含数据升级、逐字段业务消费、执行计划、读写性能和四人验收仍未执行。** 禁止把“使用常见 SQL 类型”写成“字段性能已通过”。
+当前证据：B 备份结构、C 实际读写与函数诊断、T 已确认目标。**本地初始 MySQL 表与完整结构已核验，实际范围见 F02/F03 报告；含数据升级、逐字段业务消费、执行计划、读写性能和多人实际使用验收仍未执行。** 禁止把“使用常见 SQL 类型”写成“字段性能已通过”。
 
 当前已逐列登记用途与模块读写路径，共 313 列；第 1/3.3 节区分 B/C/T 来源，第 3.2 节记录空值/类型/约束。施工生成迁移时须核对列级来源映射与真实调用，没有消费者则再移除。按完整业务链路验证字段，而不是每字段各写一个浅层测试：输入 → 同事务写入 → 新请求回读 → 页面/报告消费 → 纠错/失败/并发恢复。
 
-数据库验收必须具备：34 表的可执行迁移及 INFORMATION_SCHEMA 实际结构对照；所有 FK/唯一/NULL 边界的反例；原备份全部字段及未知原值保留对账；27 项实际规模及代表性增长规模下真实 SQL 执行计划；四用户混合读写/SSE/草稿同步的 p50/p95、错误率、连接/内存/磁盘观察；备份与隔离恢复后重复上述关键读取。测试设计归 TEST-032，不产生虚构通过报告。
+数据库验收必须具备：34 表的可执行迁移及 INFORMATION_SCHEMA 实际结构对照；所有 FK/唯一/NULL 边界的反例；原备份全部字段及未知原值保留对账；27 项实际规模及代表性增长规模下真实 SQL 执行计划；多人混合读写/SSE/草稿同步的 p50/p95、错误率、连接/内存/磁盘观察，并发规模按实际需求和测量确定；备份与隔离恢复后重复上述关键读取。测试设计归 TEST-032，不产生虚构通过报告。
 
 技术边界参照 [MySQL CHECK 限制](https://dev.mysql.com/doc/refman/8.4/en/create-table-check-constraints.html)、[外键与父索引要求](https://dev.mysql.com/doc/refman/8.4/en/create-table-foreign-keys.html)。跨表和 NOW 等非确定性判断不能放在 CHECK；自增 ID 不写进 CHECK 条件。
 
@@ -1020,3 +1027,32 @@ DEC-108复用projects.proposed_on/filed_on/started_on/closed_on及project_stages
 ### 5.9 需求变更现有实体的施工核对
 
 需求变更A/B复用第3节project_changes的10列及既有FK/CHECK/项目排序索引，不新增表或列；actor_id/created_at/source_key/sort_order保留最初来源。有效文字和人工decision/理由可改，原值与纠错人归audit_log，command_receipts保留原操作结果，不把姓名再加列。创建姓名以目标最早创建审计和PK取回；真实500规模索引验证与无DDL范围归[需求变更报告](../testing/reports/2026-10-12-project-changes.md)。34/315/55结构仍为0003现有模型；固定两端无DDL验证与部署状态见报告和系统真相。
+
+### 5.10 P04保存范围与风险删除的增量设计
+
+行为只归SPEC-002/003/005/007与DEC-119～121。本节定义数据表达。0004在独立MySQL实例完成新建及含数据升级验证；常驻及线上库未升级，实测范围归[P04-02报告](../testing/reports/2026-10-16-p04-02-compatibility.md)。
+
+| 对象 | 施工设计 | 必要性与兼容 |
+| --- | --- | --- |
+| project_risks.deleted_at | 0004增加DATETIME(3)可空、默认NULL；NULL为有效，非空为已明确保存删除 | 使误录风险从正常列表及统计排除，同时保留原记录；最初字段及稳定ID不变，操作者/原值复用audit_log，不另造风险回收表或重复删除人列。旧记录默认有效；本增量沿用项目索引，不预先增加索引；产品删除入口仍待后续步骤 |
+| project_stages.expected_end_on | 保留既有旧计划来源列；当前阶段计划在读取中按SPEC-003从有效项目节点派生 | 不把派生值反复回写成另一份可编辑事实，不自动把旧计划复制成虚构节点。旧值与计算结果的迁移对照须可复核；没有节点仍按规则未知 |
+| project_drafts.form_kind / payload_json | 复用既有表，按保存范围设置有限类别；记录类别的目标ID/临时ID及输入结构版本放在受校验的payload中 | 每个实际编辑范围使用自己的client_draft_id；form_kind不拼接长记录ID。新建使用一个创建稿；范围内未修改不创建空稿，不增加每区一张表 |
+| project_responsibilities / project_people | 当前经理账号使用已确认负责关系；旧pm姓名/工程师引用保留来源 | 不按姓名自动授权，不新增第二份经理权限表；原业务人员字段与账号ID分别处理，筛选和展示必须辨认来源 |
+
+本次使用0004-project-compatibility，0001～0003已应用文件不改写；同一发布的结构清单与代码必须相容。风险有效过滤要覆盖读取、候选、统计和删除资格，不能用页面隐藏代替落库。已启用删除后，缺过滤的旧构建不得作为直接回退目标；恢复点、数据库兼容及应用回退先在隔离库验证。终态草稿清理、风险保存后恢复和永久删除不因本节数据设计自动成为已实现功能。
+
+### 5.11 项目简介与页面备注的独立映射
+
+2026-10-15按1051实际字段补齐简介，仍属于projects，不新增实体。3.2的projects行保留0003列清单，本节与5.10合计定义0004的两列增量；候选结构为34表317列55外键，常驻0003实测仍为34表315列55外键。各环境事实见[P04-02报告](../testing/reports/2026-10-16-p04-02-compatibility.md)。页面消费契约见[SPEC-020](../specifications/specification.md#spec-020-项目状态简要与芯片信息导出)。
+
+| 来源与逻辑字段 | 数据目标 | 必要性及迁移边界 |
+| --- | --- | --- |
+| 1051项目 `summary`；目标逻辑字段 `summary` | 0004增加 `projects.summary`，TEXT、NOT NULL、DEFAULT ('')，新写入空值明确为空串，不新增索引 | 独立的可选多行项目简介；详情与项目卡片应读取它，不从状态或页面备注拼接。空串默认值兼容省略新列的旧插入语句；旧项目初始为空串只表示尚无已确认简介写入，不证明旧简介本来为空 |
+| 旧 `summary_notes[来源项目ID]`；现有 `summaryNote` | 保留 `projects.summary_note` | 状态简要页的项目共享备注；来源项目ID必须先映射到正式项目ID，不改列名或批量转作简介 |
+| 旧 `chipstat_notes[来源项目ID]`；现有 `chipstatNote` | 保留 `projects.chipstat_note` | 统一状态简要中的芯片备注，来源为原芯片统计页；按项目保存，不按芯片名称分配，不与状态简要备注覆盖 |
+
+来源区分：1051运行时分别把两种备注保存在localStorage的`hw_project_board_summary_notes`与`hw_project_board_chipstat_notes`，按来源项目ID索引；备份容器名才是上表的`summary_notes`、`chipstat_notes`。不能把它们误写成旧项目对象自带的`p.summaryNote`或`p.chipstatNote`。DEC-125合并页面后仍保留两列及各自来源，不拼接、不覆盖；页面合并不需要新增实体，格式与选择契约归SPEC-020。
+
+现有 `src/web/detail.ts` 将 `summaryNote` 标为“项目简介”，`src/web/board.ts` 也把该字段用于卡片简介。这证明当前显示用途混用，不能证明每条已有 `summary_note` 的内容实际来自哪一种用途。结构升级保留其原值和既有历史，不执行从 `summary_note` 批量复制、移动或清空来填 `summary` 的迁移；只有可核对的原 `p.summary` 或明确人工纠正才能写入独立简介。来源无法确定的记录保留原值及“来源待核对”的迁移差异，不根据内容、页面标签或时间猜测后覆盖目标字段。
+
+`status_description`、`detail_note`、`market_expectation` 的已有用途不变。原始备份仍按受控来源保存；本节不授权P04导入真实备份。增量与候选应用必须一起核对独立读写及旧值保留，实施步骤见[P04-02](../implementation/execution-plan.md#p04-02-数据增量旧值保留与升级兼容)。

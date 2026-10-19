@@ -1,19 +1,35 @@
 import './shared/detail.css';
 import './shared/read.css';
+import { auditHistory, historyTime } from './shared/history';
 import './shared/reference-picker.css';
 import { mountReferencePickers, syncReferencePickers } from './shared/reference-picker';
+import { basicFields, basicIntent, basicIntentChanged, basicCommands, referenceSelect, type BasicIntent } from './shared/project-form';
+import { scopeFields, scopeChanges, carryInputs } from './shared/scoped-editor';
+import { PersonalDrafts, PersonalPreference, type PersonalDraft } from './shared/personal-state';
+import { ProjectNotifications } from './shared/notifications';
+import type { SaveScope } from './shared/api';
 import { get, send, SaveError, esc, label, projectTags, setupTheme, requireIdentity, account, stageMessages, actionLabels, dateTitles, isPlanCommand, isLifecycleCommand, isClosureCommand, isCheckCommand, type ChangeOperation, type ChangeRecord, type ChangePreview, type ChangeFields, type NodeOperation, type NodeRecord, type NodePreview, type NodeFields, type RiskOperation, type RiskRecord, type RiskPreview, type CheckCommand, type CheckPreview, type CheckPage, closureTitles, type ClosureCommand, type ClosurePreview, type LifecycleCommand, type LifecyclePreview, type PlanCommand, type PlanPreview, type ScheduleRecord, type CorrectionCommand, type CorrectionPreview, type StageCommand, type StartCommand, type ProjectCommand, type CheckRuleContext, type Detail, type Entry, type EditValues, type Catalog, type SaveRequest, type SaveResult, type AuditPage } from './shared/api';
 
 const element = (id: string) => document.getElementById(id)!;
 const id = new URLSearchParams(location.search).get('id') ?? '';
 let snapshot: Detail | undefined;
 let tab = 'info';
+let readingPreference:PersonalPreference|undefined;
+let notifications:ProjectNotifications|undefined;
+function updateEditing(){notifications?.setEditing(!!snapshot?.capabilities.editText && !stale && !authFrozen && (basicEditing || tagsEditing || dirty() || !!stageDraft || !!correctionDraft || !!planDraft || !!lifecycleDraft || !!closureDraft || !!checkDraft || !!document.activeElement?.matches('[data-edit]')));}
+let readingScrollTimer:ReturnType<typeof setTimeout>|undefined;
+let flowViewport={x:0,y:0};
+function captureFlowViewport(){const canvas=document.querySelector<HTMLElement>('.flow-canvas');if(canvas)flowViewport={x:canvas.scrollLeft,y:canvas.scrollTop};}
+function rememberReading(){if(snapshot && !authFrozen){captureFlowViewport();readingPreference?.update({projectId:id,tab,scrollY:window.scrollY,viewport:flowViewport});}}
 let generation = 0;
-const titles: Record<keyof EditValues, string> = { name: '项目名称', marketExpectation: '市场预期', detailNote: '项目详情备注', summaryNote: '项目简介', statusDesc: '最新状态说明', signalNote: '灯色说明', chipstatNote: '芯片统计备注', signal: '信号灯', priority: '紧急程度', customerId: '客户', odmCustomerId: 'ODM 工厂', productLineId: '产品线', appId: 'APP', groupId: '分组', chipIds: '芯片', tagIds: '项目标签', people: '业务人员', stagePlans: '阶段工期与评述', riskOps: '风险未保存操作', nodeOps: '节点未保存操作', changeOps: '需求变更未保存操作' };
+const titles: Record<keyof EditValues, string> = { name: '项目名称', summary: '项目简介', marketExpectation: '市场预期', detailNote: '详细说明', summaryNote: '状态简要备注', statusDesc: '最新状态说明', signalNote: '灯色说明', chipstatNote: '芯片备注', signal: '信号灯', priority: '优先级', customerId: '客户', odmCustomerId: 'ODM 工厂', productLineId: '产品线', appId: 'APP', groupId: '分组', chipIds: '芯片', tagIds: '项目标签', people: '业务人员', stagePlans: '阶段工期与评述', riskOps: '风险未保存操作', nodeOps: '节点未保存操作', changeOps: '需求变更未保存操作' };
 const keys = Object.keys(titles) as (keyof EditValues)[];
-const textKeys = ['name', 'marketExpectation', 'detailNote', 'summaryNote', 'statusDesc', 'signalNote', 'chipstatNote'] as const;
+const textKeys = ['name', 'marketExpectation', 'detailNote', 'summaryNote', 'summary', 'statusDesc', 'signalNote', 'chipstatNote'] as const;
 const referenceFields = { customerId: 'customers', odmCustomerId: 'customers', productLineId: 'product_lines', appId: 'apps', groupId: 'project_groups', chipIds: 'chips', tagIds: 'tags', people: 'engineers' } as const;
-const roles = ['pm', 'hardware_owner', 'software_owner', 'participant'];
+const roles = ['hardware_owner', 'software_owner', 'participant'];
+let basicEditing = false, tagsEditing = false;
+let basicDraft: BasicIntent | undefined;
+let personalDrafts: PersonalDrafts | undefined;
 let values: EditValues | undefined;
 let catalog: Catalog | undefined;
 let catalogMessage = '';
@@ -27,8 +43,7 @@ let inFlight = false;
 let loading = false;
 let leaving = false;
 let storageFailed = false;
-let bufferTimer: ReturnType<typeof setTimeout> | undefined;
-type Buffer = { format: 2; baseVersion: string; values: EditValues; pending?: SaveRequest; changeDraft?: ChangeOperation; riskDraft?: RiskOperation; nodeDraft?: NodeOperation; nodeRestoreExtras?: NodeOperation[] };
+type Buffer = { format: 2; baseVersion: string; values: EditValues; basicDraft?: BasicIntent; pending?: SaveRequest; changeDraft?: ChangeOperation; riskDraft?: RiskOperation; nodeDraft?: NodeOperation; nodeRestoreExtras?: NodeOperation[] };
 let candidate: Buffer | undefined;
 let legacyCopy: Buffer | undefined;
 let bufferKey = '';
@@ -37,8 +52,10 @@ let riskDraft: RiskOperation | undefined;
 let nodeDraft: NodeOperation | undefined;
 let nodeRestoreExtras: NodeOperation[] = [];
 let deletedNodes: import('./shared/api').DeletedNodePage | undefined, deletedLoading = false, deletedMessage = '', deletedGeneration = 0;
+let deletedKind: 'project' | 'customer' | undefined;
 const restoredSources = new Map<string, NodeRecord>();
 let stagePending: ProjectCommand | undefined;
+let preparedActionId = '';
 let stageDraft: Omit<StageCommand, 'idempotencyKey'> | Omit<StartCommand, 'idempotencyKey'> | undefined;
 let correctionDraft: CorrectionCommand | undefined;
 let planDraft: PlanCommand | undefined;
@@ -49,10 +66,16 @@ let checks: CheckPage | undefined, checksLoading = false, checksMessage = '', ch
 declare const __GEEKDASH_STAGES__: { id: number; name: string; standard: string; progress: number; mid: number; milestone: string; hw: string; sw: string; biz: string }[];
 const stageKey = () => `geekdash_stage_action:${account!.id}:${id}`;
 function persistStage() {
+  if(authFrozen)return;
+  updateEditing();
   try {
     if (stagePending || stageDraft || correctionDraft || planDraft || lifecycleDraft || closureDraft || checkDraft) sessionStorage.setItem(stageKey(), JSON.stringify({ pending: stagePending, draft: stageDraft, correction: correctionDraft, plan: planDraft, lifecycle: lifecycleDraft, closure: closureDraft, check: checkDraft }));
     else sessionStorage.removeItem(stageKey());
   } catch { storageFailed = true; }
+  const input=stagePending ?? stageDraft ?? correctionDraft ?? planDraft ?? lifecycleDraft ?? closureDraft ?? checkDraft;
+  if(input){const {expectedVersion,...rest}=input;const command={...rest} as Record<string,unknown>;delete command.idempotencyKey;delete command.draft;
+    personalDrafts?.capture('action',undefined,expectedVersion,{command,submission:{command}});
+  }
 }
 function stagePanel() {
   const p = snapshot!.project;
@@ -73,22 +96,20 @@ function stagePanel() {
       <div class="stage-milestone"><span class="m-label">里程碑：</span>${esc(s.milestone)}</div>
       <details class="stage-lines"><summary>三线工作要点</summary><div class="line"><b>硬件</b>：${esc(s.hw)}</div><div class="line"><b>固件</b>：${esc(s.sw)}</div><div class="line"><b>业务</b>：${esc(s.biz)}</div></details>
       <div class="stage-days">预期天数 <input data-edit data-stage-plan="${stage.code}" type="number" min="0" max="65535" step="1" class="stage-days-input" aria-label="${esc(s.name)}预期天数" value="${esc(stage.plannedDays ?? '')}" placeholder="建议 ${s.mid} 天"${snapshot!.capabilities.editText ? '' : ' readonly'}>（标准 ${esc(s.standard)} / 建议 ${s.mid} 天）</div>
-      <div class="stage-note-view">实际开始：${esc(stage.startedOn ?? '—')} · 实际完成：${esc(stage.completedOn ?? '—')} · 预期完成：${esc(stage.expectedEndOn ?? '—')}</div>
+      <div class="stage-note-view">实际开始：${esc(stage.startedOn ?? '—')} · 实际完成：${esc(stage.completedOn ?? '—')} · 预期完成：${esc(stage.expectedEndOn ?? '待确定')}${Number(stage.undatedNodeCount) > 0 ? `（${esc(stage.undatedNodeCount)} 个节点未填目标日期）` : ''}</div>
       <label class="stage-note-view">评述<textarea data-edit data-stage-note="${stage.code}" class="choice-note" aria-label="${esc(s.name)}评述"${snapshot!.capabilities.editText ? '' : ' readonly'}>${esc(stage.note ?? '')}</textarea></label>
       ${stage.state === 'completed' ? `<div class="stage-done-tag">✅ 里程碑已完成${stage.completedOn ? ' · ' + esc(stage.completedOn) : ''}</div><button type="button" class="choice-btn stage-rollback" data-correction="rollbackStage" data-stage="${stage.code}"${['proposal', 'ongoing'].includes(p.status) ? '' : ' disabled'}>回退到此阶段</button>` : p.status === 'closed' ? '<div class="stage-locked">⏹ 项目已结案</div>' : stage.state === 'locked' ? `<div class="stage-locked">🔒 ${esc(stageMessages[blocked ?? 'STAGE_PREDECESSOR_INCOMPLETE'])}</div>` : `<div class="stage-choice">${button}<button type="button" class="choice-btn choice-close" data-closure="closeProject" data-closure-type="terminated">⏹ 中途结案</button></div>${blocked ? `<div class="stage-locked">${esc(stageMessages[blocked] ?? blocked)}</div>` : ''}`}
       ${p.status !== 'closed' && ['active', 'completed'].includes(String(stage.state)) ? `<button type="button" class="choice-btn" data-correction="${stage.state === 'active' ? 'undoStageStart' : 'undoStageComplete'}" data-stage="${stage.code}">${stage.state === 'active' ? '撤销误开始' : '撤销误完成'}</button>` : ''}
-      <div class="stage-choice-form" id="stage-form-${stage.code}"></div></div>`;
+      <button class="back-btn" data-save-scope="stage" data-target="${stage.code}">保存工期与评述</button><div class="stage-choice-form" id="stage-form-${stage.code}"></div></div>`;
   }).join('');
   const start = p.status === 'proposal' ? `<div class="stage-card"><div class="stage-head"><span class="stage-name">正式启动项目</span></div><p>S1完成后，核对实际启动日期和预计结案日期，明确保存。启动后S2仍为待开始。</p><button class="choice-btn choice-done" id="project-start"${snapshot!.startBlocked ? ' disabled' : ''}>启动项目</button>${snapshot!.startBlocked ? `<p class="stage-locked">${esc(stageMessages[snapshot!.startBlocked] ?? snapshot!.startBlocked)}</p>` : ''}<a class="back-btn" href="/settings.html">查看公共检查规则</a><div class="stage-choice-form" id="project-start-form"></div></div>` : `<div class="stages-hint">首次应检周：${esc(p.firstCheckWeek ?? '依据未知，待核对')} · 本周截止：${esc(snapshot!.checkRule.deadlineDate ?? '规则未初始化')}</div>`;
-  return `<div class="stages-wrap">${maxDays !== null && totalDays > maxDays ? `<div class="stages-error">⚠ ${estimated ? '参考工期' : '项目总工期'} <b>${totalDays}</b> 天，超过可用窗口 <b>${maxDays}</b> 天，请核对工期或项目日期。</div>` : ''}<div class="stages-hint">按顺序推进：开始和里程碑完成都需明确保存，完成后只解锁下一阶段。工期与评述统一保存项目；纠错和真实返工分别预览、明确保存。</div>${snapshot!.capabilities.editText ? `<button class="back-btn" data-correction="correctStageFacts">纠正实际日期</button><p id="error-stagePlans" class="field-error">${esc(validationErrors.stagePlans)}</p>` : ''}<div id="correction-form"></div>${start}<div class="stages-total">${estimated ? '参考总工期' : '项目总工期'}：<b>${totalDays}</b> 天（已完成 <b>${doneCount}</b> / 7 个阶段）${estimated ? ' · 未填工期按建议值估算，不写入项目' : ''}${maxDays !== null ? ` · 可用窗口：<b>${maxDays}</b> 天` : ''}</div>${cards}</div>`;
+  return `<div class="stages-wrap">${maxDays !== null && totalDays > maxDays ? `<div class="stages-error">⚠ ${estimated ? '参考工期' : '项目总工期'} <b>${totalDays}</b> 天，超过可用窗口 <b>${maxDays}</b> 天，请核对工期或项目日期。</div>` : ''}<div class="stages-hint">按顺序推进：开始和里程碑完成都需明确保存，完成后只解锁下一阶段。工期与评述在各阶段卡片保存。</div>${snapshot!.capabilities.editText ? `<button class="back-btn" data-correction="correctStageFacts">纠正实际日期</button><p id="error-stagePlans" class="field-error">${esc(validationErrors.stagePlans)}</p>` : ''}<div id="correction-form"></div>${start}<div class="stages-total">${estimated ? '参考总工期' : '项目总工期'}：<b>${totalDays}</b> 天（已完成 <b>${doneCount}</b> / 7 个阶段）${estimated ? ' · 未填工期按建议值估算，不写入项目' : ''}${maxDays !== null ? ` · 可用窗口：<b>${maxDays}</b> 天` : ''}</div>${cards}</div>`;
 }
 async function prepareAction(action: ProjectCommand['action'], code?: string) {
   if (!snapshot || inFlight || pending || responsibilityPending || stagePending || stale || authFrozen || loading) return false;
-  if (dirty()) {
-    const choice = await choose('阶段动作前请处理未保存内容。', [['cancel', '继续编辑'], ['save', '保存项目后继续'], ['discard', '放弃编辑后继续']]);
-    if (choice === 'cancel') return false;
-    if (choice === 'save') { await saveNew(); if (dirty() || pending || stale || authFrozen) return false; }
-    else { values = baseline(); riskDraft = undefined; nodeDraft = undefined; changeDraft = undefined; candidate = undefined; persist(); render(); }
+  if (isCheckCommand({ action }) && dirty()) { note('请先保存或取消尚未提交的修改，再检查正式项目。', true); return false; }
+  if (['startStage','completeStage','correctStageFacts','undoStageStart','undoStageComplete','rollbackStage'].includes(action) && ((values?.nodeOps?.length ?? 0) > 0 || basicDraft && basicIntentChanged(snapshot, basicDraft))) {
+    note('本次阶段操作涉及尚未保存的项目日期或节点，请先保存或取消对应区域。其他区域输入会继续保留。', true); return false;
   }
   if (stageDraft?.expectedVersion !== undefined && stageDraft.expectedVersion !== snapshot.project.version) { note('动作副本已过期，请复制核对后放弃，再重新填写。', true); controls(); return false; }
   if (stageDraft && (stageDraft.action !== action || stageDraft.action !== 'startProject' && stageDraft.stageCode !== code)) {
@@ -117,13 +138,14 @@ async function prepareAction(action: ProjectCommand['action'], code?: string) {
   }
   return true;
 }
-const riskNames = { add: '新增风险', correct: '纠正风险', resolve: '人工解除风险', undoResolve: '撤销误解除' };
+const riskNames = { add: '新增风险', correct: '纠正风险', resolve: '人工解除风险', undoResolve: '撤销误解除', delete: '删除误录风险' };
 function validRiskDraft(value: unknown): value is RiskOperation {
   if (!value || typeof value !== 'object') return false;
   const op = value as RiskOperation;
   if (op.op === 'add') return typeof op.tempId === 'string' && typeof op.content === 'string' && ['high', 'mid', 'low'].includes(op.level);
   if (!('id' in op) || typeof op.id !== 'string') return false;
   if (op.op === 'resolve') return typeof op.resolution === 'string';
+  if (op.op === 'delete') return true;
   if (op.op === 'undoResolve') return typeof op.reason === 'string';
   return op.op === 'correct' && typeof op.reason === 'string' && !!op.changes && typeof op.changes === 'object' && !Array.isArray(op.changes) && Object.entries(op.changes).every(([key, value]) => ['content', 'level', 'resolution'].includes(key) && typeof value === 'string');
 }
@@ -134,6 +156,7 @@ function riskCopy(): RiskRecord[] {
     else { const row = rows.find(row => row.id === op.id); if (!row) continue;
       if (op.op === 'correct') Object.assign(row, op.changes);
       else if (op.op === 'resolve') Object.assign(row, { resolved: 1, resolution: op.resolution, resolvedAt: '保存后记录', resolvedByName: account?.name });
+      else if (op.op === 'delete') rows.splice(rows.indexOf(row), 1);
       else Object.assign(row, { resolved: 0, resolution: '', resolvedAt: null, resolvedByName: null });
     }
   }
@@ -141,49 +164,60 @@ function riskCopy(): RiskRecord[] {
 }
 function signalEditor() {
   if (!snapshot!.capabilities.editText) return `<p>信号灯：${esc(label(snapshot!.project.signal))}；${esc(snapshot!.project.signalNote || '未填写说明')}</p>`;
-  return `<section class="trial-editor"><h2 class="editor-heading">信号灯与说明</h2><div class="field-grid"><div class="field"><label for="edit-signal">信号灯</label><select data-edit id="edit-signal">${['green', 'yellow', 'red'].map(value => `<option value="${value}"${values!.signal === value ? ' selected' : ''}>${label(value)}</option>`).join('')}</select><span id="error-signal" class="field-error">${esc(validationErrors.signal)}</span></div><div class="field"><label for="edit-signalNote">灯色说明</label><textarea data-edit id="edit-signalNote">${esc(values!.signalNote)}</textarea><span id="error-signalNote" class="field-error">${esc(validationErrors.signalNote)}</span></div></div></section>`;
+  return `<section class="trial-editor" data-region="signal"><div class="section-heading"><h2>信号灯与说明</h2><button class="save-btn" data-save-scope="signal">保存</button></div><div class="field-grid"><div class="field"><label for="edit-signal">信号灯</label><select data-edit id="edit-signal">${['green', 'yellow', 'red'].map(value => `<option value="${value}"${values!.signal === value ? ' selected' : ''}>${label(value)}</option>`).join('')}</select><span id="error-signal" class="field-error">${esc(validationErrors.signal)}</span></div><div class="field"><label for="edit-signalNote">灯色说明</label><textarea data-edit id="edit-signalNote">${esc(values!.signalNote)}</textarea><span id="error-signalNote" class="field-error">${esc(validationErrors.signalNote)}</span></div></div></section>`;
 }
 function riskPanel() {
   const editable = snapshot!.capabilities.editText;
-  return `<h2>风险预警</h2><p>填写风险和处理情况，统一保存项目。</p>${editable ? '<button class="back-btn" data-risk="add">新增风险</button>' : ''}<p id="error-riskOps" class="field-error">${esc(Object.entries(validationErrors).filter(([key]) => key.startsWith('riskOps')).map(([, value]) => value).join('；'))}</p>` + riskCopy().map(r => `<article class="risk-item ${r.resolved ? 'resolved' : ''}"><div class="risk-item-head"><span class="risk-level lv-${esc(label(r.level))}">${esc(label(r.level))}</span><span class="risk-content">${esc(r.content)}</span><span class="risk-badge ${r.resolved ? 'resolved' : 'active'}">${r.resolved ? '已解除' : '预警中'}</span></div>${recordSource(r.id, r.createdByName, r.createdAt)}${r.resolved ? `<div class="risk-resolve-info">解除方法：${esc(r.resolution)} · ${esc(r.resolvedByName ?? '原人未知')} · ${esc(businessTime(r.resolvedAt))}</div>` : ''}${editable ? `<div class="risk-actions"><button class="risk-resolve-btn" data-risk="correct" data-risk-id="${esc(r.id)}">纠正信息</button><button class="risk-resolve-btn" data-risk="${r.resolved ? 'undoResolve' : 'resolve'}" data-risk-id="${esc(r.id)}">${r.resolved ? '撤销误解除' : '解除'}</button></div>` : ''}</article>`).join('');
+  return `<h2>风险预警</h2><p>风险与处理记录</p>${editable ? '<button class="back-btn" data-risk="add">新增风险</button>' : ''}<p id="error-riskOps" class="field-error">${esc(Object.entries(validationErrors).filter(([key]) => key.startsWith('riskOps')).map(([, value]) => value).join('；'))}</p>` + riskCopy().map(r => `<article class="risk-item ${r.resolved ? 'resolved' : ''}"><div class="risk-item-head"><span class="risk-level lv-${esc(label(r.level))}">${esc(label(r.level))}</span><span class="risk-content">${esc(r.content)}</span><span class="risk-badge ${r.resolved ? 'resolved' : 'active'}">${r.resolved ? '已解除' : '预警中'}</span></div>${recordSource(r.id, r.createdByName, r.createdAt)}${r.resolved ? `<div class="risk-resolve-info">解除方法：${esc(r.resolution)} · ${esc(r.resolvedByName ?? '原人未知')} · ${esc(businessTime(r.resolvedAt))}</div>` : ''}${editable ? `<div class="risk-actions"><button class="risk-resolve-btn" data-risk="delete" data-risk-id="${esc(r.id)}">删除</button><button class="risk-resolve-btn" data-risk="correct" data-risk-id="${esc(r.id)}">纠正信息</button><button class="risk-resolve-btn" data-risk="${r.resolved ? 'undoResolve' : 'resolve'}" data-risk-id="${esc(r.id)}">${r.resolved ? '撤销误解除' : '解除'}</button></div>` : ''}</article>`).join('');
 }
 async function openRisk(op: RiskOperation['op'], target?: string) {
   if (!snapshot?.capabilities.editText || stale || authFrozen || inFlight || pending || stagePending || responsibilityPending || loading) return;
-  if (riskDraft && (riskDraft.op !== op || ('id' in riskDraft && riskDraft.id !== target))) {
-    if (await choose('已有未确认风险表单，可先复制；是否明确放弃后继续？', [['cancel', '保留表单'], ['discard', '放弃后继续']]) !== 'discard') return;
+  if (riskDraft && (riskDraft.op !== op || 'id' in riskDraft && riskDraft.id !== target)) {
+    if (await choose('已有一条风险尚未保存，是否保留并继续编辑？', [['cancel', '继续原编辑'], ['discard', '放弃原编辑']]) !== 'discard') return;
     riskDraft = undefined;
   }
-  const row = riskCopy().find(row => row.id === target);
+  const row = snapshot.risks.find(row => row.id === target);
   if (!riskDraft) {
     if (op !== 'add' && !row) return;
-    riskDraft = op === 'add' ? { op, tempId: crypto.randomUUID(), content: '', level: 'mid' } : op === 'resolve' ? { op, id: target!, resolution: '' } : op === 'undoResolve' ? { op, id: target!, reason: '' } : { op, id: target!, changes: { content: row!.content, level: row!.level as 'high' | 'mid' | 'low', ...(row!.resolved ? { resolution: row!.resolution } : {}) }, reason: '' };
+    riskDraft = op === 'add' ? { op, tempId: crypto.randomUUID(), content: '', level: 'mid' } : op === 'resolve' ? { op, id: target!, resolution: '' } : op === 'undoResolve' ? { op, id: target!, reason: '' } : op === 'delete' ? { op, id: target! } : { op, id: target!, changes: {}, reason: '' };
   }
-  tab = 'risk'; persist(); render(); const draft = riskDraft; let preview: RiskPreview | undefined;
-  const editable = draft.op === 'add' || draft.op === 'correct', data = draft.op === 'correct' ? draft.changes : draft;
-  element('risk-form').innerHTML = `<form id="risk-edit" class="risk-item"><h3>${esc(riskNames[draft.op])}</h3><p>${draft.op === 'undoResolve' ? '撤销后回到预警中，原解除记录保留。' : '修改后统一保存项目。'}</p>${editable ? `<label for="risk-content">风险内容（必填）</label><textarea id="risk-content" class="risk-note" required>${esc('content' in data ? data.content : '')}</textarea><div class="risk-form-row"><span class="risk-row-label">风险等级</span><div class="risk-level-select">${['high', 'mid', 'low'].map(level => `<button type="button" class="rlv-btn rlv-${label(level)} ${'level' in data && data.level === level ? 'active' : ''}" data-risk-level="${level}" aria-pressed="${'level' in data && data.level === level}">${label(level)}</button>`).join('')}</div></div>` : ''}${draft.op === 'resolve' || draft.op === 'correct' && Object.hasOwn(draft.changes, 'resolution') ? `<label for="risk-resolution">解除方法（必填）</label><textarea id="risk-resolution" class="risk-resolve-note" required>${esc('resolution' in data ? data.resolution : '')}</textarea>` : ''}${'reason' in draft ? `<label for="risk-reason">纠错原因（必填）</label><textarea id="risk-reason" class="risk-note" required>${esc(draft.reason)}</textarea>` : ''}<p id="risk-error" role="alert" class="field-error"></p><div id="risk-preview"></div><button type="submit" class="back-btn">${draft.op === 'add' ? '完成编辑' : '查看修改'}</button><button type="button" id="risk-accept" class="back-btn"${draft.op === 'add' ? ' hidden' : ''} disabled>确认修改</button><button type="button" id="risk-cancel" class="back-btn">取消</button></form>`;
+  tab = 'risk'; persist(); render(); const draft = riskDraft;
+  const data = draft.op === 'correct' ? { ...row!, ...draft.changes } : draft;
+  const editable = draft.op === 'add' || draft.op === 'correct';
+  let preview: RiskPreview | undefined;
+  element('risk-form').innerHTML = `<form id="risk-edit" class="risk-item"><h3>${esc(riskNames[draft.op])}</h3>${draft.op === 'delete' ? `<p>删除误录风险：${esc(row!.content)}</p><p>保存后从当前风险中移除，原记录与更新历史保留。</p>` : ''}${draft.op === 'undoResolve' ? '<p>撤销误解除后恢复为预警中，原解除记录保留。</p>' : ''}${editable ? `<label for="risk-content">风险内容</label><textarea id="risk-content" class="risk-note" required>${esc('content' in data ? data.content : '')}</textarea><div class="risk-form-row"><span class="risk-row-label">风险等级</span><div class="risk-level-select">${['high','mid','low'].map(level => `<button type="button" class="rlv-btn ${'level' in data && data.level === level ? 'active' : ''}" data-risk-level="${level}">${label(level)}</button>`).join('')}</div></div>` : ''}${draft.op === 'resolve' || draft.op === 'correct' && row?.resolved ? `<label for="risk-resolution">解除说明</label><textarea id="risk-resolution" required>${esc('resolution' in data ? data.resolution : '')}</textarea>` : ''}${'reason' in draft ? `<div id="risk-reason-wrap"><label for="risk-reason">变更原因</label><textarea id="risk-reason">${esc(draft.reason)}</textarea></div>` : ''}<p id="risk-error" class="field-error" role="alert"></p><div id="risk-preview"></div><button type="submit" class="save-btn" id="risk-submit">保存</button><button type="button" class="save-btn" id="risk-accept" hidden>确认并保存</button><button type="button" class="back-btn" id="risk-cancel">取消</button></form>`;
   const form = element('risk-edit') as HTMLFormElement;
-  const local = (id: string) => form.querySelector<HTMLElement>('#' + id)!;
+  const impact = () => draft.op === 'undoResolve' || draft.op === 'correct' && draft.changes.level !== undefined && draft.changes.level !== row!.level;
+  const sync = () => {
+    const reason = document.getElementById('risk-reason-wrap'); if (reason) reason.hidden = !impact();
+    const input = document.getElementById('risk-reason') as HTMLTextAreaElement | null; if (input) input.required = impact();
+    element('risk-submit').textContent = impact() ? '核对影响' : draft.op === 'delete' ? '保存删除' : '保存';
+    element('risk-accept').hidden = !preview; element('risk-accept').dataset.preview = String(!!preview);
+  };
   const capture = () => {
-    if (draft.op === 'add' || draft.op === 'correct') { const fields = draft.op === 'add' ? draft : draft.changes; fields.content = (element('risk-content') as HTMLTextAreaElement).value; fields.level = (document.querySelector<HTMLButtonElement>('[data-risk-level].active')!.dataset.riskLevel as 'high' | 'mid' | 'low'); }
-    const resolution = document.getElementById('risk-resolution') as HTMLTextAreaElement | null;
-    if (resolution) { if (draft.op === 'resolve') draft.resolution = resolution.value; else if (draft.op === 'correct') draft.changes.resolution = resolution.value; }
+    if (editable) {
+      const fields = { content: (element('risk-content') as HTMLTextAreaElement).value, level: form.querySelector<HTMLButtonElement>('[data-risk-level].active')!.dataset.riskLevel as 'high'|'mid'|'low', ...(row?.resolved ? { resolution: (element('risk-resolution') as HTMLTextAreaElement).value } : {}) };
+      if (draft.op === 'add') Object.assign(draft, fields); else if (draft.op === 'correct') draft.changes = Object.fromEntries(Object.entries(fields).filter(([key,value]) => value !== row![key as keyof RiskRecord]));
+    }
+    if (draft.op === 'resolve') draft.resolution = (element('risk-resolution') as HTMLTextAreaElement).value;
     if ('reason' in draft) draft.reason = (element('risk-reason') as HTMLTextAreaElement).value;
-    preview = undefined; local('risk-preview').innerHTML = ''; local('risk-accept').dataset.preview = 'false'; persist();
+    preview = undefined; element('risk-preview').innerHTML = ''; sync(); persist();
   };
   form.querySelectorAll('textarea').forEach(input => input.oninput = capture);
-  form.querySelectorAll<HTMLButtonElement>('[data-risk-level]').forEach(button => button.onclick = () => { form.querySelectorAll('[data-risk-level]').forEach(item => { item.classList.toggle('active', item === button); item.setAttribute('aria-pressed', String(item === button)); }); capture(); });
+  form.querySelectorAll<HTMLButtonElement>('[data-risk-level]').forEach(button => button.onclick = () => { form.querySelectorAll('[data-risk-level]').forEach(item => item.classList.toggle('active', item === button)); capture(); });
+  const save = () => saveNew('risk', 'tempId' in draft ? draft.tempId : draft.id, { riskOps: [structuredClone(draft)] });
   form.onsubmit = async event => {
-    event.preventDefault(); capture(); inFlight = true; controls();
-    try { preview = await send<RiskPreview>('/api/projects/' + id + '/save-preview', 'POST', { expectedVersion: editBaseVersion, idempotencyKey: crypto.randomUUID(), changes: { riskOps: [...(values!.riskOps ?? []), draft] } });
-      if (preview.projectId !== id || preview.expectedVersion !== editBaseVersion) throw new SaveError('RESPONSE_UNKNOWN', 'unknown');
-      local('risk-preview').innerHTML = recordComparisons('risk', preview.events) || '<p>没有实际变化。</p>'; local('risk-accept').dataset.preview = 'true'; local('risk-error').textContent = '';
-    } catch (error) { const failure = error as SaveError; if (failure.code === 'PROJECT_VERSION_CONFLICT') stale = true; if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'PASSWORD_CHANGE_REQUIRED'].includes(failure.code)) authFrozen = true; local('risk-error').textContent = failure.message + ' ' + Object.values(failure.fields ?? {}).join('；'); }
+    event.preventDefault(); capture();
+    if (draft.op === 'correct' && !Object.keys(draft.changes).length) { riskDraft = undefined; render(); note('内容没有变化。'); return; }
+    if (!impact()) { await save(); return; }
+    inFlight = true; controls();
+    try { preview = await send<RiskPreview>('/api/projects/' + id + '/save-preview', 'POST', { expectedVersion: editBaseVersion, idempotencyKey: crypto.randomUUID(), scope: 'risk', target: 'tempId' in draft ? draft.tempId : draft.id, changes: { riskOps: [draft] } }); element('risk-preview').innerHTML = recordComparisons('risk', preview.events); sync(); }
+    catch (error) { element('risk-error').textContent = (error as Error).message; }
     finally { inFlight = false; controls(); }
-    if (draft.op === 'add' && preview && !stale && !authFrozen) local('risk-accept').click();
   };
-  local('risk-accept').onclick = () => { if (!preview || stale || authFrozen || inFlight) return; values!.riskOps = [...(values!.riskOps ?? []), structuredClone(draft)]; riskDraft = undefined; persist(); render(); note('风险编辑完成，尚未保存。'); };
-  local('risk-cancel').onclick = () => { riskDraft = undefined; persist(); render(); };
-  controls();
+  element('risk-accept').onclick = () => { if (preview && !inFlight) void save(); };
+  element('risk-cancel').onclick = async () => { if(!await discardPersonal('risk',riskDraft?.op==='add'?riskDraft.tempId:riskDraft?.id))return;riskDraft = undefined; persist(); render(); };
+  sync(); controls();
 }
 const changeFields = { source: '来源', content: '变更内容', decision: '接受/拒绝', reason: '决定理由' } as const;
 function validChangeDraft(value: unknown): value is ChangeOperation {
@@ -210,7 +244,7 @@ function recordSource(id: string, name: string | null, time: string) {
 }
 function changePanel() {
   const editable = snapshot!.capabilities.editText;
-  return `<h2>需求变更</h2><p>填写变更和处理决定，统一保存项目。</p>${editable ? '<button class="back-btn" data-change="add">新增需求变更</button>' : ''}<p id="error-changeOps" class="field-error">${esc(Object.entries(validationErrors).filter(([key]) => key.startsWith('changeOps')).map(([, value]) => value).join('；'))}</p><div class="chg-list">` + changeCopy().map(c => `<article class="chg-item ${c.decision === 'reject' ? 'rejected' : ''}"><div class="chg-head"><span class="chg-src ${c.source === '客户' ? 'src-customer' : c.source === '业务' ? 'src-biz' : ''}">${esc(c.source)}${['客户', '业务'].includes(c.source) ? '' : '（待核对）'}</span><span class="chg-status ${c.decision === 'accept' ? 'st-accept' : c.decision === 'reject' ? 'st-reject' : ''}">${c.decision === 'accept' ? '接受' : c.decision === 'reject' ? '拒绝' : esc(c.decision) + '（待核对）'}</span></div><div class="chg-content">${esc(c.content)}</div><div class="chg-reason">理由：${esc(c.reason || '原理由未记录（待核对）')}</div>${recordSource(c.id, c.createdByName, c.createdAt)}${editable ? `<button class="risk-resolve-btn" data-change="correct" data-change-id="${esc(c.id)}">纠正信息</button>` : ''}</article>`).join('') + '</div>';
+  return `<h2>需求变更</h2><p>客户与业务提出的需求及处理决定</p>${editable ? '<button class="back-btn" data-change="add">新增需求变更</button>' : ''}<p id="error-changeOps" class="field-error">${esc(Object.entries(validationErrors).filter(([key]) => key.startsWith('changeOps')).map(([, value]) => value).join('；'))}</p><div class="chg-list">` + changeCopy().map(c => `<article class="chg-item ${c.decision === 'reject' ? 'rejected' : ''}"><div class="chg-head"><span class="chg-src ${c.source === '客户' ? 'src-customer' : c.source === '业务' ? 'src-biz' : ''}">${esc(c.source)}${['客户', '业务'].includes(c.source) ? '' : '（待核对）'}</span><span class="chg-status ${c.decision === 'accept' ? 'st-accept' : c.decision === 'reject' ? 'st-reject' : ''}">${c.decision === 'accept' ? '接受' : c.decision === 'reject' ? '拒绝' : esc(c.decision) + '（待核对）'}</span></div><div class="chg-content">${esc(c.content)}</div><div class="chg-reason">理由：${esc(c.reason || '原理由未记录（待核对）')}</div>${recordSource(c.id, c.createdByName, c.createdAt)}${editable ? `<button class="risk-resolve-btn" data-change="correct" data-change-id="${esc(c.id)}">纠正信息</button>` : ''}</article>`).join('') + '</div>';
 }
 async function openChange(op: ChangeOperation['op'], target?: string) {
   if (!snapshot?.capabilities.editText || stale || authFrozen || inFlight || pending || stagePending || responsibilityPending || loading) return;
@@ -225,36 +259,40 @@ async function openChange(op: ChangeOperation['op'], target?: string) {
   }
   tab = 'risk'; persist(); render(); const draft = changeDraft, data = draft.op === 'add' ? draft : { ...row!, ...draft.changes }; let preview: ChangePreview | undefined;
   const field = (key: keyof ChangeFields, control: string) => `<div class="chg-form-row"><label class="chg-row-label" for="chg-${key}">${changeFields[key]}</label>${control}</div>`;
-  element('change-form').innerHTML = `<form id="change-edit" class="chg-form"><h3>${draft.op === 'add' ? '新增' : '纠正'}需求变更</h3><p>修改后统一保存项目。${draft.op === 'correct' ? '请说明修改原因。' : ''}</p>`
-    + field('source', `<select id="chg-source">${!['客户', '业务'].includes(data.source ?? '') ? `<option value="" selected disabled>${esc(data.source ?? '')}（待核对）</option>` : ''}${['客户', '业务'].map(value => `<option ${data.source === value ? 'selected' : ''}>${value}</option>`).join('')}</select>`)
+  element('change-form').innerHTML = `<form id="change-edit" class="chg-form"><h3>${draft.op === 'add' ? '新增' : '修改'}需求变更</h3>`
+    + field('source', `<select id="chg-source">${!['客户', '业务'].includes(data.source ?? '') ? `<option value="${esc(data.source ?? '')}" selected disabled>${esc(data.source ?? '')}（待核对）</option>` : ''}${['客户', '业务'].map(value => `<option ${data.source === value ? 'selected' : ''}>${value}</option>`).join('')}</select>`)
     + field('content', `<textarea id="chg-content" class="chg-content-input">${esc(data.content ?? '')}</textarea>`)
     + field('decision', `<div>${['accept', 'reject'].map(value => `<label class="chg-radio"><input type="radio" name="chg-decision" value="${value}" ${data.decision === value ? 'checked' : ''}>${value === 'accept' ? '接受' : '拒绝'}</label>`).join('')}</div>`)
     + field('reason', `<textarea id="chg-reason" class="chg-reason-input">${esc(data.reason ?? '')}</textarea>`)
-    + `${draft.op === 'correct' ? `<label for="chg-correction-reason">纠错原因（必填）</label><textarea id="chg-correction-reason" class="chg-reason-input" required>${esc(draft.correctionReason)}</textarea>` : ''}<p id="change-error" role="alert" class="field-error"></p><div id="change-preview"></div><button type="submit" class="back-btn">${draft.op === 'add' ? '完成编辑' : '查看修改'}</button><button type="button" id="change-accept" class="back-btn"${draft.op === 'add' ? ' hidden' : ''} disabled>确认修改</button><button type="button" id="change-cancel" class="back-btn">取消</button></form>`;
+    + `${draft.op === 'correct' ? `<label id="chg-impact" hidden>来源或决定的修改原因<textarea id="chg-correction-reason" class="chg-reason-input">${esc(draft.correctionReason)}</textarea></label>` : ''}<p id="change-error" role="alert" class="field-error"></p><div id="change-preview"></div><button type="submit" id="change-submit" class="save-btn">保存需求变更</button><button type="button" id="change-accept" class="save-btn" hidden disabled>确认并保存</button><button type="button" id="change-cancel" class="back-btn">取消</button></form>`;
   const form = element('change-edit') as HTMLFormElement;
+  const impactful = () => draft.op === 'correct' && ['source', 'decision'].some(key => Object.hasOwn(draft.changes, key));
+  const save = () => saveNew('change', 'tempId' in draft ? draft.tempId : draft.id, { changeOps: [structuredClone(draft)] });
   const capture = () => {
     const selected = Object.keys(changeFields);
     const changes = Object.fromEntries(selected.map(key => [key, key === 'decision' ? form.querySelector<HTMLInputElement>('[name="chg-decision"]:checked')?.value ?? '' : (element('chg-' + key) as HTMLInputElement).value])) as Partial<ChangeFields>;
     if (draft.op === 'add') Object.assign(draft, changes); else { draft.changes = Object.fromEntries(Object.entries(changes).filter(([key, value]) => value !== (row?.[key as keyof ChangeFields] ?? ''))); draft.correctionReason = (element('chg-correction-reason') as HTMLTextAreaElement).value; }
-    preview = undefined; element('change-preview').innerHTML = ''; element('change-accept').dataset.preview = 'false'; persist(); controls();
+    preview = undefined; element('change-preview').innerHTML = ''; element('change-accept').dataset.preview = 'false'; element('change-accept').hidden = true;
+    if (draft.op === 'correct') element('chg-impact').hidden = !impactful();
+    element('change-submit').textContent = impactful() ? '查看修改影响' : '保存需求变更'; persist(); controls();
   };
   form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input,select,textarea').forEach(input => input.oninput = capture);
   form.onsubmit = async event => {
     event.preventDefault(); capture();
     if (draft.op === 'correct' && !Object.keys(draft.changes).length) { element('change-preview').textContent = '没有实际变化。'; element('change-error').textContent = ''; return; }
+    if (!impactful()) { await save(); return; }
     inFlight = true; controls();
     try {
-      preview = await send<ChangePreview>('/api/projects/' + id + '/save-preview', 'POST', { expectedVersion: editBaseVersion, idempotencyKey: crypto.randomUUID(), changes: { changeOps: [...(values!.changeOps ?? []), draft] } });
+      preview = await send<ChangePreview>('/api/projects/' + id + '/save-preview', 'POST', { expectedVersion: editBaseVersion, idempotencyKey: crypto.randomUUID(), scope: 'change', target: 'tempId' in draft ? draft.tempId : draft.id, changes: { changeOps: [draft] } });
       if (preview.projectId !== id || preview.expectedVersion !== editBaseVersion) throw new SaveError('RESPONSE_UNKNOWN', 'unknown');
       element('change-preview').innerHTML = recordComparisons('change', preview.changeEvents) || '<p>没有实际变化。</p>';
-      element('change-accept').dataset.preview = 'true'; element('change-error').textContent = '';
+      element('change-accept').dataset.preview = 'true'; element('change-accept').hidden = false; element('change-error').textContent = '';
     } catch (error) { const failure = error as SaveError; if (failure.code === 'PROJECT_VERSION_CONFLICT') stale = true; if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'PASSWORD_CHANGE_REQUIRED'].includes(failure.code)) authFrozen = true; element('change-error').textContent = failure.message + ' ' + Object.values(failure.fields ?? {}).join('；'); }
     finally { inFlight = false; controls(); }
-    if (draft.op === 'add' && preview && !stale && !authFrozen) element('change-accept').click();
   };
-  element('change-accept').onclick = () => { if (!preview || stale || authFrozen || inFlight) return; values!.changeOps = [...(values!.changeOps ?? []), structuredClone(draft)]; changeDraft = undefined; persist(); render(); note('需求变更编辑完成，尚未保存。'); };
-  element('change-cancel').onclick = () => { changeDraft = undefined; persist(); render(); };
-  controls();
+  element('change-accept').onclick = () => { if (preview && !stale && !authFrozen && !inFlight) void save(); };
+  element('change-cancel').onclick = async () => { if(!await discardPersonal('change',changeDraft?.op==='add'?changeDraft.tempId:changeDraft?.id))return;changeDraft = undefined; persist(); render(); };
+  capture(); controls();
 }
 function validNodeDraft(value: unknown): value is NodeOperation {
   if (!value || typeof value !== 'object') return false;
@@ -286,14 +324,17 @@ const nodeLabels: Record<NodeOperation['op'], string> = { add: '新增节点', c
 function deletedNodePanel(kind: string) {
   const items = nodeCopy(true).filter(row => row.kind === kind && row.deletedAt), editable = snapshot!.capabilities.editText;
   const pending = (values?.nodeOps ?? []).filter(op => op.op === 'delete' || op.op === 'restore');
-  return `<details class="secondary-section"${deletedNodes || deletedLoading || pending.length ? ' open' : ''}><summary>已删除节点与误删恢复</summary><p>按需读取两类节点，每页20条；恢复默认不接回旧连线，仍需保存项目。</p><button class="back-btn" id="deleted-refresh">查看/重新读取已删除节点</button>${deletedNodes?.nextCursor ? '<button class="back-btn" id="deleted-more">读取更多已删除节点</button>' : ''}<p role="alert">${esc(deletedLoading ? '正在读取…' : deletedMessage)}</p>${items.map(row => { const fact = deletedNodes?.items.find(item => item.id === row.id)?.deletion; return `<article class="node-item"><h4>${esc(row.title)} #${esc(row.id)}</h4><p>${row.deletedAt === '未保存删除' ? '本次副本待删除，正式数据尚未修改。' : '删除于 ' + esc(row.deletedAt) + '（UTC） · ' + esc(fact?.actorName ?? '原删除人未知')}</p><p>阶段：${esc(row.stage ? label(row.stage) : '—')}；目标日：${esc(row.targetDate ?? '未定')}；实际日：${esc(row.completedOn ?? '未完成')}</p><p>${esc(kind === 'project' ? row.output : row.note)}</p>${fact?.beforeNode ? `<p>原连线：${esc(fact.beforeNode.previousNodeId ?? '无')} → ${esc(row.id)} → ${esc(fact.beforeNode.nextNodeId ?? '无')}；只作核对，不自动接回。</p>` : ''}${editable && row.deletedAt !== '未保存删除' ? `<button class="back-btn" data-node="restore" data-node-id="${esc(row.id)}">恢复误删节点</button>` : ''}</article>`; }).join('')}${editable ? pending.map(op => `<p>${esc(nodeLabels[op.op])} #${esc('id' in op ? op.id : '')} 尚未保存 <button class="back-btn" data-node-withdraw="${esc('id' in op ? op.id : '')}">撤回该删除/恢复副本</button></p>`).join('') : ''}</details>`;
+  return `<details class="secondary-section"${deletedNodes || deletedLoading || pending.length ? ' open' : ''}><summary>已删除节点与误删恢复</summary><p>恢复后保留原节点信息，旧连线不会自动接回。</p><button class="back-btn" id="deleted-refresh">查看/重新读取已删除节点</button>${deletedKind === kind && deletedNodes?.nextCursor ? '<button class="back-btn" id="deleted-more">读取更多已删除节点</button>' : ''}<p role="alert">${esc(deletedLoading ? '正在读取…' : deletedMessage)}</p>${items.map(row => { const fact = deletedNodes?.items.find(item => item.id === row.id)?.deletion; return `<article class="node-item"><h4>${esc(row.title)} #${esc(row.id)}</h4><p>${row.deletedAt === '未保存删除' ? '本次副本待删除，正式数据尚未修改。' : '删除于 ' + esc(row.deletedAt) + '（UTC） · ' + esc(fact?.actorName ?? '原删除人未知')}</p><p>阶段：${esc(row.stage ? label(row.stage) : '—')}；目标日：${esc(row.targetDate ?? '未定')}；实际日：${esc(row.completedOn ?? '未完成')}</p><p>${esc(kind === 'project' ? row.output : row.note)}</p>${fact?.beforeNode ? `<p>原连线：${esc(fact.beforeNode.previousNodeId ?? '无')} → ${esc(row.id)} → ${esc(fact.beforeNode.nextNodeId ?? '无')}；只作核对，不自动接回。</p>` : ''}${editable && row.deletedAt !== '未保存删除' ? `<button class="back-btn" data-node="restore" data-node-id="${esc(row.id)}">恢复误删节点</button>` : ''}</article>`; }).join('')}${editable ? pending.map(op => `<p>${esc(nodeLabels[op.op])} #${esc('id' in op ? op.id : '')} 尚未保存 <button class="back-btn" data-node-withdraw="${esc('id' in op ? op.id : '')}">撤回该删除/恢复副本</button></p>`).join('') : ''}</details>`;
 }
 async function loadDeletedNodes(more = false) {
   if (!snapshot || stale || authFrozen || inFlight || pending || stagePending || deletedLoading) return;
   const current = ++deletedGeneration, version = snapshot.project.version;
+  const kind = tab === 'custnodes' ? 'customer' : 'project';
+  if (deletedKind !== kind) { deletedNodes = undefined; more = false; }
+  deletedKind = kind;
   deletedLoading = true; controls();
   try {
-    const page = await get<import('./shared/api').DeletedNodePage>('/api/projects/' + id + '/deleted-nodes' + (more && deletedNodes?.nextCursor ? '?before=' + deletedNodes.nextCursor : ''));
+    const page = await get<import('./shared/api').DeletedNodePage>('/api/projects/' + id + '/deleted-nodes?kind=' + kind + (more && deletedNodes?.nextCursor ? '&before=' + deletedNodes.nextCursor : ''));
     if (current !== deletedGeneration) return;
     if (page.projectVersion !== version || snapshot.project.version !== version) { stale = true; throw new Error('项目已被他人更新，请重新进入项目；旧副本保留供复制。'); }
     deletedNodes = { ...page, items: more ? [...deletedNodes?.items ?? [], ...page.items] : page.items }; deletedMessage = '';
@@ -304,7 +345,7 @@ async function hydrateRestoredNodes() {
   if (!values?.nodeOps?.some(op => op.op === 'restore') || stale || authFrozen) return;
   const version = editBaseVersion;
   try {
-    const preview = await send<NodePreview>('/api/projects/' + id + '/save-preview', 'POST', { expectedVersion: version, idempotencyKey: crypto.randomUUID(), changes: { nodeOps: values.nodeOps } });
+    const preview = await send<NodePreview>('/api/projects/' + id + '/save-preview', 'POST', { expectedVersion: version, idempotencyKey: crypto.randomUUID(), scope: 'projectNodes', changes: { nodeOps: values.nodeOps } });
     if (editBaseVersion !== version || snapshot?.project.version !== version) return;
     for (const event of preview.nodeEvents) if (event.before?.deletedAt) restoredSources.set(event.id, event.before);
     render();
@@ -317,7 +358,7 @@ async function withdrawNode(target: string, temporary = false) {
   const operations = (values!.nodeOps ?? []).filter(op => temporary ? !references(op) && !('affectedIds' in op && op.affectedIds.includes(target)) && !('replaceEdges' in op && op.replaceEdges.some(edge => edge.from === target || edge.to === target)) : !((op.op === 'delete' || op.op === 'restore') && op.id === target));
   inFlight = true; controls();
   try {
-    if (operations.length) { const preview = await send<NodePreview>('/api/projects/' + id + '/save-preview', 'POST', { expectedVersion: editBaseVersion, idempotencyKey: crypto.randomUUID(), changes: { nodeOps: operations } }); if (!preview.confirmed) throw new Error('剩余节点操作需要重新确认完成影响；原副本保留。'); }
+    if (operations.length) { const preview = await send<NodePreview>('/api/projects/' + id + '/save-preview', 'POST', { expectedVersion: editBaseVersion, idempotencyKey: crypto.randomUUID(), scope: 'projectNodes', changes: { nodeOps: operations } }); if (!preview.confirmed) throw new Error('剩余节点操作需要重新确认完成影响；原副本保留。'); }
     values!.nodeOps = operations; persist(); render(); note('该副本操作已撤回，正式数据未修改。');
   } catch (error) { if ((error as SaveError).code === 'PROJECT_VERSION_CONFLICT') stale = true; if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'PASSWORD_CHANGE_REQUIRED'].includes((error as SaveError).code)) authFrozen = true; note((error as Error).message, true); }
   finally { inFlight = false; controls(); }
@@ -326,7 +367,7 @@ function nodePosition(node: NodeRecord, rows: NodeRecord[]) { const lane = Math.
 function nodePanel(kind: 'project' | 'customer', flow = false) {
   const rows = nodeCopy().filter(row => row.kind === kind), editable = snapshot!.capabilities.editText;
   const actions = (row: NodeRecord) => editable ? `<button class="back-btn" data-node="correct" data-node-id="${esc(row.id)}">编辑</button>${!row.completedOn ? `<button class="back-btn" data-node="complete" data-node-id="${esc(row.id)}">标记完成</button>` : ''}${!/^[1-9][0-9]*$/.test(row.id) ? `<button class="node-del" data-node-withdraw="${esc(row.id)}" data-temporary="true">移除未保存节点</button>` : ''}` : '';
-  const toolbar = `<div class="nodes-toolbar"><span class="nodes-hint">共 ${rows.length} 个节点 · 已完成 ${rows.filter(row => row.completedOn).length} 个</span>${editable ? '<button class="node-add-btn" data-node="add">＋ 新增节点</button>' : ''}</div><p>节点和 Flow 共用记录，修改后统一保存项目。</p><p id="error-nodeOps" class="field-error">${esc(Object.entries(validationErrors).filter(([key]) => key.startsWith('nodeOps')).map(([, value]) => value).join('；'))}</p>`;
+  const toolbar = `<div class="nodes-toolbar"><span class="nodes-hint">共 ${rows.length} 个节点 · 已完成 ${rows.filter(row => row.completedOn).length} 个</span>${editable ? `<button class="node-add-btn" data-node="add">＋ 新增节点</button>${kind === 'project' ? '<button class="save-btn" data-save-scope="projectNodes">保存节点与连线</button>' : ''}` : ''}</div>${kind === 'project' && values?.nodeOps?.length ? '<p>节点与 Flow 的未保存修改在这里一次保存。</p>' : ''}<p id="error-nodeOps" class="field-error">${esc(Object.entries(validationErrors).filter(([key]) => key.startsWith('nodeOps')).map(([, value]) => value).join('；'))}</p>`;
   const graph = flow ? `<div class="flow-canvas"><div class="flow-inner" style="height:${Math.max(770, ...rows.map(row => nodePosition(row, rows).y + 100))}px;width:${Math.max(792, ...rows.map(row => nodePosition(row, rows).x + 170))}px">${__GEEKDASH_STAGES__.map((stage, index) => `<div class="flow-lane" style="top:${index * 110}px;height:110px"></div><div class="flow-lane-label lane-${snapshot!.stages[index].state === 'completed' ? 'done' : snapshot!.stages[index].state === 'active' ? 'current' : 'todo'}" style="top:${index * 110}px;height:110px"><span class="sl-name">S${stage.id} ${esc(stage.name)}</span><span class="sl-milestone">${esc(stage.milestone)}</span><span class="sl-state">${esc(label(snapshot!.stages[index].state))}</span></div>`).join('')}<svg class="flow-links" width="100%" height="100%">${rows.map(row => { const next = rows.find(item => item.id === row.nextNodeId); if (!next) return ''; const a = nodePosition(row, rows), b = nodePosition(next, rows); return `<path class="flow-link-path" d="M ${a.x + 140} ${a.y + 30} C ${a.x + 170} ${a.y + 30},${b.x - 30} ${b.y + 30},${b.x} ${b.y + 30}"/>`; }).join('')}</svg>${rows.map(row => { const p = nodePosition(row, rows); return `<div class="flow-node ${row.completedOn ? 'done' : 'todo'}" style="left:${p.x}px;top:${p.y}px" data-node-drag="${esc(row.id)}" tabindex="0" role="button" aria-label="${esc(row.title)}，双击编辑"><div class="fn-name">${esc(row.title || '原名称待核对')}</div><div class="fn-date">${esc(row.completedOn ? '实际完成 ' + row.completedOn : '目标 ' + (row.targetDate ?? '未定'))}</div></div>`; }).join('')}</div></div>` : '';
   return `<div class="nodes-wrap">${toolbar}${flow ? graph : `<div class="node-list">${rows.map(row => `<div class="node-item${row.completedOn ? ' done' : ''}"><div class="node-head"><span class="node-name">${esc(row.title || '原名称待核对')}</span><span class="node-stage">${esc(row.stage ? label(row.stage) : '—')}</span><span class="node-badge ${row.completedOn ? 'done' : 'todo'}">${row.completedOn ? '已完成' : '未完成'}</span></div><div class="node-dates">目标完成：${esc(row.targetDate ?? '未定')} · 实际完成：${esc(row.completedOn ?? '未完成')}</div><div class="node-output">${kind === 'project' ? '输出成果：' + esc(row.output || '—') : '备注：' + esc(row.note || '—')}</div>${row.previousNodeId ? `<p>前置：${esc(nodeCopy().find(node => node.id === row.previousNodeId)?.title ?? row.previousNodeId)}</p>` : ''}${actions(row)}</div>`).join('') || '<div class="node-empty">暂无节点</div>'}</div>`}<div id="pane"></div></div>`;
 }
@@ -351,6 +392,15 @@ async function openNode(op: NodeOperation['op'], target?: string, move?: { x: nu
   const fields = draft.op === 'add' || draft.op === 'correct' ? (kind === 'project' ? ['title', 'stage', 'targetDate', 'output'] : ['title', 'targetDate', 'note']).map(key => `<div class="field"><label>${fieldNames[key as keyof typeof fieldNames]}</label>${key === 'stage' ? `<select data-node-field="${key}"><option value="">原阶段未知，请核对</option>${__GEEKDASH_STAGES__.map(stage => `<option value="S${stage.id}"${data.stage === 'S' + stage.id ? ' selected' : ''}>S${stage.id} ${esc(stage.name)}</option>`).join('')}</select>` : key === 'output' || key === 'note' ? `<textarea data-node-field="${key}">${esc(data[key as keyof NodeFields] ?? '')}</textarea>` : `<input data-node-field="${key}" type="${key === 'targetDate' ? 'date' : 'text'}" value="${esc(data[key as keyof NodeFields] ?? '')}">`}</div>`).join('') : draft.op === 'complete' ? `<label>实际完成日期<input id="node-completed" type="date" max="${esc(snapshot.businessDate)}" value="${esc(draft.completedOn)}"></label>` : draft.op === 'link' ? `<label>下一节点<select id="node-to"><option value="">请选择</option>${rows.filter(node => node.kind === 'project' && node.id !== draft.from).map(node => `<option value="${esc(node.id)}"${node.id === draft.to ? ' selected' : ''}>${esc(node.title)}</option>`).join('')}</select></label><label><input type="checkbox" id="node-replace">明确确认替换本次涉及的旧连线</label><p id="node-old-lines"></p>` : draft.op === 'move' ? `<p>位置：${draft.x}, ${draft.y}</p>` : `<p>${esc(row?.title ?? target)}：${draft.op === 'uncomplete' ? '实际完成日期将明确清空' : '解除当前下一连线'}</p>`;
   element('pane').innerHTML = `<form id="node-edit" class="node-form"><h3>${esc(nodeLabels[draft.op])}</h3><div class="node-form-grid">${draft.op === 'delete' ? `<p>${esc(row?.title ?? target)}：从有效节点移除，保留原字段供恢复；邻居不删除、不桥接。</p><label><input type="checkbox" id="node-remove-edges">明确确认解除下面列出的全部原连线</label><p id="node-delete-lines"></p>` : draft.op === 'restore' ? `<p>${esc(row?.title ?? target)}：保留原ID和字段恢复，默认无前后线。确认加入副本后可继续原信息纠正/连线，最终保存项目。</p>${restoreFields}` : fields}</div>${'reason' in draft ? `<label>${draft.op === 'restore' ? '恢复原因（必填）' : draft.op === 'complete' ? '完成日期纠错时必填原因' : draft.op === 'link' ? '联动纠正完成日时必填原因' : '纠错原因'}<textarea id="node-reason">${esc(draft.reason ?? '')}</textarea></label>` : ''}${'affectedIds' in draft ? '<label><input type="checkbox" id="node-impact">明确确认预览列出的依赖完成日一并清空</label>' : ''}<p id="node-error" class="field-error" role="alert"></p><div id="node-preview"></div><button type="submit" class="back-btn">${draft.op === 'add' ? '完成编辑' : '查看修改'}</button><button type="button" id="node-accept" class="back-btn"${draft.op === 'add' ? ' hidden' : ''} disabled>确认修改</button><button type="button" id="node-cancel" class="back-btn">取消</button>${draft.op === 'correct' && row && /^[1-9][0-9]*$/.test(row.id) ? '<button type="button" id="node-delete-selected" class="node-del">删除这个节点</button>' : ''}</form>`;
   const form = element('node-edit') as HTMLFormElement, local = (key: string) => form.querySelector<HTMLElement>('#' + key)!;
+  const targetId = 'tempId' in draft ? draft.tempId : 'id' in draft ? draft.id : undefined;
+  const ownOps = () => [draft, ...draft.op === 'restore' ? nodeRestoreExtras : []];
+  const impactful = () => ['uncomplete', 'link', 'unlink', 'delete', 'restore'].includes(draft.op) || draft.op === 'complete' && !!row?.completedOn || draft.op === 'correct' && ['stage', 'targetDate'].some(key => Object.hasOwn(draft.changes, key));
+  const submitButton = form.querySelector<HTMLButtonElement>('[type="submit"]')!;
+  const updateIntent = () => {
+    submitButton.textContent = impactful() ? '查看修改影响' : kind === 'customer' ? '保存客户节点' : '完成编辑';
+    const reason = form.querySelector<HTMLTextAreaElement>('#node-reason'); if (reason) reason.closest('label')!.hidden = !impactful();
+    local('node-accept').textContent = kind === 'customer' ? '确认并保存' : '确认修改';
+  };
   if (draft.op === 'correct' && row) {
     const related = document.createElement('div'); related.className = 'edit-actions';
     related.innerHTML = `<span>实际完成：${esc(row.completedOn ?? '未完成')} · 前置：${esc(rows.find(item => item.id === row.previousNodeId)?.title ?? (row.previousNodeId ? '原关联待核对' : '无'))}</span>` + (['complete', ...row.completedOn ? ['uncomplete'] : [], ...kind === 'project' ? ['link', ...row.nextNodeId ? ['unlink'] : []] : []] as NodeOperation['op'][]).map(action => `<button type="button" class="back-btn" data-node-form-action="${action}">${esc(nodeLabels[action])}</button>`).join('');
@@ -388,27 +438,28 @@ async function openNode(op: NodeOperation['op'], target?: string, move?: { x: nu
     }
 
     if ('affectedIds' in draft) draft.affectedIds = (local('node-impact') as HTMLInputElement).checked ? impact : [];
-    preview = undefined; local('node-accept').dataset.preview = 'false'; persist();
+    preview = undefined; local('node-accept').dataset.preview = 'false'; local('node-accept').hidden = true; updateIntent(); persist(); controls();
   };
   form.querySelectorAll('input,select,textarea').forEach(input => input.addEventListener('input', capture));
   form.onsubmit = async event => {
     event.preventDefault(); capture();
     if (draft.op === 'correct' && !Object.keys(draft.changes).length) { local('node-preview').textContent = '没有实际变化。'; local('node-error').textContent = ''; controls(); return; }
+    if (kind === 'customer' && !impactful()) { await saveNew('customerNode', targetId, { nodeOps: structuredClone(ownOps()) }); return; }
     inFlight = true; controls();
     try {
-      preview = await send<NodePreview>('/api/projects/' + id + '/save-preview', 'POST', { expectedVersion: editBaseVersion, idempotencyKey: crypto.randomUUID(), changes: { nodeOps: [...values!.nodeOps ?? [], draft, ...draft.op === 'restore' ? nodeRestoreExtras : []] } });
+      preview = await send<NodePreview>('/api/projects/' + id + '/save-preview', 'POST', { expectedVersion: editBaseVersion, idempotencyKey: crypto.randomUUID(), scope: kind === 'customer' ? 'customerNode' : 'projectNodes', ...(kind === 'customer' ? { target: targetId } : {}), changes: { nodeOps: [...kind === 'project' ? values!.nodeOps ?? [] : [], ...ownOps()] } });
       if (preview.projectId !== id || preview.expectedVersion !== editBaseVersion) throw new SaveError('RESPONSE_UNKNOWN', 'unknown');
       impact = preview.requiredUncompleteIds.filter(key => !(values!.nodeOps ?? []).some(op => 'affectedIds' in op && op.affectedIds.includes(key)));
-      local('node-preview').innerHTML = recordComparisons('node', preview.nodeEvents) + (preview.confirmed ? '<p>影响已核对，确认后仍需保存项目。</p>' : `<p>需要明确一并清空完成日期：${esc(preview.requiredUncompleteIds.map(key => rows.find(row => row.id === key)?.title ?? key).join('、'))}。勾选上方确认并填写原因，再次预览。</p>`);
-      local('node-accept').dataset.preview = String(preview.confirmed); local('node-error').textContent = '';
+      local('node-preview').innerHTML = recordComparisons('node', preview.nodeEvents) + (preview.confirmed ? '' : `<p>需要明确一并清空完成日期：${esc(preview.requiredUncompleteIds.map(key => rows.find(row => row.id === key)?.title ?? key).join('、'))}。勾选上方确认并填写原因，再次预览。</p>`);
+      local('node-accept').dataset.preview = String(preview.confirmed); local('node-accept').hidden = false; local('node-error').textContent = '';
     } catch (error) { const failure = error as SaveError; if (failure.code === 'PROJECT_VERSION_CONFLICT') stale = true; if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'PASSWORD_CHANGE_REQUIRED'].includes(failure.code)) authFrozen = true; local('node-error').textContent = failure.message + ' ' + Object.values(failure.fields ?? {}).join('；'); }
     finally { inFlight = false; controls(); }
-    if (draft.op === 'add' && preview && !stale && !authFrozen) local('node-accept').click();
+    if (!impactful() && preview && !stale && !authFrozen) local('node-accept').click();
   };
-  local('node-accept').onclick = () => { if (!preview?.confirmed || stale || authFrozen || inFlight) return; for (const event of preview.nodeEvents) if (event.before?.deletedAt) restoredSources.set(event.id, event.before); values!.nodeOps = [...values!.nodeOps ?? [], structuredClone(draft), ...draft.op === 'restore' ? structuredClone(nodeRestoreExtras) : []]; nodeDraft = undefined; nodeRestoreExtras = []; persist(); render(); note('节点编辑完成，尚未保存。'); };
+  local('node-accept').onclick = () => { if (!preview?.confirmed || stale || authFrozen || inFlight) return; if (kind === 'customer') { void saveNew('customerNode', targetId, { nodeOps: structuredClone(ownOps()) }); return; } for (const event of preview.nodeEvents) if (event.before?.deletedAt) restoredSources.set(event.id, event.before); values!.nodeOps = [...values!.nodeOps ?? [], ...structuredClone(ownOps())]; nodeDraft = undefined; nodeRestoreExtras = []; persist(); render(); note('节点编辑已保留，可继续编辑或保存节点与连线。'); };
   const selectedDelete = document.getElementById('node-delete-selected'); if (selectedDelete) selectedDelete.onclick = () => { void openNode('delete', target); };
   if (draft.op === 'delete') capture();
-  local('node-cancel').onclick = () => { nodeDraft = undefined; nodeRestoreExtras = []; persist(); render(); }; controls();
+  local('node-cancel').onclick = async () => { if(!await discardPersonal(kind==='customer'?'customerNode':'projectNodes',kind==='customer'?targetId:undefined))return;nodeDraft = undefined; nodeRestoreExtras = []; persist(); render(); }; updateIntent(); controls();
 }
 function bindNodes() {
   document.querySelectorAll<HTMLButtonElement>('[data-node]').forEach(button => button.onclick = () => { void openNode(button.dataset.node as NodeOperation['op'], button.dataset.nodeId); });
@@ -422,7 +473,16 @@ function bindNodes() {
       const x = parseFloat(node.style.left), y = parseFloat(node.style.top), startX = event.clientX, startY = event.clientY;
       node.setPointerCapture(event.pointerId); node.classList.add('dragging');
       node.onpointermove = move => { node.style.left = Math.max(190, x + move.clientX - startX) + 'px'; node.style.top = Math.max(0, y + move.clientY - startY) + 'px'; };
-      const finish = (up: PointerEvent, cancel = false) => { node.onpointermove = null; node.onpointerup = null; node.onpointercancel = null; node.classList.remove('dragging'); const moved = { x: Math.round(parseFloat(node.style.left) * 1000) / 1000, y: Math.round(parseFloat(node.style.top) * 1000) / 1000 }; if (cancel || Math.abs(up.clientX - startX) + Math.abs(up.clientY - startY) < 3) render(); else void openNode('move', node.dataset.nodeDrag, moved); };
+      const finish = (up: PointerEvent, cancel = false) => {
+        node.onpointermove = null; node.onpointerup = null; node.onpointercancel = null; node.classList.remove('dragging');
+        const moved = { x: Math.round(parseFloat(node.style.left) * 1000) / 1000, y: Math.round(parseFloat(node.style.top) * 1000) / 1000 };
+        if (!cancel && !stale && !authFrozen && !inFlight && !pending && !stagePending && Math.abs(up.clientX - startX) + Math.abs(up.clientY - startY) >= 3 && (moved.x !== x || moved.y !== y)) {
+          const target=node.dataset.nodeDrag!;
+          values!.nodeOps=[...(values!.nodeOps ?? []).filter(op=>!(op.op==='move' && op.id===target)),{op:'move',id:target,...moved}];
+          persist();
+        }
+        render();
+      };
       node.onpointerup = finish; node.onpointercancel = event => finish(event, true);
     };
   });
@@ -684,13 +744,13 @@ async function openCorrection(action: CorrectionCommand['action'], code?: string
       return change;
     }).filter(change => Object.keys(change).length > 1);
     else if (draft.action === 'undoStageComplete') draft.undoStart = (element('correction-undo-start') as HTMLInputElement).checked;
-    preview = undefined; (element('correction-save') as HTMLButtonElement).disabled = true; element('correction-preview').textContent = '输入已改变，请重新预览。'; persistStage();
+    preview = undefined; (element('correction-save') as HTMLButtonElement).disabled = true; element('correction-preview').textContent = '输入已改变，请重新预览。'; persistStage(); controls();
   };
   element('correction-edit').oninput = capture;
   element('correction-cancel').onclick = () => { capture(); render(); };
   element('correction-edit').onsubmit = async event => {
     event.preventDefault(); capture();
-    if (dirty()) { element('correction-error').textContent = '请先取消动作表单，保存或处理普通编辑后再预览。'; return; }
+
     if (inFlight || loading || stale || authFrozen || pending || stagePending || responsibilityPending) return;
     inFlight = true; controls();
     const exact = JSON.stringify(draft);
@@ -698,7 +758,11 @@ async function openCorrection(action: CorrectionCommand['action'], code?: string
       const result = await send<CorrectionPreview>(`/api/projects/${id}/actions/preview`, 'POST', draft);
       if (exact !== JSON.stringify(draft)) { element('correction-error').textContent = '输入已变化，请重新预览。'; return; }
       preview = result;
-      element('correction-preview').innerHTML = `<h3>影响预览</h3>${groupedComparison(actionLabels[draft.action], [{ field: '有效进度', before: result.progressBefore + '%', after: result.progressAfter + '%' }, ...result.stageChanges.map(fact => ({ field: label(fact.code), before: showValue('stageChanges', [result.beforeStages.find(before => before.code === fact.code)]), after: showValue('stageChanges', [fact]) }))])}${!result.changed ? '<p>内容一致，保存只确认原结果，不新增修改历史。</p>' : ''}<p>原因：${esc(result.reason)}。项目总体状态、计划、节点/成果、风险和负责关系保留。</p>`;
+      const stageRows = result.stageChanges.flatMap(fact => {
+        const before = result.beforeStages.find(item => item.code === fact.code);
+        return (['state', 'startedOn', 'completedOn'] as const).filter(key => before?.[key] !== fact[key]).map(key => ({ field: `${label(fact.code)} · ${{state:'状态',startedOn:'实际开始',completedOn:'实际完成'}[key]}`, before: key === 'state' ? label(before?.[key]) : before?.[key] ?? '未知', after: key === 'state' ? label(fact[key]) : fact[key] ?? '未知' }));
+      });
+      element('correction-preview').innerHTML = `<h3>影响预览</h3>${groupedComparison(actionLabels[draft.action], [{ field: '有效进度', before: result.progressBefore + '%', after: result.progressAfter + '%' }, ...stageRows])}${!result.changed ? '<p>内容一致，保存只确认原结果，不新增修改历史。</p>' : ''}<p>原因：${esc(result.reason)}。项目总体状态、计划、节点/成果、风险和负责关系保留。</p>`;
       element('correction-error').textContent = ''; (element('correction-save') as HTMLButtonElement).disabled = false;
     } catch (error) {
       const failure = error as SaveError;
@@ -709,7 +773,7 @@ async function openCorrection(action: CorrectionCommand['action'], code?: string
   };
   element('correction-save').onclick = async () => {
     if (!preview || inFlight || stale || authFrozen || loading || draft.expectedVersion !== snapshot!.project.version) return;
-    if (dirty()) { element('correction-error').textContent = '请先取消动作表单，保存或处理普通编辑后重新预览。'; return; }
+
     stagePending = structuredClone(draft); persistStage(); await executeStage(false);
   };
   persistStage(); controls();
@@ -731,7 +795,7 @@ async function openStage(code: string, action: StageCommand['action']) {
   element('stage-form').onsubmit = async event => {
     event.preventDefault(); capture();
     if (inFlight || loading || stagePending || pending || responsibilityPending) return;
-    if (dirty()) { element('stage-error').textContent = '请先取消动作表单，保存或处理普通编辑。'; return; }
+
     if (stale || authFrozen || draft.expectedVersion !== snapshot!.project.version) { element('stage-error').textContent = '项目或账号已变化，请复制输入并重新进入。'; return; }
     stagePending = { ...draft, idempotencyKey: crypto.randomUUID() }; persistStage(); await executeStage(false);
   };
@@ -764,8 +828,11 @@ async function openStart() {
 }
 async function executeStage(confirm: boolean) {
   if (!stagePending || inFlight) return;
-  const original = stagePending; inFlight = true; controls();
-  let result: { projectId: string; operationId: string; savedVersion: string; changed?: boolean } | undefined;
+  inFlight = true; controls();
+  if(confirm)preparedActionId=stagePending.idempotencyKey;
+  if(!confirm && preparedActionId!==stagePending.idempotencyKey){const draft=await personalDrafts?.prepare('action');if(draft)stagePending.draft=draft;preparedActionId=stagePending.idempotencyKey;persistStage();}
+  const original = stagePending;
+  let result: { projectId: string; operationId: string; savedVersion: string; baseVersion?:string;draft?:SaveResult['draft'];changed?: boolean } | undefined;
   try {
     const response = await send<{ outcome: string; result?: typeof result }>(`/api/projects/${id}/${confirm ? 'action-results/query' : 'actions'}`, 'POST', original, !confirm);
     if (response.outcome === 'committed' && response.result) {
@@ -778,11 +845,12 @@ async function executeStage(confirm: boolean) {
     if (failure.code === 'PROJECT_VERSION_CONFLICT') stale = true;
     if (failure.outcome === 'not_committed' && failure.code !== 'OPERATION_KEY_REUSED') stagePending = undefined;
     note(Object.values(failure.fields ?? {})[0] ?? failure.message, true); persistStage();
-  } finally { inFlight = false; if (result || !actionFormOpen()) render(); else { if (!stagePending && !stale && !authFrozen) element('action-fields').querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input,select,textarea')?.dispatchEvent(new Event('input', { bubbles: true })); controls(); } }
+  } finally { inFlight = false; if (result || stagePending || !actionFormOpen()) render(); else { if (!stale && !authFrozen) element('action-fields').querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input,select,textarea')?.dispatchEvent(new Event('input', { bubbles: true })); controls(); } }
   if (result) {
     observedVersion = result.savedVersion;
-    const refreshed = await load();
-    if (!refreshed) stale = true;
+    let refreshed = false;
+    try { refreshed = await readAfterOwnSave(result.savedVersion,undefined,result); } catch { stale = true; }
+    render();
     note(`${actionLabels[original.action]}${result.changed === false ? isPlanCommand(original) ? '无实际变化，副本已保留；如需记录原因/措施请选择补充说明。' : '无实际变化，副本已保留。' : '已确认保存'}版本${result.savedVersion}。${refreshed ? original.action === 'startProject' ? 'S2仍待开始，请单独保存开始阶段。' : original.action === 'completeStage' && original.stageCode === 'S1' ? '下一步需明确启动项目，项目仍为提案中。' : '' : '后续刷新失败，请重新进入查看；无需再次保存。'}`, !refreshed);
     controls();
   }
@@ -791,17 +859,17 @@ type ResponsibilityCommand = { expectedVersion: string; idempotencyKey: string; 
 let responsibilityPending: ResponsibilityCommand | undefined;
 const responsibilityKey = () => `geekdash_responsibility:${account!.id}:${id}`;
 function responsibilityControls() {
-  if (!snapshot) return;
+  if (!snapshot || !document.getElementById('responsibility')) return;
   const members = (snapshot.responsible ?? []).map(user => esc(user.name) + (user.enabled ? '' : '（已停用）')).join('、') || '尚未建立账号负责关系';
-  element('responsibility').innerHTML = `项目负责人：${members}。${snapshot.readOnly ? '当前仅可查看。' : '本人已负责，可编辑。'} <button class="back-btn" id="responsibility-save">${snapshot.readOnly ? '保存加入本人负责范围' : '保存退出本人负责范围'}</button>${responsibilityPending ? ' <button class="back-btn" id="responsibility-confirm">确认原责任变更</button><button class="back-btn" id="responsibility-retry">重试原责任变更</button>' : ''}`;
+  element('responsibility').innerHTML = `<div class="field-fact">${members}</div><button class="back-btn manager-action" id="responsibility-save">${snapshot.readOnly ? '本人加入' : '本人退出'}</button>${responsibilityPending ? ' <button class="back-btn" id="responsibility-confirm">确认原结果</button><button class="back-btn" id="responsibility-retry">重试原操作</button>' : ''}`;
   (element('responsibility-save') as HTMLButtonElement).disabled = loading || inFlight || stale || !!pending || !!responsibilityPending || !!stagePending || authFrozen;
   element('responsibility-save').onclick = async () => {
     if (!snapshot || inFlight || pending || stale || responsibilityPending || stagePending || authFrozen) return;
     if (dirty()) {
       const choice = await choose('变更负责范围前请处理未保存内容。', [['cancel', '继续编辑'], ['keep', '保留副本供复制，再变更'], ['discard', '放弃未保存内容，再变更']]);
       if (choice === 'cancel') return;
-      if (choice === 'keep') { persist(); candidate = { format: 2, baseVersion: editBaseVersion, values: structuredClone(values!), changeDraft, riskDraft, nodeDraft, nodeRestoreExtras }; }
-      else { candidate = undefined; sessionStorage.removeItem(bufferKey); }
+      if (choice === 'keep') { persist(); if(!await personalDrafts?.sync()){note('草稿尚未全部同步，请先重试或复制内容，再变更负责范围。',true);return;} candidate = { format: 2, baseVersion: editBaseVersion, values: structuredClone(values!), basicDraft: basicDraft && structuredClone(basicDraft), changeDraft, riskDraft, nodeDraft, nodeRestoreExtras }; }
+      else { if(!await discardPersonal())return;candidate = undefined; sessionStorage.removeItem(bufferKey); }
     }
     responsibilityPending = { expectedVersion: snapshot.project.version, idempotencyKey: crypto.randomUUID(), action: snapshot.readOnly ? 'join' : 'leave' };
     try { sessionStorage.setItem(responsibilityKey(), JSON.stringify(responsibilityPending)); } catch { note('恢复存储不可用，请保留页面至结果确认。', true); }
@@ -831,6 +899,7 @@ let audit: AuditPage | undefined;
 let auditGeneration = 0;
 let auditMessage = '';
 let validationErrors: Record<string, string> = {};
+let validationScope: SaveScope | undefined;
 let noticeTimer: ReturnType<typeof setTimeout> | undefined;
 let draftNotice = '';
 let storageNotice = false;
@@ -859,10 +928,11 @@ function note(text: string, error = false, draft = false) {
 function baseline(): EditValues {
   const p = snapshot!.project;
   const ordinary = Object.fromEntries(keys.map(key => [key, p[key]])) as EditValues;
-  return { ...ordinary, chipIds: p.chips.map(item => item.id), tagIds: p.tags.map(item => item.id), people: p.people.map(({ id, role }) => ({ id, role })), riskOps: [], nodeOps: [], changeOps: [], stagePlans: snapshot!.stages.map(stage => ({ code: String(stage.code), plannedDays: stage.plannedDays == null ? null : Number(stage.plannedDays), note: String(stage.note ?? '') })) };
+  return { ...ordinary, summary: p.summary ?? '', chipIds: p.chips.map(item => item.id), tagIds: p.tags.map(item => item.id), people: p.people.filter(person => person.role !== 'pm').map(({ id, role }) => ({ id, role })), riskOps: [], nodeOps: [], changeOps: [], stagePlans: snapshot!.stages.map(stage => ({ code: String(stage.code), plannedDays: stage.plannedDays == null ? null : Number(stage.plannedDays), note: String(stage.note ?? '') })) };
 }
 function changes() { const base = baseline(); return Object.fromEntries(keys.filter(key => JSON.stringify(values![key]) !== JSON.stringify(base[key])).map(key => [key, values![key]])) as Partial<EditValues>; }
-function dirty() { return !!values && !!snapshot && (!!riskDraft || !!nodeDraft || !!changeDraft || Object.keys(changes()).length > 0); }
+function dirty() { return !!values && !!snapshot && (!!riskDraft || !!nodeDraft || !!changeDraft || !!basicDraft && basicIntentChanged(snapshot, basicDraft) || Object.keys(changes()).length > 0); }
+function scopeDirty(scope: SaveScope, target?: string) { return !!snapshot && !!values && (Object.keys(scopeChanges(baseline(), values, scope, target)).length > 0 || scope === 'basic' && !!basicDraft && basicIntentChanged(snapshot, basicDraft)); }
 function actionFormOpen() { return !!document.querySelector('#stage-form, #start-form, #correction-edit, #plan-edit, #lifecycle-edit, #closure-edit, #check-edit, #risk-edit, #node-edit, #change-edit'); }
 function refreshReadView() { if (actionFormOpen()) controls(); else render(); }
 function showActionForm() {
@@ -882,11 +952,23 @@ function dismissAction() {
   element('action-fields').querySelector<HTMLButtonElement>('button[id$="-cancel"]')?.click();
 }
 function controls() {
+  updateEditing();
   showActionForm();
   responsibilityControls();
   const frozen = inFlight || !!pending || !!responsibilityPending || !!stagePending || loading || checksLoading;
   const actionOpen = actionFormOpen();
-  document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('[data-edit]').forEach(input => { input.disabled = frozen || actionOpen || stale || authFrozen || input.dataset.reference === 'true' && !catalog; });
+  document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('[data-edit]').forEach(input => {
+    const scope = input.dataset.scope ?? (input.closest('[data-region]') as HTMLElement | null)?.dataset.region;
+    const waiting = !!pending && (!scope || scope === pending.scope);
+    input.disabled = loading || !!responsibilityPending || !!stagePending || inFlight && !pending || waiting || actionOpen || stale || authFrozen || !snapshot?.capabilities.editText || input.dataset.reference === 'true' && !catalog;
+  });
+  document.querySelectorAll<HTMLButtonElement>('[data-save-scope]').forEach(button => {
+    button.disabled = frozen || actionOpen || stale || authFrozen || !snapshot?.capabilities.editText || !scopeDirty(button.dataset.saveScope as SaveScope, button.dataset.target);
+  });
+  for (const name of ['basic-edit', 'basic-cancel', 'tags-edit', 'tags-cancel']) {
+    const button = document.getElementById(name) as HTMLButtonElement | null;
+    if (button) button.disabled = frozen || stale || authFrozen;
+  }
   syncReferencePickers();
   document.querySelectorAll<HTMLButtonElement>('[data-plan]').forEach(button => { button.disabled = frozen || actionOpen || stale || authFrozen || !snapshot?.capabilities.editText; });
   const save = document.getElementById('save') as HTMLButtonElement | null;
@@ -899,6 +981,7 @@ function controls() {
   const startButton = document.getElementById('project-start') as HTMLButtonElement | null; if (startButton) startButton.disabled = frozen || stale || authFrozen || !!snapshot?.startBlocked;
   document.querySelectorAll<HTMLButtonElement>('[data-correction]').forEach(button => { const status = snapshot!.project.status; button.disabled = frozen || stale || authFrozen || !snapshot?.capabilities.editText || button.dataset.correction === 'rollbackStage' && !['proposal', 'ongoing'].includes(status) || button.dataset.correction !== 'correctStageFacts' && status === 'closed'; });
   const correctionSave = document.getElementById('correction-save') as HTMLButtonElement | null; if (correctionSave && (frozen || stale || authFrozen)) correctionSave.disabled = true;
+  document.querySelectorAll<HTMLInputElement>('[data-correct-date]').forEach(input => { input.disabled = frozen || stale || authFrozen || !document.querySelector<HTMLInputElement>(`[data-correct-select="${input.dataset.correctDate}"]`)!.checked; });
   document.querySelectorAll<HTMLButtonElement>('[data-lifecycle]').forEach(button => { button.disabled = frozen || stale || authFrozen || !snapshot?.capabilities.editText || button.dataset.lifecycle === 'resumeProject' && !['proposal', 'ongoing'].includes(snapshot!.project.resumeStatus ?? ''); });
   const lifecycleSave = document.getElementById('lifecycle-save') as HTMLButtonElement | null; if (lifecycleSave && (frozen || stale || authFrozen)) lifecycleSave.disabled = true;
   document.querySelectorAll<HTMLButtonElement>('[data-closure]').forEach(button => { button.disabled = frozen || stale || authFrozen || !snapshot?.capabilities.editText; });
@@ -906,7 +989,10 @@ function controls() {
   document.querySelectorAll<HTMLButtonElement>('[data-node]').forEach(button => { button.disabled = frozen || actionOpen || stale || authFrozen || !snapshot?.capabilities.editText; });
   document.querySelectorAll<HTMLButtonElement>('[data-node-withdraw]').forEach(button => { button.disabled = frozen || actionOpen || stale || authFrozen || !snapshot?.capabilities.editText; });
   for (const name of ['deleted-refresh', 'deleted-more']) { const button = document.getElementById(name) as HTMLButtonElement | null; if (button) button.disabled = frozen || actionOpen || stale || authFrozen || deletedLoading; }
-  document.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLButtonElement>('#node-edit input,#node-edit select,#node-edit textarea,#node-edit button').forEach(input => { input.disabled = frozen || stale || authFrozen || input.id === 'node-accept' && input.dataset.preview !== 'true'; });
+  document.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLButtonElement>('#node-edit input,#node-edit select,#node-edit textarea,#node-edit button').forEach(input => {
+    const correction = input.dataset.restoreField ? document.querySelector<HTMLInputElement>(`[data-restore-select="${input.dataset.restoreField}"]`) : input.id === 'restore-actual' ? document.querySelector<HTMLInputElement>('#restore-actual-select') : null;
+    input.disabled = frozen || stale || authFrozen || !!correction && !correction.checked || input.id === 'node-accept' && input.dataset.preview !== 'true';
+  });
   document.querySelectorAll<HTMLButtonElement>('[data-change]').forEach(button => { button.disabled = frozen || actionOpen || stale || authFrozen || !snapshot?.capabilities.editText; });
   document.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLButtonElement>('#change-edit input,#change-edit select,#change-edit textarea,#change-edit button').forEach(input => { input.disabled = frozen || stale || authFrozen || input.id === 'change-accept' && input.dataset.preview !== 'true'; });
   document.querySelectorAll<HTMLButtonElement>('[data-risk]').forEach(button => { button.disabled = frozen || actionOpen || stale || authFrozen || !snapshot?.capabilities.editText; });
@@ -928,27 +1014,75 @@ function controls() {
   else if (!frozen && element('message').textContent === '正在处理，请等待结果。') note('');
 }
 function persist() {
-  clearTimeout(bufferTimer);
-  if (!snapshot || !values) return;
+  if (!snapshot || !values || authFrozen) return;
   try {
-    if (pending || dirty()) sessionStorage.setItem(bufferKey, JSON.stringify({ format: 2, baseVersion: pending?.expectedVersion ?? editBaseVersion, values, pending, changeDraft, riskDraft, nodeDraft, nodeRestoreExtras }));
+    if (pending || dirty()) sessionStorage.setItem(bufferKey, JSON.stringify({ format: 2, baseVersion: pending?.expectedVersion ?? editBaseVersion, values, basicDraft, pending, changeDraft, riskDraft, nodeDraft, nodeRestoreExtras }));
     else if (!candidate) sessionStorage.removeItem(bufferKey);
     storageFailed = false;
   } catch { storageFailed = true; }
+  captureDrafts();
+  updateEditing();
   controls();
+}
+function captureDrafts() {
+  if(!personalDrafts || !snapshot || !values || authFrozen || loading)return;
+  for(const scope of ['basic','status','tags','signal','summaryNote','chipstatNote','projectNodes'] as SaveScope[]){
+    const changes=scopeChanges(baseline(),values,scope);
+    const hasIntent=scope==='basic' && basicDraft && basicIntentChanged(snapshot,basicDraft);
+    if(!Object.keys(changes).length && !hasIntent && !(scope==='projectNodes' && nodeDraft && tab!=='custnodes'))continue;
+    let commands:SaveRequest['commands'];try{if(hasIntent)commands=basicCommands(snapshot,basicDraft!);}catch{/* 未填完的动作仍保护输入，不当成正式请求。 */}
+    personalDrafts.capture(scope,undefined,editBaseVersion,{values:changes,...hasIntent?{intent:structuredClone(basicDraft!) as unknown as Record<string,unknown>}:{},submission:{scope,changes,...commands?.length?{commands}:{}},...scope==='projectNodes' && nodeDraft && tab!=='custnodes'?{record:{fields:nodeDraft,changes:nodeRestoreExtras}}:{}});
+  }
+  for(const plan of values.stagePlans ?? []){const changes=scopeChanges(baseline(),values,'stage',plan.code);if(Object.keys(changes).length)personalDrafts.capture('stage',plan.code,editBaseVersion,{values:changes,submission:{scope:'stage',target:plan.code,changes}});}
+  if(riskDraft){const target=riskDraft.op==='add'?riskDraft.tempId:riskDraft.id;personalDrafts.capture('risk',target,editBaseVersion,{record:riskDraft,submission:{scope:'risk',target,changes:{riskOps:[riskDraft]}}});}
+  if(changeDraft){const target=changeDraft.op==='add'?changeDraft.tempId:changeDraft.id;personalDrafts.capture('change',target,editBaseVersion,{record:changeDraft,submission:{scope:'change',target,changes:{changeOps:[changeDraft]}}});}
+  if(nodeDraft && tab==='custnodes'){const target='tempId' in nodeDraft?nodeDraft.tempId:'id' in nodeDraft?nodeDraft.id:undefined;personalDrafts.capture('customerNode',target,editBaseVersion,{record:{fields:nodeDraft,changes:nodeRestoreExtras},submission:{scope:'customerNode',target,changes:{nodeOps:[...nodeRestoreExtras,nodeDraft]}}});}
+}
+async function restorePersonalDraft(row:PersonalDraft){
+  if(!values || stale || authFrozen || pending || stagePending || loading || !snapshot?.capabilities.editText || row.baseVersion!==editBaseVersion)return false;
+  if(dirty() && await choose('本页已有未保存输入，恢复将替换对应区域。其他区域保持。',[['cancel','继续当前编辑'],['restore','恢复对应区域']])!=='restore')return false;
+  if(row.formKind==='create')return false;
+  if(row.formKind==='action'){
+    const command={...structuredClone(row.payload.command),expectedVersion:editBaseVersion,idempotencyKey:crypto.randomUUID()} as ProjectCommand;
+    if(isCheckCommand(command)){checkDraft=command;await openCheck(command.action,command.action==='correctCheck'?command.checkId:undefined);}
+    else if(isClosureCommand(command)){closureDraft=command;await openClosure(command.action);}
+    else if(isLifecycleCommand(command)){lifecycleDraft=command;await openLifecycle(command.action,'auditId' in command?command.auditId:undefined);}
+    else if(isPlanCommand(command)){planDraft=command;await openPlan(command.action,'recordId' in command?command.recordId:undefined);}
+    else if('reason' in command){correctionDraft=command;await openCorrection(command.action,'stageCode' in command?command.stageCode:undefined);}
+    else {stageDraft=command;if(command.action==='startProject')await openStart();else await openStage(command.stageCode,command.action);}
+    persistStage();return true;
+  }
+  const restored=row.payload.values ?? {},base=baseline();
+  for(const key of scopeFields[row.formKind]){
+    if(key==='stagePlans')values.stagePlans=values.stagePlans?.map(plan=>plan.code===row.payload.target ? structuredClone((restored.stagePlans as EditValues['stagePlans'])?.find(item=>item.code===plan.code) ?? base.stagePlans!.find(item=>item.code===plan.code)!) : plan);
+    else if(key!=='nodeOps' || row.formKind==='projectNodes')Object.assign(values,{[key]:structuredClone(Object.hasOwn(restored,key)?restored[key]:base[key])});
+  }
+  if(row.formKind==='basic'){basicDraft=row.payload.intent?structuredClone(row.payload.intent) as unknown as BasicIntent:basicIntent(snapshot);basicEditing=true;tab='info';}
+  if(row.formKind==='status')tab='info';if(row.formKind==='tags')tagsEditing=true;
+  if(row.formKind==='stage')tab='stages';
+  if(row.formKind==='risk'){riskDraft=structuredClone(row.payload.record) as RiskOperation;tab='risk';}
+  if(row.formKind==='change'){changeDraft=structuredClone(row.payload.record) as ChangeOperation;tab='risk';}
+  if(row.formKind==='customerNode' || row.formKind==='projectNodes'){nodeDraft=structuredClone(row.payload.record?.fields) as NodeOperation|undefined;nodeRestoreExtras=structuredClone(row.payload.record?.changes ?? []) as NodeOperation[];tab=row.formKind==='customerNode'?'custnodes':'nodes';}
+  render();persist();
+  if(riskDraft && row.formKind==='risk')await openRisk(riskDraft.op,'id' in riskDraft?riskDraft.id:undefined);
+  if(changeDraft && row.formKind==='change')await openChange(changeDraft.op,'id' in changeDraft?changeDraft.id:undefined);
+  if(nodeDraft && ['projectNodes','customerNode'].includes(row.formKind))await openNode(nodeDraft.op,'id' in nodeDraft?nodeDraft.id:undefined);
+  note('个人草稿已恢复为新副本，正式信息仍需点击保存。');
+  return true;
 }
 function readBuffer(key = bufferKey) {
   try {
     const parsed = JSON.parse(sessionStorage.getItem(key) ?? 'null');
     const valid = (key: string, value: unknown) => {
       if (!keys.includes(key as keyof EditValues)) return false;
+      if (key === 'summary' && value === undefined) return true;
       if (key === 'changeOps') return value === undefined || Array.isArray(value) && value.every(validChangeDraft);
       if (key === 'changeOps') return JSON.stringify(value ?? [], null, 2);
   if (key === 'change' && typeof value === 'object') { const c = value as ChangeRecord; return `需求变更 #${c.id} · ${c.source} · ${c.decision === 'accept' ? '接受' : c.decision === 'reject' ? '拒绝' : c.decision + '（待核对）'}\n${c.content}\n理由：${c.reason}\n创建：${c.createdByName ?? '原人未知'} · ${c.createdAt}`; }
   if (key === 'nodeOps') return value === undefined || Array.isArray(value) && value.every(validNodeDraft);
       if (key === 'riskOps') return value === undefined || Array.isArray(value) && value.every(validRiskDraft);
       if (key === 'stagePlans') return value === undefined || Array.isArray(value) && value.length === 7 && value.every(item => /^S[1-7]$/.test(item.code) && (item.plannedDays === null || typeof item.plannedDays === 'number') && typeof item.note === 'string');
-      if (key === 'people') return Array.isArray(value) && value.every(person => typeof person?.id === 'string' && /^[1-9][0-9]{0,19}$/.test(person.id) && roles.includes(person.role));
+      if (key === 'people') return Array.isArray(value) && value.every(person => typeof person?.id === 'string' && /^[1-9][0-9]{0,19}$/.test(person.id) && [...roles, 'pm'].includes(person.role));
       if (key === 'chipIds' || key === 'tagIds') return Array.isArray(value) && value.every(id => typeof id === 'string' && /^[1-9][0-9]{0,19}$/.test(id));
       if (key.endsWith('Id')) return value === null || typeof value === 'string' && /^[1-9][0-9]{0,19}$/.test(value);
       return typeof value === 'string';
@@ -956,7 +1090,7 @@ function readBuffer(key = bufferKey) {
     if ([1, 2].includes(parsed?.format) && typeof parsed.baseVersion === 'string' && /^[1-9][0-9]{0,19}$/.test(parsed.baseVersion) && parsed.values && (parsed.format === 1 ? textKeys.slice(0, 4).every(key => typeof parsed.values[key] === 'string') : keys.every(key => valid(key, parsed.values[key])))) {
       if (parsed.changeDraft && !validChangeDraft(parsed.changeDraft) || parsed.riskDraft && !validRiskDraft(parsed.riskDraft) || parsed.nodeDraft && !validNodeDraft(parsed.nodeDraft) || parsed.nodeRestoreExtras && (!Array.isArray(parsed.nodeRestoreExtras) || !parsed.nodeRestoreExtras.every(validNodeDraft))) return;
       if (parsed.pending && (parsed.pending.expectedVersion !== parsed.baseVersion || typeof parsed.pending.idempotencyKey !== 'string' || !parsed.pending.changes || Object.entries(parsed.pending.changes).some(([key, value]) => !valid(key, value)))) return;
-      return { ...parsed, format: 2, values: { ...baseline(), ...parsed.values } } as Buffer;
+      return { ...parsed, format: 2, values: { ...baseline(), ...parsed.values, people: (parsed.values.people ?? baseline().people).filter((person: { role: string }) => person.role !== 'pm') } } as Buffer;
     }
   } catch { storageFailed = true; }
 }
@@ -980,27 +1114,14 @@ async function copyText() {
   const text = changeCopyText + nodeCopyText + riskCopy + (stageCopy ? (isPlanCommand(stageCopy) || isLifecycleCommand(stageCopy) || isClosureCommand(stageCopy) || isCheckCommand(stageCopy)) ? `${actionLabels[stageCopy.action]}副本\n${JSON.stringify(stageCopy, null, 2)}\n\n` : 'reason' in stageCopy ? `${actionLabels[stageCopy.action]}副本\n原因：${stageCopy.reason}\n进入版本：${stageCopy.expectedVersion}\n${stageCopy.action === 'correctStageFacts' ? JSON.stringify(stageCopy.changes) : label(stageCopy.stageCode) + (stageCopy.undoStart ? '（开始也误记）' : '')}\n\n` : stageCopy.action === 'startProject' ? `启动项目副本\n实际启动：${stageCopy.actualDate}\n预计结案：${stageCopy.dueDate}\n调整原因：${stageCopy.planReason ?? ''}\n首次应检周：${stageCopy.previewFirstCheckWeek}\n进入版本：${stageCopy.expectedVersion}\n\n` : `阶段操作副本\n${label(stageCopy.stageCode)} · ${stageCopy.action === 'startStage' ? '开始' : '完成'}\n实际日期：${stageCopy.actualDate}\n说明：${stageCopy.completionNote ?? ''}\n进入版本：${stageCopy.expectedVersion}\n\n` : '') + keys.map(key => `${titles[key]}\n${showValue(key, values?.[key])}`).join('\n\n') + (candidate ? '\n\n——恢复候选副本——\n' + keys.map(key => `${titles[key]}\n${showValue(key, candidate!.values[key])}`).join('\n\n') + (candidate.changeDraft ? '\n未确认需求变更表单\n' + JSON.stringify(candidate.changeDraft, null, 2) : '') + (candidate.riskDraft ? '\n未确认风险表单\n' + JSON.stringify(candidate.riskDraft, null, 2) : '') + (candidate.nodeDraft ? '\n未确认节点表单\n' + JSON.stringify({ nodeDraft: candidate.nodeDraft, nodeRestoreExtras: candidate.nodeRestoreExtras }, null, 2) : '') : '') + (legacyCopy ? '\n\n——旧匿名试用副本（仅供核对）——\n' + keys.map(key => `${titles[key]}\n${showValue(key, legacyCopy!.values[key])}`).join('\n\n') : '');
   await choose('以下文字可选择后复制；复制不会保存项目。', [['cancel', '关闭']], `<textarea class="copy-text" readonly aria-label="未保存文字">${esc(text)}</textarea>`);
 }
-function projectStatusActions() {
-  const p = snapshot!.project;
-  return p.status === 'closed' ? '<button class="back-btn" data-closure="reopenProject">重新打开项目</button><button class="back-btn" data-closure="setMaintenance">' + (p.maintenanceEnabled ? '结束维护' : '开启维护') + '</button>' : '<button class="back-btn" data-lifecycle="' + (p.status === 'paused' ? 'resumeProject' : 'pauseProject') + '">' + (p.status === 'paused' ? '恢复项目' : '暂缓项目') + '</button><button class="back-btn" data-closure="closeProject">结案项目</button>';
-}
-function projectDates() {
-  const p = snapshot!.project;
-  const editable = snapshot!.capabilities.editText;
-  const dates = [['立案日期', p.filingDate ?? '未知'], ['实际启动日期', p.startDate ?? '未知'], ['预计结案日期', p.dueDate ?? '未定'], ['实际结案日期', p.status === 'closed' ? p.closedOn ?? '未知，待核对' : '未结案']];
-  return `<div class="project-dates field-full"><div class="project-key-dates">${dates.map(([title, value]) => `<div><span class="read-label">${title}</span><div class="date-fact">${esc(value)}</div></div>`).join('')}</div><div class="date-actions">${editable ? `<button class="back-btn" data-plan="${p.dueDate ? 'reschedulePlan' : 'setPlan'}">${p.dueDate ? '调整计划' : '确定计划'}</button><button class="back-btn" data-plan="correctProjectDates">纠正日期</button>${p.status === 'closed' ? '<button class="back-btn" data-closure="correctClosure">纠正结案日期</button>' : ''}` : ''}<details class="more-project-dates"><summary class="back-btn">更多日期与原始计划</summary><div><p>提案日期：${esc(p.proposalDate ?? '未知')} · 原计划结案：${esc(p.originalDueDate ?? '未定')}</p><p class="read-message">有效改期 ${snapshot!.planSummary.reschedules} 次，其中向后调整 ${snapshot!.planSummary.laterAdjustments} 次；日期待核对 ${snapshot!.planSummary.unknownAdjustments} 次。相对原始计划净调整：${snapshot!.planSummary.netDays === null ? '无法计算' : snapshot!.planSummary.netDays + ' 天'}。</p>${editable ? '<button class="back-btn" data-plan="notePlan">补充计划说明</button>' : ''}</div></details></div></div>`;
-}
 function editor() {
-  const p = snapshot!.project;
   const editable = snapshot!.capabilities.editText;
-  const read = (value: unknown) => `<div class="field-fact">${esc(value === '' || value == null ? '—' : value)}</div>`;
-  const field = (key: keyof EditValues, input: string, full = false) => `<div class="field${full ? ' field-full' : ''}">${editable ? `<label class="read-label" for="edit-${key}">${titles[key]}</label>` : `<span class="read-label">${titles[key]}</span>`}${input}<span class="field-error" id="error-${key}">${esc(validationErrors[key])}</span></div>`;
-  const text = (key: typeof textKeys[number]) => field(key, !editable ? read(p[key]) : key === 'name' ? `<input data-edit id="edit-${key}" value="${esc(values![key])}" autocomplete="off">` : `<textarea data-edit id="edit-${key}" rows="2">${esc(values![key])}</textarea>`, true);
-  const simple = (key: 'signal' | 'priority', choices: string[]) => field(key, !editable ? read(label(p[key])) : `<select data-edit id="edit-${key}">${choices.map(value => `<option value="${value}"${values![key] === value ? ' selected' : ''}>${label(value)}</option>`).join('')}</select>`);
-  const referenceNames = { customerId: p.customer, groupId: p.projectGroup, productLineId: p.productLine, odmCustomerId: p.odmFactory, appId: p.app, chipIds: p.chips.map(item => item.name).join(' / '), tagIds: p.tags.map(item => item.name).join(' / ') };
-  const reference = (key: Exclude<keyof typeof referenceFields, 'people'>) => field(key, editable ? selectReference(key, referenceFields[key]) : read(referenceNames[key]), ['appId', 'chipIds', 'tagIds'].includes(key));
-  const people = ['hardware_owner', 'software_owner', 'pm', 'participant'].map(role => `<div class="field"><label class="read-label" for="edit-people-${role}">${label(role)}</label>${editable ? selectReference('people', 'engineers', role) : read(p.people.filter(person => person.role === role).map(person => person.name).join(' / '))}</div>`).join('');
-  return `<section class="trial-editor project-info" aria-label="项目基本信息"><h2 class="editor-heading">资料与时间</h2><div class="field-grid">${text('name')}${projectDates()}${reference('customerId')}${reference('groupId')}${reference('productLineId')}${reference('odmCustomerId')}${reference('appId')}${reference('chipIds')}${reference('tagIds')}</div>${editable && catalogMessage ? `<p class="read-message">${esc(catalogMessage)}</p>` : ''}${editable && !catalog ? '<button class="back-btn" id="options-retry">重新读取候选资料</button>' : ''}<h2 class="editor-heading">项目分工</h2><div class="field-grid">${people}<span class="field-error field-full" id="error-people">${esc(validationErrors.people)}</span></div><h2 class="editor-heading">最新状态与说明</h2><div class="field-grid">${text('statusDesc')}${text('summaryNote')}${text('marketExpectation')}${simple('priority', ['high', 'mid', 'low'])}<div class="field"><span class="read-label">项目状态</span><div class="project-state">${read(label(p.status))}${editable ? `<details class="status-actions"><summary class="back-btn">修改状态</summary><div>${projectStatusActions()}</div></details>` : ''}</div></div>${text('detailNote')}${text('chipstatNote')}</div></section>`;
+  basicDraft ??= basicIntent(snapshot!);
+  return `<section class="trial-editor project-info" aria-label="基本信息与项目分工" data-region="basic"><div class="section-heading"><h2>基本信息与项目分工</h2>${editable ? basicEditing ? '<div class="edit-actions"><button class="back-btn" id="basic-cancel">取消</button><button class="save-btn" data-save-scope="basic">保存</button></div>' : '<button class="back-btn" id="basic-edit">修改</button>' : ''}</div>${basicFields(snapshot!, values!, basicDraft, basicEditing && editable, selectReference, validationErrors)}${basicEditing && catalogMessage ? `<p class="read-message">${esc(catalogMessage)}</p>` : ''}${basicEditing && !catalog ? '<button class="back-btn" id="options-retry">重新读取候选资料</button>' : ''}</section><section class="trial-editor status-editor" data-region="status"><div class="section-heading"><h2>最新状态说明</h2>${editable ? '<button class="save-btn" data-save-scope="status">保存状态说明</button>' : ''}</div>${editable ? `<textarea data-edit data-scope="status" id="edit-statusDesc" rows="4" aria-label="最新状态说明">${esc(values!.statusDesc)}</textarea><span class="field-error" id="error-statusDesc">${esc(validationErrors.statusDesc)}</span>` : `<p class="field-fact">${esc(snapshot!.project.statusDesc || '—')}</p>`}</section>`;
+}
+function tagsEditor() {
+  if (!snapshot!.capabilities.editText) return projectTags(snapshot!.project);
+  return tagsEditing ? `<div class="tag-editor" data-region="tags">${selectReference('tagIds', 'tags')}<button class="save-btn" data-save-scope="tags">保存标签</button><button class="back-btn" id="tags-cancel">取消</button></div>` : projectTags(snapshot!.project) + '<button class="back-btn" id="tags-edit">修改标签</button>';
 }
 function selectReference(key: string, table: string, role?: string) {
   const base = baseline();
@@ -1014,8 +1135,7 @@ function selectReference(key: string, table: string, role?: string) {
     const currentNames: Record<string, unknown> = { customerId: p.customer, odmCustomerId: p.odmFactory, productLineId: p.productLine, appId: p.app, groupId: p.projectGroup };
     options.push({ id, name: named.find(item => item.id === id)?.name ?? (old.includes(id) && currentNames[key] ? String(currentNames[key]) : id), enabled: 0 });
   }
-  const multiple = ['chipIds', 'tagIds', 'people'].includes(key);
-  return `<select data-edit data-reference="true" id="edit-${key}${role ? '-' + role : ''}-source"${multiple ? ' multiple' : ''}>${multiple ? '' : '<option value="">未选择</option>'}${options.filter(item => item.enabled || old.includes(item.id) || selected.includes(item.id)).map(item => `<option value="${esc(item.id)}"${selected.includes(item.id) ? ' selected' : ''}${!item.enabled && !old.includes(item.id) ? ' disabled' : ''}>${esc(item.name)}${item.originalModel ? ' · ' + esc(item.originalModel) : ''}${item.manufacturer ? ' · ' + esc(item.manufacturer) : ''}${item.enabled ? '' : '（停用/不可新增）'}</option>`).join('')}</select>`;
+  return referenceSelect(key, options, selected, old, role);
 }
 function showValue(key: string, value: unknown): string {
   if (value == null || value === '' || Array.isArray(value) && !value.length) return '（空）';
@@ -1054,6 +1174,24 @@ async function loadCatalog() {
 }
 function bindEditor() {
   if (!snapshot?.capabilities.editText) return;
+  const modify = document.getElementById('basic-edit');
+  if (modify) modify.onclick = () => { basicEditing = true; render(); };
+  const cancel = document.getElementById('basic-cancel');
+  if (cancel) cancel.onclick = async () => {
+    if(!await discardPersonal('basic'))return;
+    const base = baseline(); for (const key of scopeFields.basic) Object.assign(values!, { [key]: structuredClone(base[key]) });
+    basicDraft = basicIntent(snapshot!); basicEditing = false; validationErrors = {}; persist(); render();
+  };
+  const tagsEdit = document.getElementById('tags-edit'); if (tagsEdit) tagsEdit.onclick = () => { tagsEditing = true; render(); };
+  const tagsCancel = document.getElementById('tags-cancel'); if (tagsCancel) tagsCancel.onclick = async () => { if(!await discardPersonal('tags'))return;values!.tagIds = baseline().tagIds; tagsEditing = false; persist(); render(); };
+  document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('[data-basic]').forEach(input => {
+    input.oninput = () => { Object.assign(basicDraft!, { [input.dataset.basic!]: input.dataset.basic === 'maintenance' ? input.value === 'true' : input.value }); persist(); };
+    input.onchange = () => { input.dispatchEvent(new Event('input')); if (!['reason','measures','closureNote','remainingWorkNote'].includes(input.dataset.basic!)) render(); };
+  });
+  document.querySelectorAll<HTMLInputElement>('[data-basic-clear]').forEach(input => input.onchange = () => {
+    basicDraft!.clearDates = [...(basicDraft!.clearDates ?? []).filter(key => key !== input.dataset.basicClear), ...(input.checked ? [input.dataset.basicClear!] : [])]; persist();
+  });
+  document.querySelectorAll<HTMLButtonElement>('[data-save-scope]').forEach(button => button.onclick = () => { void saveNew(button.dataset.saveScope as SaveScope, button.dataset.target); });
   document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[data-stage-plan],[data-stage-note]').forEach(input => input.oninput = () => {
     const code = input.dataset.stagePlan ?? input.dataset.stageNote;
     const plan = values!.stagePlans!.find(item => item.code === code)!;
@@ -1063,7 +1201,7 @@ function bindEditor() {
   });
   textKeys.forEach(key => {
     const input = document.getElementById('edit-' + key) as HTMLInputElement | HTMLTextAreaElement | null;
-    if (input) input.oninput = () => { values![key] = input.value; if (key === 'name') element('d-title').textContent = input.value; delete validationErrors[key]; element('error-' + key).textContent = ''; clearTimeout(bufferTimer); bufferTimer = setTimeout(persist, 300); controls(); };
+    if (input) input.oninput = () => { values![key] = input.value; delete validationErrors[key]; const error = document.getElementById('error-' + key); if (error) error.textContent = ''; persist(); };
   });
   for (const key of ['signal', 'priority', ...Object.keys(referenceFields)]) {
     for (const role of key === 'people' ? roles : ['']) {
@@ -1084,79 +1222,107 @@ function bindEditor() {
   mountReferencePickers();
   const options = document.getElementById('options-retry') as HTMLButtonElement | null;
   if (options) { options.disabled = catalogLoading; options.onclick = () => { void loadCatalog(); }; }
-  const save = document.getElementById('save'); if (save) save.onclick = () => { void saveNew(); };
-  const discard = document.getElementById('discard'); if (discard) discard.onclick = async () => { if (await choose('明确放弃当前未保存文字？', [['cancel', '继续编辑'], ['discard', '放弃编辑']]) === 'discard') { values = baseline(); riskDraft = undefined; nodeDraft = undefined; changeDraft = undefined; persist(); render(); } };
   const confirm = document.getElementById('confirm'); if (confirm) confirm.onclick = () => { void execute(true); };
   const retry = document.getElementById('retry'); if (retry) retry.onclick = () => { void execute(false); };
   controls();
 }
-function fieldErrors(errors: Record<string, string>) {
+async function discardPersonal(kind?:SaveScope|'action',target?:string){
+  if(inFlight || pending || stagePending)return false;
+  inFlight=true;controls();
+  try{if(kind)await personalDrafts?.discard(kind,target);else await personalDrafts?.discardAll();return true;}
+  catch(error){note('尚未完成底稿丢弃，输入已保留。'+(error as Error).message,true);return false;}
+  finally{inFlight=false;controls();}
+}
+function fieldErrors(errors: Record<string, string>, scope?: SaveScope) {
+  validationScope = scope;
   validationErrors = errors; tab = Object.keys(errors).some(key => key.startsWith('riskOps') || key.startsWith('changeOps')) ? 'risk' : Object.keys(errors).some(key => key.startsWith('nodeOps')) ? ['flow', 'custnodes'].includes(tab) ? tab : 'nodes' : errors.stagePlans ? 'stages' : 'info'; render();
   for (const [key, error] of Object.entries(errors)) { const target = document.getElementById('error-' + key); if (target) target.textContent = error; }
   document.getElementById('edit-' + Object.keys(errors)[0])?.focus();
 }
-async function saveNew() {
-  if (!snapshot?.capabilities.editText || !values || stale || pending || stagePending || inFlight || loading || !dirty()) return;
-  if (changeDraft) { note('请先预览并确认需求变更表单，或明确取消，再保存项目。', true); return; }
-  if (nodeDraft) { note('请先预览并确认节点表单，或明确取消，再保存项目。', true); return; }
-  if (riskDraft) { note('请先预览并确认风险表单，或明确取消，再保存项目。', true); return; }
+async function saveNew(scope: SaveScope = 'basic', target?: string, explicit?: Partial<EditValues>) {
+  if (!snapshot?.capabilities.editText || !values || stale || pending || stagePending || responsibilityPending || inFlight || loading || authFrozen) return;
+  const patch = explicit ?? scopeChanges(baseline(), values, scope, target);
   const errors: Record<string, string> = {};
-  if (!values.name.trim() || [...values.name].length > 255 || /[\r\n]/.test(values.name)) errors.name = '名称应为 1～255 个字符，不能仅含空白或换行';
-  for (const key of textKeys.slice(1)) if (new TextEncoder().encode(values[key]).length > 65535) errors[key] = '说明超过 65535 字节';
-  if (values.stagePlans?.some(plan => plan.plannedDays !== null && (!Number.isInteger(plan.plannedDays) || plan.plannedDays! < 0 || plan.plannedDays! > 65535)
-    || new TextEncoder().encode(plan.note ?? '').length > 65535)
-    || [...document.querySelectorAll<HTMLInputElement>('[data-stage-plan]')].some(input => input.validity.badInput)) errors.stagePlans = '工期须为空或0～65535的整数天；阶段评述最多65535字节';
-  if (Object.keys(errors).length) { fieldErrors(errors); return; }
-  pending = { expectedVersion: editBaseVersion, idempotencyKey: crypto.randomUUID(), changes: changes() };
-  candidate = undefined;
+  if ('name' in patch && (!patch.name!.trim() || [...patch.name!].length > 255 || /[\r\n]/.test(patch.name!))) errors.name = '名称应为 1～255 个字符，不能仅含空白或换行';
+  for (const key of textKeys.slice(1)) if (key in patch && new TextEncoder().encode(patch[key]).length > 65535) errors[key] = '说明超过 65535 字节';
+  if (patch.stagePlans?.some(plan => plan.plannedDays !== null && (!Number.isInteger(plan.plannedDays) || plan.plannedDays < 0 || plan.plannedDays > 65535) || new TextEncoder().encode(plan.note).length > 65535)) errors.stagePlans = '工期须为空或0～65535的整数天；阶段评述最多65535字节';
+  if (Object.keys(errors).length) { fieldErrors(errors, scope); return; }
+  let commands: SaveRequest['commands'];
+  try { if (scope === 'basic' && basicDraft) commands = basicCommands(snapshot, basicDraft); }
+  catch (error) { note((error as Error).message, true); return; }
+  if (!Object.keys(patch).length && !commands?.length) { note('本区没有未保存的修改。'); return; }
+  const submission={scope,...target?{target}:{},changes:patch,...commands?.length?{commands}:{}};
+  personalDrafts?.capture(scope,target,editBaseVersion,{values:patch,...scope==='basic' && basicDraft?{intent:structuredClone(basicDraft) as unknown as Record<string,unknown>}:{},submission});
+  inFlight=true;controls();const draft=await personalDrafts?.prepare(scope,target);inFlight=false;
+  if(stale || authFrozen){controls();return;}
+  pending = structuredClone({ expectedVersion: editBaseVersion, idempotencyKey: crypto.randomUUID(),...submission,...draft?{draft}:{} });
   persist();
   await execute(false);
+}
+async function readAfterOwnSave(version: string, request?: SaveRequest, result?: Pick<SaveResult,'operationId'|'savedVersion'|'baseVersion'|'draft'>) {
+  const oldBase = baseline();
+  const previousDetail = snapshot!;
+  const current = await get<Detail>('/api/projects/' + id);
+  // 新请求期间其他区仍可继续输入，因此在请求返回后取当前编辑内容。
+  const input = structuredClone(values!);
+  if (BigInt(current.project.version) > BigInt(version) || BigInt(observedVersion) > BigInt(version)) {
+    stale = true;
+    note('本次保存已成功，项目随后被更新。其他输入已保留，请复制并重新进入。', true);
+    return false;
+  }
+  if (current.project.version !== version) throw new Error('本次已保存，但详情版本尚未同步，请重新读取。');
+  const hadBasicInput = basicDraft && basicIntentChanged(previousDetail, basicDraft);
+  snapshot = current; observedVersion = version; editBaseVersion = version; stale = false;
+  values = carryInputs(oldBase, input, baseline(), request);
+  if (request?.scope === validationScope) { validationErrors = {}; validationScope = undefined; }
+  if (request?.scope === 'basic' || !hadBasicInput) basicDraft = basicIntent(current);
+  if (request?.scope === 'basic') basicEditing = scopeDirty('basic');
+  if (request?.scope === 'tags') tagsEditing = scopeDirty('tags');
+  audit = undefined; auditGeneration++; auditMessage = '';
+  deletedNodes = undefined; deletedGeneration++; deletedLoading = false;
+  if(result)await personalDrafts?.advance(result,{kind:request?.scope ?? 'action',target:request?.target});
+  persist();
+  return true;
 }
 async function execute(confirm: boolean) {
   if (!pending || inFlight) return;
   const original = pending;
-  inFlight = true; render();
+  inFlight = true; controls();
+  let committed = false, formError = '';
   try {
     const response = await send<{ outcome: string; result?: SaveResult }>('/api/projects/' + id + (confirm ? '/save-results/query' : ''), confirm ? 'POST' : 'PATCH', original);
     if (pending !== original) return;
     if (response.outcome === 'committed' && response.result) {
       const result = response.result;
       if (result.projectId !== id || result.operationId !== original.idempotencyKey) throw new SaveError('RESPONSE_UNKNOWN', 'unknown');
-      const higher = BigInt(observedVersion) > BigInt(result.savedVersion);
-      const merged = { ...baseline(), ...result.values, riskOps: [], nodeOps: [], changeOps: [] };
-      if (BigInt(result.savedVersion) >= BigInt(snapshot!.project.version)) {
-        Object.assign(snapshot!.project, result.values, { version: result.savedVersion, ...(result.savedAt ? { updatedAt: result.savedAt } : {}) });
-        if ('chipIds' in result.values) {
-          const display = result.display ?? {};
-          const named = (key: string, id: string) => catalog?.[referenceFields[key as keyof typeof referenceFields]]?.find(item => item.id === id)?.name ?? id;
-          for (const [key, field] of [['customerId', 'customer'], ['odmCustomerId', 'odmFactory'], ['productLineId', 'productLine'], ['appId', 'app'], ['groupId', 'projectGroup']]) snapshot!.project[field] = merged[key as keyof EditValues] ? (display[key] as { name?: string } | undefined)?.name ?? named(key, merged[key as keyof EditValues] as string) : null;
-          snapshot!.project.chips = (display.chipIds as Detail['project']['chips'] | undefined) ?? merged.chipIds.map(id => ({ id, name: named('chipIds', id) }));
-          snapshot!.project.tags = (display.tagIds as Detail['project']['tags'] | undefined) ?? merged.tagIds.map(id => ({ id, name: named('tagIds', id) }));
-          snapshot!.project.people = (display.people as Detail['project']['people'] | undefined) ?? merged.people.map(person => ({ ...person, name: named('people', person.id) }));
-        }
-        if (result.changes) snapshot!.changes = result.changes;
-        if (result.risks) snapshot!.risks = result.risks;
-        if (result.nodes) snapshot!.nodes = result.nodes;
-        if ('stagePlans' in result.values) for (const plan of merged.stagePlans ?? []) Object.assign(snapshot!.stages.find(stage => stage.code === plan.code)!, plan);
-      }
-      values = merged; editBaseVersion = result.savedVersion; pending = undefined; stale = higher;
-      candidate = undefined; riskDraft = undefined; nodeDraft = undefined; changeDraft = undefined;
-      deletedNodes = undefined; deletedGeneration++; deletedLoading = false; deletedMessage = ''; restoredSources.clear();
-      // 只清除本项目该原操作对应的缓存，不清除后来出现的副本。
-      try { const stored = readBuffer(); if (stored?.pending?.idempotencyKey === original.idempotencyKey) sessionStorage.removeItem(bufferKey); } catch { storageFailed = true; }
-      note((result.changed ? '项目已保存。' : '内容一致，已确认，无新增修改历史。') + (higher ? ' 项目又被更新，请重新进入项目。' : ''));
-      audit = undefined; auditGeneration++; auditMessage = '';
-      void observe(true);
+      committed = true; pending = undefined;
+      if (original.scope === 'risk') riskDraft = undefined;
+      if (original.scope === 'change') changeDraft = undefined;
+      if (original.scope === 'customerNode' || original.scope === 'projectNodes') { nodeDraft = undefined; nodeRestoreExtras = []; }
+      const refreshed = await readAfterOwnSave(result.savedVersion, original,result);
+      if (refreshed) note(result.changed ? '本区修改已保存。' : '内容一致，已确认。');
       if (tab === 'history') void loadAudit();
     } else { note('暂未查到原操作回执，结果仍未确认。可稍后确认或重试原操作。', true); persist(); }
   } catch (error) {
-    const failure = error instanceof SaveError ? error : new SaveError('TRANSPORT_UNKNOWN', 'unknown');
-    if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'PASSWORD_CHANGE_REQUIRED'].includes(failure.code)) authFrozen = true;
-    if (failure.code === 'PROJECT_VERSION_CONFLICT') stale = true;
-    if (failure.outcome === 'not_committed' && failure.code !== 'OPERATION_KEY_REUSED') pending = undefined;
-    note(failure.message, true); persist();
-    if (failure.fields) fieldErrors(failure.fields);
-  } finally { inFlight = false; render(); }
+    if (committed) { stale = true; note('本次保存已成功，详情读取失败。输入仍保留，请重新进入查看；无需重复保存。', true); }
+    else {
+      const failure = error instanceof SaveError ? error : new SaveError('TRANSPORT_UNKNOWN', 'unknown');
+      if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'PASSWORD_CHANGE_REQUIRED'].includes(failure.code)) authFrozen = true;
+      if (failure.code === 'PROJECT_VERSION_CONFLICT' || failure.code === 'SAVE_PROTOCOL_CHANGED') stale = true;
+      if (failure.outcome === 'not_committed' && failure.code !== 'OPERATION_KEY_REUSED') pending = undefined;
+      note(failure.message, true);
+      formError = failure.message + ' ' + Object.values(failure.fields ?? {}).join('；');
+      if (failure.fields) fieldErrors(failure.fields, original.scope);
+    }
+    persist();
+  } finally {
+    inFlight = false; render();
+    if (!committed && !pending && !stale && !authFrozen) {
+      if (original.scope === 'risk' && riskDraft) { await openRisk(riskDraft.op, 'id' in riskDraft ? riskDraft.id : undefined); const target = document.getElementById('risk-error'); if (target) target.textContent = formError; }
+      if (original.scope === 'change' && changeDraft) { await openChange(changeDraft.op, 'id' in changeDraft ? changeDraft.id : undefined); const target = document.getElementById('change-error'); if (target) target.textContent = formError; }
+      if (original.scope === 'customerNode' && nodeDraft) { await openNode(nodeDraft.op, 'id' in nodeDraft ? nodeDraft.id : undefined); const target = document.getElementById('node-error'); if (target) target.textContent = formError; }
+    }
+  }
 }
 async function observe(afterSave = false, active = true) {
   const entry = snapshot;
@@ -1169,7 +1335,7 @@ async function observe(afterSave = false, active = true) {
     if (BigInt(observedVersion) > BigInt(entry.project.version)) { stale = true; note('项目已被他人更新，请重新进入项目。未保存文字已保留供复制。', true); controls(); }
     else if (current.project.version === entry.project.version) {
       entry.project.deadline = current.project.deadline; entry.project.checkStatus = current.project.checkStatus; entry.checkRule = current.checkRule; entry.businessDate = current.businessDate;
-      element('d-tags').innerHTML = projectTags(entry.project);
+      // 保持现有标签编辑与点击绑定；保存或重新进入时统一重绘。
       element('d-meta').textContent = detailMeta(entry.project);
     }
   } catch (error) { if (error instanceof SaveError) { authFrozen = true; persist(); note(error.message, true); controls(); } else if (afterSave) note('本次保存已确认，后续详情刷新失败。可重新进入查看；无需重复保存。', true); }
@@ -1197,20 +1363,20 @@ function clock() {
   element('date-zone').innerHTML = `<div class="dz-left"><span class="dz-date">${new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: 'long', day: 'numeric' }).format(now)}</span><span class="dz-week">${new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', weekday: 'long' }).format(now)}</span><span class="dz-time">${new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(now)}</span></div><span class="read-label">距年底 ${remaining} 天</span>`;
 }
 clock(); setInterval(clock, 1000);
-try {
-  const saved = JSON.parse(sessionStorage.getItem('geekdash_board_return') ?? 'null');
+function restoreBoardReturn(){if(new URLSearchParams(location.search).has('returnTo'))return;try {
+  const saved = JSON.parse(sessionStorage.getItem('geekdash_board_return:'+account!.id) ?? 'null');
   if (typeof saved?.url === 'string') {
     const url = new URL(saved.url);
     if (url.origin === location.origin && ['/', '/GeekDash.html'].includes(url.pathname)) (element('back') as HTMLAnchorElement).href = url.href;
   }
-} catch { /* 无返回上下文时使用普通列表入口。 */ }
+} catch { /* 无返回上下文时使用普通列表入口。 */ }}
 try {
   const target = new URLSearchParams(location.search).get('returnTo');
   if (target) {
     const url = new URL(target, location.origin);
-    if (url.origin === location.origin && url.pathname === '/project-checks.html' && !url.username && !url.password) {
+    if (url.origin === location.origin && ['/project-checks.html','/project-status-summary.html'].includes(url.pathname) && !url.username && !url.password) {
       const back = element('back') as HTMLAnchorElement;
-      back.href = url.href; back.textContent = '← 返回项目检查';
+      back.href = url.href; back.textContent = url.pathname === '/project-checks.html' ? '← 返回项目检查' : '← 返回项目状态简要';
     }
   }
 } catch { /* 非法返回目标保持原看板入口与副本保护。 */ }
@@ -1226,7 +1392,7 @@ function groupedRows(title: string, items: Entry[]): Entry[] {
 function groupedComparison(title: string, items: Entry[]) { return comparison(groupedRows(title, items)); }
 function recordRows(kind: 'risk' | 'change' | 'node', before: unknown, after: unknown): Entry[] {
   const old = (before ?? {}) as Record<string, unknown>, next = (after ?? {}) as Record<string, unknown>;
-  const fields: Record<string, string> = kind === 'risk' ? { content: '风险内容', level: '风险等级', resolved: '风险状态', resolution: '解除说明' }
+  const fields: Record<string, string> = kind === 'risk' ? { content: '风险内容', level: '风险等级', resolved: '风险状态', resolution: '解除说明', deletedAt: '记录状态' }
     : kind === 'change' ? changeFields : { title: '节点名称', stage: '所属阶段', targetDate: '目标完成日期', completedOn: '实际完成日期', output: '输出成果', note: '客户节点备注', previousNodeId: '前置节点', nextNodeId: '后续节点', x: '画布横向位置', y: '画布纵向位置', deletedAt: '节点状态' };
   const customer = (next.kind ?? old.kind) === 'customer';
   const display = (key: string, value: unknown) => {
@@ -1259,43 +1425,21 @@ function mergedRecords(kind: 'risk' | 'change' | 'node', events: { id: string; b
   });
 }
 function recordComparisons(kind: 'risk' | 'change' | 'node', events: Parameters<typeof mergedRecords>[1]) { return comparison(mergedRecords(kind, events)); }
-function auditHistory(items: AuditPage['items']) {
-  const fields: Record<string, string> = { ...titles, ...{ stageChanges: '阶段状态与实际日期', completionNote: '完成说明', reason: '操作原因', progress: '有效阶段进度', status: '项目状态', startDate: '实际启动日期', dueDate: '当前计划结案日期', originalDueDate: '原计划结案日期', firstCheckWeek: '首次应检周', firstCheckRuleVersion: '首次应检规则版本', resumeStatus: '暂缓前项目状态', closure: '当前结案事实', closureSource: '原结案来源', remaining: '当时遗留', stageFacts: '当时有效阶段事实', lifecycleNote: '有效说明', note: '操作说明' }, correctionReason: '纠错原因' };
-  const groups = new Map<string, AuditPage['items']>();
-  for (const item of items) {
-    const key = JSON.stringify([item.versionBefore, item.versionAfter, item.actorDisplayName, item.actorKind, item.createdAt]);
-    const group = groups.get(key) ?? []; group.push(item); groups.set(key, group);
-  }
-  return [...groups.values()].map(group => {
-    const records = new Map<'risk' | 'change' | 'node', Parameters<typeof mergedRecords>[1]>(), rows: Entry[] = [];
-    for (const item of group.slice().reverse()) {
-      const kind = (['risk', 'change', 'node'] as const).find(key => Object.hasOwn(item.afterValues, key));
-      if (kind) {
-        const before = item.beforeValues?.[kind], after = item.afterValues[kind];
-        const target = (after ?? before) as Entry;
-        const events = records.get(kind) ?? [];
-        events.push({ id: String(target?.id ?? item.id), before, after, reason: item.afterValues.reason, correctionReason: item.afterValues.correctionReason }); records.set(kind, events);
-      } else rows.push(...groupedRows(actionLabels[item.action] ?? '项目信息', Object.keys(item.afterValues).filter(key => !['createdBy', 'operations'].includes(key)).map(key => ({ field: fields[key] ?? key, before: showValue(key, item.beforeValues?.[key]), after: showValue(key, item.afterValues[key]) }))));
-    }
-    for (const [kind, events] of records) rows.push(...mergedRecords(kind, events));
-    const item = group[0], title = group.length > 1 ? '保存项目' : actionLabels[item.action] ?? '更新项目记录';
-    return `<article class="audit-entry" data-audit-version="${esc(item.versionAfter)}"><h3>${esc(title)} · ${esc(item.actorDisplayName)} · ${esc(businessTime(item.createdAt))}</h3><details class="record-source"><summary>记录来源</summary><p>版本 ${esc(item.versionBefore)} → ${esc(item.versionAfter)}；原时间 ${esc(item.createdAt)}（UTC）</p></details>${comparison(rows)}</article>`;
-  }).join('');
-}
 function table(items: Entry[], fields: [string, string][]) {
   if (!items.length) return fields[1]?.[0] === 'before' ? '' : '<p class="read-message">暂无记录。</p>';
   return `<div class="read-table-wrap"><table class="read-table${fields[1]?.[0] === 'before' && fields[2]?.[0] === 'after' ? ' comparison-table' : ''}"><thead><tr>${fields.map(([, title]) => `<th scope="col">${title}</th>`).join('')}</tr></thead><tbody>${items.map(item => `<tr>${fields.map(([key]) => `<td>${esc(['code', 'state', 'stage', 'level', 'decision'].includes(key) ? label(item[key]) : item[key] ?? '—')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 function render() {
   if (!snapshot) return;
+  captureFlowViewport();
   const dialog = element('action-dialog') as HTMLDialogElement;
   const hadForm = dialog.open;
   if (hadForm && dialog.contains(element('project-notice'))) closeNotice();
   if (dialog.open) dialog.close(); element('action-fields').replaceChildren(); element('action-message').textContent = '';
   const p = snapshot.project;
-  element('notice').textContent = snapshot.capabilities.editText ? '本人已负责，可编辑' : '只读；加入负责范围后可编辑';
-  element('d-title').textContent = values?.name ?? p.name;
-  element('d-tags').innerHTML = projectTags(p);
+  element('notice').textContent = ''; element('notice').hidden = true;
+  element('d-title').textContent = p.name;
+  element('d-tags').innerHTML = tagsEditor();
   element('d-meta').textContent = detailMeta(p);
   let content = '';
   let recovery = '';
@@ -1304,17 +1448,14 @@ function render() {
   } else if (tab === 'stages') content = stagePanel();
   else if (tab === 'nodes' || tab === 'custnodes' || tab === 'flow') content = nodePanel(tab === 'custnodes' ? 'customer' : 'project', tab === 'flow') + deletedNodePanel(tab === 'custnodes' ? 'customer' : 'project');
   else if (tab === 'history') content = '<h2>更新历史</h2><p class="read-message">只有实际变化才产生修改历史。</p>'
-    + (audit?.items.length ? auditHistory(audit.items) : '<p>暂无服务器修改历史。</p>')
+    + (audit?.items.length ? auditHistory(audit.items) : audit ? '<p>暂无服务器修改历史。</p>' : '')
     + `<p class="read-message">${esc(auditMessage)}</p><button class="back-btn" id="audit-refresh">重新读取历史</button>${audit?.nextCursor ? '<button class="back-btn" id="audit-more">读取更早记录</button>' : ''}`
     + '<h2>旧来源历史</h2><p class="read-message">保留原来源时间文本，与服务器修改历史分开。</p>' + table(snapshot.history.slice().reverse(), [['date', '来源时间'], ['text', '更新内容']]);
-  else if (tab === 'risk') content = signalEditor() + riskPanel() + changePanel() + '<h2>改期与说明</h2>' + (snapshot.delays.map(scheduleHistory).join('') || '<p>没有计划历史。</p>');
-  if (tab === 'risk') content += `<details class="secondary-section"><summary>计划与日期 · 当前计划 ${esc(p.dueDate ?? '未定')}</summary>${snapshot.capabilities.editText ? '<button class="back-btn" data-plan="notePlan">补充计划说明</button>' : ''}<p>原计划结案：${esc(p.originalDueDate ?? '未定')} · 实际启动：${esc(p.startDate ?? '未知')}</p>`;
-  if (tab === 'risk') content += `<p class="read-message">有效改期 ${snapshot.planSummary.reschedules} 次，其中向后调整 ${snapshot.planSummary.laterAdjustments} 次；日期待核对 ${snapshot.planSummary.unknownAdjustments} 次。相对原始计划净调整：${snapshot.planSummary.netDays === null ? '无法计算' : snapshot.planSummary.netDays + ' 天'}。</p></details>`;
+  else if (tab === 'risk') content = signalEditor() + riskPanel() + changePanel();
   if (planDraft && !stagePending) recovery += `<p>${esc(actionLabels[planDraft.action])}</p><button class="back-btn" id="plan-restore">恢复计划/日期表单</button><button class="back-btn" id="plan-discard">放弃该副本</button>${planDraft.action === 'reschedulePlan' ? '<button class="back-btn" id="plan-as-note">作为补充说明重新预览</button>' : ''}`;
   if (tab === 'history' && snapshot.lifecycleNotes.length) {
-    const p = snapshot.project;
-    content += `<details class="secondary-section"><summary>暂缓与恢复记录</summary>${p.status === 'paused' ? `<p>项目暂缓；此前状态：${esc(p.resumeStatus ? label(p.resumeStatus) : '未知，需核对来源')}。阶段保留，不代表仍在执行。</p>` : ''}<p>${esc(p.checkStatus.label)}${p.checkStatus.updatedAfterCheck ? '；检查后项目有更新' : ''} · 本周截止 ${esc(p.checkStatus.deadlineDate ?? '未初始化')}；不自动产生检查。</p>${p.checkStatus.latest ? `<p>最新检查：${esc(p.checkStatus.latest.actorName ?? '原账号未知')} · ${esc(p.checkStatus.latest.checkedAt)}（UTC） · ${p.checkStatus.latest.conclusion === 'follow_up' ? '已核对，需跟进' : '已核对'}。</p>` : ''}</details>`;
-    content += snapshot.lifecycleNotes.map(item => `<article class="audit-entry"><h3>${esc(actionLabels[item.action])} #${esc(item.id)} · ${esc(item.actorDisplayName)} · ${esc(item.createdAt)}（UTC）</h3><p>有效说明：${esc(item.note || '（空）')}</p><details><summary>原文及纠错来源</summary><p>${esc(item.originalNote || '（空）')}</p>${item.corrections.map(change => `<p>${esc(change.actorDisplayName)} · ${esc(change.createdAt)} · ${esc(change.reason)}</p>`).join('')}</details>${snapshot!.capabilities.editText ? `<button class="back-btn" data-lifecycle="correctLifecycleNote" data-audit="${esc(item.id)}">纠正说明</button>` : ''}</article>`).join('');
+    content += '<details class="secondary-section" id="lifecycle-history"><summary>暂缓与恢复说明 · 查看或纠正</summary>'
+      + snapshot.lifecycleNotes.map(item => `<article class="audit-entry"><h3>${esc(actionLabels[item.action])} · ${esc(item.actorDisplayName)} · ${esc(historyTime(item.createdAt))}</h3><p>${esc(item.note || '未填写说明')}</p><details><summary>原文及纠错来源</summary><p>${esc(item.originalNote || '未填写说明')}</p>${item.corrections.map(change => `<p>${esc(change.actorDisplayName)} · ${esc(historyTime(change.createdAt))} · ${esc(change.reason)}</p>`).join('')}</details>${snapshot!.capabilities.editText ? `<button class="back-btn" data-lifecycle="correctLifecycleNote" data-audit="${esc(item.id)}">纠正说明</button>` : ''}</article>`).join('') + '</details>';
   }
   if (lifecycleDraft && !stagePending) recovery += `<p>${esc(actionLabels[lifecycleDraft.action])}</p><button class="back-btn" id="lifecycle-restore">恢复暂缓/恢复表单</button><button class="back-btn" id="lifecycle-discard">放弃该副本</button>`;
 
@@ -1328,11 +1469,11 @@ function render() {
   if (changeDraft) recovery += '<p>需求变更编辑</p><button class="back-btn" id="change-restore">恢复需求变更表单</button>';
   if (riskDraft) recovery += '<p>风险编辑</p><button class="back-btn" id="risk-restore">恢复风险表单</button>';
   content += '<div id="change-form"></div><div id="risk-form"></div><div id="plan-form"></div><div id="lifecycle-form"></div><div id="closure-form"></div><div id="check-form"></div>';
-  element('project-menu').hidden = !snapshot.capabilities.editText;
-  element('project-actions').innerHTML = snapshot.capabilities.editText ? `<button class="back-btn" data-plan="${p.dueDate ? 'reschedulePlan' : 'setPlan'}">${p.dueDate ? '调整计划' : '确定计划'}</button><button class="back-btn" data-plan="correctProjectDates">纠正日期信息</button>${projectStatusActions()}` : '';
-  element('project-context').innerHTML = `<span>${esc(label(p.stage))} · 进度 ${esc(p.progress)}% · 预计结案 ${esc(p.dueDate ?? '未定')} · ${esc(p.checkStatus.label)}${p.checkStatus.updatedAfterCheck ? ' · 检查后有更新' : ''}</span>${snapshot.capabilities.editText ? '<button class="back-btn" data-check="saveCheck">检查</button>' : ''}`;
-  element('project-savebar').hidden = !snapshot.capabilities.editText;
-  element('project-savebar').innerHTML = snapshot.capabilities.editText ? `<div class="savebar-main"><button class="save-btn" id="save">保存项目</button><button class="back-btn" id="discard" hidden>取消修改</button>${pending ? '<button class="back-btn" id="confirm">确认原保存结果</button><button class="back-btn" id="retry">重试原操作</button>' : ''}</div>` : '';
+  element('project-menu').hidden = true;
+  element('project-actions').innerHTML = '';
+  element('project-context').innerHTML = snapshot.capabilities.editText ? '<button class="back-btn" data-check="saveCheck">本次检查</button>' : '';
+  element('project-savebar').hidden = !pending;
+  element('project-savebar').innerHTML = pending ? '<div class="savebar-main"><span>保存结果待确认</span><button class="back-btn" id="confirm">确认原保存结果</button><button class="back-btn" id="retry">重试原操作</button></div>' : '';
   if (stageDraft && !stagePending) recovery += `<p>${esc(actionLabels[stageDraft.action])}</p><button class="back-btn" id="stage-restore">继续编辑</button><button class="back-btn" id="stage-discard">放弃副本</button>`;
   if (correctionDraft && !stagePending) recovery += `<p>${esc(actionLabels[correctionDraft.action])}</p><button class="back-btn" id="correction-restore">继续编辑</button><button class="back-btn" id="correction-discard">放弃副本</button>`;
   if (stagePending) recovery += `<p>${esc(actionLabels[stagePending.action])}结果待确认。请确认原结果或重试原操作。</p><button class="back-btn" id="stage-confirm">确认原结果</button><button class="back-btn" id="stage-retry">重试原操作</button>`;
@@ -1342,6 +1483,8 @@ function render() {
   document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => button.classList.toggle('active', button.dataset.tab === tab));
   bindEditor();
   bindNodes();
+  const canvas=document.querySelector<HTMLElement>('.flow-canvas');
+  if(canvas){canvas.scrollLeft=flowViewport.x;canvas.scrollTop=flowViewport.y;canvas.addEventListener('scroll',rememberReading,{passive:true});}
   const nodeRestore = document.getElementById('node-restore'); if (nodeRestore) nodeRestore.onclick = () => { if (nodeDraft) void openNode(nodeDraft.op, 'id' in nodeDraft ? nodeDraft.id : undefined); };
   document.querySelectorAll<HTMLButtonElement>('[data-change]').forEach(button => button.onclick = () => { void openChange(button.dataset.change as ChangeOperation['op'], button.dataset.changeId); });
   const changeRestore = document.getElementById('change-restore'); if (changeRestore) changeRestore.onclick = () => { if (changeDraft) void openChange(changeDraft.op, 'id' in changeDraft ? changeDraft.id : undefined); };
@@ -1372,9 +1515,13 @@ function render() {
   const discardStage = document.getElementById('stage-discard'); if (discardStage) discardStage.onclick = () => { stageDraft = undefined; persistStage(); render(); };
   const refresh = document.getElementById('audit-refresh'); if (refresh) refresh.onclick = () => { void loadAudit(); };
   const more = document.getElementById('audit-more'); if (more) more.onclick = () => { void loadAudit(true); };
+  for(const name of ['stage-discard','correction-discard','plan-discard','lifecycle-discard','closure-discard','check-discard']){
+    const button=document.getElementById(name),discard=button?.onclick;
+    if(button && discard)button.onclick=async event=>{if(await discardPersonal('action'))discard.call(button,event);};
+  }
   controls();
   const signature = [stageDraft?.action, correctionDraft?.action, planDraft?.action, lifecycleDraft?.action, closureDraft?.action, checkDraft?.action, nodeDraft?.op, changeDraft?.op, riskDraft?.op, stagePending?.action].filter(Boolean).join('|');
-  if (signature && (signature !== draftNotice || hadForm) && !loading && !stale && !authFrozen) note(stagePending ? '保存结果尚未确认，请确认原结果或重试原操作。' : '本次输入尚未保存到项目，可继续编辑。关闭标签页后副本会丢失。', !!stagePending, true);
+  if (signature && (signature !== draftNotice || hadForm) && !loading && !stale && !authFrozen) note(stagePending ? '保存结果尚未确认，请确认原结果或重试原操作。' : '本次输入尚未保存到项目，可继续编辑；个人草稿入口可核对同步与恢复。', !!stagePending, true);
   draftNotice = signature;
 }
 async function load(initial = false) {
@@ -1386,7 +1533,7 @@ async function load(initial = false) {
     const data = await get<Detail>('/api/projects/' + id);
     if (current !== generation) return;
     snapshot = data;
-    values = baseline(); riskDraft = undefined; nodeDraft = undefined; changeDraft = undefined; nodeRestoreExtras = []; editBaseVersion = data.project.version; observedVersion = data.project.version; stale = false; validationErrors = {};
+    values = baseline(); basicDraft = basicIntent(data); basicEditing = false; tagsEditing = false; riskDraft = undefined; nodeDraft = undefined; changeDraft = undefined; nodeRestoreExtras = []; editBaseVersion = data.project.version; observedVersion = data.project.version; stale = false; validationErrors = {};
     audit = undefined; auditMessage = ''; auditGeneration++; checks = undefined; checksMessage = ''; checksGeneration++;
     deletedNodes = undefined; deletedMessage = ''; deletedGeneration++; deletedLoading = false; restoredSources.clear();
     element('detail-panel').hidden = false;
@@ -1396,10 +1543,10 @@ async function load(initial = false) {
       if (stagePending) { tab = isPlanCommand(stagePending) || isLifecycleCommand(stagePending) || isClosureCommand(stagePending) || isCheckCommand(stagePending) ? 'info' : 'stages'; render(); await executeStage(true); }
       candidate = readBuffer();
       if (candidate?.pending && data.capabilities.editText) {
-        values = { ...candidate.values }; changeDraft = candidate.changeDraft; riskDraft = candidate.riskDraft; nodeDraft = candidate.nodeDraft; nodeRestoreExtras = candidate.nodeRestoreExtras ?? []; editBaseVersion = candidate.baseVersion; pending = candidate.pending; candidate = undefined; render(); await execute(true);
+        values = { ...candidate.values }; basicDraft = candidate.basicDraft ?? basicIntent(snapshot!); basicEditing = true; changeDraft = candidate.changeDraft; riskDraft = candidate.riskDraft; nodeDraft = candidate.nodeDraft; nodeRestoreExtras = candidate.nodeRestoreExtras ?? []; editBaseVersion = candidate.baseVersion; pending = candidate.pending; candidate = undefined; render(); await execute(true);
       } else if (candidate) {
         if (candidate.baseVersion === data.project.version && data.capabilities.editText) {
-          if (await choose('发现本标签页未保存文字，是否恢复？恢复后仍需明确保存。', [['restore', '恢复编辑'], ['cancel', '暂不恢复']]) === 'restore') { values = { ...candidate.values }; changeDraft = candidate.changeDraft; riskDraft = candidate.riskDraft; nodeDraft = candidate.nodeDraft; nodeRestoreExtras = candidate.nodeRestoreExtras ?? []; candidate = undefined; render(); persist(); }
+          if (await choose('发现本标签页未保存文字，是否恢复？恢复后仍需明确保存。', [['restore', '恢复编辑'], ['cancel', '暂不恢复']]) === 'restore') { values = { ...candidate.values }; basicDraft = candidate.basicDraft ?? basicIntent(snapshot!); basicEditing = true; changeDraft = candidate.changeDraft; riskDraft = candidate.riskDraft; nodeDraft = candidate.nodeDraft; nodeRestoreExtras = candidate.nodeRestoreExtras ?? []; candidate = undefined; render(); persist(); }
         } else { note('旧副本的项目版本已过期或当前项目只读，旧文字仅供复制核对。', true); controls(); }
       }
     }
@@ -1410,7 +1557,12 @@ async function load(initial = false) {
     note((error as Error).message + (snapshot ? ' 当前仍显示上次进入的项目版本。' : ''), true);
   } finally { if (current === generation) { loading = false; controls(); } }
 }
-document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => button.onclick = () => { persist(); tab = button.dataset.tab!; render(); if (tab === 'history' && !audit) void loadAudit(); });
+document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => button.onclick = () => { persist(); tab = button.dataset.tab!; render();rememberReading(); if (tab === 'history' && !audit) void loadAudit(); });
+window.addEventListener('scroll',()=>{if(!snapshot || readingScrollTimer)return;readingScrollTimer=setTimeout(()=>{readingScrollTimer=undefined;rememberReading();},2000);},{passive:true});
+window.addEventListener('pagehide',()=>{rememberReading();void readingPreference?.flush();});
+document.addEventListener('geekdash-preference-status',event=>note((event as CustomEvent<string>).detail,true));
+document.addEventListener('focusin',updateEditing);
+document.addEventListener('focusout',()=>queueMicrotask(updateEditing));
 element('notice-close').onclick = closeNotice;
 const draftDialog = element('draft-dialog') as HTMLDialogElement;
 element('drafts').onclick = element('notice-drafts').onclick = () => { closeNotice(); if (!draftDialog.open) draftDialog.showModal(); };
@@ -1422,20 +1574,21 @@ element('reload').onclick = async () => {
   if (dirty()) {
     const choice = await choose('重新进入前请处理未保存文字。保留后可通过复制入口核对，不会自动带入新版本。', [['cancel', '继续编辑'], ['keep', '保留副本并重新进入'], ['discard', '放弃并重新进入']]);
     if (choice === 'cancel') return;
-    if (choice === 'keep') { persist(); candidate = { format: 2, baseVersion: editBaseVersion, values: structuredClone(values!), changeDraft, riskDraft, nodeDraft, nodeRestoreExtras }; }
-    else { candidate = undefined; try { sessionStorage.removeItem(bufferKey); } catch { storageFailed = true; } }
+    if (choice === 'keep') { persist();await personalDrafts?.sync();candidate = { format: 2, baseVersion: editBaseVersion, values: structuredClone(values!), basicDraft: basicDraft && structuredClone(basicDraft), changeDraft, riskDraft, nodeDraft, nodeRestoreExtras }; }
+    else { if(!await discardPersonal())return;candidate = undefined; try { sessionStorage.removeItem(bufferKey); } catch { storageFailed = true; } }
   }
   await load();
 };
-element('back').onclick = async event => {
+document.querySelectorAll<HTMLAnchorElement>('.project-nav a, .top-sticky a').forEach(link=>{link.onclick = async event => {
   if (!dirty() && !pending && !stagePending && !stageDraft && !correctionDraft && !planDraft && !lifecycleDraft && !closureDraft && !checkDraft) return;
   event.preventDefault(); persist();
-  const choice = await choose(pending || stagePending ? '原保存结果尚未确认，离开会保留原操作恢复信息。' : '项目尚未保存，如何返回列表？', [['cancel', '继续编辑'], ['keep', '保留本标签页副本并离开'], ...(!pending && !stagePending ? [['discard', '放弃编辑并离开'] as [string, string]] : [])]);
+  const choice = await choose(pending || stagePending ? '原保存结果尚未确认，离开会保留原操作恢复信息。' : '项目尚未保存，如何离开当前页面？', [['cancel', '继续编辑'], ['keep', '保留草稿并离开'], ...(!pending && !stagePending ? [['discard', '放弃编辑并离开'] as [string, string]] : [])]);
   if (choice === 'cancel') return;
-  if (choice === 'discard') { candidate = undefined; stageDraft = undefined; correctionDraft = undefined; planDraft = undefined; lifecycleDraft = undefined; closureDraft = undefined; checkDraft = undefined; persistStage(); try { sessionStorage.removeItem(bufferKey); } catch { storageFailed = true; } }
+  if(choice==='keep' && !await personalDrafts?.sync() && await choose('草稿未全部同步，当前设备保留了副本。仍要离开吗？',[['cancel','留在这里'],['leave','保留本机副本并离开']])!=='leave')return;
+  if (choice === 'discard') { if(!await discardPersonal())return;candidate = undefined; stageDraft = undefined; correctionDraft = undefined; planDraft = undefined; lifecycleDraft = undefined; closureDraft = undefined; checkDraft = undefined; persistStage(); try { sessionStorage.removeItem(bufferKey); } catch { storageFailed = true; } }
   leaving = true;
-  location.href = (element('back') as HTMLAnchorElement).href;
-};
+  location.href = link.href;
+};});
 element('copy').onclick = () => { void copyText(); };
 window.addEventListener('focus', () => { void observe(); });
 function detailMeta(p: Detail['project']) { return `客户：${p.customer ?? '—'} · 产品线：${p.productLine ?? '—'} · 芯片：${p.chips.map(chip => chip.name).join(' / ') || '—'}`; }
@@ -1443,6 +1596,14 @@ setInterval(() => { if (snapshot && !inFlight && !loading && document.visibility
 window.addEventListener('beforeunload', event => { if (!leaving && (dirty() || pending || stagePending || stageDraft || correctionDraft || planDraft || lifecycleDraft || closureDraft || checkDraft)) { persist(); persistStage(); event.preventDefault(); } });
 document.addEventListener('geekdash-identity-changed', () => { persist(); authFrozen = true; note('账号已变化。请复制未保存内容，重新登录原账号后再进入。', true); controls(); });
 void requireIdentity().then(async () => {
+  restoreBoardReturn();readingPreference=new PersonalPreference('detail',text=>note(text,true));const reading=await readingPreference.load();
+  if(reading.projectId===id && reading.viewport && typeof reading.viewport==='object'){
+    const viewport=reading.viewport as Record<string,unknown>;
+    if(typeof viewport.x==='number' && Number.isFinite(viewport.x) && typeof viewport.y==='number' && Number.isFinite(viewport.y))flowViewport={x:Math.max(0,viewport.x),y:Math.max(0,viewport.y)};
+  }
+  const requestedTab=new URLSearchParams(location.search).get('tab') ?? (reading.projectId===id?String(reading.tab ?? ''):'');
+  if([...document.querySelectorAll<HTMLElement>('[data-tab]')].some(button=>button.dataset.tab===requestedTab))tab=requestedTab;
+  personalDrafts=new PersonalDrafts(id,()=>({version:editBaseVersion,editable:!!snapshot?.capabilities.editText && !authFrozen}),restorePersonalDraft);
   bufferKey = `geekdash_project_buffer:${account!.id}:${id}`;
   // 匿名副本不归属任一账号；只提示保留供核对，不自动作为实名编辑恢复。
   if (sessionStorage.getItem(`geekdash_trial_text_v1:${id}`)) note('发现旧试用副本，请保留原标签页内容供核对；新编辑按当前账号隔离。');
@@ -1469,5 +1630,10 @@ void requireIdentity().then(async () => {
     }
   } catch { note('动作恢复信息无法读取，请核对当前项目。', true); }
   await load(true); legacyCopy = readBuffer(`geekdash_trial_text_v1:${id}`); await loadCatalog(); if (responsibilityPending) await changeResponsibility(true);
+  if(reading.projectId===id && !new URLSearchParams(location.search).has('tab') && typeof reading.scrollY==='number')window.scrollTo(0,reading.scrollY);
+  if(tab==='history' && !audit)void loadAudit();
+  const online=document.createElement('p');online.className='read-label';online.id='project-editors';online.setAttribute('aria-live','polite');element('d-meta').after(online);
+  notifications=new ProjectNotifications((event,own)=>{if(event.projectId!==id || own || !snapshot || BigInt(event.version)<=BigInt(snapshot.project.version))return;stale=true;persist();note('项目已被他人更新，请重新进入项目。未保存输入保留供复制。',true);controls();},()=>{if(!inFlight && !pending && !stagePending && !responsibilityPending)void observe(false,false);},text=>{online.textContent=text;},id,personalDrafts.instanceId);
+  updateEditing();
   if (!element('drafts').hidden && !stagePending && !(element('editor-dialog') as HTMLDialogElement).open && element('project-notice').hidden) note('发现本标签页未保存的操作，可继续编辑或查看并复制。', false, true);
 }).catch(error => { note((error as Error).message, true); const link = document.createElement('a'); link.href = '/login.html'; link.textContent = '登录 GeekDash'; element('message').append(' ', link); });

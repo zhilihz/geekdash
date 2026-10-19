@@ -25,6 +25,8 @@ pwsh -NoProfile -File scripts/docker.ps1 build app
 
 以上只构建，不启动应用，也不读取数据库凭据。首次运行先完成下一节的配置初始化、数据库启动和迁移，再用组合入口启动应用。逐条检查退出码，前一步失败不执行后续。构建在候选目录完成类型检查、编译、资源核对和真实 HTTP 检查后才提升为 dist；dist.previous 保留上一产物。候选目录和上一产物不能自动当作已验收发布版本。
 
+若绕过入口直接在精简Node镜像执行构建，出现`spawnSync git ENOENT`，改用上面的`scripts/docker.ps1`：它在主机读取版本并传入构建，不需要向工具镜像安装Git。排错只打印字段是否存在，不输出凭据或整个进程环境。
+
 入口为 http://127.0.0.1:41860 ，仅绑定本机。端口占用时先核查；可用进程环境 GEEKDASH_PORT 指定另一端口，变更后重新创建本项目 app。当前为登录/新建/看板/详情；最小账号会话及负责授权已接入，准确上线范围以实际构建和系统真相为准。组合 Compose 的容器健康检查使用 ready；healthy 表示基础数据库依赖就绪，尚不能代表登录或项目业务已完成。协议见 [API 说明](../specifications/api/foundation.md)。
 
 ```powershell
@@ -55,7 +57,13 @@ pwsh -NoProfile -File scripts/database.ps1 run --rm --no-deps dbtool npm run db:
 
 db:check 只证明四个技术目标/授权，不证明业务结构。migrate/verify 默认 dev_migrator，测试库显式指定 test_migrator；CLI 不接受任意库名/上传 SQL。首次空数据目录由官方镜像初始化两套空库及其各两个技术身份；已有数据目录不重新执行初始化或自动轮换密码。已有完整配置不覆盖，部分配置停止并要求受控修复。
 
-离线 scripts/generate-initial-schema.mjs 曾用于生成首版 JSON，禁止为改字段而删除并重新生成已应用资源。该文件 LF 由 .gitattributes 固定；完整资源字节 SHA-256 包含 SQL 和期望结构。当前执行器依序支持 0001-foundation 和 0002-trial-save；已登记资源不可改写。新增版本在实施分支增加资源及含数据升级验证。
+离线 scripts/generate-initial-schema.mjs 曾用于生成首版 JSON，禁止为改字段而删除并重新生成已应用资源。该文件 LF 由 .gitattributes 固定；完整资源字节 SHA-256 包含 SQL 和期望结构。已交付链为0001-foundation、0002-trial-save、0003-node-recovery；P04候选另支持0004-project-compatibility，实际环境版本查系统真相。已登记资源不可改写，新增版本在实施分支增加资源及含数据升级验证。
+
+P04增量的只读核对入口为`npm run db:compatibility -- <dev_migrator或test_migrator>`，需在相应网络和只读凭据挂载的数据库工具容器内运行；输出旧备注来源待核对、旧阶段计划与节点投影差异、旧pm引用，不输出备注原文，也不改数据。结构未达到候选0004时拒绝执行。该工具不代替备份和入库审查。
+
+`npm run test:project-compatibility`仅限独立空实例：设置`GEEKDASH_MIGRATION_PROBE=1`、实测`GEEKDASH_MIGRATION_PROBE_SERVER_UUID`及`GEEKDASH_P04_OLD_SCHEMA`（固定0003构建的schema.js）。脚本核验旧文件摘要、实例UUID和空库前置；它会创建合成数据及故障注入，禁止指向常驻实例。0003文件可从f07450e基线按固定工具链独立构建获取，不能用当前0004文件冒充；摘要及执行证据见[P04-02报告](../testing/reports/2026-10-16-p04-02-compatibility.md)。失败后保留日志，重新建独立空实例再跑，不清空原业务库。
+
+MySQL将TEXT的固定空串默认值标记为`DEFAULT_GENERATED`；候选核验器只接受已验证的utf8mb4空串字面量，不放行动态默认值或计算列。修改默认值的演练恢复应在utf8mb4连接内使用`MODIFY COLUMN summary text NOT NULL DEFAULT ('')`；不要用`ALTER COLUMN ... SET DEFAULT ('')`，MySQL会报`ER_BLOB_CANT_HAVE_DEFAULT`。这属于测试故障恢复，不是日常运维修改字段的入口。0003构建会拒绝0004结构；正式回退必须使用已固定并验证兼容的构建，不能删除新增列或清卷退回。
 
 错误与接续：
 
@@ -211,7 +219,7 @@ docker run --rm --network none -e GEEKDASH_DISPOSABLE_CONFIG_TEST=1 --mount 'typ
 
 Nginx 站点为 /etc/nginx/sites-available/geekdash 及同名 enabled 链接。修改只涉及自身站点，nginx -t 成功后 systemctl reload nginx。本轮 IPv4 TLS listener 使用 ssl，适配已有网关；不添加与其他监听不一致的 http2 选项。证书续期 hook 为 /opt/geekdash/config/renew-nginx.sh，执行 nginx -t 再 reload；本机 Certbot 保存选项名 renew_hook。限定演练命令已通过：certbot renew --cert-name geekdash.zhiluan.cool --dry-run --run-deploy-hooks --no-random-sleep-on-renew。既有 timer active；失败查看本域续期结果，不修改其他证书。
 
-/var/backups/geekdash 已有本次只读发布前的两库逻辑备份，实际路径/摘要归[部署记录](deployments/2026-10-08-project-reads.md)；仍没有完整备份任务、隔离恢复或服务器外副本结果。真实导入前完成 E11 和 Q-016 资源落实。MySQL 空库内存观测已接近起始上限，业务/真实数据接入前按实际增长和宿主余量复核配置；不沿用短测当四人性能通过。
+/var/backups/geekdash 已有本次只读发布前的两库逻辑备份，实际路径/摘要归[部署记录](deployments/2026-10-08-project-reads.md)；仍没有完整备份任务、隔离恢复或服务器外副本结果。真实导入前完成 E11 和 Q-016 资源落实。MySQL 空库内存观测已接近起始上限，业务/真实数据接入前按实际增长和宿主余量复核配置；业务并发规模与资源预算按实际需求和测量确定，不沿用短测宣称多人实际使用的性能已通过。
 
 项目只读回归入口为 npm run test:projects，使用独立 test_app 及真实 HTTP/MySQL，须在专用库无项目夹具时运行。不要与就绪/结构故障测试或保留夹具的浏览器服务同时运行。云端使用固定发布包 verification/verify-project-reads.mjs 挂入一次性 app 容器 /app/scripts、连接自己的 database 网络，并以 GEEKDASH_TEST_RESULT_DIR=/tmp/test-results 写临时结果；只挂 test_app，不挂正式配置，结束核对逐表清理。公开免登录只读入口不提供数据库初始化或夹具灌入按钮。接口协议见[项目读取](../specifications/api/projects-read.md)。
 

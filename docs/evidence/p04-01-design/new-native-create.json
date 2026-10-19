@@ -1,0 +1,43 @@
+{
+  "id": "9007199254760192",
+  "projectRows": [
+    {
+      "id": "9007199254760192",
+      "name": "P04 原生新建与恢复 2026-10-17",
+      "summary": "合成样机验证项目，核对新建和详情同构。",
+      "status_description": "等待客户联调。\n保存草稿不代表已经正式创建。",
+      "version": "1"
+    }
+  ],
+  "drafts": [
+    {
+      "clientDraftId": "0a1ca6e4-f353-40c5-8537-21b34ed2ef6d",
+      "state": "active",
+      "name": "P04 原生新建与恢复 2026-10-17"
+    },
+    {
+      "clientDraftId": "51ecdec8-8512-4d68-80a1-2242af3c1f52",
+      "state": "committed",
+      "name": "P04 原生新建与恢复 2026-10-17"
+    }
+  ],
+  "detail": {
+    "name": "P04 原生新建与恢复 2026-10-17",
+    "summary": "合成样机验证项目，核对新建和详情同构。",
+    "statusDesc": "等待客户联调。\n保存草稿不代表已经正式创建。",
+    "responsible": [
+      {
+        "id": "28",
+        "name": "p04_ui_0",
+        "enabled": 1
+      }
+    ]
+  },
+  "build": {
+    "revision": "f07450eafc94f0756f09260d0026968f09102e65",
+    "dirty": true,
+    "builtAt": "2026-10-16T21:25:15.206Z",
+    "stage": "project-list",
+    "schemaVersion": "0004-project-compatibility"
+  }
+}
