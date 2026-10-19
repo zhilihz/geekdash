@@ -2,6 +2,7 @@
 
 | 编号 | 现象 | 快速处理 | 状态 |
 |---|---|---|---|
+| GD-BUILD-20261019-001 | 验收Node容器构建时找不到git | 宿主读取真实SHA/dirty，通过构建环境变量传入；验收脚本与构建命令分开 | 构建已通过 |
 | GD-RELEASE-20261019-001 | GitHub资产已上传，但Python读取下载重定向连续TLS EOF | 先核对原发布资产，改用curl读取302；凭据只通过标准输入传递，继续原摘要包 | 本轮传输已通过；Python网络失败根因未确认 |
 | GD-AUTH-20261019-001 | 交付账号未实际登录验证，维护账号页面报凭据错误 | 用受控 currentPassword 实际登录并核对维护入口；单独交付当前密码，不混用初始密码 | 已解决：公网登录与资料编辑入口已验 |
 | GD-WEB-20261017-003 | API有节点缺日期数量，阶段卡却只显示日期或横线 | 消费undatedNodeCount，未知计划显示待确定，并验证删除后重算 | 已解决：SQL/GET/DOM及原生缺项显示已验 |
@@ -16,6 +17,12 @@
 | GD-TEST-20261016-001 | DOM首页测试偏好已读取，项目请求却未到服务器 | Node fetch测试环境同时注入同一套AbortController和AbortSignal；等待完整列表回读而非旧卡消失 | 已验证 |
 | GD-TEST-20261017-001 | 资料测试断言通过，合成用户清理被偏好外键拒绝 | 按本轮用户ID先清偏好再清用户，结束状态包含清理结果 | 已验证 |
 | GD-RUN-20261017-001 | 验收容器与默认Compose app名称不同，通用restart误选开发实例 | 先inspect确切容器及端口，再按名称重启并核对build/ready | 已核对验收实例，开发实例连接超时单独保留 |
+
+## GD-BUILD-20261019-001：验收容器与构建入口分开
+
+- 快速处理：`p04-probe.ps1` 用于隔离数据库验证，不自动提供Git。运行`build.mjs`时，宿主先执行`git rev-parse HEAD`和`git status --porcelain`，将实际结果作为`GEEKDASH_SOURCE_REVISION`与`GEEKDASH_SOURCE_DIRTY`传入同一Node镜像。不要为了构建向验收镜像临时安装Git，也不能把未提交构建标为干净版本。
+- 观察：直接在probe容器执行npm build报`spawnSync git ENOENT`；采用构建脚本已有的版本参数后，类型检查和完整构建通过。PowerShell调用本地验收脚本使用该进程的`-ExecutionPolicy Bypass`，不修改系统执行策略。
+- 验证：2026-10-19T08:55:36.708Z生成951f3cf dirty候选；正式发布仍须提交、固定干净构建和回读实际版本。
 
 ## GD-RELEASE-20261019-001：发布资产已存在时恢复下载地址
 

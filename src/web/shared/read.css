@@ -71,7 +71,8 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .project-info .field-fact { padding:8px 0; line-height:1.6; white-space:pre-wrap; overflow-wrap:anywhere; }
 .project-info .division-heading { margin:24px 0 16px; font-size:16px; }
 .status-editor { border-top:1px solid var(--border); padding-top:24px; margin-top:8px; }
-.status-editor textarea { width:100%; box-sizing:border-box; }
+.status-editor textarea { width:100%; box-sizing:border-box; min-height:140px; line-height:1.8; }
+.region-save { justify-content:flex-start; margin-top:20px; }
 .basic-impact { border-left:3px solid var(--accent); padding:0 16px; }
 .basic-impact > label { display:block; margin:12px 0; }
 .manager-action { font-size:12px; padding:4px 10px; }

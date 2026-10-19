@@ -1,0 +1,49 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-19T09:07:35.548Z",
+  "checks": [
+    "PRD9.13完整卡：折叠即读当前阶段、未完节点、预警风险和决定数量；展开完整首末记录且只读，有风险/未完节点仍可人工通过，实际新GET确认不改业务记录",
+    "客户端聚焦及跨日可见60秒回调触发真实新GET且保持范围，同日定时器不重复刷新；真实页面通过检查→原actions事务→独立连接SQL检查事实/审计/回执→新GET待查消失、首页当日标记、已查页与检查历史一致",
+    "进入修正保留同站检查范围/位置；真实详情输入→返回取消仍保留→正式保存→新GET/独立SQL；修正不自动检查，外站returnTo被拒绝",
+    "并发真实普通保存使原卡片版本过期；旧版本409无检查写入，关闭提示仍冻结；主动刷新读取新说明后明确通过",
+    "真实COMMIT后丢响应：普通按钮冻结、原命令按账号项目暂存；显式重试及刷新确认均使用同一key，不重复检查/审计；确认遇到真实会话失效401仍保留原请求，重新登录同账号恢复；不同账号不重放或删除原账号请求",
+    "无负责关系仍可读完整卡片但按钮禁用且不发请求；直接HTTP越权403，独立SQL事实/审计/版本保持",
+    "PRD9.13：历史读取失败就地重试不阻止当前信息核对；修正返回恢复阶段/历史展开并新读；检查已提交但列表失败明确告知，禁用旧卡且仅重读恢复，无重复事实",
+    "详情一键检查：标题同排入口、无表单/预览，一次明确提交；未保存基本信息和说明保持，正式业务字段/阶段/风险不变，SQL检查事实/审计/回执与新GET及真实SSE一致；已查隐藏，随后人工说明保存及重入原文保持",
+    "详情检查权限与冲突：非负责人只读无检查按钮；真实并发更新后旧版本409不写检查，原输入保留且旧入口禁用",
+    "详情检查未知结果：真实COMMIT后丢响应仅保留原命令，普通入口冻结；可见副本入口查询同一回执，不重复检查/审计，新读后隐藏入口并保留两区未保存输入",
+    "详情检查刷新恢复：两区未保存→真实COMMIT丢响应→销毁页面并恢复同一sessionStorage→自动查询原回执→明确恢复两区输入；按本人已确认检查版本继续保存且不夹带另一区，检查事实/审计/回执仅一条；另验证回读暂扣期间不能二次检查"
+  ],
+  "requestCount": 204,
+  "build": {
+    "revision": "951f3cf498a9147498b32a20f38dd5374e650b5f",
+    "dirty": true,
+    "builtAt": "2026-10-19T08:55:36.708Z",
+    "stage": "project-list",
+    "schemaVersion": "0004-project-compatibility"
+  },
+  "sourceHashes": {
+    "src/web/project-checks.html": "a2505c233a0209f3d67b94389dfbed343b53265f01bde3d18e33d196bc1fd8a4",
+    "src/web/project-checks.ts": "f73d71e7c490379f920e4b48e1cc1f48ef28cd3dafc4f22652d0637ef0f7dea2",
+    "src/web/project-detail.html": "fefb90a674f483dede07704f85ee867ba3ad47bbd5a7c1480988ff6aa4751e17",
+    "src/web/detail.ts": "893954c03a002c4a1ad4f18626c57144ebf17bf8c504667c2aed05d379af0e1b",
+    "src/web/shared/api.ts": "6be070f95e44621dfed9e5a4f743bb9e0014beaa2a8033b3f7b2dea935f6edb1",
+    "src/web/shared/reference-picker.ts": "072d316ea2dffc6d6f2e4fc082a5517908ce578decbdd9ec38bc43a9fc253a44",
+    "/workspace/src/web/project-checks.ts": "f73d71e7c490379f920e4b48e1cc1f48ef28cd3dafc4f22652d0637ef0f7dea2",
+    "/workspace/src/web/shared/inspection.ts": "9ae8f02abc84d3a91445cf3571925fdf3326a231e648af96ec5aaf40f7b5e8ee",
+    "/workspace/src/web/shared/api.ts": "6be070f95e44621dfed9e5a4f743bb9e0014beaa2a8033b3f7b2dea935f6edb1",
+    "/workspace/src/web/shared/personal-state.ts": "b746455f7d6c40471594d4f72aa3c37f1a90b9074d8b322198de8fa559666980",
+    "/workspace/src/web/shared/history.ts": "b3d46d7cdc1e3c3a2122fb25f03544ad12ac4875b926c798252b9564ddc6c8f6",
+    "/workspace/src/web/shared/notifications.ts": "42ffe96c3312ab60c227266a49962127ed5fee14d7094bb313393cfd12b42ab1",
+    "/workspace/src/web/detail.ts": "893954c03a002c4a1ad4f18626c57144ebf17bf8c504667c2aed05d379af0e1b",
+    "/workspace/src/web/shared/reference-picker.ts": "072d316ea2dffc6d6f2e4fc082a5517908ce578decbdd9ec38bc43a9fc253a44",
+    "/workspace/src/web/shared/project-form.ts": "6cfa0b8102a6a4a894104470370bdb56d445c95d21f9a4551c7ce25e8841a297",
+    "/workspace/src/web/shared/scoped-editor.ts": "c8dc3b7488da7a778f28a05f799bcf5f150c1643ff8a27c29f5668a019e3b75c",
+    "/workspace/src/web/shared/project-options.ts": "f80e9beaebfa3aed3dd67ae40915635e0a4ec5e30fb49d739c54d72be4a1c926"
+  },
+  "isolatedTestDatabase": true,
+  "syntheticOnly": true,
+  "domExecution": true,
+  "nativeBrowserAcceptance": false,
+  "visualAcceptance": false
+}

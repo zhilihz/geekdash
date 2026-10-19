@@ -1,0 +1,150 @@
+{
+  "at": "2026-10-19T09:16:34.413Z",
+  "source": "独立 test_app 连接，只读事务，隔离实例 UUID 已核对",
+  "project": {
+    "id": "9007199254760365",
+    "name": "智能门锁主控板 A1",
+    "version": "5",
+    "statusDesc": {
+      "characters": 47,
+      "sha256": "6ce9978fb54cf1f2329369ecded19b48a5dbc80c010176c79bec0e996d8f2e7a"
+    }
+  },
+  "managers": [
+    {
+      "id": "28",
+      "enabled": 1
+    },
+    {
+      "id": "29",
+      "enabled": 1
+    }
+  ],
+  "records": [
+    {
+      "id": "30",
+      "actorId": "29",
+      "checkedAt": "2026-10-19T09:12:47.459Z",
+      "observedVersion": "2",
+      "resultVersion": "3",
+      "conclusion": "checked",
+      "note": {
+        "characters": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "audits": [
+    {
+      "id": "4688",
+      "action": "project.create",
+      "actorId": "28",
+      "versionBefore": null,
+      "versionAfter": "1",
+      "createdAt": "2026-10-19T07:42:21.270Z",
+      "changedFields": [
+        "name",
+        "appId",
+        "people",
+        "tagIds",
+        "chipIds",
+        "dueDate",
+        "groupId",
+        "summary",
+        "managers",
+        "priority",
+        "createdBy",
+        "customerId",
+        "detailNote",
+        "filingDate",
+        "managerIds",
+        "statusDesc",
+        "odmCustomerId",
+        "productLineId",
+        "marketExpectation"
+      ],
+      "statusBefore": {
+        "characters": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "statusAfter": {
+        "characters": 25,
+        "sha256": "530fa2114202602a149dbeb283d754bab9ad024311d3870fa5cc93e604353e5f"
+      }
+    },
+    {
+      "id": "4691",
+      "action": "project.ordinary.save",
+      "actorId": "29",
+      "versionBefore": "1",
+      "versionAfter": "2",
+      "createdAt": "2026-10-19T07:48:36.800Z",
+      "changedFields": [
+        "statusDesc"
+      ],
+      "statusBefore": {
+        "characters": 25,
+        "sha256": "530fa2114202602a149dbeb283d754bab9ad024311d3870fa5cc93e604353e5f"
+      },
+      "statusAfter": {
+        "characters": 29,
+        "sha256": "adb27b55b779fdd14b557aa966dd5e746d98c0a06018c99eb3d0a9d3d302fcb4"
+      }
+    },
+    {
+      "id": "5013",
+      "action": "project.check.save",
+      "actorId": "29",
+      "versionBefore": "2",
+      "versionAfter": "3",
+      "createdAt": "2026-10-19T09:12:47.459Z",
+      "changedFields": [
+        "check"
+      ]
+    },
+    {
+      "id": "5014",
+      "action": "project.ordinary.save",
+      "actorId": "29",
+      "versionBefore": "3",
+      "versionAfter": "4",
+      "createdAt": "2026-10-19T09:13:17.219Z",
+      "changedFields": [
+        "name"
+      ]
+    },
+    {
+      "id": "5015",
+      "action": "project.ordinary.save",
+      "actorId": "29",
+      "versionBefore": "4",
+      "versionAfter": "5",
+      "createdAt": "2026-10-19T09:13:34.325Z",
+      "changedFields": [
+        "statusDesc"
+      ],
+      "statusBefore": {
+        "characters": 29,
+        "sha256": "adb27b55b779fdd14b557aa966dd5e746d98c0a06018c99eb3d0a9d3d302fcb4"
+      },
+      "statusAfter": {
+        "characters": 47,
+        "sha256": "6ce9978fb54cf1f2329369ecded19b48a5dbc80c010176c79bec0e996d8f2e7a"
+      }
+    }
+  ],
+  "checks": {
+    "currentVersionIs5": true,
+    "nameMatchesNativeEdit": true,
+    "managerIdsMatch": true,
+    "oneCheck": true,
+    "checkIsCheckedWithEmptyNote": true,
+    "checkAuditOnlyRecordsCheck": true,
+    "exactlyTwoSeparateSavesAfterCheck": true,
+    "checkDidNotReplacePriorStatus": true,
+    "currentNameMatchesSavedName": true,
+    "currentStatusMatchesSavedText": true,
+    "checkVersionMatchesAudit": true
+  },
+  "limitation": "正文保持通过审计顺序及后续明确保存的 before 值回溯核对；不冒充检查瞬间的全字段数据库快照。姓名与业务说明正文未导出。"
+}

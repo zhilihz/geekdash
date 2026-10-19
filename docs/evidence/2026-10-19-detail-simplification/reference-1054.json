@@ -1,0 +1,62 @@
+{
+  "checkedAt": "2026-10-19",
+  "referenceVersion": "V1.054",
+  "verificationScope": "本地源码及 SHA256 核对；未执行安装程序，未直接解包安装程序，未进行参考程序浏览器验收。",
+  "installer": {
+    "source": "D:/geekwon/geekdash-local-releases/GeekDash安装更新包-1054.exe",
+    "sha256": "5a4cfca7f1388adb332bf67fd946c42118d7a181f43d4b0666446d0e17f75479",
+    "executed": false,
+    "directlyUnpacked": false
+  },
+  "sourceVerification": {
+    "manifest": "D:/geekwon/geekdash-local-releases/GeekDash-1054-SHA256.json",
+    "programDirectory": "D:/geekwon/geekdash-local-releases/GeekDash1052",
+    "finding": "该既有目录中的 8 个程序文件逐项匹配相邻 1054 清单的 programFiles SHA256；目录名不作为版本依据。",
+    "reviewCopy": "source-review/1054/",
+    "reviewCopyTrackedInGit": false
+  },
+  "sources": [
+    {
+      "file": "project-detail.html",
+      "sha256": "72e4ab79f495eab2b17da1826458ffc8682c5c484df042ed006637760320ed2b",
+      "references": [
+        { "lines": "389-416", "subject": "基本表单布局、标签文字与状态说明输入区样式" },
+        { "lines": "2308-2426", "subject": "管理模式直接表单、标签输入与最新状态说明输入" },
+        { "lines": "3430-3432", "subject": "标签拆分及业务状态文字取值" },
+        { "lines": "3611-3622", "subject": "原版浏览与管理模式的只读处理，仅作来源核对" },
+        { "lines": "3683-3686", "subject": "原版进入详情自动登记检查；本次不采用" }
+      ]
+    },
+    {
+      "file": "projects-data.js",
+      "sha256": "05b979eb7d042b45cbd890abfbc6ce43234a0ad6df0a4eb714e9394576f5a16f",
+      "references": [
+        { "lines": "1062-1117", "subject": "原版状态说明逐行日期和输入覆盖层；本次不新增该日期机制" },
+        { "lines": "1119-1132", "subject": "业务文字变化判断与状态说明历史" },
+        { "lines": "1321-1322", "subject": "最新项目状态的文字读取入口" }
+      ]
+    },
+    {
+      "file": "GeekDash.html",
+      "sha256": "795bdf9f4011f310783e9cc2d3832ea8ad3a771470d8ad1915b88cdc685c78a6",
+      "references": [
+        { "lines": "714-715", "subject": "卡片状态说明换行与辅助时间样式" },
+        { "lines": "2703-2711", "subject": "状态说明提交、持久保存与卡片重绘" },
+        { "lines": "2794-2823", "subject": "卡片内状态说明编辑与返回位置" }
+      ]
+    },
+    {
+      "file": "project-status-summary.html",
+      "sha256": "396dcac56bc86964d5bf51b15172c14f4ae823f187cb169c59ad0f9a4bef0d34",
+      "references": [{ "lines": "313", "subject": "状态简要消费 latestProjectStatus" }]
+    },
+    {
+      "file": "chip-statistics.html",
+      "sha256": "d841d02d18b899960e1a39dad52497e478dc21e907b0504563a1808d9a25e066",
+      "references": [{ "lines": "334", "subject": "原芯片表消费 latestProjectStatus" }]
+    },
+    { "file": "data-manage.html", "sha256": "a3d15c1caa6a3294c650e0971eb4338ccac1e9a1365a143ea56cc5dec1b3333a" },
+    { "file": "settings.html", "sha256": "1c4feeb3960bc4e60a67321177651979e6d9d55531e96005feffe4d7ae5ef17d" },
+    { "file": "README版本_V1.054.txt", "sha256": "647dcdb392842270d09d83e631d4bfd6dabb8036ccf3c702bb021716af523138" }
+  ]
+}

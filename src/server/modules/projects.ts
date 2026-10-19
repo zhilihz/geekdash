@@ -101,15 +101,17 @@ async function enrich(connection: PoolConnection, projects: RowDataPacket[]) {
 }
 
 async function readDetail(connection: PoolConnection, id: string, accountId: string | undefined, now: Date, withHistory = true) {
-        const project = (await enrich(connection, await rows(connection, `SELECT ${columns},${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress,
+        const todayCheck = todayCheckCondition(businessToday(now));
+        const project = (await enrich(connection, await rows(connection, `SELECT ${columns},${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress,${todayCheck.sql} checkedToday,
           DATE_FORMAT(p.filed_on,'%Y-%m-%d') filingDate,DATE_FORMAT(p.started_on,'%Y-%m-%d') startDate,
           DATE_FORMAT(p.original_due_date,'%Y-%m-%d') originalDueDate,CAST(p.first_check_rule_version AS CHAR) firstCheckRuleVersion,
           p.signal_note signalNote,p.detail_note detailNote,p.summary_note summaryNote,p.chipstat_note chipstatNote,p.summary summary,
           CAST(p.customer_id AS CHAR) customerId,CAST(p.odm_customer_id AS CHAR) odmCustomerId,
           CAST(p.product_line_id AS CHAR) productLineId,CAST(p.app_id AS CHAR) appId,CAST(p.group_id AS CHAR) groupId,
           p.pre_close_status preCloseStatus,CAST(p.source_import_item_id AS CHAR) sourceImportItemId,p.closure_note closureNote,p.remaining_work_note remainingWorkNote,CAST(p.created_by AS CHAR) createdBy
-          ${joins} WHERE p.id=?`, [id])))[0];
+          ${joins} WHERE p.id=?`, [...todayCheck.values, id])))[0];
         if (!project) return null;
+        project.checkedToday = Number(project.checkedToday) === 1;
         const projectStages = await rows(connection, `SELECT CAST(s.id AS CHAR) id,s.stage_code code,s.state,s.planned_days plannedDays,s.note,
           DATE_FORMAT(s.started_on,'%Y-%m-%d') startedOn,DATE_FORMAT(s.completed_on,'%Y-%m-%d') completedOn,
           DATE_FORMAT(n.expected_end_on,'%Y-%m-%d') expectedEndOn,COALESCE(n.node_count,0) nodeCount,COALESCE(n.undated_count,0) undatedNodeCount

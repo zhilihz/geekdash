@@ -47,12 +47,12 @@ async function waitFor(predicate, message) {
   while (Date.now() < end) { if (errors.length) throw errors[0]; if (predicate()) return; await new Promise(resolve => setTimeout(resolve, 20)); }
   throw new Error('未出现预期状态：' + message);
 }
-async function page(user, path, { storage = {}, holdConfirm = false } = {}) {
+async function page(user, path, { storage = {}, holdConfirm = false, realtime = false, restorePrompt = false } = {}) {
   const detail = path.startsWith('/project-detail.html'), html = sources[detail ? 'src/web/project-detail.html' : 'src/web/project-checks.html'];
   const virtualConsole = new VirtualConsole(); virtualConsole.on('jsdomError', reject);
   const dom = new JSDOM(html, { url: origin + path, cookieJar: user.jar, runScripts: 'outside-only', pretendToBeVisual: true, virtualConsole }); views.push(dom);
   const w = dom.window, reads = [], requests = [];
-  const panel = { dom, w, reads, requests, dropAck: false, releaseConfirm: undefined };
+  const panel = { dom, w, reads, requests, events: [], dropAck: false, releaseConfirm: undefined };
   if (!detail) {
     const NativeDate = w.Date, interval = w.setInterval.bind(w);
     w.Date = class extends NativeDate { constructor(...args) { super(...(args.length ? args : [panel.now ?? NativeDate.now()])); } static now() { return panel.now ?? NativeDate.now(); } };
@@ -60,6 +60,17 @@ async function page(user, path, { storage = {}, holdConfirm = false } = {}) {
   }
   Object.assign(w, { TextEncoder, TextDecoder, structuredClone, AbortController, AbortSignal, __GEEKDASH_STAGES__: stages });
   w.BroadcastChannel = class { postMessage() {} }; w.scrollTo = () => {};
+  dom.streams=[];
+  if(realtime)w.EventSource=class extends w.EventTarget{
+    controller=new AbortController();closed=false;onerror=null;
+    constructor(url){super();dom.streams.push(this);void(async()=>{try{
+      const response=await user.fetch(url,{signal:this.controller.signal});if(!response.ok)throw Error('SSE '+response.status);
+      const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';
+      for(;;){const next=await reader.read();if(next.done)break;buffer+=decoder.decode(next.value,{stream:true});let end;while((end=buffer.indexOf('\n\n'))>=0){const frame=buffer.slice(0,end);buffer=buffer.slice(end+2);const event=frame.match(/^event: (.+)$/m)?.[1],data=frame.match(/^data: (.+)$/m)?.[1];if(event && data){panel.events.push({event,data:JSON.parse(data)});this.dispatchEvent(new w.MessageEvent(event,{data}));}}}
+      if(!this.closed)this.onerror?.();
+    }catch{if(!this.closed)this.onerror?.();}})();}
+    close(){this.closed=true;this.controller.abort();}
+  };
   w.performance.getEntriesByType = () => [];
   w.HTMLDialogElement.prototype.showModal = function() { this.open = true; this.returnValue = ''; };
   w.HTMLDialogElement.prototype.close = function(value = '') { this.returnValue = value; this.open = false; this.dispatchEvent(new w.Event('close')); };
@@ -69,6 +80,7 @@ async function page(user, path, { storage = {}, holdConfirm = false } = {}) {
     if (panel.failNextList && url.startsWith('/api/projects?')) { panel.failNextList = false; throw new Error('模拟提交后列表读取失败'); }
     const entry = { path: url, method: options.method ?? 'GET', body: options.body ? JSON.parse(options.body) : undefined }; requests.push(entry);
     const response = await user.fetch(url, options); entry.status = response.status;
+    if(panel.holdDetailRead && entry.method==='GET' && /^\/api\/projects\/\d+$/.test(url) && response.ok){panel.holdDetailRead=false;await new Promise(resolve=>{panel.releaseDetailRead=resolve;});}
     if (entry.method === 'GET' && url.startsWith('/api/projects') && response.ok) reads.push({ path: url, data: await response.clone().json() });
     if (holdConfirm && url.endsWith('/action-results/query')) { holdConfirm = false; await new Promise(resolve => { panel.releaseConfirm = resolve; }); }
     if (panel.dropAck && url.endsWith('/actions') && entry.method === 'POST' && response.ok) { panel.dropAck = false; await response.arrayBuffer(); throw new Error('模拟真实COMMIT后响应丢失'); }
@@ -90,7 +102,8 @@ async function page(user, path, { storage = {}, holdConfirm = false } = {}) {
   panel.$ = selector => w.document.querySelector(selector);
   panel.click = selector => { const node = panel.$(selector); assert(node, selector); assert.equal(node.closest('[hidden]'), null, selector + ' 必须可见'); assert(!node.disabled, selector + ' 不应禁用'); const dialog = node.closest('dialog'); if (dialog) assert(dialog.open); node.click(); };
   panel.input = (selector, value) => { const node = panel.$(selector); assert(node && !node.disabled, selector); node.value = value; node.dispatchEvent(new w.Event('input', { bubbles: true })); };
-  await waitFor(() => detail ? panel.$('#edit-statusDesc') && !panel.$('#reload').disabled : panel.$('#page-info').textContent, '实际页面初次读取');
+  await waitFor(() => detail ? restorePrompt ? panel.$('[data-choice="restore"]') : !panel.$('#detail-panel').hidden && !panel.$('#reload').disabled : panel.$('#page-info').textContent, '实际页面初次读取');
+  if(realtime)await waitFor(()=>panel.events.some(event=>event.event==='connected'),'实际页面SSE连接');
   return panel;
 }
 const card = id => `[data-project-id="${id}"]`, pass = id => `[data-check-project="${id}"]`;
@@ -166,8 +179,11 @@ try {
   assert.match(panel.$('#check-scope').textContent, /提案 \/ 暂缓/);
   assert.equal(panel.$('[data-check-today="checked"]').textContent, '今日已检查', '不展示含日过滤的另一范围错误0计数');
   const nextDay = Date.parse(lists(panel).at(-1).data.businessDate + 'T12:00:00+08:00') + 86400000;
-  const sameDayRequests = panel.requests.length; panel.w.dispatchEvent(new panel.w.Event('focus')); panel.dayTick();
-  assert.equal(panel.requests.length, sameDayRequests, '同一天不额外刷新');
+  const sameDayRequests = panel.requests.length;panel.dayTick();
+  assert.equal(panel.requests.length,sameDayRequests,'同一天的定时检查不额外刷新');
+  const focusReads=lists(panel).length;panel.w.dispatchEvent(new panel.w.Event('focus'));
+  await waitFor(()=>settled(panel) && lists(panel).length>focusReads,'回到检查页重新读取当前项目及公共规则');
+  assert.equal(new URL(lists(panel).at(-1).path,origin).searchParams.get('search'),prefix);
   for (const trigger of [() => panel.w.dispatchEvent(new panel.w.Event('focus')), () => panel.dayTick()]) {
     panel.now = nextDay; const beforeDayReads = lists(panel).length; trigger();
     await waitFor(() => settled(panel) && lists(panel).length > beforeDayReads, '客户端日期变化后实际新GET');
@@ -195,7 +211,7 @@ try {
   assert.match(savedHistory.querySelector('.inspection-audits').textContent, /检查结论：已核对/);
   assert.doesNotMatch(savedHistory.querySelector('.inspection-audits').textContent, /actorName|检查结论：checked/);
   panel.click('[data-check-today="unchecked"]'); await waitFor(() => settled(panel) && panel.$(card(ids.correct)), '返回未检查范围');
-  checks.push('客户端跨日focus/可见60秒回调触发真实新GET且保持范围，同日不重复刷新；真实页面通过检查→原actions事务→独立连接SQL检查事实/审计/回执→新GET待查消失、首页当日标记、已查页与检查历史一致');
+  checks.push('客户端聚焦及跨日可见60秒回调触发真实新GET且保持范围，同日定时器不重复刷新；真实页面通过检查→原actions事务→独立连接SQL检查事实/审计/回执→新GET待查消失、首页当日标记、已查页与检查历史一致');
 
   const correctionLink = panel.$(`[data-correct-project="${ids.correct}"]`);
   const stageSection = panel.$(card(ids.correct) + ' [data-inspection="项目阶段"]'); stageSection.open = true;
@@ -244,10 +260,11 @@ try {
   const pendingKey = `geekdash_check:${users[0].id}:${ids.lost}`;
   const original = JSON.parse(returned.w.sessionStorage.getItem(pendingKey));
   const committed = await facts(ids.lost); assert.equal(committed.records.length, 1); assert.deepEqual(committed.receipts, [original.command.idempotencyKey]);
-  returned.now = nextDay; const pendingRequests = returned.requests.length;
+  returned.now = nextDay;const pendingReads=lists(returned).length,pendingWrites=returned.requests.filter(item=>item.path.endsWith('/actions') || item.path.endsWith('/action-results/query')).length;
   returned.w.dispatchEvent(new returned.w.Event('focus')); returned.dayTick();
-  assert.equal(returned.requests.length, pendingRequests, '跨日不刷新或重放待确认检查');
-  assert.deepEqual(JSON.parse(returned.w.sessionStorage.getItem(pendingKey)), original); assert(returned.$(pass(ids.lost)).disabled); returned.now = undefined;
+  await waitFor(()=>settled(returned) && lists(returned).length>pendingReads,'待确认时聚焦只重读正式列表');
+  assert.equal(returned.requests.filter(item=>item.path.endsWith('/actions') || item.path.endsWith('/action-results/query')).length,pendingWrites,'自动刷新不得重放待确认检查');
+  assert.deepEqual(JSON.parse(returned.w.sessionStorage.getItem(pendingKey)),original);assert(returned.$('[data-confirm-check="'+ids.lost+'"]'));assert(!returned.$(pass(ids.lost)) || returned.$(pass(ids.lost)).disabled);returned.now=undefined;
   returned.dropAck = true; returned.click('[data-retry-check="' + ids.lost + '"]');
   await waitFor(() => settled(returned) && returned.requests.filter(item => item.path === '/api/projects/' + ids.lost + '/actions').length === 2, '重试原命令仍可恢复');
   assert.deepEqual(returned.requests.filter(item => item.path === '/api/projects/' + ids.lost + '/actions').map(item => item.body.idempotencyKey), [original.command.idempotencyKey, original.command.idempotencyKey]);
@@ -289,12 +306,81 @@ try {
   assert.deepEqual(await facts(ids.correct), confirmed);
   checks.push('PRD9.13：历史读取失败就地重试不阻止当前信息核对；修正返回恢复阶段/历史展开并新读；检查已提交但列表失败明确告知，禁用旧卡且仅重读恢复，无重复事实');
 
+  const detailProjects={};
+  for(const name of ['direct','conflict','lost','refresh']){
+    const made=await a.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+'_详情_'+name,dueDate:'2030-12-31'}});
+    const id=made.result.projectId;projects.push(id);detailProjects[name]=id;
+    await a.api('/api/projects/'+id,'PATCH',{scope:'status',expectedVersion:made.result.savedVersion,idempotencyKey:randomUUID(),changes:{statusDesc:'人工进展原文\n等待客户确认；不由系统拼接。'}});
+  }
+  const directId=detailProjects.direct,directPath='/api/projects/'+directId,checkButton='[data-check="saveCheck"]';
+  let directBefore=await a.api(directPath);
+  const directRisk=randomUUID();await a.api(directPath,'PATCH',{scope:'risk',target:directRisk,expectedVersion:directBefore.project.version,idempotencyKey:randomUUID(),changes:{riskOps:[{op:'add',tempId:directRisk,content:'人工检查时保留的已有风险',level:'mid'}]}});
+  directBefore=await a.api(directPath);
+  const direct=await page(a,'/project-detail.html?id='+directId,{realtime:true}),watcher=await page(b,'/project-detail.html?id='+directId,{realtime:true});
+  assert.equal(directBefore.project.checkedToday,false);assert.equal(direct.$('.project-title-row #d-title').textContent,directBefore.project.name);assert.equal(direct.$('.project-title-row #project-context '+checkButton).textContent,'检查');
+  assert.equal(watcher.$(checkButton),null,'非负责人没有可执行检查入口');assert.equal(watcher.$('#edit-name'),null,'非负责人仍只读');
+  const businessFacts=async()=>{const {connection}=await connectDatabase('test_app');try{const row=(await connection.query('SELECT * FROM projects WHERE id=?',[directId]))[0][0];const {version,updated_at,...business}=row;return business;}finally{await connection.end();}};
+  const directBusiness=await businessFacts();direct.input('#edit-name','尚未保存的基本资料');direct.input('#edit-statusDesc','尚未保存的人工说明');
+  direct.click(checkButton);
+  await waitFor(()=>direct.reads.some(item=>item.path===directPath && item.data.project.checkedToday) && !direct.$('#reload').disabled,'标题一键检查后新读当日状态');
+  const directRequest=direct.requests.find(item=>item.path===directPath+'/actions'),directFacts=await facts(directId),directAfter=await a.api(directPath);
+  assert.equal(directRequest.body.action,'saveCheck');assert.equal(directRequest.body.conclusion,'checked');assert.equal(directRequest.body.note,'');assert.equal(directRequest.body.expectedVersion,directBefore.project.version);
+  assert.equal(direct.requests.filter(item=>item.path===directPath+'/actions').length,1);assert.equal(direct.requests.some(item=>item.path.endsWith('/preview')),false,'普通检查不增加预览步骤');assert.equal(direct.$('#check-edit'),null);assert.equal(direct.$('dialog[open]'),null);assert.equal(direct.$(checkButton),null,'已检查后隐藏检查入口');
+  assert.equal(direct.$('#edit-name').value,'尚未保存的基本资料');assert.equal(direct.$('#edit-statusDesc').value,'尚未保存的人工说明');assert.deepEqual(await businessFacts(),directBusiness,'检查不夹带未保存输入或改写业务信息');
+  for(const key of ['stages','nodes','risks','changes'])assert.deepEqual(directAfter[key],directBefore[key]);
+  assert.equal(directFacts.records.length,1);assert.equal(directFacts.audit.length,1);assert.deepEqual(directFacts.receipts,[directRequest.body.idempotencyKey]);assert.equal(directFacts.records[0].conclusion,'checked');assert.equal(directFacts.records[0].note,'');assert.equal(directFacts.records[0].actorId,users[0].id);assert.equal(directFacts.records[0].observedVersion,directBefore.project.version);assert.equal(directFacts.records[0].resultVersion,directAfter.project.version);
+  await waitFor(()=>watcher.events.some(item=>item.event==='project' && item.data.operationId===directRequest.body.idempotencyKey),'另一账号收到检查提交真实SSE');
+  const checkEvent=watcher.events.find(item=>item.event==='project' && item.data.operationId===directRequest.body.idempotencyKey).data;
+  assert.deepEqual(checkEvent,{projectId:directId,version:directAfter.project.version,operationId:directRequest.body.idempotencyKey});assert.equal((await b.api(directPath)).project.checkedToday,true);assert.equal((await a.api(directPath+'/checks')).items[0].id,directFacts.records[0].id);
+  direct.input('#edit-statusDesc','人工保存的最终进展\n保留原样，不追加系统状态。');direct.click('[data-save-scope="status"]');
+  await waitFor(()=>direct.reads.some(item=>item.path===directPath && item.data.project.statusDesc==='人工保存的最终进展\n保留原样，不追加系统状态。') && !direct.$('#reload').disabled,'检查后人工说明独立保存');
+  assert.equal(direct.$('#edit-name').value,'尚未保存的基本资料');assert.equal(direct.$('#edit-statusDesc').value,'人工保存的最终进展\n保留原样，不追加系统状态。');assert.equal((await facts(directId)).project.status_description,'人工保存的最终进展\n保留原样，不追加系统状态。');assert.equal((await facts(directId)).records.length,1);
+  const reopened=await page(a,'/project-detail.html?id='+directId);assert.equal(reopened.$('#edit-statusDesc').value,'人工保存的最终进展\n保留原样，不追加系统状态。');assert.equal(reopened.$(checkButton),null);
+  checks.push('详情一键检查：标题同排入口、无表单/预览，一次明确提交；未保存基本信息和说明保持，正式业务字段/阶段/风险不变，SQL检查事实/审计/回执与新GET及真实SSE一致；已查隐藏，随后人工说明保存及重入原文保持');
+
+  const staleDetailId=detailProjects.conflict,staleDetailPath='/api/projects/'+staleDetailId,staleDetail=await page(a,'/project-detail.html?id='+staleDetailId),staleDetailBefore=await a.api(staleDetailPath);
+  staleDetail.input('#edit-name','过期版本的基本区输入');staleDetail.input('#edit-statusDesc','过期版本的人工说明');
+  await a.api(staleDetailPath,'PATCH',{scope:'status',expectedVersion:staleDetailBefore.project.version,idempotencyKey:randomUUID(),changes:{statusDesc:'另一次真实保存后的说明'}});
+  staleDetail.click(checkButton);await waitFor(()=>staleDetail.requests.some(item=>item.path===staleDetailPath+'/actions' && item.status===409) && /他人更新/.test(staleDetail.$('#message').textContent),'详情检查旧版本明确拒绝');
+  assert.equal((await facts(staleDetailId)).records.length,0);assert.equal(staleDetail.$('#edit-name').value,'过期版本的基本区输入');assert.equal(staleDetail.$('#edit-statusDesc').value,'过期版本的人工说明');assert(staleDetail.$(checkButton).disabled);
+  checks.push('详情检查权限与冲突：非负责人只读无检查按钮；真实并发更新后旧版本409不写检查，原输入保留且旧入口禁用');
+
+  const lostDetailId=detailProjects.lost,lostDetailPath='/api/projects/'+lostDetailId,lostDetail=await page(a,'/project-detail.html?id='+lostDetailId);
+  lostDetail.input('#edit-name','丢响应时的基本区输入');lostDetail.input('#edit-statusDesc','丢响应时的人工说明');lostDetail.dropAck=true;lostDetail.click(checkButton);
+  await waitFor(()=>lostDetail.$('#stage-confirm') && !lostDetail.$('#stage-confirm').disabled,'详情检查丢响应保留原结果恢复入口');
+  const lostDetailCommand=lostDetail.requests.find(item=>item.path===lostDetailPath+'/actions').body,lostDetailFacts=await facts(lostDetailId);
+  assert.equal(lostDetailFacts.records.length,1);assert.equal(lostDetailFacts.audit.length,1);assert.deepEqual(lostDetailFacts.receipts,[lostDetailCommand.idempotencyKey]);assert(lostDetail.$(checkButton).disabled);
+  const detailPendingKey=`geekdash_stage_action:${users[0].id}:${lostDetailId}`;assert.deepEqual(JSON.parse(lostDetail.w.sessionStorage.getItem(detailPendingKey)).pending,lostDetailCommand);
+  lostDetail.holdDetailRead=true;lostDetail.click('#drafts');lostDetail.click('#stage-confirm');
+  await waitFor(()=>lostDetail.releaseDetailRead,'原检查结果已确认，暂扣后续真实详情回读');
+  assert(lostDetail.$(checkButton).disabled,'已确认提交但回读未完成期间检查按钮持续禁用');const lostWrites=lostDetail.requests.filter(item=>item.path===lostDetailPath+'/actions').length;
+  lostDetail.$(checkButton).click();assert.equal(lostDetail.requests.filter(item=>item.path===lostDetailPath+'/actions').length,lostWrites,'回读期间再次点击不生成第二次检查');lostDetail.releaseDetailRead();
+  await waitFor(()=>lostDetail.reads.some(item=>item.path===lostDetailPath && item.data.project.checkedToday) && !lostDetail.$('#reload').disabled,'确认原检查结果后新读并隐藏入口');
+  assert.deepEqual(lostDetail.requests.find(item=>item.path===lostDetailPath+'/action-results/query').body,lostDetailCommand);assert.equal(lostDetail.requests.filter(item=>item.path===lostDetailPath+'/actions').length,1);assert.deepEqual(await facts(lostDetailId),lostDetailFacts);assert.equal(lostDetail.$(checkButton),null);assert.equal(lostDetail.w.sessionStorage.getItem(detailPendingKey),null);assert.equal(lostDetail.$('#edit-name').value,'丢响应时的基本区输入');assert.equal(lostDetail.$('#edit-statusDesc').value,'丢响应时的人工说明');
+  checks.push('详情检查未知结果：真实COMMIT后丢响应仅保留原命令，普通入口冻结；可见副本入口查询同一回执，不重复检查/审计，新读后隐藏入口并保留两区未保存输入');
+
+  const refreshDetailId=detailProjects.refresh,refreshDetailPath='/api/projects/'+refreshDetailId,refreshDetail=await page(a,'/project-detail.html?id='+refreshDetailId);
+  refreshDetail.input('#edit-name','页面刷新后继续保存的名称');refreshDetail.input('#edit-statusDesc','页面刷新后保留的人工说明');refreshDetail.dropAck=true;refreshDetail.click(checkButton);
+  await waitFor(()=>refreshDetail.$('#stage-confirm') && !refreshDetail.$('#stage-confirm').disabled,'刷新前检查真实提交但回应丢失');
+  const refreshCommand=refreshDetail.requests.find(item=>item.path===refreshDetailPath+'/actions').body,refreshFacts=await facts(refreshDetailId),refreshStorage=Object.fromEntries(Object.entries(refreshDetail.w.sessionStorage));
+  assert.equal(refreshFacts.records.length,1);refreshDetail.dom.window.close();
+  const refreshRecovered=await page(a,'/project-detail.html?id='+refreshDetailId,{storage:refreshStorage,restorePrompt:true});
+  assert.equal(refreshRecovered.requests.filter(item=>item.path===refreshDetailPath+'/actions').length,0,'刷新自动核对不得另提交检查');assert.deepEqual(refreshRecovered.requests.find(item=>item.path===refreshDetailPath+'/action-results/query').body,refreshCommand);
+  assert.deepEqual(await facts(refreshDetailId),refreshFacts,'自动核对原回执不重复检查/审计');refreshRecovered.click('[data-choice="restore"]');
+  await waitFor(()=>!refreshRecovered.$('#reload').disabled && refreshRecovered.$('#edit-name')?.value==='页面刷新后继续保存的名称','恢复两区输入后完成页面加载');
+  assert.equal(refreshRecovered.$('#edit-statusDesc').value,'页面刷新后保留的人工说明');assert.equal(refreshRecovered.$(checkButton),null);assert(!refreshRecovered.$('[data-save-scope="basic"]').disabled);
+  refreshRecovered.click('[data-save-scope="basic"]');await waitFor(()=>refreshRecovered.reads.some(item=>item.path===refreshDetailPath && item.data.project.name==='页面刷新后继续保存的名称') && !refreshRecovered.$('#reload').disabled,'刷新恢复后基于本人检查的新版本保存基本区');
+  const refreshSave=refreshRecovered.requests.find(item=>item.path===refreshDetailPath && item.method==='PATCH');assert.equal(refreshSave.body.expectedVersion,refreshFacts.project.version);assert.equal(refreshSave.body.scope,'basic');
+  const refreshAfter=await a.api(refreshDetailPath),refreshAfterFacts=await facts(refreshDetailId);
+  assert.equal(refreshAfter.project.name,'页面刷新后继续保存的名称');assert.equal(refreshAfter.project.statusDesc,'人工进展原文\n等待客户确认；不由系统拼接。');assert.equal(refreshRecovered.$('#edit-statusDesc').value,'页面刷新后保留的人工说明');assert.deepEqual(refreshAfterFacts.records,refreshFacts.records);assert.deepEqual(refreshAfterFacts.audit,refreshFacts.audit);assert.deepEqual(refreshAfterFacts.receipts,refreshFacts.receipts);
+  checks.push('详情检查刷新恢复：两区未保存→真实COMMIT丢响应→销毁页面并恢复同一sessionStorage→自动查询原回执→明确恢复两区输入；按本人已确认检查版本继续保存且不夹带另一区，检查事实/审计/回执仅一条；另验证回读暂扣期间不能二次检查');
+
   const build = (await a.api('/api/health/live')).build;
   const result = { status: 'passed', checkedAt: new Date().toISOString(), checks, requestCount, build, sourceHashes: Object.fromEntries(Object.entries(sources).map(([name, value]) => [name, createHash('sha256').update(value).digest('hex')])), isolatedTestDatabase: true, syntheticOnly: true, domExecution: true, nativeBrowserAcceptance: false, visualAcceptance: false };
   await mkdir('test-results', { recursive: true }); await writeFile('test-results/project-checks-ui-check.json', JSON.stringify(result, null, 2) + '\n');
   console.log(JSON.stringify({ status: result.status, groups: checks.length, requestCount }));
 } finally {
-  for (const view of views) view.window.close(); if (app) await app.close();
+  for (const view of views) {for(const stream of view.streams ?? [])stream.close();view.window.close();} if (app) await app.close();
   for (const user of users) for (const table of ['project_drafts', 'user_preferences']) await c.execute('DELETE FROM ' + table + ' WHERE user_id=?', [user.id]);
   for (const id of projects) {
     await c.execute('UPDATE project_nodes SET previous_node_id=NULL,next_node_id=NULL WHERE project_id=?', [id]);
