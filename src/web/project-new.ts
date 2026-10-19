@@ -6,19 +6,23 @@ import { basicFields, referenceSelect, type BasicIntent } from './shared/project
 import { scopeFields } from './shared/scoped-editor';
 import { mountReferencePickers, syncReferencePickers } from './shared/reference-picker';
 import { PersonalDrafts, type DraftRef } from './shared/personal-state';
+import { ProjectNotifications } from './shared/notifications';
+import { refreshProjectOptions } from './shared/project-options';
 setupTheme(); setupDateZone();
 const form = document.getElementById('create') as HTMLFormElement;
 const message = document.getElementById('message')!;
 document.addEventListener('geekdash-preference-status',event=>{message.textContent=(event as CustomEvent<string>).detail;});
-type Fields = Partial<EditValues> & { filingDate?: string | null; dueDate?: string | null };
+type Fields = Partial<EditValues> & { filingDate?: string | null; dueDate?: string | null; managerIds?:string[] };
 type Command = { idempotencyKey: string; fields: Fields; draft?: DraftRef };
 let personalDrafts: PersonalDrafts | undefined;
 let pending: Command | undefined, busy = false, identityChanged = false, leaving = false;
 let catalog: Catalog | undefined, businessDate = '', errors: Record<string, string> = {};
+let catalogLoading=false,catalogRefreshPending=false;
+let managerIds:string[]=[];
 const value: EditValues = { name: '', summary: '', marketExpectation: '', detailNote: '', summaryNote: '', statusDesc: '', chipstatNote: '', signalNote: '', signal: 'green', priority: 'mid', customerId: null, odmCustomerId: null, productLineId: null, appId: null, groupId: null, chipIds: [], tagIds: [], people: [] };
 const draft: BasicIntent = { filingDate: '', startDate: '', dueDate: '', closedOn: '', proposalDate: '', originalDueDate: '', state: 'proposal', planKind: 'reschedule', reason: '', measures: '', closureType: 'normal', closureNote: '', remainingWorkNote: '', maintenance: false };
 const key = () => `geekdash_create:${account!.id}`;
-function fields(): Fields { return { ...Object.fromEntries(scopeFields.basic.map(key => [key, structuredClone(value[key])])), statusDesc: value.statusDesc, tagIds:value.tagIds, filingDate: draft.filingDate || null, dueDate: draft.dueDate || null }; }
+function fields(): Fields { return { ...Object.fromEntries(scopeFields.basic.map(key => [key, structuredClone(value[key])])), statusDesc: value.statusDesc, tagIds:value.tagIds, filingDate: draft.filingDate || null, dueDate: draft.dueDate || null, managerIds:[...managerIds] }; }
 const emptyFields=JSON.stringify(fields());
 const hasInput=()=>JSON.stringify(fields())!==emptyFields;
 async function leave(destination='/'){
@@ -52,22 +56,26 @@ function controls() {
   for (const name of ['confirm', 'retry']) { const button = document.getElementById(name) as HTMLButtonElement; button.hidden = !pending; button.disabled = busy || identityChanged; }
   syncReferencePickers();
 }
+function reference(key: string, table: string, role?: string) {
+    const ids = key==='managerIds'?managerIds:key === 'people' ? value.people.filter(person => person.role === role).map(person => person.id) : value[key as keyof EditValues];
+    const selected=Array.isArray(ids)?ids as string[]:ids?[String(ids)]:[],options=(catalog?.[table] ?? []).filter(item=>key!=='managerIds' || item.id!==account?.id);
+    const source=document.getElementById(`edit-${key}${role?'-'+role:''}-source`) as HTMLSelectElement|null;
+    for(const id of selected)if(!options.some(item=>item.id===id))options.push({id,name:[...(source?.options ?? [])].find(item=>item.value===id)?.textContent?.replace(/（停用\/不可新增）$/,'') ?? id,enabled:0});
+    return referenceSelect(key,options,selected,[],role);
+}
 function render() {
-  const reference = (key: string, table: string, role?: string) => {
-    const ids = key === 'people' ? value.people.filter(person => person.role === role).map(person => person.id) : value[key as keyof EditValues];
-    return referenceSelect(key, catalog?.[table] ?? [], Array.isArray(ids) ? ids as string[] : ids ? [String(ids)] : [], [], role);
-  };
   form.innerHTML = `<section class="project-info"><h2>基本信息与项目分工</h2>${basicFields({ project: { status: 'proposal', chips: [], people: [] }, businessDate, stages: [], nodes: [], risks: [] }, value, draft, true, reference, errors, true)}</section><section class="status-editor"><h2>最新状态说明</h2><textarea id="edit-statusDesc" rows="4" aria-label="最新状态说明">${esc(value.statusDesc)}</textarea><span class="field-error">${esc(errors.statusDesc)}</span></section><div class="entry-actions"><button id="save" type="submit" class="save-btn">保存并进入项目</button><button id="cancel" type="button" class="back-btn">取消</button></div>`;
-  document.getElementById('responsibility')!.textContent = account ? account.name + '（保存后负责）' : '读取当前账号…';
+  document.getElementById('responsibility')!.innerHTML = `<div class="field-fact">${account?esc(account.name)+'（创建人，自动负责）':'读取当前账号…'}</div><label for="edit-managerIds" class="read-label">其他项目经理（可多选）</label>${reference('managerIds','managerAccounts')}<span class="field-error" id="error-managerIds">${esc(errors.managerIds)}</span>`;
   form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input[id^="edit-"],textarea[id^="edit-"]').forEach(input => {
     input.oninput = () => { const name = input.id.slice(5); if (input.dataset.basic) Object.assign(draft, { [input.dataset.basic]: input.value }); else Object.assign(value, { [name]: input.value }); delete errors[name]; const error = document.getElementById('error-' + name); if (error) error.textContent = ''; remember(); };
   });
   form.querySelectorAll<HTMLSelectElement>('select').forEach(input => input.onchange = () => {
     const name = input.id.replace(/^edit-|-source$/g, '');
-    if (name.startsWith('people-')) {
+    if(name==='managerIds')managerIds=[...input.selectedOptions].map(option=>option.value);
+    else if (name.startsWith('people-')) {
       const role = name.slice(7); value.people = [...value.people.filter(person => person.role !== role), ...[...input.selectedOptions].map(option => ({ id: option.value, role }))];
     } else Object.assign(value, { [name]: input.multiple ? [...input.selectedOptions].map(option => option.value) : input.value || null });
-    remember();
+    delete errors[name];const error=document.getElementById('error-'+name);if(error)error.textContent='';remember();
   });
   document.getElementById('cancel')!.onclick = () => { void leave(); };
   mountReferencePickers(form); controls();
@@ -94,9 +102,13 @@ document.getElementById('confirm')!.onclick = () => { void execute(true); };
 document.getElementById('retry')!.onclick = () => { void execute(false); };
 document.getElementById('options-retry')!.onclick = () => { void loadCatalog(); };
 async function loadCatalog() {
-  try { catalog = await get<Catalog>('/api/project-options'); document.getElementById('options-retry')!.hidden = true; render(); }
+  if(identityChanged || !account)return;
+  if(catalogLoading){catalogRefreshPending=true;return;}catalogLoading=true;catalogRefreshPending=false;
+  try { const next = await get<Catalog>('/api/project-options',undefined,false); if(identityChanged)return;catalog=next;document.getElementById('options-retry')!.hidden = true;refreshProjectOptions(form,reference);controls(); }
   catch { document.getElementById('options-retry')!.hidden = false; message.textContent = '候选资料暂未读到，输入已保留。可重试读取，或先创建已填写的内容。'; controls(); }
+  finally{catalogLoading=false;if(catalogRefreshPending && !identityChanged)void loadCatalog();}
 }
+window.addEventListener('focus',()=>{if(account && !leaving)void loadCatalog();});
 document.addEventListener('geekdash-identity-changed', () => { identityChanged = true; message.textContent = '账号已变化，请保留本页输入，重新登录原账号再核对。'; controls(); });
 document.querySelectorAll<HTMLAnchorElement>('.project-nav a, .topbar a.back-btn').forEach(link=>{link.onclick=event=>{event.preventDefault();void leave(link.href);};});
 window.addEventListener('beforeunload', event => { if (!leaving && (pending || hasInput())){remember();event.preventDefault();} });
@@ -105,13 +117,16 @@ void requireIdentity().then(async () => {
     if(pending || busy || identityChanged)return false;
     if(hasInput() && !confirm('恢复底稿将替换当前新建输入，是否继续？'))return false;
     const restored=row.payload.values;if(!restored)return false;
+    managerIds=Array.isArray(restored.managerIds)?restored.managerIds.filter((id):id is string=>typeof id==='string' && id!==account!.id):[];
     for(const name of Object.keys(value))if(Object.hasOwn(restored,name))Object.assign(value,{[name]:structuredClone(restored[name])});
     draft.filingDate=String(restored.filingDate ?? '');draft.dueDate=String(restored.dueDate ?? '');render();remember();message.textContent='底稿已恢复，点击保存才会创建正式项目。';return true;
   });
   const saved = sessionStorage.getItem(key());
-  if (saved) try { const stored = JSON.parse(saved); pending = stored.idempotencyKey ? stored : stored.pending; const restored = stored.fields; if (restored && typeof restored === 'object' && (pending || confirm('发现本标签页的新建底稿，是否恢复？恢复后仍需明确保存项目。'))) { for (const name of Object.keys(value)) if (Object.hasOwn(restored, name)) Object.assign(value, { [name]: restored[name] }); draft.filingDate = restored.filingDate ?? ''; draft.dueDate = restored.dueDate ?? ''; } }
+  if (saved) try { const stored = JSON.parse(saved); pending = stored.idempotencyKey ? stored : stored.pending; const restored = stored.fields; if (restored && typeof restored === 'object' && (pending || confirm('发现本标签页的新建底稿，是否恢复？恢复后仍需明确保存项目。'))) { managerIds=Array.isArray(restored.managerIds)?restored.managerIds.filter((id:unknown):id is string=>typeof id==='string' && id!==account!.id):[]; for (const name of Object.keys(value)) if (Object.hasOwn(restored, name)) Object.assign(value, { [name]: restored[name] }); draft.filingDate = restored.filingDate ?? ''; draft.dueDate = restored.dueDate ?? ''; } }
   catch { message.textContent = '本页旧稿无法读取，请核对后重新填写。'; }
   render();
   try { businessDate = (await get<CheckRuleContext>('/api/settings/check-rule')).businessDate; } catch { /* 日期最终由服务器按业务时区校验。 */ }
+  render();
   await loadCatalog(); if (pending) void execute(true);
+  new ProjectNotifications(()=>{},()=>{void loadCatalog();},text=>{if(text)message.textContent=text;},undefined,undefined,event=>{if(event.resource==='catalog')void loadCatalog();});
 }).catch(error => { message.textContent = (error as Error).message; document.getElementById('login')!.hidden = false; controls(); });

@@ -7,6 +7,8 @@ import { failure, validId } from '../modules/project-save.js';
 const uuid = (value:unknown):value is string => typeof value==='string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value);
 type Viewer={actor:Actor;instanceId:string;projectId?:string;reply:FastifyReply};
 type Editor={actor:Actor;projectId:string;until:number};
+export type ResourceNotification={resource:'catalog';kind:string;operationId:string}|{resource:'check-rule';version:string;operationId:string};
+export type Notifications=ReturnType<typeof registerNotifications>;
 
 // 单进程短期通知；正式项目和原请求回执仍是唯一保存依据。
 export function registerNotifications(app:FastifyInstance,database?:RuntimeDatabase){
@@ -58,23 +60,8 @@ export function registerNotifications(app:FastifyInstance,database?:RuntimeDatab
     for(const viewer of [...viewers.values()])if(await valid(viewer))send(viewer,'project',{projectId,version,operationId});
     await presence(projectId);
   }
-  app.addHook('onSend',async(request,reply,payload)=>{
-    if(reply.statusCode>=300 || typeof payload!=='string')return payload;
-    try{
-      const value=JSON.parse(payload),path=request.url.split('?')[0];
-      if(path.startsWith('/api/projects') && value.outcome==='committed' && validId(value.result?.projectId) && validId(value.result?.savedVersion) && uuid(value.result?.operationId)){
-        // 路由只有在事务提交或原回执查询确认后才产生该结果；失败通知不改变业务响应。
-        void publish(value.result.projectId,value.result.savedVersion,value.result.operationId).catch(()=>{});
-      }
-      if(path.startsWith('/api/catalog/') && value.outcome==='committed' && uuid(value.result?.operationId) && Array.isArray(value.result?.affectedProjects)){
-        for(const project of value.result.affectedProjects)if(validId(project.projectId) && validId(project.version))void publish(project.projectId,project.version,value.result.operationId).catch(()=>{});
-      }
-      if(request.actor && ['/api/auth/logout','/api/auth/password'].includes(path)){for(const [id,viewer] of viewers){
-        if(path.endsWith('password')?viewer.actor.id===request.actor.id:viewer.actor.tokenHash.equals(request.actor.tokenHash)){send(viewer,'identity',{});viewer.reply.raw.end();remove(id,viewer);}
-      }for(const [id,item] of editors)if(path.endsWith('password')?item.actor.id===request.actor.id:item.actor.tokenHash.equals(request.actor.tokenHash)){editors.delete(id);void presence(item.projectId).catch(()=>{});}}
-    }catch{/* 通知故障不能把已提交业务报告为失败。 */}
-    return payload;
-  });
+  // 由写入口在事务提交或回执确认后显式调用；通知失败不改变已提交结果。
+  function dispatch(work:()=>Promise<void>){void work().catch(()=>{app.log.warn('变更通知未发送，客户端需重新读取');});}
   const timer=setInterval(()=>{if(ticking || closing)return;ticking=true;void(async()=>{
     const changed=new Set<string>();for(const [id,item] of editors)if(item.until<=Date.now()){editors.delete(id);changed.add(item.projectId);}
     for(const viewer of [...viewers.values()])if(await valid(viewer)){
@@ -85,4 +72,19 @@ export function registerNotifications(app:FastifyInstance,database?:RuntimeDatab
     for(const projectId of changed)await presence(projectId);
   })().catch(()=>{}).finally(()=>{ticking=false;});},15000);timer.unref();
   app.addHook('preClose',async()=>{closing=true;clearInterval(timer);for(const viewer of viewers.values())viewer.reply.raw.end();viewers.clear();editors.clear();});
+  return {
+    projectChanged(result:{projectId:string;savedVersion:string;operationId:string;changed?:boolean}){
+      if(result.changed===false || !validId(result.projectId) || !validId(result.savedVersion) || !uuid(result.operationId))return;
+      dispatch(()=>publish(result.projectId,result.savedVersion,result.operationId));
+    },
+    resourceChanged(event:ResourceNotification){
+      dispatch(async()=>{for(const viewer of [...viewers.values()])if(await valid(viewer))send(viewer,'resource',event);});
+    },
+    identityChanged(actor:Actor,allSessions=false){
+      dispatch(async()=>{
+        for(const [id,viewer] of viewers)if(allSessions ? viewer.actor.id===actor.id : viewer.actor.tokenHash.equals(actor.tokenHash)){send(viewer,'identity',{});viewer.reply.raw.end();remove(id,viewer);}
+        for(const [id,item] of editors)if(allSessions ? item.actor.id===actor.id : item.actor.tokenHash.equals(actor.tokenHash)){editors.delete(id);void presence(item.projectId).catch(()=>{});}
+      });
+    },
+  };
 }

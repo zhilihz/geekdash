@@ -79,6 +79,7 @@ async function page(user, projectId, holdCatalog = false, options={}) {
   w.fetch = async (path, options) => {
     if(dom.rejectDrafts && path==='/api/personal/drafts/save')throw new Error('模拟草稿离线');
     if(dom.rejectDraftRead && path.startsWith('/api/personal/drafts?'))throw new Error('模拟草稿读取离线');
+    if(dom.failDetailRead && path==='/api/projects/'+projectId && !options?.method){dom.failDetailRead=false;return new Response(JSON.stringify({code:'DATABASE_UNAVAILABLE',outcome:'not_committed'}),{status:503,headers:{'Content-Type':'application/json'}});}
     const response = await user.fetch(path, options);
     if(path==='/api/projects' && options?.method==='POST'){
       const data=await response.clone().json();dom.createWrites.push({status:response.status,data});
@@ -474,6 +475,18 @@ try {
   await saveAggregation('projectNodes',[deleteAggregation(0)]);await verifyAggregation(null,1,1);
   await saveAggregation('projectNodes',[deleteAggregation(2)]);await verifyAggregation(null,0,0);
   checks.push('PRD9.7/9.12：同阶段多节点取最晚日期，缺项就地标明；其他阶段及客户节点不参与，删除后逐次重算至待确定，独立SQL/新GET/真实页面代码一致');
+  const refreshCreated=await a.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+'刷新故障原值'}}),refreshId=refreshCreated.result.projectId;projects.push(refreshId);
+  const refreshView=await page(a,refreshId),refreshBefore=await facts(refreshId);
+  refreshView.click('#basic-edit');refreshView.input('#edit-name',prefix+'刷新故障后保存');refreshView.input('#edit-statusDesc','刷新故障时保留的另一区输入');
+  refreshView.dom.failDetailRead=true;refreshView.w.dispatchEvent(new refreshView.w.Event('focus'));
+  await waitFor(()=>refreshView.$('#message').textContent.includes('暂时无法核对项目更新'),'详情刷新503显示可恢复提示');
+  assert.equal(refreshView.$('#edit-name').value,prefix+'刷新故障后保存');assert.equal(refreshView.$('#edit-statusDesc').value,'刷新故障时保留的另一区输入');assert.equal(refreshView.$('[data-save-scope="basic"]').disabled,false,'读取暂时失败不能冻结可信身份及保存');
+  const beforeRetryReads=refreshView.dom.projectReads.length;refreshView.w.dispatchEvent(new refreshView.w.Event('focus'));
+  await waitFor(()=>refreshView.dom.projectReads.length>beforeRetryReads,'恢复连接后新请求重新读取详情');
+  refreshView.click('[data-save-scope="basic"]');await waitFor(()=>refreshView.dom.projectReads.at(-1)?.project.name===prefix+'刷新故障后保存' && !refreshView.$('#reload').disabled,'读取恢复后明确保存基本区');
+  const refreshAfter=await facts(refreshId),refreshRead=await a.api('/api/projects/'+refreshId);
+  assert.equal(refreshAfter.project.name,prefix+'刷新故障后保存');assert.equal(BigInt(refreshAfter.project.version),BigInt(refreshBefore.project.version)+1n);assert.equal(refreshAfter.auditCount,refreshBefore.auditCount+1);assert.equal(refreshRead.project.statusDesc,'');assert.equal(refreshView.$('#edit-statusDesc').value,'刷新故障时保留的另一区输入');
+  checks.push('PRD9.4/9.17：详情刷新HTTP503只提示暂时失败，保留两区输入且不误冻身份；再次聚焦新读恢复，基本区正式保存一次并由独立SQL/GET确认，另一区不夹带');
   await writeFile('test-results/scoped-ui.json',JSON.stringify({status:'passed',checks,requests:requestCount,realBrowserLayout:false},null,2));
   console.log(JSON.stringify({status:'passed',checks:checks.length,evidence:'test-results/scoped-ui.json'}));
 } catch (error) { console.error(error); throw error; } finally {

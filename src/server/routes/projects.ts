@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
+import type { Notifications } from '../infrastructure/notifications.js';
 import { projectReads, type ProjectQuery } from '../modules/projects.js';
 import { projectSaves, validateSave, validId, type SaveRequest } from '../modules/project-save.js';
 import { projectCore, validateCore } from '../modules/project-core.js';
@@ -8,7 +9,7 @@ import { projectChecks } from '../modules/project-checks.js';
 import { deadlineKinds } from '../modules/project-dates.js';
 import { deletedNodes } from '../modules/project-records.js';
 
-export function registerProjectReads(app: FastifyInstance, database?: RuntimeDatabase) {
+export function registerProjectReads(app: FastifyInstance, database?: RuntimeDatabase, notifications?: Notifications) {
   const reads = database ? projectReads(database) : undefined;
   const saves = database ? projectSaves(database) : undefined;
   const core = database ? projectCore(database) : undefined;
@@ -32,7 +33,9 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
     if (!request.actor) return reply.code(401).send({ code: 'AUTH_REQUIRED', outcome: 'not_committed' });
     if (!validId(request.params.id)) return reply.code(400).send({ code: 'INVALID_PROJECT_ID', outcome: 'not_committed' });
     if (!actions) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE', outcome: 'not_committed' });
-    return { ...await actions.run(request.actor, request.params.id, validateAction(request.body), request.id, confirm), requestId: request.id };
+    const value=await actions.run(request.actor, request.params.id, validateAction(request.body), request.id, confirm);
+    if(value.outcome==='committed')notifications?.projectChanged(value.result);
+    return { ...value, requestId: request.id };
   }
   app.post<{ Params: { id: string }; Body: unknown }>('/api/projects/:id/actions', (request, reply) => actionHandler(request, reply, false));
   app.post<{ Params: { id: string }; Body: unknown }>('/api/projects/:id/action-results/query', (request, reply) => actionHandler(request, reply, true));
@@ -48,6 +51,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
     if (id !== undefined && !validId(id)) return reply.code(400).send({ code: 'INVALID_PROJECT_ID', outcome: 'not_committed' });
     if (!core) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE', outcome: 'not_committed' });
     const result = await core.run(request.actor, validateCore(request.body, !id), id, request.id, confirm);
+    if(result.outcome==='committed')notifications?.projectChanged(result.result);
     return { ...result, requestId: request.id };
   }
   app.post<{ Params: { id?: string }; Body: unknown }>('/api/projects', (request, reply) => coreHandler(request, reply, false));
@@ -69,11 +73,12 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
       const input: SaveRequest = validateSave(request.body);
       if (request.actor && !input.scope && !confirm) {
         const prior = await saves.confirm(request.params.id, input, request.actor);
-        if (prior.outcome === 'committed') return { ...prior, requestId: request.id };
+        if (prior.outcome === 'committed' && prior.result) { notifications?.projectChanged(prior.result); return { ...prior, requestId: request.id }; }
         return reply.code(409).send({ code: 'SAVE_PROTOCOL_CHANGED', outcome: 'not_committed', requestId: request.id });
       }
-      const result = confirm ? await saves.confirm(request.params.id, input, request.actor) : await saves.save(request.params.id, input, request.id, request.actor);
-      return confirm ? { ...result, requestId: request.id } : { outcome: 'committed', result, requestId: request.id };
+      const value = confirm ? await saves.confirm(request.params.id, input, request.actor) : { outcome: 'committed', result: await saves.save(request.params.id, input, request.id, request.actor) };
+      if(value.outcome==='committed' && value.result)notifications?.projectChanged(value.result);
+      return { ...value, requestId: request.id };
     } catch (error) {
       const failure = error as { status?: number; code?: string; fields?: unknown; currentVersion?: string; message?: string };
       const unknown = failure.code === 'COMMIT_UNKNOWN';

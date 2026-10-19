@@ -4,7 +4,7 @@
 
 ## 本轮阅读入口
 
-当前工作：按用户2026-10-19指令，已有P04成果收口发布后停止继续实施，转入缺口讨论。先看[当前结论](status/current-system-truth.md#1-一句话结论)、[交接](handoff/handoff.md)和[发布核验](testing/reports/2026-10-19-p04-candidate-release.md)，再按[验收矩阵](testing/reports/2026-10-17-p04-acceptance-matrix.md)审查操作结果。P04内部步骤与E段归属查[原计划](implementation/execution-plan.md#12-p04完整实施计划2026-10-15)和[第69节](status/current-system-truth.md#69-2026-10-15任务归属与剩余工作核对)，不据编号自动继续施工。
+当前工作：已有P04成果发布后，按用户进一步授权实施[操作链收敛计划1.2.3](implementation/execution-plan.md#123-按功能区收敛操作链2026-10-19)。先看[当前结论](status/current-system-truth.md#1-一句话结论)、[交接](handoff/handoff.md)和[本轮验证](testing/reports/2026-10-19-flow-convergence.md)，区分已实现、已验证和待发布；完整P04仍未验收。P04原范围与E段归属查[原计划](implementation/execution-plan.md#12-p04完整实施计划2026-10-15)和[第69节](status/current-system-truth.md#69-2026-10-15任务归属与剩余工作核对)，不据编号自动扩大施工。
 
 当前交付：[P04候选部署记录](operations/deployments/2026-10-19-p04-candidate.md)及[发布核验报告](testing/reports/2026-10-19-p04-candidate-release.md)。成果3794a38已推送main并更新测试服务器；完整阶段验收仍未完成。旧[UI12部署](operations/deployments/2026-10-14-e04-ui12.md)保留为历史来源。
 
@@ -12,11 +12,11 @@
 
 用户进一步要求逐行为列全结果，已按DEC-128补[PRD第9节](product/PRD.md#9-逐行为结果与恢复清单)：共用结果、各功能专有结果、输入去向与恢复入口，以及现有16步对应表。处理入口和故障验证方法在执行计划1.2与[测试策略](testing/testing.md#按prd行为结果验收dec-128)，它们是待实施/待验要求，实际状态见真相73。
 
-1. [交接](handoff/handoff.md)与[当前运行事实](status/current-system-truth.md#1-一句话结论)：确认当前固定版本、已验范围及未验缺口，后续先讨论再安排实施。
+1. [交接](handoff/handoff.md)与[当前运行事实](status/current-system-truth.md#1-一句话结论)：确认本地候选、线上版本、已验范围及未验缺口；本轮证据查[操作链收敛报告](testing/reports/2026-10-19-flow-convergence.md)。
 2. [首页完整筛选](product/PRD.md#首页完整筛选)、[视觉意图](product/PRD.md#813-ui09正式视觉稿2026-10-14设计中)、[UI11设计报告](testing/reports/2026-10-14-ui11-complete-filters.md)及[Figma文件](https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=142-3499)：用户已认可当前设计，实施沿同一稿。[PRD8.12](product/PRD.md#812-ui08全站结构与日常操作2026-10-14结构评审稿)为结构与操作依据；历史设计范围仍可查[UI08](testing/reports/2026-10-14-ui08-wireframes.md)、[UI09](testing/reports/2026-10-14-ui09-visual-design.md)、[UI10](testing/reports/2026-10-14-ui10-reference-style.md)，不作为当前部署状态。
-3. [P04既有实施计划](implementation/execution-plan.md#12-p04完整实施计划2026-10-15)：用于核对已有范围和技术依赖，后续任务边界待重新讨论；[规格书](specifications/specification.md)仍是行为契约来源。
+3. [P04既有实施计划](implementation/execution-plan.md#12-p04完整实施计划2026-10-15)：用于核对已有范围和技术依赖；当前收敛步骤只维护在1.2.3，[规格书](specifications/specification.md)仍是行为契约来源。
 4. [UI07提示与副本报告](testing/reports/2026-10-13-e04-ui07-notifications.md)、[UI07部署与恢复](operations/deployments/2026-10-13-e04-ui07.md)、[UI06网页报告](testing/reports/2026-10-13-e04-ui06-frontend.md)、[UI06部署与恢复](operations/deployments/2026-10-13-e04-ui06.md)、[看板及已有入口报告](testing/reports/2026-10-12-e04-ui03-c.md)、[上下文动作报告](testing/reports/2026-10-12-e04-ui03-b.md)、[详情结构报告](testing/reports/2026-10-12-e04-ui03-a.md)、[设计核查报告](testing/reports/2026-10-12-e04-ui01-design.md)及[实际设计回读](evidence/2026-10-12-e04-ui01-design-audit.json)：分别核查实现、设计子集与未测范围。
-5. [六阶段目标任务](implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)、[代决记录](decisions/autonomous-decisions.md)、[代码管理](operations/release-maintenance.md#2-代码管理)：原目标和交付方法的追溯入口；当前停止继续施工。
+5. [六阶段目标任务](implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)、[代决记录](decisions/autonomous-decisions.md)、[代码管理](operations/release-maintenance.md#2-代码管理)：原目标和交付方法的追溯入口；分支检查点、测试部署和完整阶段验收分别记录。
 
 运行事实只查系统真相与实际部署记录，计划、设计和Git推送各有自己的证据范围。初次运行及公网基底方法见[本地运行](operations/release-maintenance.md#本地工程运行e01-f01)、[D01～D07](implementation/execution-plan.md#e12-d01d07首个公网基底的逐功能施工方案)及[Linux/新域名流程](operations/release-maintenance.md#当前首个公网部署单元dec-071)。
 

@@ -18,7 +18,7 @@ function tree(value: unknown, depth = 0) {
   else if (object(value)) for (const [key, item] of Object.entries(value)) { if (!nestedKeys.has(key)) failure('INVALID_PERSONAL_STATE', 400); tree(item, depth + 1); }
   else if (value !== null && !['string','number','boolean'].includes(typeof value)) failure('INVALID_PERSONAL_STATE', 400);
 }
-const createFields = () => [...scopeFields.basic, 'statusDesc', 'tagIds', 'filingDate', 'dueDate'];
+const createFields = () => [...scopeFields.basic, 'statusDesc', 'tagIds', 'filingDate', 'dueDate', 'managerIds'];
 export type DraftPayload = { schemaVersion: 1; instanceId: string; target?: string; values?: Record<string, unknown>; intent?: Record<string, unknown>; record?: Record<string, unknown>; command?: Record<string, unknown>; submission?: Record<string, unknown> };
 export type DraftWrite = { clientDraftId: string; projectId: string | null; formKind: string; baseVersion: string | null; expectedDraftVersion: string; clientSequence: string; payload: DraftPayload; rebaseOperationId?: string };
 export type DraftRef = { clientDraftId: string; draftVersion: string };

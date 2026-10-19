@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
+import type { Notifications } from '../infrastructure/notifications.js';
 import { identities, digest, type Actor } from '../modules/identity.js';
 import { failure } from '../modules/project-save.js';
 declare module 'fastify' { interface FastifyRequest { actor?: Actor } }
@@ -11,7 +12,7 @@ export function readAuthConfig(): AuthConfig {
   if (url.origin !== origin || (!local && url.protocol !== 'https:')) throw Object.assign(new Error('AUTH_CONFIG_INVALID'), { code: 'AUTH_CONFIG_INVALID' });
   return { origin, secure: url.protocol === 'https:' };
 }
-export function registerIdentity(app: FastifyInstance, database: RuntimeDatabase, config: AuthConfig) {
+export function registerIdentity(app: FastifyInstance, database: RuntimeDatabase, config: AuthConfig, notifications?: Notifications) {
   const identity = identities(database);
   const cookieName = config.secure ? '__Host-geekdash' : 'geekdash_dev';
   const csrfName = config.secure ? '__Host-geekdash_csrf' : 'geekdash_dev_csrf';
@@ -69,8 +70,9 @@ export function registerIdentity(app: FastifyInstance, database: RuntimeDatabase
     if (request.body.newPassword !== request.body.confirmPassword) failure('PASSWORD_CONFIRM_MISMATCH', 422);
     limit('password:' + request.actor!.id, 20);
     await identity.changePassword(request.actor!, request.body.currentPassword, request.body.newPassword, request.id);
+    notifications?.identityChanged(request.actor!, true);
     cookies(reply, '', ''); return { status: 'changed', next: 'login' };
   });
-  app.post('/api/auth/logout', { schema: schema({}) }, async (request, reply) => { await identity.logout(request.actor!, request.id); cookies(reply, '', ''); return { status: 'logged_out' }; });
+  app.post('/api/auth/logout', { schema: schema({}) }, async (request, reply) => { await identity.logout(request.actor!, request.id); notifications?.identityChanged(request.actor!); cookies(reply, '', ''); return { status: 'logged_out' }; });
   app.post('/api/auth/activity', { schema: schema({}) }, request => ({ status: 'active', accountId: request.actor!.id }));
 }

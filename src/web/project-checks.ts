@@ -232,7 +232,8 @@ function refreshBusinessDay() {
   if (!list || busy || loading || pending.size || authFrozen || recoveryBroken) return;
   if (list.businessDate !== new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date())) void load();
 }
-window.addEventListener('focus', refreshBusinessDay);
+const refresh=()=>{if(busy || loading)notificationPending=true;else if(!authFrozen && ownerId)void load();};
+window.addEventListener('focus',()=>{if(list)refresh();});
 setInterval(() => { if (document.visibilityState === 'visible') refreshBusinessDay(); }, 60000);
 window.addEventListener('beforeunload', event => { if (busy || pending.size && storageFailed) event.preventDefault(); });
 window.addEventListener('scroll',()=>{if(!fresh || scrollTimer)return;scrollTimer=setTimeout(()=>{scrollTimer=undefined;remember();},2000);},{passive:true});
@@ -242,7 +243,6 @@ void requireIdentity().then(async identity => {
   ownerId = identity.id;preference=new PersonalPreference('checks',text=>note(text,true));const saved=await preference.load();
   if(!originalQuery.size){if(typeof saved.view==='string')query.set('view',saved.view);if(typeof saved.page==='number')query.set('page',String(saved.page));for(const [key,value] of Object.entries(saved.filters ?? {}))if([...scopeKeys,'checkToday'].includes(key) && typeof value==='string')query.set(key,value);restoredScroll=typeof saved.scrollY==='number'?saved.scrollY:undefined;}
   restoreBack();recover(); renderRecovery(); await load();
-  const refresh=()=>{if(busy || loading)notificationPending=true;else if(!authFrozen)void load();};
-  new ProjectNotifications(refresh,refresh,text=>{if(text)element('message').textContent=text;});
+  new ProjectNotifications(refresh,refresh,text=>{if(text)element('message').textContent=text;},undefined,undefined,refresh);
   for (const id of pending.keys()) { if (authFrozen || recoveryBroken) break; await execute(id, true); }
 }).catch(error => { freezeIdentity(error); element('login').hidden = false; element('check-loading').textContent = '请登录后继续检查项目。'; note((error as Error).message, true); controls(); });

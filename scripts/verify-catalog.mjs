@@ -42,19 +42,24 @@ async function page(user,session={},name='data-manage',realtime=false,query='',f
   const dom=new JSDOM(await readFile('src/web/'+name+'.html','utf8'),{url:origin+'/'+name+'.html'+query,runScripts:'outside-only',virtualConsole:console});views.push(dom);const w=dom.window;
   Object.assign(w,{TextEncoder,TextDecoder,structuredClone,AbortSignal,AbortController});w.BroadcastChannel=class{postMessage(){}};w.confirm=()=>true;
   w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};w.HTMLDialogElement.prototype.close=function(){this.open=false;};
-  dom.events=[];dom.streams=[];Object.assign(dom,faults);
+  dom.events=[];dom.streams=[];dom.requests=[];Object.assign(dom,faults);
   if(realtime)w.EventSource=class extends w.EventTarget{
     controller=new AbortController();closed=false;onerror=null;
     constructor(url){super();dom.streams.push(this);void(async()=>{try{const response=await user.fetch(url,{signal:this.controller.signal});if(!response.ok)throw Error('SSE '+response.status);const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';for(;;){const next=await reader.read();if(next.done)break;buffer+=decoder.decode(next.value,{stream:true});let end;while((end=buffer.indexOf('\n\n'))>=0){const frame=buffer.slice(0,end);buffer=buffer.slice(end+2);const event=frame.match(/^event: (.+)$/m)?.[1],data=frame.match(/^data: (.+)$/m)?.[1];if(event && data){dom.events.push({event,data:JSON.parse(data)});this.dispatchEvent(new w.MessageEvent(event,{data}));}}}if(!this.closed)this.onerror?.();}catch{if(!this.closed)this.onerror?.();}})();}
     close(){this.closed=true;this.controller.abort();}
   };
   w.document.cookie='geekdash_dev_csrf='+user.csrf();for(const [key,value] of Object.entries(session))w.sessionStorage.setItem(key,value);
-  w.fetch=async(path,options)=>{if(dom.failRuleRead && path==='/api/settings/check-rule' && !options?.method){dom.failRuleRead=false;throw Error('模拟规则读取失败');}if(dom.failSummaryRead && path==='/api/project-summary'){dom.failSummaryRead=false;throw Error('模拟正式回读暂时失败');}const response=await user.fetch(path,options);if(dom.dropAck && (path.startsWith('/api/catalog/') && path.endsWith('/save') || options?.method==='PATCH' || path==='/api/settings/check-rule' && options?.method==='POST')){dom.dropAck=false;await response.arrayBuffer();throw Error('模拟保存回应丢失');}return response;};
+  w.fetch=async(path,options)=>{dom.requests.push({path,method:options?.method ?? 'GET'});
+    if(path==='/api/auth/me'){
+      if(dom.failIdentityRead){dom.failIdentityRead=false;return new Response(JSON.stringify({code:'DATABASE_UNAVAILABLE',outcome:'not_committed'}),{status:503,headers:{'Content-Type':'application/json'}});}
+      const gate=dom.identityGate,response=await user.fetch(path,options);if(gate){dom.identityHeld=true;await gate;dom.identityHeld=false;}return response;
+    }
+    if(dom.failRuleRead && path==='/api/settings/check-rule' && !options?.method){dom.failRuleRead=false;throw Error('模拟规则读取失败');}if(dom.failSummaryRead && path==='/api/project-summary'){dom.failSummaryRead=false;throw Error('模拟正式回读暂时失败');}const response=await user.fetch(path,options);if(dom.dropAck && (path.startsWith('/api/catalog/') && path.endsWith('/save') || options?.method==='PATCH' || path==='/api/settings/check-rule' && options?.method==='POST')){dom.dropAck=false;await response.arrayBuffer();throw Error('模拟保存回应丢失');}return response;};
   const context=dom.getInternalVMContext(),modules=new Map();
   function load(path){if(path.endsWith('.css'))return {};path=resolve(path.endsWith('.ts')?path:path+'.ts');if(modules.has(path))return modules.get(path).exports;const module={exports:{}};modules.set(path,module);const code=ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2023,module:ts.ModuleKind.CommonJS}}).outputText;vm.runInContext('(function(require,exports,module){'+code+'\n})',context,{filename:path})(name=>load(resolve(dirname(path),name)),module.exports,module);return module.exports;}
-  w.scrollTo=()=>{};dom.load=load;load('src/web/'+name+'.ts');const $=selector=>w.document.querySelector(selector);
+  w.scrollTo=()=>{};dom.load=load;if(faults.moduleOnly)load('src/web/shared/api.ts').setAccount((await user.api('/api/auth/me')).account);else load('src/web/'+name+'.ts');const $=selector=>w.document.querySelector(selector);
   dom.$=$;dom.input=(selector,value)=>{const input=$(selector);assert(input,selector);input.value=value;input.dispatchEvent(new w.Event('input',{bubbles:true}));};
-  await waitFor(()=>name==='data-manage'?$('#catalog-tabs button') && !$('#catalog-reload').disabled:name==='settings'?$('#reload') && !$('#reload').disabled:$('#summary-date').textContent.startsWith('列表读取日期：') && $('#summary-table tbody tr'),'页面就绪');return dom;
+  if(!faults.moduleOnly)await waitFor(()=>name==='data-manage'?$('#catalog-tabs button') && !$('#catalog-reload').disabled:name==='settings'?$('#reload') && !$('#reload').disabled:$('#summary-date').textContent.startsWith('列表读取日期：') && $('#summary-table tbody tr'),'页面就绪');return dom;
 }
 const command=(id,expectedVersion,changes)=>({id,expectedVersion,changes,idempotencyKey:randomUUID()});
 let a,b;
@@ -147,7 +152,7 @@ try{
   const uiProject=await b.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+' 页面引用',chipIds:[uiChip.id]}});projects.push(uiProject.result.projectId);
   ui.$('#catalog-edit').click();ui.input('#catalog-name',prefix+' 页面改名');ui.$('#catalog-save').click();
   await waitFor(()=>ui.$('#catalog-apply') && !ui.$('#catalog-apply').disabled,'改名影响预览');
-  assert.match(ui.$('.comparison-table').textContent,/页面芯片/);assert.match(ui.$('.comparison-table').textContent,/页面改名/);assert.match(ui.$('.catalog-impact').textContent,/1 个项目/);
+  assert.match(ui.$('.comparison-table').textContent,/页面芯片/);assert.match(ui.$('.comparison-table').textContent,/页面改名/);assert.doesNotMatch(ui.$('#catalog-detail').textContent,/1 个项目|页面引用/);assert.equal(ui.$('#catalog-detail a[href*="project-detail"]'),null,'资料维护不展示引用项目数量、名单或跳转');
   ui.dropAck=true;ui.$('#catalog-apply').click();
   await waitFor(()=>ui.$('#catalog-confirm') && !ui.$('#catalog-confirm').disabled,'保存回应未知保留原操作');
   const session=Object.fromEntries(Array.from({length:ui.window.sessionStorage.length},(_,i)=>ui.window.sessionStorage.key(i)).map(key=>[key,ui.window.sessionStorage.getItem(key)]));
@@ -191,10 +196,9 @@ try{
   await waitFor(()=>events.some(event=>event.event==='connected'),'资料消费SSE连通');
   const metadata=await preview('chips',command(uiChip.id,'2',{firmwareVersion:'资料固件改名测试'}));await save('chips',metadata);
   await waitFor(()=>events.some(event=>event.event==='project' && event.data.operationId===metadata.idempotencyKey),'资料事务提交后真实SSE');
-  const notification=events.find(event=>event.data.operationId===metadata.idempotencyKey).data;
+  const notification=events.find(event=>event.event==='project' && event.data.operationId===metadata.idempotencyKey).data;
   assert.deepEqual(notification,{projectId:summary.id,version:'9',operationId:metadata.idempotencyKey});assert(!JSON.stringify(events).includes('资料固件改名测试'));
   assert.equal((await b.api('/api/project-summary')).items.find(row=>row.id===summary.id).version,'9');
-  controller.abort();await done;
   checks.push('PRD9.17/9.18：芯片元资料维护提交后经真实SSE发送项目版本，另账号重新读取统一摘要得到同版本，消息不携带资料正文');
   const summaryUi=await page(b,{},'project-status-summary'),sw=summaryUi.window,s$=summaryUi.$,rowSelector=`tr[data-row="${summary.id}"]`;
   assert.equal(sw.document.querySelectorAll('[data-select]:checked').length,0,'普通入口不预选');
@@ -251,10 +255,19 @@ try{
   await waitFor(()=>live.$(liveRow+' [data-column="status"]').textContent==='通知后的正式说明','组合输入后更新静态值');
   assert.equal(live.$(liveRow+' textarea').value,'输入法文字保留');assert.equal(live.window.document.activeElement,live.$(liveRow+' textarea'));assert.equal(live.$(liveRow+' textarea').selectionStart,2);
   assert(live.$(liveRow+' [data-note-action="save"]').disabled,'他人更新后旧稿不直接保存');
+  const oldStream=live.streams.find(stream=>!stream.closed);assert(oldStream);
   live.window.dispatchEvent(new live.window.PageTransitionEvent('pagehide',{persisted:true}));assert(live.streams.every(stream=>stream.closed));
   await otherSession.api(livePath,'PATCH',{expectedVersion:'2',idempotencyKey:randomUUID(),scope:'status',changes:{statusDesc:'返回时新读取'}});
   live.window.dispatchEvent(new live.window.PageTransitionEvent('pageshow',{persisted:true}));
   await waitFor(()=>live.$(liveRow+' [data-column="status"]').textContent==='返回时新读取' && live.events.filter(e=>e.event==='connected').length>=2,'缓存页返回重新连接并读取');
+  assert.equal(live.streams.filter(stream=>!stream.closed).length,1,'缓存返回仅保留一个活动通知连接');
+  const staleReads=live.requests.length;
+  for(const [event,data] of [['project',{projectId:liveId,version:'9999',operationId:randomUUID()}],['resource',{resource:'catalog',kind:'company',operationId:randomUUID()}],['connected',{}],['identity',{}]])oldStream.dispatchEvent(new live.window.MessageEvent(event,{data:JSON.stringify(data)}));
+  oldStream.onerror?.();await new Promise(resolve=>setTimeout(resolve,100));
+  assert.equal(live.requests.length,staleReads,'旧连接迟到事件不读取、不改变身份或重连');
+  assert.equal(live.streams.filter(stream=>!stream.closed).length,1);assert.equal(live.$(liveRow+' textarea').value,'输入法文字保留');
+  live.window.dispatchEvent(new live.window.PageTransitionEvent('pageshow',{persisted:true}));
+  await waitFor(()=>live.streams.filter(stream=>!stream.closed).length===1 && live.events.filter(e=>e.event==='connected').length>=2,'重复恢复不积累连接');
   checks.push('PRD9.16/9.17/9.20：真实SSE新建项目进入统一列表；他人更新刷新静态信息、保留备注并拒绝旧版保存；中文组合输入不中断、焦点选区保留；缓存页返回重连并读取新结果');
   const boardScope=await b.api('/api/projects?view=all&dashboard=1&pageSize=1&search='+prefix);
   assert.equal(boardScope.items.length,1);assert(boardScope.pagination.total>1);
@@ -342,6 +355,87 @@ try{
   checks.push('PRD9.19：规则页首次读取失败可重试；配置竞态拒绝且重读保留所选星期；真实提交丢回应后重开再次读失败仍能核对原结果，SQL仅一条规则；同星期无变化、普通账号只读');
   checks.push('PRD9.20：无目录API明确说明浏览器下载；画布不可用明确失败并保留选择和备注，正式项目版本不变');
   checks.push('PRD9.20：真实页面拖动行列、全选多项目并生成可读CSV，顺序与字段一致且逐项目完整，重置顺序恢复；未保存备注及正式版本保持');
+  const probe=await page(b,{},'data-manage',true,'',{moduleOnly:true}),resources=[],states=[];let reconnects=0,identityChanges=0;
+  probe.window.document.addEventListener('geekdash-identity-changed',()=>identityChanges++);
+  const subscription=new (probe.load('src/web/shared/notifications.ts').ProjectNotifications)(()=>{},()=>reconnects++,text=>states.push(text),undefined,randomUUID(),event=>resources.push(event));
+  await waitFor(()=>reconnects===1,'共享通知模块真实连接');
+  const resourceEvents=operationId=>events.filter(event=>event.event==='resource' && event.data.operationId===operationId);
+  const projectVersions=async()=>(await c.query('SELECT CAST(id AS CHAR) id,CAST(version AS CHAR) version FROM projects WHERE id IN (?) ORDER BY id',[projects]))[0];
+  const unchangedVersions=await projectVersions();
+  const isolated=command(null,'0',{name:prefix+' 无引用通知芯片',manufacturer:'不出现在通知正文的合成厂商'}),isolatedResult=await save('chips',isolated);created.push(['chips',isolatedResult.result.id]);
+  await waitFor(()=>resourceEvents(isolated.idempotencyKey).length,'无引用资料提交的资源通知');
+  await waitFor(()=>resources.some(event=>event.operationId===isolated.idempotencyKey),'共享通知模块第六回调消费资源');
+  assert.deepEqual(resourceEvents(isolated.idempotencyKey)[0].data,{resource:'catalog',kind:'chips',operationId:isolated.idempotencyKey});
+  assert.deepEqual(isolatedResult.result.affectedProjects,[]);assert(!events.some(event=>event.event==='project' && event.data.operationId===isolated.idempotencyKey));
+  assert.equal((await b.api('/api/catalog/chips')).items.find(item=>item.id===isolatedResult.result.id).manufacturer,isolated.changes.manufacturer);
+  assert.equal((await c.query('SELECT manufacturer FROM chips WHERE id=?',[isolatedResult.result.id]))[0][0].manufacturer,isolated.changes.manufacturer);
+  const invalid=command(null,'0',{name:' '}),denied=command(null,'0',{name:prefix+' 越权不得新增'}),rolledBack=command(null,'0',{name:prefix+' 回滚不得新增'});
+  await save('chips',invalid,422);await b.api('/api/catalog/chips/save','POST',denied,403);
+  fault='INSERT INTO command_receipts';await save('chips',rolledBack,503);fault='';
+  await new Promise(resolve=>setTimeout(resolve,100));
+  for(const input of [invalid,denied,rolledBack])assert.equal(resourceEvents(input.idempotencyKey).length,0,'失败的资料操作不发资源通知');
+  assert.equal(Number((await c.query('SELECT COUNT(*) n FROM chips WHERE name IN (?,?)',[denied.changes.name,rolledBack.changes.name]))[0][0].n),0);
+  const counts=async()=>(await c.query('SELECT (SELECT COUNT(*) FROM chips WHERE id=?) items,(SELECT COUNT(*) FROM audit_log WHERE actor_id=? AND entity_type=\'chips\' AND entity_id=?) audits,(SELECT COUNT(*) FROM command_receipts WHERE actor_id=? AND idempotency_key=?) receipts',[isolatedResult.result.id,users[0].id,isolatedResult.result.id,users[0].id,isolated.idempotencyKey]))[0][0];
+  const persisted=await counts();assert.deepEqual(Object.values(persisted).map(Number),[1,1,1]);
+  assert.deepEqual((await a.api('/api/catalog/chips/results/query','POST',isolated)).result,isolatedResult.result);
+  assert.deepEqual((await save('chips',isolated)).result,isolatedResult.result);
+  assert.deepEqual(await counts(),persisted,'原回执查询/原命令重放不新增资料、审计或回执');
+  assert.equal((await read('chips',isolatedResult.result.id)).version,'1');
+  const noChange=await preview('chips',command(isolatedResult.result.id,'1',{name:isolated.changes.name}));assert.equal((await save('chips',noChange)).result.changed,false);
+  await new Promise(resolve=>setTimeout(resolve,100));assert.equal(resourceEvents(noChange.idempotencyKey).length,0,'无变化保存不发资源更新');
+  checks.push('资源通知：无引用芯片提交→另一真实SSE只获类别/操作号→另账号新GET与SQL可读；422/403/事务回滚及无变化均不发资源更新；原回执与重放保持单条资料、审计和回执');
+
+  const companyBefore=await read('company','1'),companyCommand=command('1',companyBefore.version,{fullName:prefix+' 资源通知企业'}),companyResult=await save('company',companyCommand);
+  await waitFor(()=>resourceEvents(companyCommand.idempotencyKey).length,'企业资料资源通知');
+  assert.deepEqual(resourceEvents(companyCommand.idempotencyKey)[0].data,{resource:'catalog',kind:'company',operationId:companyCommand.idempotencyKey});
+  assert.equal((await b.api('/api/project-summary')).company.fullName,companyCommand.changes.fullName);
+  assert.equal((await c.query('SELECT full_name FROM system_configuration WHERE id=1'))[0][0].full_name,companyCommand.changes.fullName);
+  assert.equal((await read('company','1')).version,companyResult.result.savedVersion);
+  const nextRule=await a.api('/api/settings/check-rule'),ruleCommand={action:'modifyCheckRule',deadlineWeekday:nextRule.rule.deadlineWeekday===1?7:1,expectedVersion:nextRule.configVersion,previewWeek:nextRule.weekStart,idempotencyKey:randomUUID()};
+  const ruleResult=await a.api('/api/settings/check-rule','POST',ruleCommand);
+  await waitFor(()=>resourceEvents(ruleCommand.idempotencyKey).length,'检查规则资源通知');
+  assert.deepEqual(resourceEvents(ruleCommand.idempotencyKey)[0].data,{resource:'check-rule',version:ruleResult.result.ruleVersion,operationId:ruleCommand.idempotencyKey});
+  assert.equal((await b.api('/api/settings/check-rule')).rule.deadlineWeekday,ruleCommand.deadlineWeekday);
+  assert.equal((await c.query('SELECT deadline_weekday FROM check_rule_revisions WHERE version=?',[ruleResult.result.ruleVersion]))[0][0].deadline_weekday,ruleCommand.deadlineWeekday);
+  const rulesPersisted=Number((await c.query('SELECT COUNT(*) n FROM check_rule_revisions WHERE saved_by=?',[users[0].id]))[0][0].n);
+  assert.deepEqual((await a.api('/api/settings/check-rule/results/query','POST',ruleCommand)).result,ruleResult.result);
+  assert.deepEqual((await a.api('/api/settings/check-rule','POST',ruleCommand)).result,ruleResult.result);
+  assert.equal(Number((await c.query('SELECT COUNT(*) n FROM check_rule_revisions WHERE saved_by=?',[users[0].id]))[0][0].n),rulesPersisted);
+  const staleRule={...ruleCommand,deadlineWeekday:chosen,idempotencyKey:randomUUID()};await a.api('/api/settings/check-rule','POST',staleRule,409);
+  const freshRule=await a.api('/api/settings/check-rule'),unchangedRule={...ruleCommand,expectedVersion:freshRule.configVersion,idempotencyKey:randomUUID()};
+  assert.equal((await a.api('/api/settings/check-rule','POST',unchangedRule)).result.changed,false);
+  await new Promise(resolve=>setTimeout(resolve,100));assert.equal(resourceEvents(staleRule.idempotencyKey).length,0);assert.equal(resourceEvents(unchangedRule.idempotencyKey).length,0);
+  assert.deepEqual(await projectVersions(),unchangedVersions,'公共无引用资料、企业和规则保存不虚构项目版本');
+  const payloads=events.filter(event=>event.event==='resource').map(event=>event.data);assert(!JSON.stringify(payloads).includes(prefix));assert(!JSON.stringify(payloads).includes(isolated.changes.manufacturer));
+  checks.push('资源通知：企业及检查规则提交→另一会话真实SSE→新GET/独立SQL一致；规则原回执/重放不新增修订；旧版拒绝和无变化不发更新；所有项目版本保持，通知不携带公共资料正文');
+  await waitFor(()=>resources.some(event=>event.operationId===ruleCommand.idempotencyKey),'检查规则经共享模块消费');
+  const oldProbeStream=probe.streams.find(stream=>!stream.closed),hide=()=>probe.window.dispatchEvent(new probe.window.PageTransitionEvent('pagehide',{persisted:true})),show=()=>probe.window.dispatchEvent(new probe.window.PageTransitionEvent('pageshow',{persisted:true}));
+  hide();assert(probe.streams.every(stream=>stream.closed));let releaseIdentity;
+  probe.identityGate=new Promise(resolve=>releaseIdentity=resolve);show();
+  await waitFor(()=>probe.identityHeld,'缓存恢复真实身份请求已返回，但回应仍被延迟');hide();releaseIdentity();probe.identityGate=undefined;
+  await new Promise(resolve=>setTimeout(resolve,100));assert(probe.streams.every(stream=>stream.closed),'再次离开后，迟到的身份成功不能建立通知连接');assert.equal(reconnects,1);
+  probe.failIdentityRead=true;show();await waitFor(()=>states.some(text=>text.includes('中断')),'临时503保留重连状态');
+  assert.equal(identityChanges,0,'数据库临时不可用不当成身份切换');
+  await waitFor(()=>reconnects===2,'临时503后重新核验真实身份并恢复连接');assert.equal(probe.streams.filter(stream=>!stream.closed).length,1);
+  const resourceCount=resources.length,stateCount=states.length;
+  for(const [event,data] of [['resource',{resource:'catalog',kind:'chips',operationId:randomUUID()}],['connected',{}],['identity',{}],['unavailable',{}]])oldProbeStream.dispatchEvent(new probe.window.MessageEvent(event,{data:JSON.stringify(data)}));
+  oldProbeStream.onerror?.();show();show();await new Promise(resolve=>setTimeout(resolve,100));
+  assert.equal(resources.length,resourceCount);assert.equal(states.length,stateCount);assert.equal(identityChanges,0);assert.equal(reconnects,2);assert.equal(probe.streams.filter(stream=>!stream.closed).length,1);
+  subscription.close();hide();show();await new Promise(resolve=>setTimeout(resolve,50));assert(probe.streams.every(stream=>stream.closed));assert.equal(reconnects,2,'主动终止的通知实例不能被缓存返回重新开启');
+  checks.push('共享通知真实HTTP/SSE与受控DOM：第六回调消费资料/规则；缓存返回先核验身份，恢复期间再离开隔离迟到身份结果；临时503重试不冻结身份；旧流迟到资源/身份/重连事件不生效；重复返回仅单连接，主动关闭不复活');
+  const candidateTag=await make('tags',{name:prefix+' 编辑中新停用标签'}),candidateCustomer=await make('customers',{name:prefix+' 编辑标签客户',contact:'',background:'',tagIds:[]});
+  const tagView=await page(a,{},'data-manage',true);
+  await waitFor(()=>tagView.events.some(event=>event.event==='connected') && tagView.$(`[data-id="${candidateCustomer}"]`) && !tagView.$('#catalog-reload').disabled,'客户标签页面及实时通知就绪');
+  tagView.$(`[data-id="${candidateCustomer}"]`).click();await waitFor(()=>tagView.$('#catalog-detail').textContent.includes(prefix+' 编辑标签客户') && !tagView.$('#catalog-edit')?.disabled,'选择无标签客户');
+  tagView.$('#catalog-edit').click();tagView.input('#catalog-background','其他账号停用标签时保留客户输入');tagView.$(`[data-tag="${candidateTag}"]`).click();assert.equal(tagView.$(`[data-tag="${candidateTag}"]`).checked,true);
+  const stopTag=await preview('tags',command(candidateTag,(await read('tags',candidateTag)).version,{enabled:false}));await save('tags',stopTag);
+  await waitFor(()=>tagView.$(`[data-tag="${candidateTag}"]`)?.dataset.disabled==='true','真实SSE更新编辑中的停用标签候选');
+  assert.equal(tagView.$('#catalog-background').value,'其他账号停用标签时保留客户输入');assert.equal(tagView.$(`[data-tag="${candidateTag}"]`).checked,true);assert.equal(tagView.$(`[data-tag="${candidateTag}"]`).disabled,false,'本次尚未保存的新选标签停用后必须允许移除');
+  tagView.$(`[data-tag="${candidateTag}"]`).click();assert.equal(tagView.$(`[data-tag="${candidateTag}"]`).checked,false);assert.equal(tagView.$(`[data-tag="${candidateTag}"]`).disabled,true,'移除后不能重新选择停用标签');
+  tagView.$('#catalog-save').click();await waitFor(()=>tagView.$('#catalog-edit') && !tagView.$('#catalog-edit').disabled && tagView.$('#catalog-detail').textContent.includes('其他账号停用标签时保留客户输入'),'移除不可用标签后保存其余客户修改');
+  assert.equal((await read('customers',candidateCustomer)).background,'其他账号停用标签时保留客户输入');assert.equal((await read('tags',candidateTag)).enabled,false);
+  const {connection:tagRead}=await connectDatabase('test_app');try{assert.equal((await tagRead.query('SELECT background FROM customers WHERE id=?',[candidateCustomer]))[0][0].background,'其他账号停用标签时保留客户输入');assert.equal(Number((await tagRead.query('SELECT COUNT(*) n FROM customer_tags WHERE customer_id=? AND tag_id=?',[candidateCustomer,candidateTag]))[0][0].n),0);}finally{await tagRead.end();}
+  checks.push('PRD9.18：编辑客户时新选标签被停用，真实SSE保留输入并允许取消该勾选，取消后禁止重选；其余修改一次保存后新GET/独立SQL一致，未写入停用标签关联');
   await writeFile('test-results/catalog.json',JSON.stringify({status:'passed',checks,browserTested:false},null,2));console.log(JSON.stringify({status:'passed',checks:checks.length,evidence:'test-results/catalog.json'}));
 }catch(error){console.error(error);throw error;}finally{
   fault='';for(const stream of streams)stream.controller.abort();await Promise.allSettled(streams.map(stream=>stream.done));for(const dom of views){for(const stream of dom.streams ?? [])stream.close();dom.window.close();}if(app)await app.close();

@@ -7,7 +7,9 @@ import { openRuntimeDatabase } from '../dist/server/infrastructure/runtime-datab
 import { hashPassword, digest, identities } from '../dist/server/modules/identity.js';
 import { projectSaves } from '../dist/server/modules/project-save.js';
 
+assert.equal(process.env.GEEKDASH_MIGRATION_PROBE, '1', '仅在独立测试实例执行');
 const { connection: c } = await connectDatabase('test_migrator');
+assert.equal((await c.query('SELECT @@server_uuid uuid'))[0][0].uuid, process.env.GEEKDASH_MIGRATION_PROBE_SERVER_UUID);
 const prefix = '__core_' + randomUUID().slice(0, 8);
 const password = ' 核心验收 长短语 password 2026 ';
 const temporary = '临时密码 long phrase 2026';
@@ -49,7 +51,7 @@ function client() {
     async login(index, secret = password) { await this.api('/api/auth/login', 'POST', { loginName: users[index].loginName, password: secret }); return this.api('/api/auth/me'); },
   };
 }
-const operation = (version, changes) => ({ expectedVersion: version, idempotencyKey: randomUUID(), changes });
+const operation = (version, changes) => ({ expectedVersion: version, idempotencyKey: randomUUID(), scope: 'basic', changes });
 const responsibility = (version, action) => ({ expectedVersion: version, idempotencyKey: randomUUID(), action });
 const creation = () => ({ idempotencyKey: randomUUID(), fields: { name: prefix, marketExpectation: '测试输入', detailNote: '原输入', summaryNote: '摘要' } });
 async function fresh(id) {
@@ -81,6 +83,57 @@ try {
   fault = 'audit'; await a.api('/api/auth/password', 'POST', { currentPassword: password, newPassword: '新密码 transaction rollback 2026', confirmPassword: '新密码 transaction rollback 2026' }, 503); fault = '';
   await a.api('/api/auth/me'); await device.api('/api/auth/me');
   checks.push('真实临时登录、强制改密、CSRF、改密后重新登录和旧会话撤销');
+  const options = await a.api('/api/project-options');
+  for (const candidate of options.managerAccounts) assert.deepEqual(Object.keys(candidate).sort(), ['enabled', 'id', 'name']);
+  for (const user of users) assert(options.managerAccounts.some(candidate => candidate.id === user.id && candidate.enabled));
+  const selected = creation(); delete selected.fields.summaryNote; selected.fields.managerIds = [users[1].id];
+  const draftInput = { clientDraftId: randomUUID(), projectId: null, baseVersion: null, formKind: 'create', expectedDraftVersion: '0', clientSequence: '1', payload: { schemaVersion: 1, instanceId: randomUUID(), values: selected.fields, submission: { fields: selected.fields } } };
+  const managerDraft = await a.api('/api/personal/drafts/save', 'POST', draftInput);
+  selected.draft = { clientDraftId: managerDraft.clientDraftId, draftVersion: managerDraft.draftVersion };
+  const assigned = await a.api('/api/projects', 'POST', selected), assignedId = assigned.result.projectId; projects.push(assignedId);
+  assert.equal(assigned.result.draft.state, 'committed');
+  const assignedDetail = await b.api('/api/projects/' + assignedId);
+  assert.equal(assignedDetail.readOnly, false, '被选择账号不必另行加入即可编辑');
+  assert.deepEqual(assignedDetail.responsible.map(user => user.id).sort(), [users[0].id, users[1].id].sort());
+  assert.equal((await fresh(assignedId)).members, '2');
+  const creationAudit = (await a.api('/api/projects/' + assignedId + '/audit')).items[0];
+  assert.deepEqual(creationAudit.afterValues.managers, [0,1].map(index => ({ id: users[index].id, name: '合成账号' + index })));
+  await b.api('/api/projects/' + assignedId, 'PATCH', operation('1', { name: prefix + ' 已由选定经理保存' }));
+  assert.equal((await a.api('/api/projects/' + assignedId)).project.name, prefix + ' 已由选定经理保存');
+  assert.equal((await fresh(assignedId)).name, prefix + ' 已由选定经理保存');
+  const assignedBefore = await fresh(assignedId);
+  assert.deepEqual((await a.api('/api/projects', 'POST', selected)).result, assigned.result);
+  assert.deepEqual(await fresh(assignedId), assignedBefore, '创建重放不能追加责任或审计');
+  checks.push('新建选择真实账号：创建人自动保留、候选不泄露凭据、草稿同事务终结、所选经理直接保存及GET/SQL回读、创建审计和重放');
+  await c.execute('UPDATE users SET enabled=0 WHERE id=?', [users[4].id]);
+  try {
+    assert(!(await a.api('/api/project-options')).managerAccounts.some(candidate => candidate.id === users[4].id));
+    for (const managerIds of [[users[4].id], ['18446744073709551615'], [users[1].id, users[1].id], ['01'], [1], [users[1].id, users[4].id]]) {
+      const rejected = creation(); rejected.fields.managerIds = managerIds;
+      const refused = await a.api('/api/projects', 'POST', rejected, 422);
+      assert.equal(refused.code, 'INVALID_PROJECT_FIELDS'); assert(refused.fields.managerIds);
+      assert.equal((await c.query("SELECT COUNT(*) n FROM projects WHERE source_namespace='geekdash-manual-v1' AND source_key=?", [users[0].id + ':' + rejected.idempotencyKey]))[0][0].n, '0');
+      assert.equal((await c.query('SELECT COUNT(*) n FROM command_receipts WHERE actor_id=? AND idempotency_key=?', [users[0].id, rejected.idempotencyKey]))[0][0].n, '0');
+    }
+  } finally { await c.execute('UPDATE users SET enabled=1 WHERE id=?', [users[4].id]); }
+  const crossed = [creation(), creation()]; crossed[0].fields.managerIds = [users[1].id]; crossed[1].fields.managerIds = [users[0].id];
+  const crossedResults = await Promise.all([a.api('/api/projects', 'POST', crossed[0]), b.api('/api/projects', 'POST', crossed[1])]);
+  for (const result of crossedResults) { projects.push(result.result.projectId); assert.equal((await fresh(result.result.projectId)).members, '2'); }
+  const emptyManagers = creation(); emptyManagers.fields.managerIds = [];
+  const emptyCreated = await a.api('/api/projects', 'POST', emptyManagers); projects.push(emptyCreated.result.projectId);
+  assert.equal((await fresh(emptyCreated.result.projectId)).members, '1');
+  checks.push('停用/不存在/重复/畸形经理字段拒绝且无部分项目或回执；空选择仍有创建人；双账号交叉选人并发创建完成');
+  const uncertainCreate = creation(); uncertainCreate.fields.managerIds = [users[1].id];
+  fault = 'ack'; assert.equal((await a.api('/api/projects', 'POST', uncertainCreate, 503)).outcome, 'unknown'); fault = '';
+  await app.close(); await start();
+  const resolvedCreate = await a.api('/api/projects/create-results/query', 'POST', uncertainCreate);
+  assert.equal(resolvedCreate.outcome, 'committed'); projects.push(resolvedCreate.result.projectId);
+  const resolvedBefore = await fresh(resolvedCreate.result.projectId);
+  assert.equal(resolvedBefore.members, '2'); assert.equal(resolvedBefore.audits, '1');
+  assert.deepEqual((await a.api('/api/projects', 'POST', uncertainCreate)).result, resolvedCreate.result);
+  assert.deepEqual(await fresh(resolvedCreate.result.projectId), resolvedBefore);
+  assert.equal((await b.api('/api/projects/' + resolvedCreate.result.projectId)).readOnly, false);
+  checks.push('选择经理创建COMMIT丢响应：重启后原回执确认、重放不重复、已保存责任仍可使用');
   const make = creation();
   const created = await a.api('/api/projects', 'POST', make); const id = created.result.projectId; projects.push(id);
   assert.deepEqual((await a.api('/api/projects', 'POST', make)).result, created.result);
@@ -95,7 +148,7 @@ try {
   checks.push('创建项目及七阶段、真实创建者、自动负责、重复创建对账、非负责人只读和最后退出拒绝');
   const join = responsibility('1', 'join'); await b.api('/api/projects/' + id + '/responsibility', 'POST', join);
   assert.equal((await a.api('/api/projects/' + id)).project.version, '2');
-  const body = operation('2', { detailNote: '新账号保存', signal: 'yellow', priority: 'high' });
+  const body = operation('2', { detailNote: '新账号保存', priority: 'high' });
   await b.api('/api/projects/' + id, 'PATCH', body); assert.equal((await fresh(id)).version, '3');
   assert.equal((await b.api('/api/projects/' + id + '/save-results/query', 'POST', body)).outcome, 'committed');
   assert.equal((await a.api('/api/projects/' + id + '/save-results/query', 'POST', body)).outcome, 'not_found');
@@ -105,7 +158,7 @@ try {
   const before = await fresh(id);
   fault = 'audit'; await a.api('/api/projects/' + id, 'PATCH', operation('3', { name: '回滚' }), 500); fault = '';
   assert.deepEqual(await fresh(id), before);
-  const faultyCreate = creation(); fault = 'audit'; await a.api('/api/projects', 'POST', faultyCreate, 503); fault = '';
+  const faultyCreate = creation(); faultyCreate.fields.managerIds = [users[1].id]; fault = 'audit'; await a.api('/api/projects', 'POST', faultyCreate, 503); fault = '';
   assert.equal((await a.api('/api/projects/create-results/query', 'POST', faultyCreate)).outcome, 'not_found');
   assert.equal((await c.query("SELECT COUNT(*) n FROM projects WHERE source_namespace='geekdash-manual-v1' AND source_key=?", [users[0].id + ':' + faultyCreate.idempotencyKey]))[0][0].n, '0');
   checks.push('保存及创建审计故障：项目、七阶段、关系、版本和回执整体回滚');
@@ -135,7 +188,7 @@ try {
   await assert.rejects(projectSaves(runtime).save(id, operation(unchanged.version, { name: '已停用快照越权' }), randomUUID(), actor), error => error.code === 'AUTH_REQUIRED');
   assert.deepEqual(await fresh(id), unchanged);
   await c.execute('UPDATE users SET enabled=1 WHERE id=?', [actor.id]);
-  const legacy = operation(unchanged.version, { summaryNote: '原匿名版本遗留结果' });
+  const { scope: _legacyScope, ...legacy } = operation(unchanged.version, { summaryNote: '原匿名版本遗留结果' });
   await projectSaves(runtime).save(id, legacy, randomUUID());
   assert.equal((await keeper.api('/api/projects/' + id + '/save-results/query', 'POST', legacy)).outcome, 'committed');
   assert.equal((await keeper.api('/api/projects/' + id + '/audit')).items[0].actorKind, 'anonymous');
@@ -156,8 +209,8 @@ try {
   if (serve) { console.log(JSON.stringify({ status: 'browser_fixture', loginName: users[2].loginName, projectId: id, passwordSource: 'synthetic test constant in this script' })); await new Promise(resolve => { process.once('SIGTERM', resolve); process.once('SIGINT', resolve); }); }
 } finally {
   if (app) await app.close();
-  if (serve && users.length) { const additional = (await c.query('SELECT CAST(id AS CHAR) id FROM projects WHERE source_namespace=? AND created_by IN (' + users.map(() => '?').join(',') + ')', ['geekdash-manual-v1', ...users.map(user => user.id)]))[0]; for (const item of additional) if (!projects.includes(item.id)) projects.push(item.id); }
+  if (users.length) { const additional = (await c.query('SELECT CAST(id AS CHAR) id FROM projects WHERE source_namespace=? AND created_by IN (' + users.map(() => '?').join(',') + ')', ['geekdash-manual-v1', ...users.map(user => user.id)]))[0]; for (const item of additional) if (!projects.includes(item.id)) projects.push(item.id); }
   for (const id of projects) { await c.execute('DELETE FROM command_receipts WHERE command_scope IN (?,?)', ['anonymous:project:' + id + ':text', 'anonymous:project:' + id + ':ordinary']); await c.execute('DELETE FROM command_receipts WHERE command_scope LIKE ?', ['user:%:project:' + id + ':%']); await c.execute('DELETE FROM audit_log WHERE project_id=?', [id]); await c.execute('DELETE FROM project_responsibilities WHERE project_id=?', [id]); await c.execute('DELETE FROM project_stages WHERE project_id=?', [id]); await c.execute('DELETE FROM projects WHERE id=?', [id]); }
-  for (const user of users) { await c.execute('DELETE FROM command_receipts WHERE actor_id=?', [user.id]); await c.execute('DELETE FROM audit_log WHERE actor_id=?', [user.id]); await c.execute('DELETE FROM sessions WHERE user_id=?', [user.id]); await c.execute('DELETE FROM users WHERE id=?', [user.id]); }
+  for (const user of users) { await c.execute('DELETE FROM project_drafts WHERE user_id=?', [user.id]); await c.execute('DELETE FROM command_receipts WHERE actor_id=?', [user.id]); await c.execute('DELETE FROM audit_log WHERE actor_id=?', [user.id]); await c.execute('DELETE FROM sessions WHERE user_id=?', [user.id]); await c.execute('DELETE FROM users WHERE id=?', [user.id]); }
   await c.end();
 }

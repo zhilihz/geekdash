@@ -202,6 +202,18 @@ export async function displayValues(connection: PoolConnection, values: Partial<
   }
   return display;
 }
+// 内部事务参与能力：调用方已按资料→项目顺序锁定并重读引用，继续使用同一连接。
+export async function applyReferenceProjectChanges(connection: PoolConnection, actor: Actor, projects: {projectId:string;version:string}[], source: {action:string;entityType:string;entityId:string;beforeValues:unknown;afterValues:unknown;requestId:string;at:string}) {
+  const affectedProjects: {projectId:string;version:string}[]=[];
+  for(const project of projects){
+    if(project.version==='18446744073709551615')failure('CATALOG_VERSION_EXHAUSTED',422);
+    const version=String(BigInt(project.version)+1n);
+    await connection.execute('UPDATE projects SET version=version+1,updated_at=? WHERE id=?',[source.at,project.projectId]);
+    await connection.execute("INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,version_before,version_after,before_json,after_json,request_id,created_at) VALUES (?,?,'user',?,?,?,?,?,?,?,?,?,?)",[actor.id,actor.name,source.action,source.entityType,source.entityId,project.projectId,project.version,version,JSON.stringify(source.beforeValues),JSON.stringify(source.afterValues),source.requestId,source.at]);
+    affectedProjects.push({projectId:project.projectId,version});
+  }
+  return affectedProjects;
+}
 export function projectSaves(database: RuntimeDatabase) {
   return {
     preview(id: string, request: SaveRequest, actor: Actor) {
@@ -223,6 +235,7 @@ export function projectSaves(database: RuntimeDatabase) {
       return database.readSnapshot(async connection => {
         const result: Record<string, RowDataPacket[]> = {};
         for (const table of [...new Set(Object.values(referenceFields))].sort()) result[table] = await query(connection, `SELECT CAST(id AS CHAR) id,name,enabled${table === 'chips' ? ',original_model originalModel,manufacturer,firmware_version firmwareVersion' : ''} FROM ${table} ORDER BY name,${table}.id`);
+        result.managerAccounts = await query(connection, 'SELECT CAST(id AS CHAR) id,display_name name,enabled FROM users WHERE enabled=1 ORDER BY display_name,id');
         return result;
       });
     },

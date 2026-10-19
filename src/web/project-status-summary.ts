@@ -13,7 +13,7 @@ type NoteKind='summaryNote'|'chipstatNote';
 type NoteEdit={id:string;kind:NoteKind;value:string;base:string;version:string;pending?:SaveRequest;busy?:boolean;message?:string};
 type Directory={name:string;getFileHandle:(name:string,options:{create:boolean})=>Promise<{createWritable:()=>Promise<{write:(data:Blob)=>Promise<void>;close:()=>Promise<void>;abort:()=>Promise<void>}>}>};
 let snapshot:SummarySnapshot|undefined,filters:SummaryFilters={group:[],status:[],owner:[],chip:[]},sort:SummarySort='customer',order:string[]=[],hidden:string[]=[],columnOrder=Object.keys(summaryColumns) as SummaryColumn[],hiddenColumns:string[]=['chipNote'];
-let frozen=false,loading=false,generation=0,exporting=false,composing=false,renderPending=false,directory:Directory|undefined,notifications:ProjectNotifications|undefined;
+let frozen=false,loading=false,generation=0,exporting=false,composing=false,renderPending=false,directory:Directory|undefined;
 const selected=new Set<string>(),edits=new Map<string,NoteEdit>();
 const draftStores=new Map<string,PersonalDrafts>();
 let preference:PersonalPreference,layout:PersonalPreference;
@@ -145,8 +145,10 @@ document.querySelectorAll<HTMLButtonElement>('[data-export]').forEach(button=>bu
 window.addEventListener('beforeunload',event=>{if([...edits.values()].some(e=>e.pending || e.value!==e.base)){event.preventDefault();event.returnValue='';}});
 document.addEventListener('geekdash-identity-changed',()=>{frozen=true;generation++;message('账号状态已改变，输入保留供复制，请重新登录。');renderTable();});
 window.addEventListener('scroll',()=>preference?.update({scrollY:Math.round(window.scrollY)}),{passive:true});
-function connect(){notifications?.close();notifications=new ProjectNotifications((_event,own)=>{if(!own)void load();},()=>{if(!loading)void load();},text=>{if(text)message(text);});}
-window.addEventListener('pageshow',event=>{if(event.persisted && account && !frozen){try{const saved=JSON.parse(sessionStorage.getItem(returnKey()) ?? 'null');if(saved?.url===location.pathname+location.search)sessionStorage.removeItem(returnKey());}catch{}void load();connect();}});
+const refresh=()=>{if(!frozen && snapshot)void load();};
+window.addEventListener('focus',refresh);
+window.addEventListener('pageshow',event=>{if(event.persisted && account && !frozen){try{const saved=JSON.parse(sessionStorage.getItem(returnKey()) ?? 'null');if(saved?.url===location.pathname+location.search)sessionStorage.removeItem(returnKey());}catch{}}});
+setInterval(()=>{if(snapshot && !loading && document.visibilityState==='visible' && snapshot.businessDate!==new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai'}).format(new Date()))refresh();},60000);
 setupTheme();
 async function initialize(){if(await requireIdentity()){
   const quickKey=parameters.get('quick');
@@ -184,6 +186,6 @@ async function initialize(){if(await requireIdentity()){
     renderTable();if(typeof position==='number')window.scrollTo(0,position);
   }
   for(const edit of edits.values())if(edit.pending)void save(edit,true);else capture(edit);
-  connect();
+  new ProjectNotifications((_event,own)=>{if(!own)refresh();},()=>{if(!frozen)void load();},text=>{if(text)message(text);},undefined,undefined,refresh);
 }}
 void initialize();

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 import { assertActor, type Actor } from './identity.js';
-import { failure, validId } from './project-save.js';
+import { failure, validId, applyReferenceProjectChanges } from './project-save.js';
 import { canonical } from './personal-state.js';
 
 const definitions: Record<string, { table: string; fields: Record<string, [string, number]> }> = {
@@ -135,10 +135,10 @@ export function catalog(database: RuntimeDatabase) {
         const preview=await prepare(c,kind,body,true), {before,after,changed}=preview;
         if (body.id && changed && kind !== 'company' && body.impactToken !== preview.impactToken) failure('CATALOG_IMPACT_CHANGED',409,{projects:preview.projects,customers:preview.customers});
         let id=body.id, savedVersion=before?.version ?? '1';
-        const affectedProjects: {projectId:string;version:string}[]=[];
+        let affectedProjects: {projectId:string;version:string}[]=[];
         const at=new Date().toISOString().slice(0,23).replace('T',' ');
         if (changed) {
-          if (before?.version === '18446744073709551615' || preview.projects.some(project=>project.version === '18446744073709551615')) failure('CATALOG_VERSION_EXHAUSTED',422);
+          if (before?.version === '18446744073709551615') failure('CATALOG_VERSION_EXHAUSTED',422);
           const keys=Object.keys(def.fields), columns=keys.map(key=>`\`${def.fields[key][0]}\``), values=keys.map(key=>after[key]);
           if (kind !== 'company') {columns.push('enabled');values.push(!!after.enabled);}
           if (id) {
@@ -154,13 +154,8 @@ export function catalog(database: RuntimeDatabase) {
           }
           const oldValues=before ? {catalogName:before.name ?? before.fullName,...Object.fromEntries(Object.keys(body.changes).map(key=>[key,before[key]]))} : null;
           const newValues={catalogName:after.name ?? after.fullName,...Object.fromEntries(Object.keys(body.changes).map(key=>[key,after[key]]))};
-          const audit=async(projectId:string|null,versionBefore:string|null,versionAfter:string)=>c.execute("INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,version_before,version_after,before_json,after_json,request_id,created_at) VALUES (?,?,'user',?,?,?,?,?,?,?,?,?,?)",[actor.id,actor.name,`catalog.${kind}.save`,def.table,id,projectId,versionBefore,versionAfter,JSON.stringify(oldValues),JSON.stringify(newValues),requestId,at]);
-          await audit(null,before?.version ?? null,savedVersion);
-          for (const project of preview.projects) {
-            const version=String(BigInt(project.version)+1n);
-            await c.execute('UPDATE projects SET version=version+1,updated_at=? WHERE id=?',[at,project.projectId]);
-            await audit(project.projectId,project.version,version); affectedProjects.push({projectId:project.projectId,version});
-          }
+          await c.execute("INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,version_before,version_after,before_json,after_json,request_id,created_at) VALUES (?,?,'user',?,?,?,?,?,?,?,?,?,?)",[actor.id,actor.name,`catalog.${kind}.save`,def.table,id,null,before?.version ?? null,savedVersion,JSON.stringify(oldValues),JSON.stringify(newValues),requestId,at]);
+          affectedProjects=await applyReferenceProjectChanges(c,actor,preview.projects.map(project=>({projectId:project.projectId,version:project.version})),{action:`catalog.${kind}.save`,entityType:def.table,entityId:id!,beforeValues:oldValues,afterValues:newValues,requestId,at});
         }
         const result={id,savedVersion,changed,operationId:body.idempotencyKey,affectedProjects};
         await c.execute('INSERT INTO command_receipts (actor_id,command_scope,idempotency_key,request_hash,response_code,response_json,committed_at) VALUES (?,?,?,?,200,?,?)',[actor.id,scope,body.idempotencyKey,hash,JSON.stringify(result),at]);

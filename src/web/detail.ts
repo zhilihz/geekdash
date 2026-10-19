@@ -7,6 +7,7 @@ import { basicFields, basicIntent, basicIntentChanged, basicCommands, referenceS
 import { scopeFields, scopeChanges, carryInputs } from './shared/scoped-editor';
 import { PersonalDrafts, PersonalPreference, type PersonalDraft } from './shared/personal-state';
 import { ProjectNotifications } from './shared/notifications';
+import { refreshProjectOptions } from './shared/project-options';
 import type { SaveScope } from './shared/api';
 import { get, send, SaveError, esc, label, projectTags, setupTheme, requireIdentity, account, stageMessages, actionLabels, dateTitles, isPlanCommand, isLifecycleCommand, isClosureCommand, isCheckCommand, type ChangeOperation, type ChangeRecord, type ChangePreview, type ChangeFields, type NodeOperation, type NodeRecord, type NodePreview, type NodeFields, type RiskOperation, type RiskRecord, type RiskPreview, type CheckCommand, type CheckPreview, type CheckPage, closureTitles, type ClosureCommand, type ClosurePreview, type LifecycleCommand, type LifecyclePreview, type PlanCommand, type PlanPreview, type ScheduleRecord, type CorrectionCommand, type CorrectionPreview, type StageCommand, type StartCommand, type ProjectCommand, type CheckRuleContext, type Detail, type Entry, type EditValues, type Catalog, type SaveRequest, type SaveResult, type AuditPage } from './shared/api';
 
@@ -34,6 +35,8 @@ let values: EditValues | undefined;
 let catalog: Catalog | undefined;
 let catalogMessage = '';
 let catalogLoading = false;
+let contextRefreshPending=false,contextRefreshing=false;
+let updateCheckContext:((context:CheckRuleContext)=>void)|undefined;
 let observedVersion = '0';
 let editBaseVersion = '0';
 let stale = false;
@@ -497,7 +500,18 @@ async function loadChecks(more = false) {
     if (page.projectVersion !== base) { stale = true; checksMessage = '项目已更新，请复制输入并重新进入，检查历史未混入旧视图。'; return; }
     checks = { ...page, items: more ? [...(checks?.items ?? []), ...page.items] : page.items }; checksMessage = '';
   } catch (error) { checksMessage = (error as Error).message + '，原展示保留，可重新读取。'; }
-  finally { checksLoading = false; if (current === checksGeneration) refreshReadView(); }
+  finally { checksLoading = false; if (current === checksGeneration) refreshCheckHistory(); }
+}
+function refreshCheckHistory(){
+  const section=document.getElementById('checks-refresh')?.closest('details');
+  if(section){
+    const open=section.open,expanded=[...section.querySelectorAll('details')].map(item=>item.open),template=document.createElement('template');template.innerHTML=checkHistory();
+    const next=template.content.firstElementChild as HTMLDetailsElement;section.replaceWith(next);next.open=open;next.querySelectorAll('details').forEach((item,index)=>{item.open=expanded[index] ?? false;});
+    next.querySelectorAll<HTMLButtonElement>('[data-check]').forEach(button=>button.onclick=()=>{void openCheck(button.dataset.check as CheckCommand['action'],button.dataset.checkId);});
+    const refresh=next.querySelector<HTMLButtonElement>('#checks-refresh');if(refresh)refresh.onclick=()=>{void loadChecks();};
+    const more=next.querySelector<HTMLButtonElement>('#checks-more');if(more)more.onclick=()=>{void loadChecks(true);};
+  }
+  controls();
 }
 function checkHistory() {
   return `<details class="secondary-section"${checks || checksLoading ? ' open' : ''}><summary>检查历史与结论纠正</summary><p>${esc(snapshot!.project.checkStatus.label)}${snapshot!.project.checkStatus.updatedAfterCheck ? ' · 检查后有更新' : ''}；本周 ${esc(snapshot!.checkRule.weekStart)}，截止 ${esc(snapshot!.checkRule.deadlineDate ?? '未初始化')}（全天）。</p><p>核对服务端已保存版本后明确保存；两种结论都不自动解决项目事项。已结案也可主动核对。</p><button class="back-btn" id="checks-refresh">${checks ? '重新读取' : '读取'}检查历史</button><p role="status">${esc(checksMessage)}</p>${checks?.items.map(record => `<article class="audit-entry"><h3>#${esc(record.id)} · ${esc(record.actorName)} · ${esc(record.checkedAt)}（UTC）</h3><p>所属周 ${esc(record.weekStart)}；${record.conclusion === 'follow_up' ? '已核对，需跟进' : '已核对'}；${record.onTime === null ? '截止依据待核对' : record.onTime ? '按当前采用截止按时' : '晚于当前采用截止'} ${esc(record.deadlineDate)}，规则 #${esc(record.effectiveRuleVersion)}。核对 v${esc(record.observedVersion)}，保存至 v${esc(record.resultVersion)}。</p><p>${esc(record.note || '（无备注）')}</p><details><summary>原文与更正来源</summary><p>${esc(record.original.conclusion === 'follow_up' ? '已核对，需跟进' : '已核对')} · ${esc(record.original.note || '（无备注）')}；当时规则 #${esc(record.ruleVersion)}，截止 ${esc(record.originalDeadlineDate)}，${record.originalOnTime ? '按时' : '晚于当时截止'}。</p>${record.correction ? `<p>最新更正：${esc(record.correction.actorName)} · ${esc(record.correction.createdAt)}（UTC） · ${esc(record.correction.reason)}。全部历史见修改历史。</p>` : ''}</details>${snapshot!.capabilities.editText ? `<button class="back-btn" data-check="correctCheck" data-check-id="${esc(record.id)}">纠正这次检查</button>` : ''}</article>`).join('') ?? ''}${checks?.nextCursor ? '<button class="back-btn" id="checks-more">读取更早检查</button>' : ''}</details>`;
@@ -529,6 +543,13 @@ async function openCheck(action: CheckCommand['action'], checkId?: string) {
     preview = undefined; delete element('check-save').dataset.preview; element('check-preview').textContent = '请重新预览，明确保存后生效。'; persistStage(); controls();
   };
   const warning = () => { if (draft.action === 'saveCheck') element('check-rule-warning').textContent = ruleText() + (draft.ruleVersion !== context.rule?.version || draft.previewWeek !== context.weekStart ? ' 原副本依据已变化，请重新核对规则再预览。' : ''); }; warning();
+  const checkForm=element('check-edit');
+  updateCheckContext=next=>{
+    if(!checkForm.isConnected || checkDraft!==draft || draft.action!=='saveCheck')return;
+    const changed=next.rule?.version!==context.rule?.version || next.weekStart!==context.weekStart || next.businessDate!==context.businessDate;
+    context=next;warning();
+    if(changed){preview=undefined;delete element('check-save').dataset.preview;element('check-preview').textContent='检查依据已更新，原结论和备注保留，请重新核对并预览。';controls();}
+  };
   element('check-edit').oninput = capture;
   element('check-cancel').onclick = () => { capture(); render(); };
   const refresh = document.getElementById('check-rule-refresh'); if (refresh) refresh.onclick = async () => {
@@ -1012,6 +1033,7 @@ function controls() {
   (element('action-reload') as HTMLButtonElement).disabled = frozen;
   if ((element('action-dialog') as HTMLDialogElement).open && (stale || authFrozen || inFlight || stagePending)) note(authFrozen ? '账号已变化或登录失效，保存已暂停。请复制输入后重新登录。' : stale ? '项目已被他人更新，旧内容已保留。请复制输入并重新进入项目。' : inFlight ? '正在处理，请等待结果。' : '保存结果尚未确认，请确认原结果或重试原操作。', stale || authFrozen || !inFlight);
   else if (!frozen && element('message').textContent === '正在处理，请等待结果。') note('');
+  flushContextRefresh();
 }
 function persist() {
   if (!snapshot || !values || authFrozen) return;
@@ -1166,11 +1188,17 @@ function showValue(key: string, value: unknown): string {
   return ['signal', 'priority', 'status', 'resumeStatus'].includes(key) ? label(value) : String(value);
 }
 async function loadCatalog() {
-  if (catalogLoading) return;
-  catalogLoading = true; catalogMessage = '正在读取候选资料…'; if (snapshot && tab === 'info') refreshReadView();
-  try { catalog = await get<Catalog>('/api/project-options'); catalogMessage = ''; }
-  catch (error) { catalogMessage = (error as Error).message + ' 原编辑已保留，可重新读取候选资料。'; }
-  finally { catalogLoading = false; if (snapshot && tab === 'info') refreshReadView(); else controls(); }
+  if (catalogLoading) {contextRefreshPending=true;return;}
+  catalogLoading = true;
+  try { const next = await get<Catalog>('/api/project-options',undefined,false);if(authFrozen)return;catalog=next;catalogMessage = '';if(snapshot && values)refreshProjectOptions(document,selectReference);const retry=document.getElementById('options-retry');if(retry)retry.hidden=true; }
+  catch (error) { catalogMessage = (error as Error).message + ' 原编辑已保留，可重新读取候选资料。';note(catalogMessage,true); }
+  finally { catalogLoading = false; controls(); }
+}
+function refreshContext(){contextRefreshPending=true;flushContextRefresh();}
+function flushContextRefresh(){
+  if(!contextRefreshPending || contextRefreshing || catalogLoading || !snapshot || authFrozen || inFlight || loading || pending || stagePending || responsibilityPending || checksLoading)return;
+  contextRefreshPending=false;contextRefreshing=true;
+  void Promise.all([observe(false,false),loadCatalog()]).finally(()=>{contextRefreshing=false;flushContextRefresh();});
 }
 function bindEditor() {
   if (!snapshot?.capabilities.editText) return;
@@ -1331,14 +1359,22 @@ async function observe(afterSave = false, active = true) {
   try {
     const current = await get<Detail>('/api/projects/' + id, undefined, active && !afterSave);
     if (token !== generation || snapshot !== entry) return;
+    updateCheckContext?.(current.checkRule);
     if (BigInt(current.project.version) > BigInt(observedVersion)) observedVersion = current.project.version;
     if (BigInt(observedVersion) > BigInt(entry.project.version)) { stale = true; note('项目已被他人更新，请重新进入项目。未保存文字已保留供复制。', true); controls(); }
     else if (current.project.version === entry.project.version) {
+      const changed=current.checkRule.rule?.version!==entry.checkRule.rule?.version || current.checkRule.weekStart!==entry.checkRule.weekStart || current.businessDate!==entry.businessDate;
       entry.project.deadline = current.project.deadline; entry.project.checkStatus = current.project.checkStatus; entry.checkRule = current.checkRule; entry.businessDate = current.businessDate;
       // 保持现有标签编辑与点击绑定；保存或重新进入时统一重绘。
       element('d-meta').textContent = detailMeta(entry.project);
+      if(changed){const hint=document.querySelector('.stages-hint');if(hint)hint.textContent=`首次应检周：${entry.project.firstCheckWeek ?? '依据未知，待核对'} · 本周截止：${entry.checkRule.deadlineDate ?? '规则未初始化'}`;if(checks)void loadChecks();else refreshCheckHistory();}
     }
-  } catch (error) { if (error instanceof SaveError) { authFrozen = true; persist(); note(error.message, true); controls(); } else if (afterSave) note('本次保存已确认，后续详情刷新失败。可重新进入查看；无需重复保存。', true); }
+  } catch (error) {
+    if(token!==generation || snapshot!==entry)return;
+    if(error instanceof SaveError && ['AUTH_REQUIRED','AUTH_CONTEXT_CHANGED','CSRF_INVALID','PASSWORD_CHANGE_REQUIRED'].includes(error.code)){persist();authFrozen=true;note(error.message,true);}
+    else note(afterSave?'本次保存已确认，后续详情刷新失败。可重新进入查看；无需重复保存。':'暂时无法核对项目更新，输入已保留。可继续编辑，恢复连接后重新核对。',true);
+    controls();
+  }
 }
 async function loadAudit(more = false) {
   const token = ++auditGeneration;
@@ -1590,7 +1626,7 @@ document.querySelectorAll<HTMLAnchorElement>('.project-nav a, .top-sticky a').fo
   location.href = link.href;
 };});
 element('copy').onclick = () => { void copyText(); };
-window.addEventListener('focus', () => { void observe(); });
+window.addEventListener('focus', refreshContext);
 function detailMeta(p: Detail['project']) { return `客户：${p.customer ?? '—'} · 产品线：${p.productLine ?? '—'} · 芯片：${p.chips.map(chip => chip.name).join(' / ') || '—'}`; }
 setInterval(() => { if (snapshot && !inFlight && !loading && document.visibilityState === 'visible' && snapshot.businessDate !== new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date())) void observe(false, false); }, 60000);
 window.addEventListener('beforeunload', event => { if (!leaving && (dirty() || pending || stagePending || stageDraft || correctionDraft || planDraft || lifecycleDraft || closureDraft || checkDraft)) { persist(); persistStage(); event.preventDefault(); } });
@@ -1633,7 +1669,7 @@ void requireIdentity().then(async () => {
   if(reading.projectId===id && !new URLSearchParams(location.search).has('tab') && typeof reading.scrollY==='number')window.scrollTo(0,reading.scrollY);
   if(tab==='history' && !audit)void loadAudit();
   const online=document.createElement('p');online.className='read-label';online.id='project-editors';online.setAttribute('aria-live','polite');element('d-meta').after(online);
-  notifications=new ProjectNotifications((event,own)=>{if(event.projectId!==id || own || !snapshot || BigInt(event.version)<=BigInt(snapshot.project.version))return;stale=true;persist();note('项目已被他人更新，请重新进入项目。未保存输入保留供复制。',true);controls();},()=>{if(!inFlight && !pending && !stagePending && !responsibilityPending)void observe(false,false);},text=>{online.textContent=text;},id,personalDrafts.instanceId);
+  notifications=new ProjectNotifications((event,own)=>{if(event.projectId!==id || own || !snapshot || BigInt(event.version)<=BigInt(snapshot.project.version))return;stale=true;persist();note('项目已被他人更新，请重新进入项目。未保存输入保留供复制。',true);controls();},refreshContext,text=>{online.textContent=text;},id,personalDrafts.instanceId,refreshContext);
   updateEditing();
   if (!element('drafts').hidden && !stagePending && !(element('editor-dialog') as HTMLDialogElement).open && element('project-notice').hidden) note('发现本标签页未保存的操作，可继续编辑或查看并复制。', false, true);
 }).catch(error => { note((error as Error).message, true); const link = document.createElement('a'); link.href = '/login.html'; link.textContent = '登录 GeekDash'; element('message').append(' ', link); });

@@ -51,13 +51,13 @@ export async function createApp(database?: RuntimeDatabase, auth?: AuthConfig) {
     index: 'index.html',
     dotfiles: 'deny',
   });
+  const notifications = registerNotifications(app, database);
   // 旧匿名回归仅在隔离 test 库运行；实际 dev 服务默认要求身份。
-  if (database && (auth || database.fact.database !== 'geekdash_test')) registerIdentity(app, database, auth ?? readAuthConfig());
-  registerProjectReads(app, database);
-  registerSettings(app, database);
+  if (database && (auth || database.fact.database !== 'geekdash_test')) registerIdentity(app, database, auth ?? readAuthConfig(), notifications);
+  registerProjectReads(app, database, notifications);
+  registerSettings(app, database, notifications);
   registerPersonalState(app, database);
-  registerCatalog(app, database);
-  registerNotifications(app, database);
+  registerCatalog(app, database, notifications);
   app.get('/GeekDash.html', (_request, reply) => reply.sendFile('index.html'));
   app.get('/chip-statistics.html', (_request, reply) => reply.redirect('/project-status-summary.html'));
   return app;

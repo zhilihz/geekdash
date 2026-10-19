@@ -53,7 +53,7 @@ export function basicCommands(detail: Detail, draft: BasicIntent): NonNullable<S
 type Reference = (key: string, table: string, role?: string) => string;
 type FormDetail = Pick<Detail, 'businessDate' | 'stages' | 'nodes' | 'risks'> & { project: Partial<Detail['project']> & Pick<Detail['project'], 'status' | 'chips' | 'people'> };
 export function referenceSelect(key: string, options: CatalogItem[], selected: string[], old: string[] = [], role?: string) {
-  const multiple = ['chipIds', 'tagIds', 'people'].includes(key);
+  const multiple = ['chipIds', 'tagIds', 'people', 'managerIds'].includes(key);
   return `<select data-edit data-scope="${key === 'tagIds' ? 'tags' : 'basic'}" data-reference="true" id="edit-${key}${role ? '-' + role : ''}-source"${multiple ? ' multiple' : ''}>${multiple ? '' : '<option value="">未选择</option>'}${options.filter(item => item.enabled || old.includes(item.id) || selected.includes(item.id)).map(item => `<option value="${esc(item.id)}"${selected.includes(item.id) ? ' selected' : ''}${!item.enabled && !old.includes(item.id) ? ' disabled' : ''}>${esc(item.name)}${item.originalModel ? ' · ' + esc(item.originalModel) : ''}${item.manufacturer ? ' · ' + esc(item.manufacturer) : ''}${item.enabled ? '' : '（停用/不可新增）'}</option>`).join('')}</select>`;
 }
 export function basicFields(detail: FormDetail, value: EditValues, draft: BasicIntent, editing: boolean, reference: Reference, errors: Record<string, string>, creating = false) {

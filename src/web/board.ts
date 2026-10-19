@@ -198,7 +198,7 @@ void import('./shared/api').then(async ({ requireIdentity }) => {
   if(!explicitQuery){if(typeof saved.view==='string')query.set('view',saved.view);if(typeof saved.page==='number')query.set('page',String(saved.page));for(const [key,value] of Object.entries(saved.filters ?? {}))if(allowed.has(key) && typeof value==='string')query.set(key,value);restoredScroll=typeof saved.scrollY==='number'?saved.scrollY:undefined;}
   if(!query.has('layout') && appearance?.current().layout==='progress')query.set('layout','progress');
   filterRows.hidden=saved.filtersOpen!==true;filterToggle();search.value=query.get('search') ?? '';await load();
-  new ProjectNotifications(()=>{void load(false);},()=>{void load(false);},text=>{if(text)feedback(text);});
+  new ProjectNotifications(()=>{void load(false);},()=>{void load(false);},text=>{if(text)feedback(text);},undefined,undefined,()=>{void load(false);});
 }).catch(error => {
   element('message').textContent = (error as Error).message;
   const link = document.createElement('a'); link.href = '/login.html'; link.textContent = '登录 GeekDash'; element('message').append(' ', link);
