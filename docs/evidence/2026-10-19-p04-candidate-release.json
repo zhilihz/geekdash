@@ -1,0 +1,497 @@
+{
+  "deployment": {
+    "status": "installed",
+    "phase": "complete",
+    "checkedAt": "2026-10-19T02:12:44.509208+00:00",
+    "build": {
+      "revision": "3794a381a5d2c2434d9a4e8c766ea5ca01777134",
+      "dirty": false,
+      "builtAt": "2026-10-19T02:04:35.707Z",
+      "stage": "project-list",
+      "schemaVersion": "0004-project-compatibility"
+    },
+    "imageId": "sha256:819d13599b3fd8706c9d6d3157069d7d8baaedc62da2cb16f80e5441365b4c3b",
+    "previousRevision": "cf49780698130b8e742fd010f66e121d64474044",
+    "previousImageId": "sha256:e9400020c5e5aaf0f6d4319d83fe0dd34dfc9079f3a697ecc80b5059ce464cce",
+    "schemaChanged": true,
+    "backup": {
+      "path": "/var/backups/geekdash/pre-p04-3794a381a5d2.sql.gz",
+      "bytes": 74830,
+      "sha256": "8e125ba86445ecf5ccf1346576cc17cc28cd7a21846d0233dab6f479e2765f81",
+      "scope": "geekdash_dev and geekdash_test with routines/events/triggers"
+    },
+    "isolatedRestore": {
+      "verified": true,
+      "network": "geekdash-p04-restore-3794a381a5d2",
+      "mysqlContainer": "geekdash-p04-restore-3794a381a5d2-mysql",
+      "appContainer": "geekdash-p04-restore-3794a381a5d2-app",
+      "dataPath": "/var/lib/geekdash/restore-probes/3794a381a5d2c2434d9a4e8c766ea5ca01777134",
+      "containersStopped": true,
+      "oldBuildReady": true,
+      "memoryAvailableBeforeBytes": 1110827008
+    },
+    "databases": {
+      "geekdash_dev": {
+        "countsBefore": {
+          "apps": 2,
+          "audit_log": 278,
+          "check_rule_revisions": 3,
+          "chips": 2,
+          "command_receipts": 190,
+          "customer_tags": 0,
+          "customers": 2,
+          "engineers": 2,
+          "feedback_entries": 0,
+          "import_batches": 0,
+          "import_items": 0,
+          "legacy_project_history": 0,
+          "meetings": 0,
+          "product_lines": 2,
+          "project_changes": 7,
+          "project_checks": 8,
+          "project_chips": 5,
+          "project_drafts": 0,
+          "project_groups": 2,
+          "project_nodes": 14,
+          "project_people": 6,
+          "project_responsibilities": 28,
+          "project_risks": 8,
+          "project_stages": 133,
+          "project_tags": 3,
+          "projects": 19,
+          "reports": 0,
+          "schedule_changes": 5,
+          "schema_migrations": 3,
+          "sessions": 38,
+          "system_configuration": 1,
+          "tags": 2,
+          "user_preferences": 0,
+          "users": 5
+        },
+        "oldColumnFingerprints": {
+          "apps": "004b9116b2cf99bc6c40eec1de88ad15a9f132a9b1437e8c61ab5d4e758ba58e",
+          "audit_log": "670d418e4aa5eb5d9c62cda711c42df56bfe06101051e64b2b67bb1d65d89c1f",
+          "check_rule_revisions": "a8e35bd144675589cef8bc275abb43e9921e42601a882fd7707ff4ddd786b43d",
+          "chips": "db11379bc1f87838efa37e3ec4d87fdea32c342e2e68f1ce0dcd8520e6cb3bb2",
+          "command_receipts": "59dc3ae3b0dfb960b07cf84ab3c966488a9a8fca9e2c0fa40e77f94b49ea749c",
+          "customer_tags": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "customers": "ee63f72ffd4d73b455e71ffc38d7ed96d15a40fba9d2089eb08bddf78fbfa018",
+          "engineers": "eaad62f24a8244d4fdbbb208c324660647c3d1d3d06bf796bf3c835cfc9db402",
+          "feedback_entries": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "import_batches": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "import_items": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "legacy_project_history": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "meetings": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "product_lines": "dd267ff1c17a8ac6823d3eb09d680fd187425d8f18045c7d404f5392d085d827",
+          "project_changes": "ecb5c82c1dc5a3cf9a886fdebd4d522d489113e1ad6d55590a762d681d83736c",
+          "project_checks": "9ab20e24d7296fdcb8e3bc297ae8b558075b6e88b64aa7a3a98a9c031b671363",
+          "project_chips": "0a6be69a2f63cd8fb833e5b5e5d08d65928f9a9c7cf64758256f87c9459bf50a",
+          "project_drafts": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "project_groups": "7e9ff7c9c3d09b4f2a36967509c49bcad8cd9785b04bedf08eb3f548363c651a",
+          "project_nodes": "43d7493da30ec51e7108c0d59d89e90e6e80d0ef8c3dfe3d3f1276e9dc5f4291",
+          "project_people": "de90e0cc9fbe56aa7c97f11dcf579c5d41c80105bce8e2c03a23540c06cc947f",
+          "project_responsibilities": "51c7eb01edd26a848d6c4ac90d9e90cbb0d1714c2b635e8d8de23ed135be3776",
+          "project_risks": "f138a4359476c59a61311c035b47fa7bcabfbbcc13bdf6f88cb3ae91e59d5388",
+          "project_stages": "31c58f3e455f6b89271307b7448a9ae48df6d82141b298495ce2c9e9628878c8",
+          "project_tags": "7150eaee480f7fbabab281b730c7175219f8a0e228f2fb265fa87971bb08523b",
+          "projects": "9151b4b57c9e9b1a5222819a6768aa128e3c49bcaf153ce969de270ddd396aa0",
+          "reports": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "schedule_changes": "bd56924ab065a049fcde2e811b5f283e46cb2fc2ebaed07152c71e9ed73228bd",
+          "sessions": "c0350153dfae1e8d0509b1b0311d323fb6f0c5bea5fd40b0523145ff9ae49d42",
+          "system_configuration": "052a238a19e49e2a646741686a50a7dbdbeccacf923c1cf0f44ca1ac11fbfda8",
+          "tags": "18551f62b06da92602bb80fb7a45e8012586cb7a06c01cd55f365d84a1add1e5",
+          "user_preferences": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "users": "d27dc96fbea561599df965228e11bb1ef8fcc026317aefe707a2c73c93e15ef1"
+        },
+        "oldMigrationRegistrationsPreserved": true,
+        "newColumnDefaultsVerified": true
+      },
+      "geekdash_test": {
+        "countsBefore": {
+          "apps": 0,
+          "audit_log": 0,
+          "check_rule_revisions": 0,
+          "chips": 0,
+          "command_receipts": 0,
+          "customer_tags": 0,
+          "customers": 0,
+          "engineers": 0,
+          "feedback_entries": 0,
+          "import_batches": 0,
+          "import_items": 0,
+          "legacy_project_history": 0,
+          "meetings": 0,
+          "product_lines": 0,
+          "project_changes": 0,
+          "project_checks": 0,
+          "project_chips": 0,
+          "project_drafts": 0,
+          "project_groups": 0,
+          "project_nodes": 0,
+          "project_people": 0,
+          "project_responsibilities": 0,
+          "project_risks": 0,
+          "project_stages": 0,
+          "project_tags": 0,
+          "projects": 0,
+          "reports": 0,
+          "schedule_changes": 0,
+          "schema_migrations": 3,
+          "sessions": 0,
+          "system_configuration": 0,
+          "tags": 0,
+          "user_preferences": 0,
+          "users": 0
+        },
+        "oldColumnFingerprints": {
+          "apps": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "audit_log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "check_rule_revisions": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "chips": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "command_receipts": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "customer_tags": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "customers": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "engineers": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "feedback_entries": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "import_batches": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "import_items": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "legacy_project_history": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "meetings": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "product_lines": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "project_changes": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "project_checks": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "project_chips": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "project_drafts": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "project_groups": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "project_nodes": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "project_people": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "project_responsibilities": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "project_risks": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "project_stages": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "project_tags": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "projects": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reports": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "schedule_changes": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "sessions": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "system_configuration": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tags": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "user_preferences": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "users": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "oldMigrationRegistrationsPreserved": true,
+        "newColumnDefaultsVerified": true
+      }
+    },
+    "mysqlIdStartedAtPreserved": true,
+    "otherContainersPreserved": 17,
+    "nginxBackup": "/opt/geekdash/incoming/3794a381a5d2c2434d9a4e8c766ea5ca01777134/nginx-before.conf",
+    "nginxBackupSha256": "58c02090d2ade8f41387b9b185fabd1515c9c3835da7d1632765b7e967a44ae2",
+    "publicReadback": "pending",
+    "wholeP04Acceptance": "not_complete",
+    "rollbackBoundary": "before reopening writes: verified backup and old image; after new writes: preserve 0004 and reconcile, never automatically overwrite"
+  },
+  "publicAssets": {
+    "status": "passed",
+    "checkedAt": "2026-10-19T02:13:35.188209+00:00",
+    "revision": "3794a381a5d2c2434d9a4e8c766ea5ca01777134",
+    "origin": "https://geekdash.zhiluan.cool",
+    "anonymous": true,
+    "checks": [
+      {
+        "path": "/api/health/live",
+        "status": 200,
+        "phase": "before",
+        "build": {
+          "revision": "3794a381a5d2c2434d9a4e8c766ea5ca01777134",
+          "dirty": false,
+          "builtAt": "2026-10-19T02:04:35.707Z",
+          "stage": "project-list",
+          "schemaVersion": "0004-project-compatibility"
+        }
+      },
+      {
+        "path": "/api/health/ready",
+        "status": 200
+      },
+      {
+        "path": "/data-manage.html",
+        "status": 200,
+        "bytes": 1741,
+        "sha256": "c32e4730036c8b0c58a0387744e957cbec01674e915be5b493ec334c95c3865b",
+        "matchesDist": true
+      },
+      {
+        "path": "/",
+        "status": 200,
+        "bytes": 4585,
+        "sha256": "af196b82fc9a91b283ef2ad2d5a7e543f8e5bd8ef28d6ba693c41d5695371dc5",
+        "matchesDist": true
+      },
+      {
+        "path": "/login.html",
+        "status": 200,
+        "bytes": 1889,
+        "sha256": "0ff8f23111e16a3a6d959787c0ae07dfa62d8b6c6a1eb625faffd8faba42505c",
+        "matchesDist": true
+      },
+      {
+        "path": "/project-checks.html",
+        "status": 200,
+        "bytes": 2386,
+        "sha256": "abd99fd556839d6ac31d0d84ba66336eb1df3cd6c519e684ecbae0bf7cdb9ee0",
+        "matchesDist": true
+      },
+      {
+        "path": "/project-detail.html",
+        "status": 200,
+        "bytes": 4835,
+        "sha256": "0c353a6762e67979a18f5c35e24096cdba873db6468a716f0a7d803f85513c3e",
+        "matchesDist": true
+      },
+      {
+        "path": "/project-new.html",
+        "status": 200,
+        "bytes": 1660,
+        "sha256": "e05854e150e0601f1b90469f5c31e132a1af5d0284dc481034682166ead2f16b",
+        "matchesDist": true
+      },
+      {
+        "path": "/project-status-summary.html",
+        "status": 200,
+        "bytes": 2529,
+        "sha256": "1ce17e6f0fb17472da9287fe807476f3703bac055ad212a4a1a9d016b6ee4eca",
+        "matchesDist": true
+      },
+      {
+        "path": "/settings.html",
+        "status": 200,
+        "bytes": 1165,
+        "sha256": "bb87a41a31b481c0735f046bcc4492d67e3c42da9b6c643590dddd6e8bbfdd4f",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/data-manage-llmVBOFj.js",
+        "status": 200,
+        "bytes": 10994,
+        "sha256": "3046c248c8b47355bf90ebf032082a64f1c6b7227c7fe92c5c865623d4e2346b",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/api-BQLdDmUD.js",
+        "status": 200,
+        "bytes": 33082,
+        "sha256": "b16b22ec362938b43d95d76d94b0d842559afd9b2d20adfd40ca3fa76ff89d7d",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/api-B-ruFuGn.css",
+        "status": 200,
+        "bytes": 6064,
+        "sha256": "7dab2b7fe035e499a5d6af87ad5668edadd9b5e4cfe8618e4ff9ed621041e10e",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/data-manage-Bk-2UBJj.css",
+        "status": 200,
+        "bytes": 3246,
+        "sha256": "c122fced89056792515d36a40750ecd13b6d9c22a2b061e68f9209c025c585bf",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/board-Buhf5ru8.css",
+        "status": 200,
+        "bytes": 42882,
+        "sha256": "65dda0aefe3464ec2fa4d00f1860c8657e63fb612dc2dd3abf8130fcf5d569cf",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/index-dgRAdZ2V.js",
+        "status": 200,
+        "bytes": 15336,
+        "sha256": "bb930ce345d1fe772d3c73cfc2fe1f04bf0b360d8fc7d25c11cde548c488c390",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/notifications-DHvQJ1MU.js",
+        "status": 200,
+        "bytes": 3125,
+        "sha256": "3db2ca38b9d79dfd60fd8f483653e24707db114baa00913fdac69dd59439d24b",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/index-CihLxPjF.css",
+        "status": 200,
+        "bytes": 7306,
+        "sha256": "b28674b6d2236f4b94f3ca6724656912c361f4ac83b7bc96782cdbabad967d9c",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/login-CjtJosn8.js",
+        "status": 200,
+        "bytes": 2038,
+        "sha256": "9472482827fb857d0bd8dcf2552e93cbfe037c84540850cbdab040bf3a11036c",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/login-D9KYl3tU.css",
+        "status": 200,
+        "bytes": 482,
+        "sha256": "e179bf8998912737851b88af0bc94aeff622a19313ac40fe5dd626fb3206ece0",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/detail-CjM-a3Wn.css",
+        "status": 200,
+        "bytes": 45806,
+        "sha256": "d5c2987960ccd93d8ba81177342346c9f089812b904f4376dd2df4f90519da1b",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/project-checks-BTbBesD_.js",
+        "status": 200,
+        "bytes": 17246,
+        "sha256": "f78acfd540e766df07874f5e9939ebbdbcfd55ad04fe47bf452e3b080b4e8b6c",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/history-DAvRxcS-.js",
+        "status": 200,
+        "bytes": 5429,
+        "sha256": "82ae6d1ed1022b496bfd93214f216fe246ceee6f3b47988092d57c531288f1c0",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/project-checks-lawCJIj9.css",
+        "status": 200,
+        "bytes": 4414,
+        "sha256": "c225acd772443391e52c4c991063d64f3f1462caf34bc632e9001ff3c6825609",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/project-detail-D3E_hUFL.js",
+        "status": 200,
+        "bytes": 149508,
+        "sha256": "b88264465ae6093eb52a55a42674eae3079b655d19406dd5d16d0f17246313ce",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/scoped-editor-2z0dVUF3.js",
+        "status": 200,
+        "bytes": 15495,
+        "sha256": "1d9d2cf4709497b7c9d4c0b022ce944450648b25f2bc35bbec2637602da65779",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/scoped-editor-CjjHA-vc.css",
+        "status": 200,
+        "bytes": 2366,
+        "sha256": "b329eab4502f60f2562a236a1a69b3816f170c80e72b4557ef83971d3bbba6c0",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/project-new-BIWhxaBn.js",
+        "status": 200,
+        "bytes": 7366,
+        "sha256": "d4443dffdc5ba25739c8250dca0924735431f090746261edd562da4ba66f3b2d",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/project-status-summary-p4l4wGRB.js",
+        "status": 200,
+        "bytes": 22464,
+        "sha256": "73015bde8266f867e69684994f375936aef0ceb4f052c80a1496decc19e4428c",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/project-status-summary-DlqO6-jo.css",
+        "status": 200,
+        "bytes": 3681,
+        "sha256": "7265f6ec41cc1d0252b3ba2f45c867177ad17a6c2ea94f18240fa6a5e7bcf4f7",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/settings-BZttnNU0.js",
+        "status": 200,
+        "bytes": 4714,
+        "sha256": "36910e48f4a466a6131164709a8faf9ba8f9d7d0c9b41e3684fe927e757d539c",
+        "matchesDist": true
+      },
+      {
+        "path": "/api/projects",
+        "status": 401,
+        "code": "AUTH_REQUIRED"
+      },
+      {
+        "path": "/api/health/live",
+        "status": 200,
+        "phase": "after",
+        "build": {
+          "revision": "3794a381a5d2c2434d9a4e8c766ea5ca01777134",
+          "dirty": false,
+          "builtAt": "2026-10-19T02:04:35.707Z",
+          "stage": "project-list",
+          "schemaVersion": "0004-project-compatibility"
+        }
+      }
+    ],
+    "pageCount": 8,
+    "assetCount": 21,
+    "source": "公网HTTPS新请求；live前后固定构建一致，ready只验就绪；页面及引入JS/CSS与dist逐字节一致。不替代浏览器操作验收。"
+  },
+  "publicBusiness": {
+    "status": "passed",
+    "checkedAt": "2026-10-19T02:14:13.537319+00:00",
+    "build": {
+      "revision": "3794a381a5d2c2434d9a4e8c766ea5ca01777134",
+      "dirty": false,
+      "builtAt": "2026-10-19T02:04:35.707Z",
+      "stage": "project-list",
+      "schemaVersion": "0004-project-compatibility"
+    },
+    "projectId": "23",
+    "projectVersion": "3",
+    "checks": [
+      "existing_test_accounts_https_login",
+      "create_auto_responsibility",
+      "scoped_basic_save",
+      "independent_status_save",
+      "fresh_other_account_read",
+      "public_proxy_sse_event",
+      "stale_version_rejected",
+      "non_owner_save_rejected",
+      "same_request_receipt_read",
+      "audit_and_board_consume"
+    ],
+    "auditCount": 3,
+    "nativeBrowserAcceptance": false
+  },
+  "persistence": {
+    "status": "passed",
+    "checkedAt": "2026-10-19T02:15:01.464400+00:00",
+    "projectId": "23",
+    "checks": {
+      "version": "3",
+      "auditCount": 3,
+      "receiptCount": 3,
+      "statusMatches": true,
+      "summaryMatches": true,
+      "responsibleCount": 1
+    },
+    "build": {
+      "revision": "3794a381a5d2c2434d9a4e8c766ea5ca01777134",
+      "dirty": false,
+      "builtAt": "2026-10-19T02:04:35.707Z",
+      "stage": "project-list",
+      "schemaVersion": "0004-project-compatibility"
+    },
+    "source": "independent mysql CLI connection after public HTTP operations"
+  },
+  "scope": "2026-10-19用户授权当前P04成果收口发布；没有新增产品功能；不代表完整阶段验收",
+  "localChecks": {
+    "typescript": "passed",
+    "fixedBuild": "passed",
+    "foundationHttpAndBuildProtection": "passed",
+    "dockerImageBuild": "passed",
+    "wholeRegressionRerun": false
+  }
+}
