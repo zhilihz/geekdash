@@ -1,0 +1,83 @@
+{
+  "status": "passed",
+  "deployment": {
+    "status": "installed",
+    "phase": "complete",
+    "build": {
+      "revision": "1d822c98bca233eff3c7a2dac4a2a656dc730c4d",
+      "dirty": false,
+      "builtAt": "2026-10-19T09:18:11.600Z",
+      "stage": "project-list",
+      "schemaVersion": "0004-project-compatibility"
+    },
+    "imageId": "sha256:ab7c14a54228f1a8d90d5c62665cfb8504eadce445613de49f515ae408782a2a",
+    "previousImageId": "sha256:48e15b0a8d675510901800c1a4b16ac3e47195dabde5a4b476b5a9e05ef89c15",
+    "backup": {
+      "path": "/var/backups/geekdash/pre-detail-simple-1d822c98bca2.sql.gz",
+      "bytes": 78793,
+      "sha256": "a524da773fb245548d9640ac35d80184a5d680404138da0e6bf3da6d8de7cba5",
+      "scope": "both complete databases including routines/events/triggers; no new restore drill"
+    },
+    "databaseFingerprintsAndMigrationsPreserved": true,
+    "mysqlIdStartedAtPreserved": true,
+    "otherContainersPreserved": 17,
+    "nginxOriginalSha256": "77bb5e281ecb1e6dfde7328cd4542845656a7008d532e482bdf1b049a24f2c67",
+    "nginxRestored": true,
+    "publicReadback": "pending",
+    "rollback": "previous 0004 app image; do not restore database backups automatically",
+    "checkedAt": "2026-10-19T09:22:01.054065+00:00",
+    "revision": "1d822c98bca233eff3c7a2dac4a2a656dc730c4d",
+    "previousRevision": "6de87d25d0aca6935c635699ad28de2b8db3a392",
+    "schemaChanged": false,
+    "mergedMain": false,
+    "wholeConvergenceAcceptance": "not_complete"
+  },
+  "project": {
+    "id": "25",
+    "name": "智能门锁主控板 A1",
+    "signal": "green",
+    "status": "proposal",
+    "dueDate": null,
+    "summary": "低功耗主控板方案，计划完成样板验证后进入联调。",
+    "version": "3",
+    "priority": "mid",
+    "statusDesc": "原理图评审已完成，等待首轮样板到位；下周安排固件联调。",
+    "checkedToday": true
+  },
+  "managers": [
+    {
+      "id": "1",
+      "name": "business01"
+    },
+    {
+      "id": "2",
+      "name": "business02"
+    }
+  ],
+  "checks": [
+    {
+      "id": "9",
+      "note": "",
+      "actorId": "2",
+      "checkedAt": "2026-10-19T09:23:31.929000Z",
+      "weekStart": "2026-10-19",
+      "conclusion": "checked",
+      "ruleVersion": "3",
+      "resultVersion": "3",
+      "observedVersion": "2"
+    }
+  ],
+  "auditActors": [
+    "1",
+    "2",
+    "2"
+  ],
+  "auditActions": [
+    "project.create",
+    "project.ordinary.save",
+    "project.check.save"
+  ],
+  "auditCount": 3,
+  "independentSQL": true,
+  "charset": "utf8mb4"
+}

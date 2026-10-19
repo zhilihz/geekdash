@@ -4,9 +4,9 @@
 
 ## 本轮阅读入口
 
-当前工作：按[操作链收敛计划1.2.3](implementation/execution-plan.md#123-按功能区收敛操作链2026-10-19)完成首条链和新建经理选择的测试候选发布。先看[当前结论](status/current-system-truth.md#1-一句话结论)、[交接](handoff/handoff.md)和[本轮验证](testing/reports/2026-10-19-flow-convergence.md)；身份返回、项目编辑后续收敛及完整P04仍未完成。P04原范围与E段归属查[原计划](implementation/execution-plan.md#12-p04完整实施计划2026-10-15)和[第69节](status/current-system-truth.md#69-2026-10-15任务归属与剩余工作核对)，不据编号自动扩大施工。
+当前工作：沿[操作链收敛计划1.2.3](implementation/execution-plan.md#123-按功能区收敛操作链2026-10-19)完成详情默认编辑、标题对齐和一键检查的测试候选发布。先看[当前结论](status/current-system-truth.md#1-一句话结论)、[交接](handoff/handoff.md)和[本轮验证](testing/reports/2026-10-19-detail-simplification.md)；身份返回、草稿/结案交互和完整P04仍未完成。P04与E段归属继续查原计划及系统真相69，不新增阶段。
 
-当前交付：[操作链候选部署](operations/deployments/2026-10-19-flow-candidate.md)及[本轮核验](testing/reports/2026-10-19-flow-convergence.md)。成果6de87d2已推送施工分支并更新测试服务器；main仍为b96712a，完整阶段验收后再合并。此前[3794a38部署](operations/deployments/2026-10-19-p04-candidate.md)及[UI12部署](operations/deployments/2026-10-14-e04-ui12.md)保留为历史来源。
+当前交付：[详情候选部署](operations/deployments/2026-10-19-detail-simplification.md)，成果1d822c9已推送施工分支并更新测试服务器；main仍b96712a，完整阶段验收后再合并。此前[操作链候选](operations/deployments/2026-10-19-flow-candidate.md)、[3794a38部署](operations/deployments/2026-10-19-p04-candidate.md)及[UI12部署](operations/deployments/2026-10-14-e04-ui12.md)保留历史来源。
 
 2026-10-16整链方案已按DEC-127收口：检查信息补全归[P04-09](implementation/execution-plan.md#p04-09-保留阶段动作与检查的原业务闭环)，跨页面消费归P04-15；布局只查[PRD](product/PRD.md#检查信息完整性已确认dec-127)，读取及修正返回只查SPEC-005，执行范围/共同实现方法只查计划1.2。Q-031已解决；设计与实际实现状态查系统真相及阶段报告，不据早期缺口描述重复施工。
 

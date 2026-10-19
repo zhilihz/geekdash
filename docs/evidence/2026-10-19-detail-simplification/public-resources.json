@@ -1,0 +1,220 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-19T09:25:46.904Z",
+  "build": {
+    "revision": "1d822c98bca233eff3c7a2dac4a2a656dc730c4d",
+    "dirty": false,
+    "builtAt": "2026-10-19T09:18:11.600Z",
+    "stage": "project-list",
+    "schemaVersion": "0004-project-compatibility"
+  },
+  "pageCount": 8,
+  "assetCount": 21,
+  "anonymous401": true,
+  "source": "Edge same-origin no-store; SHA256 and build before/after",
+  "checks": [
+    {
+      "path": "/",
+      "sha256": "a34a70c63faf9c678388ff05bfefd8ad73e09713b8371d86258f63de2d0030db",
+      "bytes": 4585,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/data-manage.html",
+      "sha256": "2bda5258922057ba81b41a247b7d7afe36acb1889fa2dd6f6a4335cecdf2d1d0",
+      "bytes": 1833,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/project-checks.html",
+      "sha256": "842b90d81ab61d6c50effdc38e23baf4f511c714514b435a6a6d97a899c4efc9",
+      "bytes": 2386,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/login.html",
+      "sha256": "f9aaefe4caa1861be612791b01486c3fa08ed8f795537282f55247db93660f51",
+      "bytes": 1889,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/project-new.html",
+      "sha256": "45b1952218bac3ac0dc074d5199fa3d36e69c465509eee744eec5d24cbc54fab",
+      "bytes": 1747,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/project-detail.html",
+      "sha256": "5791c6f503d2824a391a93ba826360d1df45a75a1566ef74b6b3f573a9903a6a",
+      "bytes": 4883,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/settings.html",
+      "sha256": "7f857eb426b9f1d1d4436509f0a7c138045473349252ab11afbc33d703f042d3",
+      "bytes": 1165,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/project-status-summary.html",
+      "sha256": "9ddf88390eda2a987983c78bb10520db2df2c95ffc86541fa1a9eac73894e9b4",
+      "bytes": 2539,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/data-manage-DqPbavuo.js",
+      "sha256": "4b5fcd489e36173460b54a02dd18b6d58540b5bbbab34501fb49c4c1619ef669",
+      "bytes": 11840,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/api-DTpyvmIU.js",
+      "sha256": "406febe2df49fc1d915f87561b8fff7e6567e21e7d272d1d79a44fd386550db4",
+      "bytes": 33129,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/notifications-Duy9mzUK.js",
+      "sha256": "96670e4cb30d600bcfa784632a74e655043be7edd760589c9d05da17911de616",
+      "bytes": 4307,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/api-BKqNy8F-.css",
+      "sha256": "815cb15c2b1cd11a9324ba952f030958334697380f83ba3507bb812fcd201ee2",
+      "bytes": 6153,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/data-manage-Bk-2UBJj.css",
+      "sha256": "c122fced89056792515d36a40750ecd13b6d9c22a2b061e68f9209c025c585bf",
+      "bytes": 3246,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/index-Cv0r1xex.js",
+      "sha256": "a4bd63d3770a86a5c800afd97e0df57a921c89511f041359bf6f19e3743afc9d",
+      "bytes": 15362,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/board-Buhf5ru8.css",
+      "sha256": "65dda0aefe3464ec2fa4d00f1860c8657e63fb612dc2dd3abf8130fcf5d569cf",
+      "bytes": 42882,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/index-CihLxPjF.css",
+      "sha256": "b28674b6d2236f4b94f3ca6724656912c361f4ac83b7bc96782cdbabad967d9c",
+      "bytes": 7306,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/login-DEFDR797.js",
+      "sha256": "feede18ac72b498854b099a6faf11b07cc63b363b5f42405ab7867da6bf9fabb",
+      "bytes": 2038,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/login-D9KYl3tU.css",
+      "sha256": "e179bf8998912737851b88af0bc94aeff622a19313ac40fe5dd626fb3206ece0",
+      "bytes": 482,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/detail-77ss3FnP.css",
+      "sha256": "a8deebd1297edc027debefe7f2e1a0c6e4d53a85d9bb3796fd99b90fe535c376",
+      "bytes": 46753,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/history-WRWSz8C5.js",
+      "sha256": "68e4b9ce5c6ebfbb316888f26eb9cb85b9063d2707452b9b5daae7b4bfcd8f5f",
+      "bytes": 5453,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-checks-RrqnYEZw.js",
+      "sha256": "f47062f83a348698196848c65a642f843909843cebb46dcb0794b40607296c57",
+      "bytes": 17277,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-checks-lawCJIj9.css",
+      "sha256": "c225acd772443391e52c4c991063d64f3f1462caf34bc632e9001ff3c6825609",
+      "bytes": 4414,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-options-Dubn0Ort.js",
+      "sha256": "7526c47bcc7e7df58500cdb4c2ee3389e4d44937a299659f9396ba82f8c50424",
+      "bytes": 16281,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-detail-D6O_IHl0.js",
+      "sha256": "3024825174d0adeb169817e9aaec1963952dbc5f48ce51abc64f3b7e602a6a60",
+      "bytes": 152146,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-options-CjjHA-vc.css",
+      "sha256": "b329eab4502f60f2562a236a1a69b3816f170c80e72b4557ef83971d3bbba6c0",
+      "bytes": 2366,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-new-UHvS3q3J.js",
+      "sha256": "9a52b7db6803acd1bf21d3adbb357c83cb265dc2b45422e89381982fb831990d",
+      "bytes": 8567,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-status-summary-66gpPj5f.js",
+      "sha256": "f7bd82efceb3a4ad5a82ef09e981f946b41252ce59c60112379c30ccd3fcd558",
+      "bytes": 22661,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-status-summary-DlqO6-jo.css",
+      "sha256": "7265f6ec41cc1d0252b3ba2f45c867177ad17a6c2ea94f18240fa6a5e7bcf4f7",
+      "bytes": 3681,
+      "status": 200,
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/settings-CO49BbE3.js",
+      "sha256": "798e71748c0a5f5747ebe95ca04db52267619aee9f23e1b657943047cb53ac71",
+      "bytes": 4714,
+      "status": 200,
+      "matchesDist": true
+    }
+  ]
+}

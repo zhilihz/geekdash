@@ -1,0 +1,43 @@
+{
+  "status": "passed",
+  "revision": "1d822c98bca233eff3c7a2dac4a2a656dc730c4d",
+  "checkedAt": "2026-10-19T09:22:47.102763+00:00",
+  "nativeBrowserAcceptance": false,
+  "build": {
+    "revision": "1d822c98bca233eff3c7a2dac4a2a656dc730c4d",
+    "dirty": false,
+    "builtAt": "2026-10-19T09:18:11.600Z",
+    "stage": "project-list",
+    "schemaVersion": "0004-project-compatibility"
+  },
+  "projectId": "25",
+  "projectVersion": "3",
+  "checkBusinessDate": "2026-10-19",
+  "managerCount": 2,
+  "auditCount": 3,
+  "checkCount": 1,
+  "checkId": "9",
+  "createOperationId": "b22fca2f-f6da-4da7-b026-47e8daa3cc85",
+  "saveOperationId": "d53c89db-6fc6-4316-907d-245e9834a728",
+  "checkOperationId": "f15b83a6-637c-41c0-a1bc-6599a6fe82ba",
+  "replayedFromReceipt": {
+    "create": false,
+    "save": false,
+    "check": false
+  },
+  "checks": [
+    "independent_cookie_jars",
+    "selected_manager_can_edit",
+    "natural_business_status_saved",
+    "direct_check_without_preview",
+    "check_does_not_change_business_fields",
+    "server_checked_today_matches_board",
+    "creator_receives_status_and_check_sse",
+    "both_accounts_fresh_detail_and_board",
+    "one_check_true_actor_time_versions",
+    "exact_receipts_without_duplicate_check"
+  ],
+  "databaseVerification": "separate_readback_pending",
+  "ownSessionsLoggedOut": true,
+  "finishedAt": "2026-10-19T09:24:11.608027+00:00"
+}
