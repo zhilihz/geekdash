@@ -1,0 +1,227 @@
+{
+  "before": {
+    "revision": "6de87d25d0aca6935c635699ad28de2b8db3a392",
+    "dirty": false,
+    "builtAt": "2026-10-19T07:56:59.502Z",
+    "stage": "project-list",
+    "schemaVersion": "0004-project-compatibility"
+  },
+  "after": {
+    "revision": "6de87d25d0aca6935c635699ad28de2b8db3a392",
+    "dirty": false,
+    "builtAt": "2026-10-19T07:56:59.502Z",
+    "stage": "project-list",
+    "schemaVersion": "0004-project-compatibility"
+  },
+  "checks": [
+    {
+      "path": "/",
+      "status": 200,
+      "bytes": 4585,
+      "sha256": "33fe47f91a12dcd6d34066e9c36f7f0bf154ace614cf9f75f8a628c324cdebc8",
+      "matchesDist": true
+    },
+    {
+      "path": "/data-manage.html",
+      "status": 200,
+      "bytes": 1833,
+      "sha256": "afc05eceb010fa2981e8386a627eac3d4cf318c3483681dc6940988052db6ff9",
+      "matchesDist": true
+    },
+    {
+      "path": "/login.html",
+      "status": 200,
+      "bytes": 1889,
+      "sha256": "0ff8f23111e16a3a6d959787c0ae07dfa62d8b6c6a1eb625faffd8faba42505c",
+      "matchesDist": true
+    },
+    {
+      "path": "/project-checks.html",
+      "status": 200,
+      "bytes": 2386,
+      "sha256": "f1a6d880afa8b08103b9b306291e53c04c6a74f1e7ad40f18147cb09aa8678c6",
+      "matchesDist": true
+    },
+    {
+      "path": "/settings.html",
+      "status": 200,
+      "bytes": 1165,
+      "sha256": "bb87a41a31b481c0735f046bcc4492d67e3c42da9b6c643590dddd6e8bbfdd4f",
+      "matchesDist": true
+    },
+    {
+      "path": "/project-detail.html",
+      "status": 200,
+      "bytes": 4839,
+      "sha256": "dfbe58ffdb269a38ade40335ed0c8dfbc5052bdb224631a49aa636a0bb5fb299",
+      "matchesDist": true
+    },
+    {
+      "path": "/project-new.html",
+      "status": 200,
+      "bytes": 1747,
+      "sha256": "04876debfc2e439e07a169fa992fd8725d7a5b65160b7c683d4ed5fe3c13aa7b",
+      "matchesDist": true
+    },
+    {
+      "path": "/project-status-summary.html",
+      "status": 200,
+      "bytes": 2539,
+      "sha256": "c467739ba815aaa3de673bbfb6c36aa2d32b711cbee6849d9ac0263de6b375e1",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/data-manage-CDiEdkin.js",
+      "status": 200,
+      "bytes": 11840,
+      "sha256": "c637696b2511bdf722308a77d9274cf93cf0b0b8f89cfaa1c946d908e59abb29",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/api-BQLdDmUD.js",
+      "status": 200,
+      "bytes": 33082,
+      "sha256": "b16b22ec362938b43d95d76d94b0d842559afd9b2d20adfd40ca3fa76ff89d7d",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/api-B-ruFuGn.css",
+      "status": 200,
+      "bytes": 6064,
+      "sha256": "7dab2b7fe035e499a5d6af87ad5668edadd9b5e4cfe8618e4ff9ed621041e10e",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/notifications-MtJgyemJ.js",
+      "status": 200,
+      "bytes": 4307,
+      "sha256": "4954c9084b6a37984622dc066db35e888cd4d08f60568be534b1c771a613ff4a",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/data-manage-Bk-2UBJj.css",
+      "status": 200,
+      "bytes": 3246,
+      "sha256": "c122fced89056792515d36a40750ecd13b6d9c22a2b061e68f9209c025c585bf",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/index-DDOS6RG-.js",
+      "status": 200,
+      "bytes": 15362,
+      "sha256": "542ff66e5e6d8d4dc383285afee9e8ecd2fcf0f1da8cb5ad87c516b2db1a1dbe",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/board-Buhf5ru8.css",
+      "status": 200,
+      "bytes": 42882,
+      "sha256": "65dda0aefe3464ec2fa4d00f1860c8657e63fb612dc2dd3abf8130fcf5d569cf",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/login-CjtJosn8.js",
+      "status": 200,
+      "bytes": 2038,
+      "sha256": "9472482827fb857d0bd8dcf2552e93cbfe037c84540850cbdab040bf3a11036c",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/index-CihLxPjF.css",
+      "status": 200,
+      "bytes": 7306,
+      "sha256": "b28674b6d2236f4b94f3ca6724656912c361f4ac83b7bc96782cdbabad967d9c",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/login-D9KYl3tU.css",
+      "status": 200,
+      "bytes": 482,
+      "sha256": "e179bf8998912737851b88af0bc94aeff622a19313ac40fe5dd626fb3206ece0",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/detail-CjM-a3Wn.css",
+      "status": 200,
+      "bytes": 45806,
+      "sha256": "d5c2987960ccd93d8ba81177342346c9f089812b904f4376dd2df4f90519da1b",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-checks-Dgxazuu6.js",
+      "status": 200,
+      "bytes": 17277,
+      "sha256": "5386d0c6abcd7347c04ee12a79c589912ab526cbc95b7f35efcb9a1654253d04",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/history-DxQvohSK.js",
+      "status": 200,
+      "bytes": 5453,
+      "sha256": "6ca3a075b7d8204a7fe7990a018ad049c59f8d046db93d6c94c252e00ed80a55",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-checks-lawCJIj9.css",
+      "status": 200,
+      "bytes": 4414,
+      "sha256": "c225acd772443391e52c4c991063d64f3f1462caf34bc632e9001ff3c6825609",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-options-DqIm-UBF.js",
+      "status": 200,
+      "bytes": 16281,
+      "sha256": "901fa315055408299bacee1d1304224ac1655eb8852f3d665164fe1bb8e8cb7d",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-detail-BwIbcvB2.js",
+      "status": 200,
+      "bytes": 151270,
+      "sha256": "588ad8a49c47701368f7c8d0abe172e83b477aac0c7e3ba1e73c228b8c74fde6",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-new-DzZdXxHs.js",
+      "status": 200,
+      "bytes": 8567,
+      "sha256": "d773416280251a8fc8f71e8bb6f729fa0829bcf7c24db4d9feff666023055de9",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-options-CjjHA-vc.css",
+      "status": 200,
+      "bytes": 2366,
+      "sha256": "b329eab4502f60f2562a236a1a69b3816f170c80e72b4557ef83971d3bbba6c0",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-status-summary-B1bJuAj2.js",
+      "status": 200,
+      "bytes": 22661,
+      "sha256": "555e4310a2ff8300ed766ee0b96e95d8436598348143e35bc754039a24d97320",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/settings-BZttnNU0.js",
+      "status": 200,
+      "bytes": 4714,
+      "sha256": "36910e48f4a466a6131164709a8faf9ba8f9d7d0c9b41e3684fe927e757d539c",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-status-summary-DlqO6-jo.css",
+      "status": 200,
+      "bytes": 3681,
+      "sha256": "7265f6ec41cc1d0252b3ba2f45c867177ad17a6c2ea94f18240fa6a5e7bcf4f7",
+      "matchesDist": true
+    }
+  ],
+  "anonymousStatus": 401,
+  "checkedAt": "2026-10-19T08:07:50.029Z",
+  "source": "Edge page fetch over public HTTPS with no-store and SHA256 verification",
+  "pageCount": 8,
+  "assetCount": 21,
+  "status": "passed"
+}

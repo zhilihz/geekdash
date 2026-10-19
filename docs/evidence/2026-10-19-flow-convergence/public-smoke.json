@@ -1,0 +1,34 @@
+{
+  "status": "passed",
+  "revision": "6de87d25d0aca6935c635699ad28de2b8db3a392",
+  "checkedAt": "2026-10-19T16:03:25.510277+08:00",
+  "nativeBrowserAcceptance": false,
+  "build": {
+    "revision": "6de87d25d0aca6935c635699ad28de2b8db3a392",
+    "dirty": false,
+    "builtAt": "2026-10-19T07:56:59.502Z",
+    "stage": "project-list",
+    "schemaVersion": "0004-project-compatibility"
+  },
+  "projectId": "24",
+  "projectVersion": "2",
+  "managerCount": 2,
+  "auditCount": 2,
+  "createOperationId": "eac92714-e7d1-4c91-9dd2-77838d2a8d3b",
+  "saveOperationId": "2bf51a8f-7329-42bf-adf2-e11695ce99b5",
+  "saveReplayedFromReceipt": false,
+  "checks": [
+    "independent_cookie_jars",
+    "enabled_manager_selection",
+    "creator_and_selected_manager_persisted",
+    "selected_manager_direct_status_save",
+    "creator_receives_https_sse",
+    "both_accounts_fresh_detail_and_board",
+    "creation_managers_and_save_actor_in_audit",
+    "receipt_replay_no_duplicate_history"
+  ],
+  "databaseVerification": "passed; independent utf8mb4 SQL readback and exact Chinese-text comparison recorded in remote-readback.json",
+  "ownSessionsLoggedOut": true,
+  "finishedAt": "2026-10-19T16:04:36.222725+08:00",
+  "evidenceNote": "保留公网冒烟事实；原脚本结束时独立SQL待主任务核对，现已据后续remote-readback补齐。"
+}

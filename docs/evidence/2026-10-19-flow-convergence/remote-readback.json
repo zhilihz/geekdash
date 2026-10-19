@@ -1,0 +1,63 @@
+{
+  "status": "passed",
+  "deployment": {
+    "status": "installed",
+    "phase": "complete",
+    "build": {
+      "revision": "6de87d25d0aca6935c635699ad28de2b8db3a392",
+      "dirty": false,
+      "builtAt": "2026-10-19T07:56:59.502Z",
+      "stage": "project-list",
+      "schemaVersion": "0004-project-compatibility"
+    },
+    "imageId": "sha256:48e15b0a8d675510901800c1a4b16ac3e47195dabde5a4b476b5a9e05ef89c15",
+    "previousImageId": "sha256:819d13599b3fd8706c9d6d3157069d7d8baaedc62da2cb16f80e5441365b4c3b",
+    "backup": {
+      "path": "/var/backups/geekdash/pre-flow-6de87d25d0ac.sql.gz",
+      "bytes": 77062,
+      "sha256": "495c14c089725657570751931912c38b1a92957e2c066a11ccf300f50e2726fc",
+      "scope": "both complete databases including routines/events/triggers; no new restore drill"
+    },
+    "mysqlIdStartedAtPreserved": true,
+    "otherContainersPreserved": 17,
+    "nginxOriginalSha256": "77bb5e281ecb1e6dfde7328cd4542845656a7008d532e482bdf1b049a24f2c67",
+    "nginxRestored": true,
+    "publicReadback": "passed; see public-smoke.json and public-browser-resources.json",
+    "rollback": "previous 0004 app image; do not restore database backups automatically",
+    "checkedAt": "2026-10-19T16:02:53.946768+08:00",
+    "revision": "6de87d25d0aca6935c635699ad28de2b8db3a392",
+    "previousRevision": "3794a381a5d2c2434d9a4e8c766ea5ca01777134",
+    "schemaChanged": false,
+    "mergedMain": false,
+    "wholeConvergenceAcceptance": "not_complete",
+    "queryOutputSummariesRowCountsAndMigrationsPreserved": true,
+    "snapshotComparisonBoundary": "切换前后逐表查询输出摘要、行数和迁移登记一致；snapshot命令未显式指定字符集，不作为完整文本字节验证。",
+    "restoreDrillPerformed": false
+  },
+  "project": {
+    "id": "24",
+    "version": "2",
+    "statusDesc": "第二位项目经理已保存：双经理共享编辑权限、通知与新请求回读核验。"
+  },
+  "managers": [
+    {
+      "id": "1",
+      "name": "business01"
+    },
+    {
+      "id": "2",
+      "name": "business02"
+    }
+  ],
+  "auditActors": [
+    "1",
+    "2"
+  ],
+  "auditActions": [
+    "project.create",
+    "project.ordinary.save"
+  ],
+  "auditCount": 2,
+  "independentSQL": true,
+  "evidenceNote": "依据原安装回执、后续公网冒烟及独立SQL回读汇总；原安装时publicReadback尚待执行，现由public-smoke.json与public-browser-resources.json补齐。"
+}
