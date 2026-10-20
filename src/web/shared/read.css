@@ -25,6 +25,10 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 #editor-dialog, #draft-dialog, .draft-dialog { color: var(--text); background: var(--card); border: 1px solid var(--border); border-radius: 12px; max-width: 560px; width: calc(100% - 32px); box-sizing: border-box; padding: 24px; inset: clamp(72px, 14dvh, 128px) 0 auto; margin: 0 auto; max-height: calc(100dvh - 160px); overflow: auto; box-shadow: 0 16px 48px #0004; }
 #editor-dialog::backdrop, #draft-dialog::backdrop, .draft-dialog::backdrop { background: #0009; }
 .draft-dialog pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.draft-recovery { position: fixed; inset: clamp(72px, 12dvh, 112px) 0 auto; margin: 0 auto; box-sizing: border-box; width: min(460px, calc(100% - 32px)); padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); color: var(--text); box-shadow: 0 12px 36px #0005; z-index: 1400; }
+.draft-recovery p { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text-dim); max-height: 6em; overflow: auto; }
+.draft-recovery .entry-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.draft-recovery [data-continue] { color: #fff; background: var(--accent); border-color: var(--accent); }
 .feedback-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .feedback-heading h2 { font-size: 18px; margin: 0; }
 .feedback-detail { color: var(--text-dim); font-size: 13px; line-height: 1.7; }

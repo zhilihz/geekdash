@@ -2,6 +2,7 @@ import './shared/read.css';
 import './shared/detail.css';
 import './shared/forms.css';
 import { get, send, setAccount, notifyIdentityChange, SaveError, account, type Account } from './shared/api';
+import { afterLogin, workTarget } from './shared/auth-return';
 const login = document.getElementById('login') as HTMLFormElement;
 const password = document.getElementById('password') as HTMLFormElement;
 const message = document.getElementById('message')!;
@@ -12,6 +13,10 @@ async function restore() {
   const { account } = await get<{ account: Account }>('/api/auth/me'); setAccount(account);
   login.hidden = true; password.hidden = false; logout.hidden = false;
   document.getElementById('back')!.hidden = account.mustChangePassword;
+  const back = document.getElementById('back') as HTMLAnchorElement;
+  back.href = afterLogin(account.id); back.textContent = back.getAttribute('href') === '/' ? '进入看板' : '返回原页面';
+  const query = new URLSearchParams(location.search);
+  if (account.mustChangePassword && !query.has('returnAccount') && workTarget(query.get('returnTo'))) { query.set('returnAccount', account.id); history.replaceState(null, '', '/login.html?' + query); }
   document.getElementById('notice')!.textContent = account.name + (account.mustChangePassword ? '：请先修改临时密码，再重新登录。' : '：可修改密码或退出；退出会影响同浏览器其他标签页。');
 }
 function bind(form: HTMLFormElement, path: string, complete: (result: Record<string, unknown>) => Promise<void>) {
@@ -23,7 +28,7 @@ function bind(form: HTMLFormElement, path: string, complete: (result: Record<str
     finally { busy = false; button.disabled = false; }
   };
 }
-bind(login, '/api/auth/login', async result => { await restore(); if (account!.id !== result.accountId) throw new SaveError('AUTH_CONTEXT_CHANGED', 'unknown'); notifyIdentityChange(); if (!document.getElementById('back')!.hidden) location.replace('/'); });
+bind(login, '/api/auth/login', async result => { await restore(); if (account!.id !== result.accountId) throw new SaveError('AUTH_CONTEXT_CHANGED', 'unknown'); notifyIdentityChange(); if (!document.getElementById('back')!.hidden) location.replace(afterLogin(account!.id)); });
 bind(password, '/api/auth/password', async () => { notifyIdentityChange(); login.hidden = false; password.hidden = true; logout.hidden = true; document.getElementById('back')!.hidden = true; note('密码已保存，请用新密码重新登录。'); });
 logout.onclick = async () => {
   if (busy || !confirm('退出会影响同浏览器所有标签页，并清除本机恢复副本；服务器个人草稿保留。请先同步或复制未保存内容，确定退出？')) return;
@@ -32,4 +37,4 @@ logout.onclick = async () => {
   catch (error) { note((error as Error).message + ' 请核对登录状态，结果未确认时不要认为已经退出。'); }
   finally { busy = false; logout.disabled = false; }
 };
-void restore().catch(error => { if (!(error instanceof SaveError && error.code === 'AUTH_REQUIRED')) note((error as Error).message); });
+void restore().then(() => { const query = new URLSearchParams(location.search); if (!account!.mustChangePassword && query.has('returnTo') && query.get('change') !== '1') location.replace(afterLogin(account!.id)); }).catch(error => { if (!(error instanceof SaveError && error.code === 'AUTH_REQUIRED')) note((error as Error).message); });

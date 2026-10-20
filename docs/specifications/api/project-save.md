@@ -1,10 +1,29 @@
 # 项目普通保存 API
 
-日期：2026-10-09；原普通编辑版本31012c8，本轮 E03-W09～W12 在相同协议上接入实名授权，结构仍0002-trial-save。身份请求头与新增入口见[项目主干 API](project-core.md)，实际构建版本见系统真相。行为唯一归 [SPEC-002](../specification.md#spec-002-保存事务并发与审计)；全部响应 Cache-Control: no-store，大整数均为十进制字符串。新写入要求已改密的真实账号及本人负责关系；匿名历史和旧 trial 回执只保留原来源及只读确认。
+更新日期：2026-10-20；本轮协议按工作区 `src/server/modules/project-save.ts` 的 `validateSave`、`basicCommands`、`requestHash` 和 `save` 核对。身份请求头与新增入口见[项目主干 API](project-core.md)，实际构建与发布状态见系统真相。行为唯一归 [SPEC-002](../specification.md#spec-002-保存事务并发与审计)；全部响应 Cache-Control: no-store，大整数均为十进制字符串。新写入要求已改密的真实账号及本人负责关系；匿名历史和旧 trial 回执只保留原来源及只读确认。下文带 E03/E04 日期的扩展段保留协议演进来源，其旧全页保存、普通纠错原因/预览交互以当前 SPEC-002/005 及分区协议为准，不据旧日期推导当前能力。
 
 ## PATCH /api/projects/:id
 
-P04-02本地候选（f07450e基线+本轮改动，未部署）在原文字字段之外接受独立summary；缺省不写、空串明确清空，旧summaryNote不移动或覆盖。沿用原事务、版本和回执，旧请求摘要保持兼容；本补充不表示P04分区保存协议已实现。
+接受独立 `summary`；缺省不写、空串明确清空，旧 `summaryNote` 不移动或覆盖。当前分区请求在原 `expectedVersion/idempotencyKey/changes` 外接受 `scope`、必要时的 `target`、`draft`，基本区可带下述 `basicIntent` 或兼容的 `commands`。各区字段白名单及目标约束由 `scopeFields/validateScope` 校验；不能夹带其他区输入。
+
+### 基本区业务意图（2026-10-20）
+
+新基本区请求使用 `scope:"basic"`，`changes` 放普通资料/分工补丁，`basicIntent` 放用户选定的状态、日期及关联说明。只有状态/日期改变时 `changes` 可为 `{}`。`basicIntent` 必须为完整对象，接受键如下；业务前置与日期含义仍引用 SPEC-002/003/004，不在协议另定规则。
+
+| `basicIntent` 键 | 传输格式 |
+|---|---|
+| `filingDate/startDate/dueDate/closedOn/proposalDate/originalDueDate` | 全部必传；有效日期字符串或 `""` |
+| `state` | `proposal/ongoing/paused/closed` |
+| `planKind` | `reschedule/correction` |
+| `reason/measures/closureNote/remainingWorkNote` | 全部必传字符串；允许空值，动作实际必填条件由对应候选校验 |
+| `closureType`、`maintenance` | `normal/terminated`；布尔值 |
+| `clearDates` | 可选，上述日期键组成的无重复数组 |
+
+`basicIntent` 仅允许 `scope:"basic"`，与 `commands` 按字段是否存在互斥；非基本区或二者同时出现返回 `400 SAVE_SCOPE_MISMATCH`。意图缺必需键、额外键或类型非法返回 `400 INVALID_SAVE_REQUEST`；日期和实际动作校验沿既有错误。基本区的 `people` 不接受 `role:"pm"`，经理资格沿本人负责操作维护。
+
+服务端取得资料锁和项目锁后，先核原回执，再核当前负责资格与 `expectedVersion`，随后从锁内正式前态把 `basicIntent` 转为必要动作及执行顺序。动作复用 `applyAction`，与普通字段、项目版本、审计及草稿结果在同一事务完成；前端不传拆分后的动作顺序，不把联合修改拆成多个写请求。成功仍为原 `SaveResult`，分区结果带 `scope/baseVersion`、本区 `values`，有实际动作时带 `actions`；任一项校验失败不部分写入。
+
+兼容请求可继续使用原 `commands`。未携带 `basicIntent` 的请求保留原规范化摘要和回执结果；携带时仅把原 `basicIntent` 纳入摘要，服务端生成的内部动作不替换原请求正文。结果查询与未知结果重试必须原样保留 `basicIntent` 或原 `commands`，不能在二者间转换后复用同一操作编号。`draft` 的精确匹配见[个人草稿协议](personal-state.md#正式保存携带草稿)。
 
 输入示例：
 
@@ -12,11 +31,11 @@ P04-02本地候选（f07450e基线+本轮改动，未部署）在原文字字段
 {"expectedVersion":"1","idempotencyKey":"089dd49e-343f-4464-bdca-32c74a1a9b94","changes":{"name":"合成测试项目","summaryNote":"明确保存后生效"}}
 ```
 
-id/expectedVersion 范围为1至UINT64_MAX；操作编号为小写 UUID v4。同编号重试需沿用同版本和同内容。changes 非空，白名单如下；名称规则与字段容量见规格。不接受客户端身份、dataKind、生命周期、日期或责任字段。
+id/expectedVersion 范围为1至UINT64_MAX；操作编号为小写 UUID v4。同编号重试需沿用同版本和同内容。无意图/动作的普通请求 `changes` 非空，白名单如下；名称规则与字段容量见规格。`changes` 不接受客户端身份、dataKind、生命周期、日期或责任字段；基本区状态和日期使用上节 `basicIntent`。
 
 | 字段 | JSON 类型/编码 |
 |---|---|
-| name/marketExpectation/detailNote/summaryNote/summary/statusDesc/signalNote/chipstatNote | 字符串；说明可明确空字符串；summary为上述P04候选新增 |
+| name/marketExpectation/detailNote/summaryNote/summary/statusDesc/signalNote/chipstatNote | 字符串；说明可明确空字符串；summary 与两类备注各自独立 |
 | signal | green/yellow/red |
 | priority | high/mid/low |
 | customerId/odmCustomerId/productLineId/appId/groupId | 十进制 ID 字符串或 null |

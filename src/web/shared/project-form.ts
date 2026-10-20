@@ -1,4 +1,4 @@
-import { esc, label, type Detail, type EditValues, type SaveRequest, type CatalogItem } from './api';
+import { esc, label, type Detail, type EditValues, type CatalogItem } from './api';
 
 export type BasicIntent = {
   filingDate: string; startDate: string; dueDate: string; closedOn: string; proposalDate: string; originalDueDate: string;
@@ -16,35 +16,6 @@ export function basicIntentChanged(detail: Detail, draft: BasicIntent) {
   const base = basicIntent(detail);
   return Object.keys(base).some(key => !['reason', 'measures', 'planKind'].includes(key) && draft[key as keyof BasicIntent] !== base[key as keyof BasicIntent]);
 }
-export function basicCommands(detail: Detail, draft: BasicIntent): NonNullable<SaveRequest['commands']> {
-  const p = detail.project, base = basicIntent(detail), commands: NonNullable<SaveRequest['commands']> = [];
-  const starting = p.status === 'proposal' && draft.state === 'ongoing';
-  const dateChanges: Record<string, string | null> = {};
-  for (const key of ['filingDate', 'proposalDate', 'originalDueDate', 'startDate'] as const) {
-    if (draft[key] !== base[key] && !(key === 'startDate' && starting)) dateChanges[key] = draft[key] || null;
-  }
-  const dueChanged = draft.dueDate !== base.dueDate;
-  if (dueChanged && (!starting || draft.planKind === 'correction' || !draft.dueDate)) {
-    if (draft.planKind === 'correction' || !draft.dueDate) dateChanges.dueDate = draft.dueDate || null;
-    else commands.push(p.dueDate ? { action: 'reschedulePlan', dueDate: draft.dueDate, reason: draft.reason, measures: draft.measures } : { action: 'setPlan', dueDate: draft.dueDate });
-  }
-  if (Object.keys(dateChanges).length) commands.unshift({ action: 'correctProjectDates', changes: dateChanges, reason: draft.reason });
-  if (draft.state !== p.status) {
-    if (starting) {
-      commands.push({ action: 'startProject', actualDate: draft.startDate, dueDate: draft.dueDate || null, planReason: draft.reason });
-    } else if (p.status === 'closed') commands.push({ action: 'reopenProject', closureAuditId: detail.currentClosure?.auditId ?? null, reason: draft.reason });
-    else if (draft.state === 'closed') commands.push({ action: 'closeProject', closedOn: draft.closedOn, closureType: draft.closureType, closureNote: draft.closureNote, remainingWorkNote: draft.remainingWorkNote });
-    else if (draft.state === 'paused') commands.push({ action: 'pauseProject', reason: draft.reason });
-    else commands.push({ action: 'resumeProject', note: draft.reason });
-  } else if (p.status === 'closed') {
-    const changes: Record<string, string | null> = {};
-    for (const key of ['closedOn', 'closureType', 'closureNote', 'remainingWorkNote'] as const) if (draft[key] !== base[key]) changes[key] = key === 'closedOn' ? draft[key] || null : draft[key];
-    if (Object.keys(changes).length) commands.push({ action: 'correctClosure', closureAuditId: detail.currentClosure?.auditId ?? null, changes, reason: draft.reason });
-    if (draft.maintenance !== base.maintenance) commands.push({ action: 'setMaintenance', enabled: draft.maintenance, reason: draft.reason });
-  }
-  return commands;
-}
-
 type Reference = (key: string, table: string, role?: string) => string;
 type FormDetail = Pick<Detail, 'businessDate' | 'stages' | 'nodes' | 'risks'> & { project: Partial<Detail['project']> & Pick<Detail['project'], 'status' | 'chips' | 'people'> };
 export function referenceSelect(key: string, options: CatalogItem[], selected: string[], old: string[] = [], role?: string) {

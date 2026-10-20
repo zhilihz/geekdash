@@ -2,10 +2,11 @@ import { createHash } from 'node:crypto';
 import type { PoolConnection, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 import { assertActor, type Actor } from './identity.js';
-import { applyAction, validateAction, type ActionCommand } from './project-actions.js';
+import { applyAction, projectSql, validateAction, type ActionCommand } from './project-actions.js';
+import { currentClosure } from './project-closures.js';
 import { finishDraft, validateDraftRef, type DraftRef } from './personal-state.js';
 import { validateChangeOps, changeCandidate, writeChanges, type ChangeOperation, validateRiskOps, riskCandidate, writeRisks, validateNodeOps, nodeCandidate, writeNodes, type NodeOperation, type RiskOperation } from './project-records.js';
-import { businessToday } from './project-dates.js';
+import { businessToday, requireDate } from './project-dates.js';
 
 export const textColumns = { name: 'name', marketExpectation: 'market_expectation', detailNote: 'detail_note', summaryNote: 'summary_note', summary: 'summary' } as const;
 export const columns = { ...textColumns, signalNote: 'signal_note', chipstatNote: 'chipstat_note', statusDesc: 'status_description', signal: 'signal', priority: 'priority', customerId: 'customer_id', odmCustomerId: 'odm_customer_id', productLineId: 'product_line_id', appId: 'app_id', groupId: 'group_id' } as const;
@@ -24,7 +25,12 @@ export const scopeFields = {
   stage: ['stagePlans'], risk: ['riskOps'], change: ['changeOps'], customerNode: ['nodeOps'], projectNodes: ['nodeOps'],
 } satisfies Record<string, string[]>;
 export type SaveScope = keyof typeof scopeFields;
-export type SaveRequest = { expectedVersion: string; idempotencyKey: string; changes: Partial<Values>; scope?: SaveScope; target?: string; commands?: ActionCommand[]; draft?: DraftRef };
+export type BasicIntent = {
+  filingDate: string; startDate: string; dueDate: string; closedOn: string; proposalDate: string; originalDueDate: string;
+  state: string; planKind: 'reschedule' | 'correction'; reason: string; measures: string;
+  closureType: 'normal' | 'terminated'; closureNote: string; remainingWorkNote: string; maintenance: boolean; clearDates?: string[];
+};
+export type SaveRequest = { expectedVersion: string; idempotencyKey: string; changes: Partial<Values>; scope?: SaveScope; target?: string; commands?: ActionCommand[]; basicIntent?: BasicIntent; draft?: DraftRef };
 export type SaveResult = { baseVersion?: string; draft?: Awaited<ReturnType<typeof finishDraft>>; projectId: string; operationId: string; changed: boolean; savedVersion: string; values: Partial<Values>; savedAt: string | null; scope?: SaveScope; target?: string; actions?: Record<string, unknown>[]; display?: Record<string, unknown>; riskIdMap?: Record<string, string>; risks?: Awaited<ReturnType<typeof riskCandidate>>['rows']; nodeIdMap?: Record<string, string>; nodes?: Awaited<ReturnType<typeof nodeCandidate>>['rows']; changeIdMap?: Record<string, string>; changes?: Awaited<ReturnType<typeof changeCandidate>>['rows'] };
 
 export function failure(code: string, status: number, extra: Record<string, unknown> = {}): never {
@@ -35,9 +41,9 @@ export function validId(value: unknown): value is string {
 }
 function object(value: unknown): value is Record<string, unknown> { return value !== null && typeof value === 'object' && !Array.isArray(value); }
 export function validateSave(value: unknown): SaveRequest {
-  if (!object(value) || Object.keys(value).some(key => !['expectedVersion', 'idempotencyKey', 'changes', 'scope', 'target', 'commands', 'draft'].includes(key)) || !validId(value.expectedVersion) || typeof value.idempotencyKey !== 'string'
+  if (!object(value) || Object.keys(value).some(key => !['expectedVersion', 'idempotencyKey', 'changes', 'scope', 'target', 'commands', 'basicIntent', 'draft'].includes(key)) || !validId(value.expectedVersion) || typeof value.idempotencyKey !== 'string'
     || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value.idempotencyKey)
-    || !object(value.changes) || !Object.keys(value.changes).length && !Array.isArray(value.commands)) failure('INVALID_SAVE_REQUEST', 400);
+    || !object(value.changes) || !Object.keys(value.changes).length && !Array.isArray(value.commands) && !object(value.basicIntent)) failure('INVALID_SAVE_REQUEST', 400);
   if (!Object.hasOwn(value, 'scope') && Object.keys(value).length !== 3) failure('INVALID_SAVE_REQUEST', 400);
   const fields: Record<string, string> = {};
   for (const [key, text] of Object.entries(value.changes)) {
@@ -98,6 +104,10 @@ function validateScope(value: Record<string, unknown>) {
     if (!operations?.length || operations.some(op => ('tempId' in op ? op.tempId : 'id' in op ? op.id : null) !== value.target)) failure('SAVE_SCOPE_MISMATCH', 400);
   } else if (Object.hasOwn(value, 'target')) failure('SAVE_SCOPE_MISMATCH', 400);
   if (kind === 'basic' && changes.people?.some(person => person.role === 'pm')) failure('SAVE_SCOPE_MISMATCH', 400, { fields: { people: '项目经理通过本人加入或退出维护，不能以工程师资料替代账号' } });
+  if (Object.hasOwn(value, 'basicIntent')) {
+    if (kind !== 'basic' || Object.hasOwn(value, 'commands')) failure('SAVE_SCOPE_MISMATCH', 400);
+    validateBasicIntent(value.basicIntent);
+  }
   if (Object.hasOwn(value, 'commands')) {
     if (kind !== 'basic' || !Array.isArray(value.commands) || !value.commands.length || value.commands.length > 4) failure('SAVE_SCOPE_MISMATCH', 400);
     const dateActions = ['setPlan', 'reschedulePlan', 'correctProjectDates'];
@@ -115,6 +125,60 @@ function validateScope(value: Record<string, unknown>) {
     if (categories.has('plan') && commands.some(command => command.action === 'startProject' || command.action === 'resumeProject' && command.dueDate !== undefined || command.action === 'correctProjectDates' && (Object.hasOwn(command.changes, 'dueDate') || Object.hasOwn(command.changes, 'originalDueDate')))
       || startup && commands.some(command => command.action === 'correctProjectDates' && (['startDate', 'originalDueDate'].some(key => Object.hasOwn(command.changes, key)) || Object.hasOwn(command.changes, 'dueDate') && command.changes.dueDate !== startup.dueDate))) failure('SAVE_SCOPE_MISMATCH', 400, { fields: { commands: '同次操作不能包含两份相互覆盖的计划或启动日期' } });
   }
+}
+function validateBasicIntent(value: unknown): asserts value is BasicIntent {
+  const dates = ['filingDate', 'startDate', 'dueDate', 'closedOn', 'proposalDate', 'originalDueDate'];
+  const texts = ['reason', 'measures', 'closureNote', 'remainingWorkNote'];
+  const fields = [...dates, ...texts, 'state', 'planKind', 'closureType', 'maintenance'];
+  if (!object(value) || fields.some(key => !Object.hasOwn(value, key)) || Object.keys(value).some(key => ![...fields, 'clearDates'].includes(key))
+    || !['proposal', 'ongoing', 'paused', 'closed'].includes(value.state as string) || !['reschedule', 'correction'].includes(value.planKind as string)
+    || !['normal', 'terminated'].includes(value.closureType as string) || typeof value.maintenance !== 'boolean'
+    || texts.some(key => typeof value[key] !== 'string' || !value[key].isWellFormed() || Buffer.byteLength(value[key], 'utf8') > 65535)) failure('INVALID_SAVE_REQUEST', 400);
+  for (const key of dates) if (value[key] !== '') requireDate(value[key], key);
+  if (value.clearDates !== undefined && (!Array.isArray(value.clearDates) || value.clearDates.some(key => typeof key !== 'string' || !dates.includes(key)) || new Set(value.clearDates).size !== value.clearDates.length)) failure('INVALID_SAVE_REQUEST', 400);
+}
+// 正式前态在项目锁和版本核对后读取；页面提交目标值，动作顺序只在此确定。
+async function basicCommands(connection: PoolConnection, id: string, request: SaveRequest): Promise<ActionCommand[]> {
+  const draft = request.basicIntent!;
+  const p = (await query(connection, projectSql, [id]))[0];
+  const commands: Record<string, unknown>[] = [];
+  const starting = p.status === 'proposal' && draft.state === 'ongoing';
+  const dateChanges: Record<string, string | null> = {};
+  for (const key of ['filingDate', 'proposalDate', 'originalDueDate', 'startDate'] as const) {
+    if (draft[key] !== (p[key] ?? '') && !(key === 'startDate' && starting)) dateChanges[key] = draft[key] || null;
+  }
+  const dueChanged = draft.dueDate !== (p.dueDate ?? '');
+  if (dueChanged && (!starting || draft.planKind === 'correction' || !draft.dueDate)) {
+    if (draft.planKind === 'correction' || !draft.dueDate) dateChanges.dueDate = draft.dueDate || null;
+    else commands.push(p.dueDate ? { action: 'reschedulePlan', dueDate: draft.dueDate, reason: draft.reason, measures: draft.measures } : { action: 'setPlan', dueDate: draft.dueDate });
+  }
+  if (Object.keys(dateChanges).length) commands.unshift({ action: 'correctProjectDates', changes: dateChanges, reason: draft.reason });
+  const closure = p.status === 'closed' ? await currentClosure(connection, id, p as { status: string; sourceImportItemId: unknown }) : null;
+  if (draft.state !== p.status) {
+    if (starting) commands.push({ action: 'startProject', actualDate: draft.startDate, dueDate: draft.dueDate || null, planReason: draft.reason });
+    else if (p.status === 'closed') {
+      if (draft.state !== p.preCloseStatus) failure('PROJECT_REOPEN_BASIS_UNKNOWN', 422);
+      commands.push({ action: 'reopenProject', closureAuditId: closure?.auditId ?? null, reason: draft.reason });
+    } else if (draft.state === 'closed') commands.push({ action: 'closeProject', closedOn: draft.closedOn, closureType: draft.closureType, closureNote: draft.closureNote, remainingWorkNote: draft.remainingWorkNote });
+    else if (draft.state === 'paused') commands.push({ action: 'pauseProject', reason: draft.reason });
+    else {
+      if (p.status === 'paused' && draft.state !== p.resumeStatus) failure('PROJECT_RESUME_BASIS_UNKNOWN', 422);
+      commands.push({ action: 'resumeProject', note: draft.reason });
+    }
+  } else if (p.status === 'closed') {
+    const changes: Record<string, string | null> = {};
+    for (const key of ['closedOn', 'closureType', 'closureNote', 'remainingWorkNote'] as const) {
+      const before = key === 'closureType' ? p.closureType === 'terminated' ? 'terminated' : 'normal' : p[key] ?? '';
+      if (draft[key] !== before) changes[key] = key === 'closedOn' ? draft[key] || null : draft[key];
+    }
+    if (Object.keys(changes).length) commands.push({ action: 'correctClosure', closureAuditId: closure?.auditId ?? null, changes, reason: draft.reason });
+    if (draft.maintenance !== !!p.maintenanceEnabled) commands.push({ action: 'setMaintenance', enabled: draft.maintenance, reason: draft.reason });
+  }
+  if (!commands.length) return [];
+  const combined = { ...request, commands };
+  delete combined.basicIntent;
+  validateScope(combined);
+  return combined.commands as ActionCommand[];
 }
 async function checkNodeScope(connection: PoolConnection, id: string, request: SaveRequest) {
   if (request.scope !== 'customerNode' && request.scope !== 'projectNodes') return;
@@ -143,7 +207,7 @@ function requestHash(id: string, request: SaveRequest) {
   const changes = Object.fromEntries(keys.filter(key => Object.hasOwn(request.changes, key)).map(key => [key, key === 'people' ? request.changes.people!.map(person => ({ id: person.id, role: person.role })) : request.changes[key]]));
   if (request.scope) {
     const canonical = (value: unknown): unknown => Array.isArray(value) ? value.map(canonical) : object(value) ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
-    return createHash('sha256').update(JSON.stringify(canonical([id, request.scope, request.target ?? null, request.expectedVersion, changes, request.commands ?? [], ...request.draft ? [request.draft] : []]))).digest();
+    return createHash('sha256').update(JSON.stringify(canonical([id, request.scope, request.target ?? null, request.expectedVersion, changes, request.commands ?? [], ...request.basicIntent ? [{ basicIntent: request.basicIntent }] : [], ...request.draft ? [request.draft] : []]))).digest();
   }
   return createHash('sha256').update(JSON.stringify([id, mode(request), request.expectedVersion, changes])).digest();
 }
@@ -255,6 +319,7 @@ export function projectSaves(database: RuntimeDatabase) {
         if (receipt) return receiptResult(receipt, hash);
         if (actor && !(await query(connection, 'SELECT user_id FROM project_responsibilities WHERE project_id=? AND user_id=?', [id, actor.id])).length) failure('PROJECT_READ_ONLY', 403);
         if (current.version !== request.expectedVersion) failure('PROJECT_VERSION_CONFLICT', 409, { currentVersion: current.version });
+        const commands = request.basicIntent ? await basicCommands(connection, id, request) : request.commands ?? [];
         await checkNodeScope(connection, id, request);
         if ((request.changes.riskOps || request.changes.nodeOps || request.changes.changeOps) && !actor) failure('AUTH_REQUIRED', 401);
         const savedAt = new Date().toISOString();
@@ -282,8 +347,8 @@ export function projectSaves(database: RuntimeDatabase) {
         const fields = keys.filter(key => key !== 'riskOps' && key !== 'nodeOps' && key !== 'changeOps' && Object.hasOwn(effective, key) && JSON.stringify(effective[key]) !== JSON.stringify(current[key]));
         const effects: Awaited<ReturnType<typeof applyAction>>[] = [];
         // 已校验的命令共同决定最终日期；中途旧日期不应误拒绝合法的联合纠正。
-        const combinedDates = Object.assign({}, ...(request.commands ?? []).map(command => command.action === 'correctProjectDates' ? command.changes : command.action === 'setPlan' || command.action === 'reschedulePlan' ? { dueDate: command.dueDate } : {}));
-        for (const command of request.commands ?? []) effects.push(await applyAction(connection, actor!, id, command, new Date(savedAt), combinedDates));
+        const combinedDates = Object.assign({}, ...commands.map(command => command.action === 'correctProjectDates' ? command.changes : command.action === 'setPlan' || command.action === 'reschedulePlan' ? { dueDate: command.dueDate } : {}));
+        for (const command of commands) effects.push(await applyAction(connection, actor!, id, command, new Date(savedAt), combinedDates));
         const changed = fields.length > 0 || !!risk?.events.length || !!node?.events.length || !!change?.events.length || effects.some(effect => effect.changed);
         if (changed && current.version === '18446744073709551615') failure('PROJECT_VERSION_EXHAUSTED', 422);
         const values = Object.fromEntries((extended ? keys : Object.keys(textColumns) as Field[]).filter(key => key !== 'riskOps' && key !== 'nodeOps' && key !== 'changeOps' && (key !== 'stagePlans' || request.changes.stagePlans)).map(key => [key, Object.hasOwn(effective, key) ? effective[key] : current[key]])) as Values;
@@ -326,7 +391,7 @@ export function projectSaves(database: RuntimeDatabase) {
           if (result.nodes) result.nodes = result.nodes.filter(row => request.scope === 'projectNodes' ? row.kind === 'project' : row.id === (result.nodeIdMap?.[request.target!] ?? request.target));
           if (effects.length) result.actions = effects.map(effect => ({ action: effect.action, ...effect.details }));
         }
-        if (request.draft && actor) result.draft = await finishDraft(connection, actor, request.draft, id, request.scope!, current.version, result.savedVersion, { scope: request.scope, ...request.target ? { target: request.target } : {}, changes: request.changes, ...request.commands ? { commands: request.commands.map(({expectedVersion, idempotencyKey, ...command}) => command) } : {} });
+        if (request.draft && actor) result.draft = await finishDraft(connection, actor, request.draft, id, request.scope!, current.version, result.savedVersion, { scope: request.scope, ...request.target ? { target: request.target } : {}, changes: request.changes, ...request.commands ? { commands: request.commands.map(({expectedVersion, idempotencyKey, ...command}) => command) } : {}, ...request.basicIntent ? { basicIntent: request.basicIntent } : {} });
         await connection.execute('INSERT INTO command_receipts (actor_id,command_scope,idempotency_key,request_hash,response_code,response_json,committed_at) VALUES (?,?,?,?,?,?,UTC_TIMESTAMP(3))', [actor?.id ?? null, scope(id, request, actor), request.idempotencyKey, hash, 200, JSON.stringify(result)]);
         return result;
       });

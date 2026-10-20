@@ -1,15 +1,15 @@
 import './shared/detail.css';
 import './shared/read.css';
-import { auditHistory, historyTime } from './shared/history';
+import { auditHistory, historyTime, readableFields } from './shared/history';
 import './shared/reference-picker.css';
 import { mountReferencePickers, syncReferencePickers } from './shared/reference-picker';
-import { basicFields, basicIntent, basicIntentChanged, basicCommands, referenceSelect, type BasicIntent } from './shared/project-form';
+import { basicFields, basicIntent, basicIntentChanged, referenceSelect, type BasicIntent } from './shared/project-form';
 import { scopeFields, scopeChanges, carryInputs } from './shared/scoped-editor';
 import { PersonalDrafts, PersonalPreference, type PersonalDraft } from './shared/personal-state';
 import { ProjectNotifications } from './shared/notifications';
 import { refreshProjectOptions } from './shared/project-options';
 import type { SaveScope } from './shared/api';
-import { get, send, SaveError, esc, label, projectTags, setupTheme, requireIdentity, account, stageMessages, actionLabels, dateTitles, isPlanCommand, isLifecycleCommand, isClosureCommand, isCheckCommand, type ChangeOperation, type ChangeRecord, type ChangePreview, type ChangeFields, type NodeOperation, type NodeRecord, type NodePreview, type NodeFields, type RiskOperation, type RiskRecord, type RiskPreview, type CheckCommand, type CheckPreview, type CheckPage, closureTitles, type ClosureCommand, type ClosurePreview, type LifecycleCommand, type LifecyclePreview, type PlanCommand, type PlanPreview, type ScheduleRecord, type CorrectionCommand, type CorrectionPreview, type StageCommand, type StartCommand, type ProjectCommand, type Detail, type Entry, type EditValues, type Catalog, type SaveRequest, type SaveResult, type AuditPage } from './shared/api';
+import { get, send, SaveError, esc, label, projectTags, setupTheme, requireIdentity, account, loginUrl, stageMessages, actionLabels, dateTitles, isPlanCommand, isLifecycleCommand, isClosureCommand, isCheckCommand, type ChangeOperation, type ChangeRecord, type ChangePreview, type ChangeFields, type NodeOperation, type NodeRecord, type NodePreview, type NodeFields, type RiskOperation, type RiskRecord, type RiskPreview, type CheckCommand, type CheckPreview, type CheckPage, closureTitles, type ClosureCommand, type ClosurePreview, type LifecycleCommand, type LifecyclePreview, type PlanCommand, type PlanPreview, type ScheduleRecord, type CorrectionCommand, type CorrectionPreview, type StageCommand, type StartCommand, type ProjectCommand, type Detail, type Entry, type EditValues, type Catalog, type SaveRequest, type SaveResult, type AuditPage } from './shared/api';
 
 const element = (id: string) => document.getElementById(id)!;
 const id = new URLSearchParams(location.search).get('id') ?? '';
@@ -999,17 +999,20 @@ function captureDrafts() {
     const changes=scopeChanges(baseline(),values,scope);
     const hasIntent=scope==='basic' && basicDraft && basicIntentChanged(snapshot,basicDraft);
     if(!Object.keys(changes).length && !hasIntent && !(scope==='projectNodes' && nodeDraft && tab!=='custnodes'))continue;
-    let commands:SaveRequest['commands'];try{if(hasIntent)commands=basicCommands(snapshot,basicDraft!);}catch{/* 未填完的动作仍保护输入，不当成正式请求。 */}
-    personalDrafts.capture(scope,undefined,editBaseVersion,{values:changes,...hasIntent?{intent:structuredClone(basicDraft!) as unknown as Record<string,unknown>}:{},submission:{scope,changes,...commands?.length?{commands}:{}},...scope==='projectNodes' && nodeDraft && tab!=='custnodes'?{record:{fields:nodeDraft,changes:nodeRestoreExtras}}:{}});
+    personalDrafts.capture(scope,undefined,editBaseVersion,{values:changes,...hasIntent?{intent:structuredClone(basicDraft!) as unknown as Record<string,unknown>}:{},submission:{scope,changes,...hasIntent?{basicIntent:structuredClone(basicDraft!)}:{}},...scope==='projectNodes' && nodeDraft && tab!=='custnodes'?{record:{fields:nodeDraft,changes:nodeRestoreExtras}}:{}});
   }
   for(const plan of values.stagePlans ?? []){const changes=scopeChanges(baseline(),values,'stage',plan.code);if(Object.keys(changes).length)personalDrafts.capture('stage',plan.code,editBaseVersion,{values:changes,submission:{scope:'stage',target:plan.code,changes}});}
   if(riskDraft){const target=riskDraft.op==='add'?riskDraft.tempId:riskDraft.id;personalDrafts.capture('risk',target,editBaseVersion,{record:riskDraft,submission:{scope:'risk',target,changes:{riskOps:[riskDraft]}}});}
   if(changeDraft){const target=changeDraft.op==='add'?changeDraft.tempId:changeDraft.id;personalDrafts.capture('change',target,editBaseVersion,{record:changeDraft,submission:{scope:'change',target,changes:{changeOps:[changeDraft]}}});}
   if(nodeDraft && tab==='custnodes'){const target='tempId' in nodeDraft?nodeDraft.tempId:'id' in nodeDraft?nodeDraft.id:undefined;personalDrafts.capture('customerNode',target,editBaseVersion,{record:{fields:nodeDraft,changes:nodeRestoreExtras},submission:{scope:'customerNode',target,changes:{nodeOps:[...nodeRestoreExtras,nodeDraft]}}});}
 }
+function canRestoreDraft(version:string|null){return !!values && !stale && !authFrozen && !pending && !stagePending && !responsibilityPending && !inFlight && !loading && !!snapshot?.capabilities.editText && version===editBaseVersion;}
+function recoveryInput(){return JSON.stringify({values,basicDraft,riskDraft,changeDraft,nodeDraft,nodeRestoreExtras,stageDraft,correctionDraft,planDraft,lifecycleDraft,closureDraft,checkDraft});}
 async function restorePersonalDraft(row:PersonalDraft){
-  if(!values || stale || authFrozen || pending || stagePending || loading || !snapshot?.capabilities.editText || row.baseVersion!==editBaseVersion)return false;
+  if(!values || !snapshot || !canRestoreDraft(row.baseVersion))return false;
+  const before=recoveryInput();
   if(dirty() && await choose('本页已有未保存输入，恢复将替换对应区域。其他区域保持。',[['cancel','继续当前编辑'],['restore','恢复对应区域']])!=='restore')return false;
+  if(!canRestoreDraft(row.baseVersion) || recoveryInput()!==before)return false;
   if(row.formKind==='create')return false;
   if(row.formKind==='action'){
     const command={...structuredClone(row.payload.command),expectedVersion:editBaseVersion,idempotencyKey:crypto.randomUUID()} as ProjectCommand;
@@ -1036,8 +1039,27 @@ async function restorePersonalDraft(row:PersonalDraft){
   if(riskDraft && row.formKind==='risk')await openRisk(riskDraft.op,'id' in riskDraft?riskDraft.id:undefined);
   if(changeDraft && row.formKind==='change')await openChange(changeDraft.op,'id' in changeDraft?changeDraft.id:undefined);
   if(nodeDraft && ['projectNodes','customerNode'].includes(row.formKind))await openNode(nodeDraft.op,'id' in nodeDraft?nodeDraft.id:undefined);
-  note('个人草稿已恢复为新副本，正式信息仍需点击保存。');
+  note('已恢复输入，点击保存后生效。');
   return true;
+}
+function offerSessionDraft(){
+  const saved=candidate;
+  if(!saved || saved.pending || !canRestoreDraft(saved.baseVersion))return;
+  const original:Record<string,unknown>={...baseline(),...basicIntent(snapshot!)},input={...saved.values,...saved.basicDraft};
+  const changed=Object.fromEntries(Object.entries(input).filter(([key,value])=>JSON.stringify(value)!==JSON.stringify(original[key])));
+  void personalDrafts?.offer({
+    text:readableFields(changed,{state:'项目状态',reason:'原因'}).slice(0,140) || '有未保存的项目信息，继续编辑后可在原位置核对。',
+    restore:async()=>{
+      if(candidate!==saved || !canRestoreDraft(saved.baseVersion))return false;
+      const before=recoveryInput();
+      if(dirty() && await choose('本页已有新输入，恢复将替换这些未保存内容。',[['cancel','继续当前编辑'],['restore','恢复本标签页底稿']])!=='restore')return false;
+      if(candidate!==saved || !canRestoreDraft(saved.baseVersion) || recoveryInput()!==before)return false;
+      values=structuredClone(saved.values);basicDraft=saved.basicDraft?structuredClone(saved.basicDraft):basicIntent(snapshot!);
+      changeDraft=saved.changeDraft && structuredClone(saved.changeDraft);riskDraft=saved.riskDraft && structuredClone(saved.riskDraft);nodeDraft=saved.nodeDraft && structuredClone(saved.nodeDraft);nodeRestoreExtras=structuredClone(saved.nodeRestoreExtras ?? []);
+      candidate=undefined;render();persist();await hydrateRestoredNodes();return true;
+    },
+    discard:()=>{if(candidate===saved && canRestoreDraft(saved.baseVersion) && !dirty()){sessionStorage.removeItem(bufferKey);candidate=undefined;controls();}},
+  });
 }
 function readBuffer(key = bufferKey) {
   try {
@@ -1230,16 +1252,14 @@ async function saveNew(scope: SaveScope = 'basic', target?: string, explicit?: P
   for (const key of textKeys.slice(1)) if (key in patch && new TextEncoder().encode(patch[key]).length > 65535) errors[key] = '说明超过 65535 字节';
   if (patch.stagePlans?.some(plan => plan.plannedDays !== null && (!Number.isInteger(plan.plannedDays) || plan.plannedDays < 0 || plan.plannedDays > 65535) || new TextEncoder().encode(plan.note).length > 65535)) errors.stagePlans = '工期须为空或0～65535的整数天；阶段评述最多65535字节';
   if (Object.keys(errors).length) { fieldErrors(errors, scope); return; }
-  let commands: SaveRequest['commands'];
-  try { if (scope === 'basic' && basicDraft) commands = basicCommands(snapshot, basicDraft); }
-  catch (error) { note((error as Error).message, true); return; }
-  if (!Object.keys(patch).length && !commands?.length) { note('本区没有未保存的修改。'); return; }
-  if(commands?.some(command => command.action === 'reopenProject')) {
-    const exact = JSON.stringify({ patch, commands });
+  const intent=scope==='basic' && basicDraft && basicIntentChanged(snapshot,basicDraft)?structuredClone(basicDraft):undefined;
+  if (!Object.keys(patch).length && !intent) { note('本区没有未保存的修改。'); return; }
+  if(intent && snapshot.project.status==='closed' && intent.state!=='closed') {
+    const exact = JSON.stringify({ patch, intent });
     if(await choose('重新打开后退出本次结案，原结案记录保留。', [['save','确认保存'],['cancel','返回修改']]) !== 'save') return;
-    if(stale || authFrozen || exact !== JSON.stringify({patch:explicit ?? scopeChanges(baseline(),values,scope,target),commands:basicCommands(snapshot,basicDraft!)})) { note('输入或项目已有变化，请重新核对后保存。',true); return; }
+    if(stale || authFrozen || exact !== JSON.stringify({patch:explicit ?? scopeChanges(baseline(),values,scope,target),intent:basicDraft})) { note('输入或项目已有变化，请重新核对后保存。',true); return; }
   }
-  const submission={scope,...target?{target}:{},changes:patch,...commands?.length?{commands}:{}};
+  const submission={scope,...target?{target}:{},changes:patch,...intent?{basicIntent:intent}:{}};
   personalDrafts?.capture(scope,target,editBaseVersion,{values:patch,...scope==='basic' && basicDraft?{intent:structuredClone(basicDraft) as unknown as Record<string,unknown>}:{},submission});
   inFlight=true;controls();const draft=await personalDrafts?.prepare(scope,target);inFlight=false;
   if(stale || authFrozen){controls();return;}
@@ -1536,11 +1556,7 @@ async function load(initial = false) {
       if (stagePending) { tab = isPlanCommand(stagePending) || isLifecycleCommand(stagePending) || isClosureCommand(stagePending) || isCheckCommand(stagePending) ? 'info' : 'stages'; render(); await executeStage(true); }
       if (candidate?.pending && data.capabilities.editText) {
         values = { ...candidate.values }; basicDraft = candidate.basicDraft ?? basicIntent(snapshot!); changeDraft = candidate.changeDraft; riskDraft = candidate.riskDraft; nodeDraft = candidate.nodeDraft; nodeRestoreExtras = candidate.nodeRestoreExtras ?? []; editBaseVersion = candidate.baseVersion; pending = candidate.pending; candidate = undefined; render(); await execute(true);
-      } else if (candidate) {
-        if (candidate.baseVersion === snapshot!.project.version && snapshot!.capabilities.editText) {
-          if (await choose('发现本标签页未保存文字，是否恢复？恢复后仍需明确保存。', [['restore', '恢复编辑'], ['cancel', '暂不恢复']]) === 'restore') { values = { ...candidate.values }; basicDraft = candidate.basicDraft ?? basicIntent(snapshot!); changeDraft = candidate.changeDraft; riskDraft = candidate.riskDraft; nodeDraft = candidate.nodeDraft; nodeRestoreExtras = candidate.nodeRestoreExtras ?? []; candidate = undefined; render(); persist(); }
-        } else { note('旧副本的项目版本已过期或当前项目只读，旧文字仅供复制核对。', true); controls(); }
-      }
+      } else if (candidate && (candidate.baseVersion !== snapshot!.project.version || !snapshot!.capabilities.editText)) { note('旧副本的项目版本已过期或当前项目只读，旧文字仅供复制核对。', true); controls(); }
     }
     await hydrateRestoredNodes();
     return true;
@@ -1572,6 +1588,7 @@ element('reload').onclick = async () => {
   await load();
 };
 document.querySelectorAll<HTMLAnchorElement>('.project-nav a, .top-sticky a').forEach(link=>{link.onclick = async event => {
+  if (leaving && new URL(link.href).pathname === '/login.html') return;
   if (!dirty() && !pending && !stagePending && !stageDraft && !correctionDraft && !planDraft && !lifecycleDraft && !closureDraft && !checkDraft) return;
   event.preventDefault(); persist();
   const choice = await choose(pending || stagePending ? '原保存结果尚未确认，离开会保留原操作恢复信息。' : '项目尚未保存，如何离开当前页面？', [['cancel', '继续编辑'], ['keep', '保留草稿并离开'], ...(!pending && !stagePending ? [['discard', '放弃编辑并离开'] as [string, string]] : [])]);
@@ -1586,6 +1603,7 @@ window.addEventListener('focus', refreshContext);
 function detailMeta(p: Detail['project']) { return `客户：${p.customer ?? '—'} · 产品线：${p.productLine ?? '—'} · 芯片：${p.chips.map(chip => chip.name).join(' / ') || '—'}`; }
 setInterval(() => { if (snapshot && !inFlight && !loading && document.visibilityState === 'visible' && snapshot.businessDate !== new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date())) void observe(false, false); }, 60000);
 window.addEventListener('beforeunload', event => { if (!leaving && (dirty() || pending || stagePending || stageDraft || correctionDraft || planDraft || lifecycleDraft || closureDraft || checkDraft)) { persist(); persistStage(); event.preventDefault(); } });
+document.addEventListener('geekdash-login-leave', () => { persist(); persistStage(); leaving = true; });
 document.addEventListener('geekdash-identity-changed', () => { persist(); authFrozen = true; note('账号已变化。请复制未保存内容，重新登录原账号后再进入。', true); controls(); });
 void requireIdentity().then(async () => {
   restoreBoardReturn();readingPreference=new PersonalPreference('detail',text=>note(text,true));const reading=await readingPreference.load();
@@ -1595,7 +1613,7 @@ void requireIdentity().then(async () => {
   }
   const requestedTab=new URLSearchParams(location.search).get('tab') ?? (reading.projectId===id?String(reading.tab ?? ''):'');
   if([...document.querySelectorAll<HTMLElement>('[data-tab]')].some(button=>button.dataset.tab===requestedTab))tab=requestedTab;
-  personalDrafts=new PersonalDrafts(id,()=>({version:editBaseVersion,editable:!!snapshot?.capabilities.editText && !authFrozen}),restorePersonalDraft);
+  personalDrafts=new PersonalDrafts(id,()=>({version:editBaseVersion,editable:!!snapshot?.capabilities.editText && !authFrozen && !stale}),restorePersonalDraft);
   bufferKey = `geekdash_project_buffer:${account!.id}:${id}`;
   // 匿名副本不归属任一账号；只提示保留供核对，不自动作为实名编辑恢复。
   if (sessionStorage.getItem(`geekdash_trial_text_v1:${id}`)) note('发现旧试用副本，请保留原标签页内容供核对；新编辑按当前账号隔离。');
@@ -1627,5 +1645,6 @@ void requireIdentity().then(async () => {
   const online=document.createElement('p');online.className='read-label';online.id='project-editors';online.setAttribute('aria-live','polite');element('d-meta').after(online);
   notifications=new ProjectNotifications((event,own)=>{if(event.projectId!==id || own || !snapshot || BigInt(event.version)<=BigInt(snapshot.project.version))return;stale=true;persist();note('项目已被他人更新，请重新进入项目。未保存输入保留供复制。',true);controls();},refreshContext,text=>{online.textContent=text;},id,personalDrafts.instanceId,refreshContext);
   updateEditing();
+  if(!dirty() && !pending && !stagePending && !stageDraft && !correctionDraft && !planDraft && !lifecycleDraft && !closureDraft && !checkDraft){if(candidate)offerSessionDraft();else void personalDrafts.offer();}
   if (!element('drafts').hidden && !stagePending && !(element('editor-dialog') as HTMLDialogElement).open && element('project-notice').hidden) note('发现本标签页未保存的操作，可继续编辑或查看并复制。', false, true);
-}).catch(error => { note((error as Error).message, true); const link = document.createElement('a'); link.href = '/login.html'; link.textContent = '登录 GeekDash'; element('message').append(' ', link); });
+}).catch(error => { note((error as Error).message, true); if (!document.getElementById('identity-login')) { const link = document.createElement('a'); link.href = loginUrl(); link.textContent = '登录 GeekDash'; element('message').append(' ', link); } });

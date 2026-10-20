@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { createApp } from '../dist/server/app.js';
 import { connectDatabase } from '../dist/server/infrastructure/db.js';
@@ -157,7 +157,8 @@ try {
   assert.equal(risk.result.risks.length, 1);
   const riskId = risk.result.riskIdMap[riskTemp];
   await save('risk', { riskOps: [{ op: 'correct', id: riskId, changes: { content: '只改文字无需原因' }, reason: '' }] }, { target: riskId });
-  await a.api(path, 'PATCH', body(version, 'risk', { riskOps: [{ op: 'correct', id: riskId, changes: { level: 'high' }, reason: '' }] }, { target: riskId }), 422);
+  await save('risk', { riskOps: [{ op: 'correct', id: riskId, changes: { level: 'high' }, reason: '' }] }, { target: riskId });
+  assert.equal((await a.api(path)).risks[0].level, 'high');assert.equal((await fresh(id)).project_risks[0].level, 'high');
   const riskOp = operation => body(version, 'risk', { riskOps: [operation] }, { target: riskId });
   for (const operation of [
     { op: 'resolve', id: riskId, resolution: '' },
@@ -166,7 +167,6 @@ try {
   ]) {
     const before = await fresh(id); await a.api(path, 'PATCH', riskOp(operation), 422); assert.deepEqual(await fresh(id), before);
   }
-  await save('risk', { riskOps: [{ op: 'correct', id: riskId, changes: { level: 'high' }, reason: '原等级误选' }] }, { target: riskId });
   await save('risk', { riskOps: [{ op: 'resolve', id: riskId, resolution: '已核对解决' }] }, { target: riskId });
   const resolved = (await a.api(path)).risks[0]; assert.equal(resolved.resolved, 1); assert(resolved.resolvedAt);
   const beforeRepeat = await fresh(id);
@@ -177,28 +177,28 @@ try {
   await a.api(path, 'PATCH', riskOp({ op: 'undoResolve', id: riskId, reason: '误解除' }), 500); fault = ''; assert.deepEqual(await fresh(id), beforeUndo);
   await save('risk', { riskOps: [{ op: 'undoResolve', id: riskId, reason: '误解除' }] }, { target: riskId });
   const undone = (await a.api(path)).risks[0]; assert.equal(undone.resolved, 0); assert.equal(undone.resolvedAt, null); assert.equal(undone.resolution, '');
-  checks.push('PRD9.10：等级带原因纠错、解除与说明纠错保留原时间、重复/不合法动作不写、撤销解除故障回滚及重新保存');
+  checks.push('PRD9.10/DEC-134：等级纠错直接保存、解除与说明纠错保留原时间、重复/不合法动作不写、撤销解除故障回滚及重新保存');
   const riskBeforeDelete = await fresh(id); fault = 'INSERT INTO audit_log';
   await a.api(path, 'PATCH', body(version, 'risk', { riskOps: [{ op: 'delete', id: riskId }] }, { target: riskId }), 500); fault = ''; assert.deepEqual(await fresh(id), riskBeforeDelete);
   const deleted = await save('risk', { riskOps: [{ op: 'delete', id: riskId }] }, { target: riskId });
   assert.equal((await a.api(path)).risks.length, 0); assert((await fresh(id)).project_risks[0].deleted_at); assert.equal((await fresh(id)).project_risks[0].content, '只改文字无需原因');
   assert.deepEqual((await a.api(path, 'PATCH', deleted.request)).result, deleted.result);
-  checks.push('PRD9.10：普通风险文字直接保存、等级更改仍核对原因、误录删除保留原字段、故障回滚及重放不重复');
+  checks.push('PRD9.10/DEC-134：风险文字与等级直接保存、误录删除保留原字段、故障回滚及重放不重复');
   const another = randomUUID(); await a.api(path, 'PATCH', body(version, 'risk', { riskOps: [{ op: 'add', tempId: riskTemp, content: '甲', level: 'low' }, { op: 'add', tempId: another, content: '乙', level: 'low' }] }, { target: riskTemp }), 400);
   const changeTemp = randomUUID(); const change = await save('change', { changeOps: [{ op: 'add', tempId: changeTemp, source: '客户', content: '合成变更', decision: 'accept', reason: '合成决定' }] }, { target: changeTemp });
   const changeId = change.result.changeIdMap[changeTemp];
   await save('change', { changeOps: [{ op: 'correct', id: changeId, changes: { content: '文字纠正', reason: '决定理由补充' }, correctionReason: '' }] }, { target: changeId });
-  const beforeDecision = await fresh(id);
-  await a.api(path, 'PATCH', body(version, 'change', { changeOps: [{ op: 'correct', id: changeId, changes: { decision: 'reject' }, correctionReason: '' }] }, { target: changeId }), 422);
-  assert.deepEqual(await fresh(id), beforeDecision);
-  const decisionRequest = body(version, 'change', { changeOps: [{ op: 'correct', id: changeId, changes: { source: '业务', decision: 'reject' }, correctionReason: '来源与决定误选' }] }, { target: changeId });
+  await save('change', { changeOps: [{ op: 'correct', id: changeId, changes: { decision: 'reject' }, correctionReason: '' }] }, { target: changeId });
+  assert.equal((await a.api(path)).changes[0].decision, 'reject');
+  const beforeDecision = await fresh(id);assert.equal(beforeDecision.project_changes[0].decision, 'reject');
+  const decisionRequest = body(version, 'change', { changeOps: [{ op: 'correct', id: changeId, changes: { source: '业务', decision: 'reject' }, correctionReason: '' }] }, { target: changeId });
   fault = 'INSERT INTO audit_log'; await a.api(path, 'PATCH', decisionRequest, 500); fault = ''; assert.deepEqual(await fresh(id), beforeDecision);
   const decisionSaved = (await a.api(path, 'PATCH', decisionRequest)).result; version = decisionSaved.savedVersion;
   const decisionRead = await a.api(path); assert.equal(decisionRead.changes[0].decision, 'reject'); assert.equal(decisionRead.changes[0].source, '业务');
   const afterDecision = await fresh(id); assert.equal(afterDecision.project_changes[0].decision, 'reject');
   assert.deepEqual(afterDecision.project_stages, beforeDecision.project_stages); assert.deepEqual(afterDecision.project_nodes, beforeDecision.project_nodes); assert.deepEqual(afterDecision.schedule_changes, beforeDecision.schedule_changes);
   assert.deepEqual((await a.api(path, 'PATCH', decisionRequest)).result, decisionSaved); assert.deepEqual(await fresh(id), afterDecision);
-  checks.push('PRD9.11：普通内容/理由无需纠错原因；来源/决定需原因，审计故障全回滚，重试与重放及新SQL/GET确认，不自动改阶段/节点/计划');
+  checks.push('PRD9.11/DEC-134：内容/理由/来源/决定直接保存，审计故障全回滚，重试与重放及新SQL/GET确认，不自动改阶段/节点/计划');
   const nodeTemp = randomUUID(); const node = await save('projectNodes', { nodeOps: [{ op: 'add', tempId: nodeTemp, kind: 'project', fields: { title: '项目成果', stage: 'S1', output: '成果', targetDate: '2030-10-01' } }] });
   const nodeId = node.result.nodeIdMap[nodeTemp];
   const customerTemp = randomUUID(); const customer = await save('customerNode', { nodeOps: [{ op: 'add', tempId: customerTemp, kind: 'customer', fields: { title: '交付', note: '客户', targetDate: '2030-11-01' } }] }, { target: customerTemp });
@@ -273,12 +273,125 @@ try {
   assert.deepEqual(await fresh(id), afterRedundant);
   assert.deepEqual((await a.api(path)).responsible.map(person => person.id).sort(), users.map(person => person.id).sort());
   checks.push('PRD9.6：已加入再确认不改版本/历史；原号重放同结果；请求夹带他人账号全部拒绝且SQL/责任名单不变');
+
+  const intentProject = (await a.api('/api/projects', 'POST', { idempotencyKey: randomUUID(), fields: { name: prefix + ' 业务意图' } })).result.projectId;
+  projects.push(intentProject);
+  const intentPath = '/api/projects/' + intentProject;
+  const intentRequest = async (changes = {}, target = {}) => {
+    const { project: p } = await a.api(intentPath);
+    return body(p.version, 'basic', changes, { basicIntent: {
+      filingDate: p.filingDate ?? '', startDate: p.startDate ?? '', dueDate: p.dueDate ?? '', closedOn: p.closedOn ?? '', proposalDate: p.proposalDate ?? '', originalDueDate: p.originalDueDate ?? '',
+      state: p.status, planKind: 'reschedule', reason: '', measures: '', closureType: p.closureType === 'terminated' ? 'terminated' : 'normal', closureNote: p.closureNote ?? '', remainingWorkNote: p.remainingWorkNote ?? '', maintenance: !!p.maintenanceEnabled, ...target,
+    } });
+  };
+  const initialIntent = await intentRequest({ name: '意图字段不能半保存' });
+  const intentBefore = await fresh(intentProject);
+  for (const request of [
+    { ...initialIntent, commands: [{ action: 'pauseProject', reason: '不能混用' }] },
+    { ...initialIntent, scope: 'status', changes: { statusDesc: '跨区' } },
+    { ...initialIntent, basicIntent: { ...initialIntent.basicIntent, state: ['closed'] } },
+    { ...initialIntent, basicIntent: { ...initialIntent.basicIntent, dueDate: null } },
+    { ...initialIntent, basicIntent: { ...initialIntent.basicIntent, maintenance: 'true' } },
+  ]) await a.api(intentPath, 'PATCH', request, [400, 422]);
+  await b.api(intentPath, 'PATCH', initialIntent, 403);
+  assert.deepEqual(await fresh(intentProject), intentBefore);
+  const pauseIntent = await intentRequest({ name: prefix + ' 计划与暂缓' }, { state: 'paused', dueDate: '2030-12-31', reason: '等待客户确认' });
+  const pausedIntent = (await a.api(intentPath, 'PATCH', pauseIntent)).result;
+  let intentFacts = await fresh(intentProject), intentDetail = await a.api(intentPath);
+  assert.equal(intentDetail.project.status, 'paused'); assert.equal(intentDetail.project.dueDate, '2030-12-31'); assert.equal(intentDetail.project.version, '2');
+  assert.equal(intentFacts.projects[0].status, 'paused'); assert.equal(intentFacts.audit_log.filter(row => String(row.version_after) === '2').length, 3);
+  assert.deepEqual(pausedIntent.actions.map(effect => effect.action), ['project.plan.setPlan', 'project.pause']);
+  assert.deepEqual((await a.api(intentPath, 'PATCH', pauseIntent)).result, pausedIntent);
+  await a.api(intentPath, 'PATCH', { ...pauseIntent, basicIntent: { ...pauseIntent.basicIntent, reason: '编号不能换正文' } }, 409);
+  checks.push('PRD9.4：新basicIntent边界、权限与旧commands互斥；名称/计划/暂缓由服务端推导一次版本，SQL/新GET/原号回执一致');
+
+  const resumeIntent = await intentRequest({ summary: '恢复后的简介' }, { state: 'proposal', filingDate: '2026-01-01', dueDate: '2031-01-01', reason: '客户调整交付安排' });
+  for (const point of ['INSERT INTO schedule_changes', 'INSERT INTO audit_log', 'INSERT INTO command_receipts']) {
+    const preserved = await fresh(intentProject); fault = point;
+    await a.api(intentPath, 'PATCH', resumeIntent, 500); fault = '';
+    assert.deepEqual(await fresh(intentProject), preserved);
+  }
+  await a.api(intentPath, 'PATCH', { ...resumeIntent, basicIntent: { ...resumeIntent.basicIntent, state: 'ongoing' } }, 422);
+  const resumedIntent = (await a.api(intentPath, 'PATCH', resumeIntent)).result;
+  intentDetail = await a.api(intentPath); intentFacts = await fresh(intentProject);
+  assert.equal(intentDetail.project.status, 'proposal'); assert.equal(intentDetail.project.filingDate, '2026-01-01'); assert.equal(intentDetail.project.dueDate, '2031-01-01');
+  assert.equal(intentDetail.project.summary, '恢复后的简介'); assert.equal(resumedIntent.actions.length, 3);
+  assert.equal(String(intentFacts.projects[0].version), resumedIntent.savedVersion);
+  const rescheduleCount = intentFacts.schedule_changes.length;
+  const correctIntent = await intentRequest({}, { dueDate: '2031-01-02', planKind: 'correction' });
+  await a.api(intentPath, 'PATCH', correctIntent);
+  assert.equal((await a.api(intentPath)).project.dueDate, '2031-01-02'); assert.equal((await fresh(intentProject)).schedule_changes.length, rescheduleCount);
+  await a.api(intentPath, 'PATCH', await intentRequest({}, { dueDate: '', planKind: 'correction' }));
+  assert.equal((await a.api(intentPath)).project.dueDate, null); assert.equal((await fresh(intentProject)).projects[0].current_due_date, null);
+  checks.push('PRD9.4/9.8：意图联合日期/改期/恢复按正式前态推导；三写入故障全回滚，纠错与明确清空不伪造改期');
+
+  const invalidStart = await intentRequest({ name: '前阶段未完成不能启动' }, { state: 'ongoing', startDate: '2026-01-02' });
+  const unstarted = await fresh(intentProject); await a.api(intentPath, 'PATCH', invalidStart, 422); assert.deepEqual(await fresh(intentProject), unstarted);
+  for (const action of ['startStage', 'completeStage']) {
+    const p = (await a.api(intentPath)).project;
+    await a.api(intentPath + '/actions', 'POST', { expectedVersion: p.version, idempotencyKey: randomUUID(), action, stageCode: 'S1', actualDate: '2026-01-01' });
+  }
+  const started = (await a.api(intentPath, 'PATCH', await intentRequest({ detailNote: '实际启动与资料同时保存' }, { state: 'ongoing', startDate: '2026-01-02', dueDate: '2031-01-02' }))).result;
+  intentDetail = await a.api(intentPath); assert.equal(intentDetail.project.startDate, '2026-01-02'); assert.equal(intentDetail.project.status, 'ongoing');
+  assert.equal(intentDetail.project.detailNote, '实际启动与资料同时保存'); assert.equal(String((await fresh(intentProject)).projects[0].version), started.savedVersion);
+  const closed = (await a.api(intentPath, 'PATCH', await intentRequest({}, { state: 'closed', closedOn: '2026-01-03', closureNote: '保留未完成阶段，后续再接续' }))).result;
+  const closedFacts = await fresh(intentProject);
+  const rename = (await a.api(intentPath, 'PATCH', await intentRequest({ name: prefix + ' 结案后名称纠错' }))).result;
+  assert.equal(rename.actions, undefined); intentFacts = await fresh(intentProject);
+  assert.equal(intentFacts.audit_log.length, closedFacts.audit_log.length + 1); assert.equal(intentFacts.projects[0].status, 'closed');
+  assert.equal(intentFacts.projects[0].closed_on.toISOString(), closedFacts.projects[0].closed_on.toISOString());
+  assert.equal((await a.api(intentPath)).project.version, rename.savedVersion); assert.notEqual(closed.savedVersion, rename.savedVersion);
+  await a.api(intentPath, 'PATCH', await intentRequest({}, { closureNote: '结案说明更正', maintenance: true }));
+  intentDetail = await a.api(intentPath); assert.equal(intentDetail.project.closureNote, '结案说明更正'); assert.equal(!!intentDetail.project.maintenanceEnabled, true);
+  await a.api(intentPath, 'PATCH', await intentRequest({}, { state: 'ongoing' }));
+  intentDetail = await a.api(intentPath); assert.equal(intentDetail.project.status, 'ongoing'); assert.equal(intentDetail.project.closedOn, null); assert.equal(!!intentDetail.project.maintenanceEnabled, false);
+  checks.push('PRD9.4/9.8：未完成S1的启动全部拒绝；真实阶段动作后意图启动/结案/维护/重开复用原规则，结案后只改名称不制造结案动作');
+
+  const draftSubmission = await intentRequest({ summary: '本区精确底稿' }, { dueDate: '2031-01-03', planKind: 'correction' });
+  const { expectedVersion: draftBase, idempotencyKey: draftOperation, ...draftContent } = draftSubmission;
+  const draftBody = { clientDraftId: randomUUID(), projectId: intentProject, baseVersion: draftBase, formKind: 'basic', expectedDraftVersion: '0', clientSequence: '1', payload: { schemaVersion: 1, instanceId: randomUUID(), values: draftContent.changes, intent: draftContent.basicIntent, submission: draftContent } };
+  const draftRow = await a.api('/api/personal/drafts/save', 'POST', draftBody);
+  const drafted = { ...draftSubmission, draft: { clientDraftId: draftRow.clientDraftId, draftVersion: draftRow.draftVersion } };
+  fault = 'INSERT INTO command_receipts'; await a.api(intentPath, 'PATCH', drafted, 500); fault = '';
+  assert.equal((await a.api('/api/personal/drafts?clientDraftId=' + draftRow.clientDraftId)).items[0].state, 'active');
+  fault = 'ack'; assert.equal((await a.api(intentPath, 'PATCH', drafted, 503)).outcome, 'unknown'); fault = '';
+  await app.close(); app = undefined; await start(); await a.login(0);
+  const intentReceipt = await a.api(intentPath + '/save-results/query', 'POST', drafted);
+  assert.equal(intentReceipt.result.draft.state, 'committed'); assert.equal(intentReceipt.result.operationId, draftOperation);
+  assert.deepEqual((await a.api(intentPath, 'PATCH', drafted)).result, intentReceipt.result);
+  assert.equal((await a.api('/api/personal/drafts?clientDraftId=' + draftRow.clientDraftId)).items[0].state, 'committed');
+  assert.equal((await a.api(intentPath)).project.summary, '本区精确底稿');
+  const newerSubmission = await intentRequest({ summary: '提交期间输入' });
+  const { expectedVersion: newerBase, idempotencyKey: newerOperation, ...newerContent } = newerSubmission;
+  const newerBody = { ...draftBody, clientDraftId: randomUUID(), baseVersion: newerBase, payload: { ...draftBody.payload, values: newerContent.changes, intent: newerContent.basicIntent, submission: newerContent } };
+  const firstDraft = await a.api('/api/personal/drafts/save', 'POST', newerBody);
+  await a.api('/api/personal/drafts/save', 'POST', { ...newerBody, expectedDraftVersion: '1', clientSequence: '2', payload: { ...newerBody.payload, values: { summary: '更新的未提交输入' }, submission: { ...newerContent, changes: { summary: '更新的未提交输入' } } } });
+  const kept = (await a.api(intentPath, 'PATCH', { ...newerSubmission, draft: { clientDraftId: firstDraft.clientDraftId, draftVersion: '1' } })).result;
+  assert.equal(kept.draft.state, 'preserved'); assert.equal(kept.operationId, newerOperation);
+  assert.equal((await a.api('/api/personal/drafts?clientDraftId=' + firstDraft.clientDraftId)).items[0].payload.values.summary, '更新的未提交输入');
+  assert.equal((await a.api(intentPath)).project.summary, '提交期间输入');
+  checks.push('PRD9.15：新意图精确草稿随正式事务终结，回执失败回滚、COMMIT未知后重启恢复；较新底稿原样保留');
+
+  const legacyVersion = (await a.api(intentPath)).project.version;
+  const legacy = body(legacyVersion, 'basic', { summary: '旧客户端待确认操作' }, { commands: [{ action: 'pauseProject', reason: '旧正文需要继续恢复' }] });
+  const { expectedVersion: legacyBase, idempotencyKey: legacyOperation, ...legacyContent } = legacy;
+  const legacyDraft = await a.api('/api/personal/drafts/save', 'POST', { ...draftBody, clientDraftId: randomUUID(), baseVersion: legacyBase, payload: { schemaVersion: 1, instanceId: randomUUID(), values: legacy.changes, submission: legacyContent } });
+  legacy.draft = { clientDraftId: legacyDraft.clientDraftId, draftVersion: legacyDraft.draftVersion };
+  fault = 'ack'; assert.equal((await a.api(intentPath, 'PATCH', legacy, 503)).outcome, 'unknown'); fault = '';
+  await app.close(); app = undefined; await start(); await a.login(0);
+  const legacyReceipt = await a.api(intentPath + '/save-results/query', 'POST', legacy);
+  assert.equal(legacyReceipt.result.draft.state, 'committed'); assert.deepEqual((await a.api(intentPath, 'PATCH', legacy)).result, legacyReceipt.result);
+  const canonical = value => Array.isArray(value) ? value.map(canonical) : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
+  const oldHash = createHash('sha256').update(JSON.stringify(canonical([intentProject, 'basic', null, legacyBase, legacy.changes, legacy.commands.map(command => ({ ...command, expectedVersion: legacyBase, idempotencyKey: legacyOperation })), legacy.draft]))).digest('hex');
+  assert.equal((await c.query('SELECT LOWER(HEX(request_hash)) hash FROM command_receipts WHERE actor_id=? AND idempotency_key=?', [users[0].id, legacyOperation]))[0][0].hash, oldHash);
+  assert.equal((await a.api(intentPath)).project.status, 'paused'); assert.equal((await fresh(intentProject)).projects[0].summary, '旧客户端待确认操作');
+  checks.push('PRD9.15：legacy commands与旧草稿正文仍可未知回执恢复，重放不新增；SQL哈希与旧协议公式逐字相同');
   await mkdir('test-results', { recursive: true }); await writeFile('test-results/project-scopes.json', JSON.stringify({ status: 'passed', checks, productBrowserTested: false }, null, 2));
   console.log(JSON.stringify({ status: 'passed', checks: checks.length, evidence: 'test-results/project-scopes.json' }));
 } finally {
   fault = ''; if (app) await app.close();
   if (projects.length) {
-    for (const table of ['audit_log', 'project_checks', 'schedule_changes', 'project_changes', 'project_risks', 'project_nodes', 'project_stages', 'project_people', 'project_chips', 'project_tags', 'project_responsibilities']) await c.query(`DELETE FROM ${table} WHERE project_id IN (?)`, [projects]);
+    for (const table of ['project_drafts', 'audit_log', 'project_checks', 'schedule_changes', 'project_changes', 'project_risks', 'project_nodes', 'project_stages', 'project_people', 'project_chips', 'project_tags', 'project_responsibilities']) await c.query(`DELETE FROM ${table} WHERE project_id IN (?)`, [projects]);
     await c.query('DELETE FROM projects WHERE id IN (?)', [projects]);
   }
   if (users.length) { const ids = users.map(u => u.id); for (const table of ['command_receipts', 'audit_log']) await c.query(`DELETE FROM ${table} WHERE actor_id IN (?)`, [ids]); await c.query('DELETE FROM sessions WHERE user_id IN (?)', [ids]); await c.query('DELETE FROM users WHERE id IN (?)', [ids]); }

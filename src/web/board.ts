@@ -1,7 +1,7 @@
 import './shared/board.css';
 import './shared/read.css';
 import './shared/board-page.css';
-import { get, esc, label, applyCompany, setupTheme, setupDateZone, appearance, account, type Dashboard, type List, type ListProject } from './shared/api';
+import { get, esc, label, applyCompany, setupTheme, setupDateZone, appearance, account, loginUrl, type Dashboard, type List, type ListProject } from './shared/api';
 import { PersonalPreference } from './shared/personal-state';
 import { ProjectNotifications } from './shared/notifications';
 
@@ -201,5 +201,5 @@ void import('./shared/api').then(async ({ requireIdentity }) => {
   new ProjectNotifications(()=>{void load(false);},()=>{void load(false);},text=>{if(text)feedback(text);},undefined,undefined,()=>{void load(false);});
 }).catch(error => {
   element('message').textContent = (error as Error).message;
-  const link = document.createElement('a'); link.href = '/login.html'; link.textContent = '登录 GeekDash'; element('message').append(' ', link);
+  if (!document.getElementById('identity-login')) { const link = document.createElement('a'); link.href = loginUrl(); link.textContent = '登录 GeekDash'; element('message').append(' ', link); }
 });

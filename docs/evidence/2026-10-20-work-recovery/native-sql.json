@@ -1,0 +1,61 @@
+{
+  "status": "passed",
+  "at": "2026-10-20T04:18:30.459Z",
+  "project": {
+    "id": "9007199254760501",
+    "version": "3",
+    "name": "任务恢复页面验收 已核对",
+    "dueDate": "2026-11-21",
+    "statusDesc": "等待客户确认接口，周三安排样机测试。"
+  },
+  "audits": [
+    {
+      "action": "project.create",
+      "versionBefore": null,
+      "versionAfter": "1"
+    },
+    {
+      "action": "project.ordinary.save",
+      "versionBefore": "1",
+      "versionAfter": "2"
+    },
+    {
+      "action": "project.plan.correctProjectDates",
+      "versionBefore": "1",
+      "versionAfter": "2"
+    },
+    {
+      "action": "project.ordinary.save",
+      "versionBefore": "2",
+      "versionAfter": "3"
+    }
+  ],
+  "drafts": [
+    {
+      "formKind": "status",
+      "state": "active",
+      "baseVersion": "1",
+      "submittedProjectVersion": null
+    },
+    {
+      "formKind": "basic",
+      "state": "committed",
+      "baseVersion": "1",
+      "submittedProjectVersion": "2"
+    },
+    {
+      "formKind": "status",
+      "state": "committed",
+      "baseVersion": "2",
+      "submittedProjectVersion": "3"
+    }
+  ],
+  "checks": [
+    "native_create",
+    "native_basic_name_and_date_one_save",
+    "other_area_input_retained",
+    "expired_session_native_login_returns_exact_project",
+    "nonblocking_restore_no_formal_write",
+    "explicit_status_save_new_get_and_independent_sql"
+  ]
+}

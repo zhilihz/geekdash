@@ -4,7 +4,7 @@
 
 ## 本轮阅读入口
 
-当前工作：沿[操作链收敛计划1.2.3](implementation/execution-plan.md#123-按功能区收敛操作链2026-10-19)完成资料权限、检查事实和普通操作收敛测试部署。先看[当前结论](status/current-system-truth.md#1-一句话结论)、[交接](handoff/handoff.md)和[本轮验证](testing/reports/2026-10-20-operation-simplification.md)；完整P04仍未完成，不新增阶段。
+当前工作：沿[操作链收敛计划1.2.3](implementation/execution-plan.md#123-按功能区收敛操作链2026-10-19)接续登录返回、本人草稿和后端基本区意图处理。先看[当前结论](status/current-system-truth.md#1-一句话结论)、[交接](handoff/handoff.md)和[本轮验证](testing/reports/2026-10-20-work-recovery.md)；完整P04仍未完成，不新增阶段。
 
 当前交付：[操作收敛部署](operations/deployments/2026-10-20-operation-simplification.md)，成果60a1c7f已推送施工分支并更新测试服务器，结构0005；main仍b96712a，完整阶段验收后再合并。此前[详情候选](operations/deployments/2026-10-19-detail-simplification.md)等记录保留历史来源。
 

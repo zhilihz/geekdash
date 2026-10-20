@@ -23,6 +23,15 @@ function show(key: string, value: unknown): string {
 }
 const catalogNames: Record<string,string> = {name:'资料名称',contact:'联系方式',background:'客户背景',role:'业务角色',appVersion:'APP版本',description:'描述',originalModel:'原始型号',manufacturer:'厂商',firmwareVersion:'资料固件版本',fullName:'企业全称',shortName:'企业简称',managerText:'负责人信息',namePrefix:'名称前缀'};
 const catalogKinds: Record<string,string> = {customers:'客户',engineers:'工程师',productLines:'产品线',apps:'APP',tags:'标签',groups:'分组',chips:'芯片',company:'企业信息'};
+export function readableFields(values: Facts, titles: Record<string,string> = {}): string {
+  return Object.entries(values).flatMap(([key,value]) => {
+    if (['fields','changes'].includes(key) && object(value)) return [readableFields(value,titles)];
+    if (['stagePlans','riskOps','nodeOps','changeOps'].includes(key) && Array.isArray(value)) return value.map(item => object(item) ? readableFields(item,titles) : '').filter(Boolean);
+    const title=titles[key] ?? names[key];
+    if (!title) return [];
+    return [`${title}：${show(key,value)}`];
+  }).join('\n');
+}
 function changes(before: Facts, after: Facts, catalog = false): { before: string[]; after: string[] } {
   const left: string[] = [], right: string[] = [];
   for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {

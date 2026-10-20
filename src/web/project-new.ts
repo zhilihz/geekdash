@@ -8,6 +8,7 @@ import { mountReferencePickers, syncReferencePickers } from './shared/reference-
 import { PersonalDrafts, type DraftRef } from './shared/personal-state';
 import { ProjectNotifications } from './shared/notifications';
 import { refreshProjectOptions } from './shared/project-options';
+import { readableFields } from './shared/history';
 setupTheme(); setupDateZone();
 const form = document.getElementById('create') as HTMLFormElement;
 const message = document.getElementById('message')!;
@@ -25,6 +26,11 @@ const key = () => `geekdash_create:${account!.id}`;
 function fields(): Fields { return { ...Object.fromEntries(scopeFields.basic.map(key => [key, structuredClone(value[key])])), statusDesc: value.statusDesc, tagIds:value.tagIds, filingDate: draft.filingDate || null, dueDate: draft.dueDate || null, managerIds:[...managerIds] }; }
 const emptyFields=JSON.stringify(fields());
 const hasInput=()=>JSON.stringify(fields())!==emptyFields;
+function restoreFields(restored:Fields){
+  managerIds=Array.isArray(restored.managerIds)?restored.managerIds.filter((id):id is string=>typeof id==='string' && id!==account!.id):[];
+  for(const name of Object.keys(value))if(Object.hasOwn(restored,name))Object.assign(value,{[name]:structuredClone(restored[name as keyof Fields])});
+  draft.filingDate=String(restored.filingDate ?? '');draft.dueDate=String(restored.dueDate ?? '');
+}
 async function leave(destination='/'){
   if(busy || leaving)return;
   const choose=async(text:string,choices:[string,string][])=>{
@@ -110,21 +116,28 @@ async function loadCatalog() {
 }
 window.addEventListener('focus',()=>{if(account && !leaving)void loadCatalog();});
 document.addEventListener('geekdash-identity-changed', () => { identityChanged = true; message.textContent = '账号已变化，请保留本页输入，重新登录原账号再核对。'; controls(); });
-document.querySelectorAll<HTMLAnchorElement>('.project-nav a, .topbar a.back-btn').forEach(link=>{link.onclick=event=>{event.preventDefault();void leave(link.href);};});
+document.addEventListener('geekdash-login-leave', () => { remember(); leaving = true; });
+document.querySelectorAll<HTMLAnchorElement>('.project-nav a, .topbar a.back-btn').forEach(link=>{link.onclick=event=>{if(leaving && new URL(link.href).pathname==='/login.html')return;event.preventDefault();void leave(link.href);};});
 window.addEventListener('beforeunload', event => { if (!leaving && (pending || hasInput())){remember();event.preventDefault();} });
 void requireIdentity().then(async () => {
   personalDrafts=new PersonalDrafts(null,()=>({version:null,editable:!identityChanged && !pending && !busy}),row=>{
     if(pending || busy || identityChanged)return false;
+    const before=JSON.stringify(fields());
     if(hasInput() && !confirm('恢复底稿将替换当前新建输入，是否继续？'))return false;
+    if(pending || busy || identityChanged || before!==JSON.stringify(fields()))return false;
     const restored=row.payload.values;if(!restored)return false;
-    managerIds=Array.isArray(restored.managerIds)?restored.managerIds.filter((id):id is string=>typeof id==='string' && id!==account!.id):[];
-    for(const name of Object.keys(value))if(Object.hasOwn(restored,name))Object.assign(value,{[name]:structuredClone(restored[name])});
-    draft.filingDate=String(restored.filingDate ?? '');draft.dueDate=String(restored.dueDate ?? '');render();remember();message.textContent='底稿已恢复，点击保存才会创建正式项目。';return true;
+    restoreFields(restored);render();remember();message.textContent='底稿已恢复，点击保存才会创建正式项目。';return true;
   });
   const saved = sessionStorage.getItem(key());
-  if (saved) try { const stored = JSON.parse(saved); pending = stored.idempotencyKey ? stored : stored.pending; const restored = stored.fields; if (restored && typeof restored === 'object' && (pending || confirm('发现本标签页的新建底稿，是否恢复？恢复后仍需明确保存项目。'))) { managerIds=Array.isArray(restored.managerIds)?restored.managerIds.filter((id:unknown):id is string=>typeof id==='string' && id!==account!.id):[]; for (const name of Object.keys(value)) if (Object.hasOwn(restored, name)) Object.assign(value, { [name]: restored[name] }); draft.filingDate = restored.filingDate ?? ''; draft.dueDate = restored.dueDate ?? ''; } }
+  let candidate:Fields|undefined;
+  if (saved) try { const stored = JSON.parse(saved); pending = stored.idempotencyKey ? stored : stored.pending; const restored = stored.fields; if (restored && typeof restored === 'object') { if(pending)restoreFields(restored);else candidate=restored; } }
   catch { message.textContent = '本页旧稿无法读取，请核对后重新填写。'; }
   render();
   await loadCatalog(); if (pending) void execute(true);
+  if(!hasInput() && !pending)void personalDrafts.offer(candidate?{
+    text:'本标签页：'+(readableFields(candidate,{managerIds:'项目经理'}).slice(0,140) || '有未保存的新建项目信息'),
+    restore:()=>{if(pending || busy || identityChanged || hasInput() || sessionStorage.getItem(key())!==saved)return false;restoreFields(candidate!);render();remember();message.textContent='底稿已恢复，点击保存才会创建正式项目。';return true;},
+    discard:()=>{if(!pending && !busy && !identityChanged && !hasInput() && sessionStorage.getItem(key())===saved)sessionStorage.removeItem(key());},
+  }:undefined);
   new ProjectNotifications(()=>{},()=>{void loadCatalog();},text=>{if(text)message.textContent=text;},undefined,undefined,event=>{if(event.resource==='catalog')void loadCatalog();});
 }).catch(error => { message.textContent = (error as Error).message; document.getElementById('login')!.hidden = false; controls(); });

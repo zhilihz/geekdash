@@ -36,12 +36,13 @@ function payload(kind: string, value: unknown): asserts value is DraftPayload {
   if (value.command !== undefined) { if (kind !== 'action' || !object(value.command)) failure('INVALID_PERSONAL_STATE', 400); tree(value.command); }
   if (value.submission !== undefined) {
     const submission = value.submission;
-    if (!object(submission) || Object.keys(submission).some(key => !['scope','target','changes','commands','fields','command'].includes(key))) failure('INVALID_PERSONAL_STATE', 400);
+    if (!object(submission) || Object.keys(submission).some(key => !['scope','target','changes','commands','basicIntent','fields','command'].includes(key))) failure('INVALID_PERSONAL_STATE', 400);
     const fields = kind === 'create' ? submission.fields : kind === 'action' ? undefined : submission.changes;
     if (kind !== 'action' && (!object(fields) || Object.keys(fields).some(key => !allowed.includes(key)))) failure('INVALID_PERSONAL_STATE', 400);
     if (fields) Object.values(fields).forEach(item => tree(item));
     if (kind === 'create' ? Object.keys(submission).some(key => key !== 'fields') : kind === 'action' ? Object.keys(submission).some(key => key !== 'command') : submission.scope !== kind || submission.target !== value.target) failure('INVALID_PERSONAL_STATE', 400);
     if (submission.commands !== undefined) { if (kind !== 'basic') failure('INVALID_PERSONAL_STATE', 400); tree(submission.commands); }
+    if (submission.basicIntent !== undefined) { if (kind !== 'basic' || submission.commands !== undefined || !object(submission.basicIntent)) failure('INVALID_PERSONAL_STATE', 400); tree(submission.basicIntent); }
     if (submission.command !== undefined) tree(submission.command);
   }
   if (Buffer.byteLength(canonical(value), 'utf8') > 1048576) failure('DRAFT_TOO_LARGE', 413);

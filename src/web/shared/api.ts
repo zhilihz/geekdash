@@ -1,3 +1,5 @@
+import { loginTarget } from './auth-return';
+
 export type DeadlineKind = 'upcoming' | 'due' | 'overdue' | 'unset' | 'closed_on_time' | 'closed_late' | 'closed_unplanned' | 'closed_unknown' | 'terminated';
 export type Deadline = { kind: DeadlineKind; asOfDate: string; days: number | null; label: string };
 export type Company = {fullName:string;shortName:string;managerText:string;namePrefix:string;version:string};
@@ -37,7 +39,7 @@ export type CatalogItem = { id: string; name: string; enabled: number; originalM
 export type Catalog = Record<string, CatalogItem[]> & { businessDate: string };
 export type SaveScope = 'basic' | 'status' | 'tags' | 'signal' | 'summaryNote' | 'chipstatNote' | 'stage' | 'risk' | 'change' | 'customerNode' | 'projectNodes';
 type WithoutEnvelope<T> = T extends unknown ? Omit<T, 'expectedVersion' | 'idempotencyKey'> : never;
-export type SaveRequest = { expectedVersion: string; idempotencyKey: string; changes: Partial<EditValues>; scope?: SaveScope; target?: string; commands?: WithoutEnvelope<ProjectCommand>[]; draft?: {clientDraftId:string;draftVersion:string} };
+export type SaveRequest = { expectedVersion: string; idempotencyKey: string; changes: Partial<EditValues>; scope?: SaveScope; target?: string; commands?: WithoutEnvelope<ProjectCommand>[]; basicIntent?: import('./project-form').BasicIntent; draft?: {clientDraftId:string;draftVersion:string} };
 export type SaveResult = { projectId: string; operationId: string; changed: boolean; savedVersion: string; baseVersion?:string; draft?:{clientDraftId:string;draftVersion:string;instanceId:string;state:string}; values: Partial<EditValues>; savedAt: string | null; scope?: SaveScope; target?: string; actions?: Record<string, unknown>[]; display?: Record<string, unknown>; risks?: RiskRecord[]; riskIdMap?: Record<string, string>; nodeIdMap?: Record<string, string>; nodes?: NodeRecord[]; changes?: ChangeRecord[]; changeIdMap?: Record<string, string> };
 export type Audit = { id: string; action: string; actorDisplayName: string; actorKind: string; versionBefore: string; versionAfter: string; createdAt: string; beforeValues: Record<string, unknown> | null; afterValues: Record<string, unknown> };
 export type AuditPage = { items: Audit[]; nextCursor: string | null; pageSize: number };
@@ -106,21 +108,48 @@ let activityInstalled=false;
 export let account: Account | undefined;
 const context = new BroadcastChannel('geekdash_identity');
 let contextChanged = false;
+let identityRecoveryRequired = false;
 context.onmessage = event => { contextChanged = true; document.dispatchEvent(new Event('geekdash-identity-changed'));if(event.data?.clearCache)clearLocalAccountState(); };
+export function loginUrl(change = false) { return loginTarget(location.pathname + location.search, account?.id, change); }
+function prepareLoginLinks() {
+  if (location.pathname === '/login.html') return;
+  document.querySelectorAll<HTMLAnchorElement>('a[href]').forEach(link => {
+    const url = new URL(link.href, location.origin);
+    if (url.origin === location.origin && url.pathname === '/login.html') link.href = loginUrl(url.searchParams.get('change') === '1');
+  });
+}
+function identityRecovery() {
+  if (location.pathname === '/login.html') return;
+  identityRecoveryRequired = true;
+  prepareLoginLinks();
+  let link = document.getElementById('login') ?? document.getElementById('identity-login');
+  if (!link) { link = document.createElement('a'); link.id = 'identity-login'; link.className = 'head-btn'; link.textContent = '重新登录'; (document.querySelector('.head-actions, .topbar, .catalog-footer') ?? document.body).append(link); }
+  (link as HTMLAnchorElement).href = loginUrl(); link.hidden = false;
+}
+document.addEventListener('geekdash-identity-changed', identityRecovery);
+document.addEventListener('click', event => {
+  const link = (event.target as HTMLElement).closest?.<HTMLAnchorElement>('a');
+  if (!link) return;
+  prepareLoginLinks();
+  const url = new URL(link.href, location.origin);
+  if (identityRecoveryRequired && url.origin === location.origin && url.pathname === '/login.html') document.dispatchEvent(new Event('geekdash-login-leave'));
+}, true);
 function clearLocalAccountState(){
   if(!account)return;
   const prefixes=['geekdash_quick:','geekdash_summary:','geekdash_catalog:','geekdash_draft:','geekdash_page:','geekdash_create:','geekdash_project_buffer:','geekdash_stage_action:','geekdash_responsibility:','geekdash_preference:','geekdash_check:','geekdash_board_return:'].map(prefix=>prefix+account!.id);
   for(const storage of [localStorage,sessionStorage])try{for(const key of Object.keys(storage))if(prefixes.some(prefix=>key===prefix || key.startsWith(prefix+':')))storage.removeItem(key);}catch{/* 清理失败不重新发送旧账号数据；页面身份仍被冻结。 */}
 }
 function headers(active: boolean) {
-  if (contextChanged) throw new SaveError('AUTH_CONTEXT_CHANGED', 'not_committed');
+  if (contextChanged) { identityRecovery(); throw new SaveError('AUTH_CONTEXT_CHANGED', 'not_committed'); }
   const csrf = document.cookie.split(';').map(item => item.trim()).find(item => item.startsWith('__Host-geekdash_csrf=') || item.startsWith('geekdash_dev_csrf='))?.split('=')[1];
   return { 'Content-Type': 'application/json', 'X-GeekDash-Request': '1', ...(account ? { 'X-GeekDash-Account': account.id } : {}), ...(csrf ? { 'X-GeekDash-CSRF': csrf } : {}), ...(active ? { 'X-GeekDash-Active': '1' } : {}) };
 }
 const authMessages: Record<string, string> = { AUTH_REQUIRED: '登录已失效，请登录后重新进入。未保存内容请先复制。', AUTH_CONTEXT_CHANGED: '账号已发生变化，请先复制未保存内容，再重新进入。', PASSWORD_CHANGE_REQUIRED: '请先修改临时密码。', CSRF_INVALID: '登录凭据不完整，请重新登录。', LAST_RESPONSIBLE: '请先由其他人加入负责范围，再退出。', INVALID_CREDENTIALS: '登录名或密码不正确。', CURRENT_PASSWORD_INCORRECT: '当前密码不正确。', INVALID_PASSWORD: '新密码需要 15～128 个字符。', PASSWORD_CONFIRM_MISMATCH: '两次新密码不一致。', PASSWORD_UNCHANGED: '新密码不能与当前密码相同。', AUTH_RATE_LIMITED: '尝试过于频繁，请稍后再试。', AUTH_BUSY: '身份服务忙，请稍后再试。' };
 export async function requireIdentity() {
+  prepareLoginLinks();
   const data = await get<{ account: Account }>('/api/auth/me'); account = data.account;
-  if (account.mustChangePassword) { location.replace('/login.html?change=1'); throw new Error('请先修改临时密码。'); }
+  prepareLoginLinks();
+  if (account.mustChangePassword) { location.replace(loginUrl(true)); throw new Error('请先修改临时密码。'); }
   if(!activityInstalled){activityInstalled=true;let lastInput=0;document.addEventListener('input',event=>{
     if(!event.isTrusted || contextChanged || document.visibilityState!=='visible' || !(event.target instanceof HTMLElement) || !event.target.matches('input,textarea,select,[contenteditable="true"]') || Date.now()-lastInput<60000)return;
     lastInput=Date.now();void send('/api/auth/activity','POST',{},true).catch(error=>{if(error instanceof SaveError && ['AUTH_REQUIRED','AUTH_CONTEXT_CHANGED','PASSWORD_CHANGE_REQUIRED','CSRF_INVALID'].includes(error.code))document.dispatchEvent(new Event('geekdash-identity-changed'));});
@@ -129,7 +158,7 @@ export async function requireIdentity() {
   const preference=await appearance.load();
   if(themeTouched)appearance.update({theme:document.documentElement.dataset.theme});else applyTheme(String(preference.theme ?? 'dark'));
   const toolbar = document.querySelector('.head-actions');
-  if (toolbar && !document.getElementById('account-menu')) { const menu = document.createElement('details'); menu.id = 'account-menu'; menu.className = 'read-nav-menu'; const title = document.createElement('summary'); title.className = 'head-btn'; title.textContent = account.name + ' ▾'; const link = document.createElement('a'); link.className = 'head-btn'; link.href = '/login.html?change=1'; link.textContent = '修改密码 / 退出'; menu.append(title, link); toolbar.prepend(menu); }
+  if (toolbar && !document.getElementById('account-menu')) { const menu = document.createElement('details'); menu.id = 'account-menu'; menu.className = 'read-nav-menu'; const title = document.createElement('summary'); title.className = 'head-btn'; title.textContent = account.name + ' ▾'; const link = document.createElement('a'); link.className = 'head-btn'; link.href = loginUrl(true); link.textContent = '修改密码 / 退出'; menu.append(title, link); toolbar.prepend(menu); }
   return account;
 }
 export function setAccount(value: Account) { account = value; contextChanged = false; }
@@ -148,7 +177,7 @@ export async function send<T>(path: string, method: 'PATCH' | 'POST', body: unkn
   let data;
   try { data = await response.json(); } catch { throw new SaveError('RESPONSE_UNKNOWN', 'unknown'); }
   if (contextChanged) throw new SaveError('AUTH_CONTEXT_CHANGED', 'unknown');
-  if (!response.ok) throw new SaveError(data.code, data.outcome ?? 'unknown', data.fields);
+  if (!response.ok) { if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'PASSWORD_CHANGE_REQUIRED', 'CSRF_INVALID'].includes(data.code)) identityRecovery(); throw new SaveError(data.code, data.outcome ?? 'unknown', data.fields); }
   return data as T;
 }
 export async function get<T>(path: string, signal?: AbortSignal, active = true): Promise<T> {
@@ -157,7 +186,7 @@ export async function get<T>(path: string, signal?: AbortSignal, active = true):
   try { response = await fetch(path, { headers: requestHeaders, cache: 'no-store', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(10000)]) : AbortSignal.timeout(10000) }); }
   catch { throw new Error('读取超时或网络暂时不可用，请重试。'); }
   if (contextChanged) throw new SaveError('AUTH_CONTEXT_CHANGED', 'not_committed');
-  if (!response.ok) { const data = await response.json().catch(() => ({})); if (data.code && authMessages[data.code]) throw new SaveError(data.code, 'not_committed'); throw new Error(response.status === 404 ? '未找到该项目，请返回列表重新选择。' : response.status === 400 ? '查询条件无效，请重新选择。' : '服务器暂时无法读取数据，请重试。'); }
+  if (!response.ok) { const data = await response.json().catch(() => ({})); if (data.code && authMessages[data.code]) { if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'PASSWORD_CHANGE_REQUIRED', 'CSRF_INVALID'].includes(data.code)) identityRecovery(); throw new SaveError(data.code, 'not_committed'); } throw new Error(response.status === 404 ? '未找到该项目，请返回列表重新选择。' : response.status === 400 ? '查询条件无效，请重新选择。' : '服务器暂时无法读取数据，请重试。'); }
   try { return await response.json(); } catch { throw new Error('服务器响应未能读取，请重试。'); }
 }
 export function esc(value: unknown) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!); }
