@@ -1,0 +1,65 @@
+{
+  "status": "passed",
+  "at": "2026-10-20T07:22:18.675Z",
+  "readOnly": true,
+  "scope": "本地隔离实例的合成原生验收项目；独立只读SQL与新GET逐项比对",
+  "projectId": "9007199254760542",
+  "version": "3",
+  "summaryMatched": true,
+  "tagIds": [
+    "28"
+  ],
+  "statusLineCount": 4,
+  "statusSha256": "3214db048421b468efb94b94743ac14fcbb7e9e674e746368912fcf14e8c3901",
+  "statusDates": [
+    "2026-10-20T07:08:56.304000Z",
+    "2026-10-20T07:08:56.304000Z",
+    "2026-10-20T07:13:14.137000Z",
+    "2026-10-20T07:16:53.323000Z"
+  ],
+  "audits": [
+    {
+      "id": "6095",
+      "action": "project.create",
+      "versionBefore": null,
+      "versionAfter": "1",
+      "createdAt": "2026-10-20T07:08:56.304000Z"
+    },
+    {
+      "id": "6234",
+      "action": "project.ordinary.save",
+      "versionBefore": "1",
+      "versionAfter": "2",
+      "createdAt": "2026-10-20T07:13:14.137000Z"
+    },
+    {
+      "id": "6331",
+      "action": "project.ordinary.save",
+      "versionBefore": "2",
+      "versionAfter": "3",
+      "createdAt": "2026-10-20T07:16:53.323000Z"
+    }
+  ],
+  "sources": [
+    {
+      "path": "test-results/p04-1054-native-fresh.json",
+      "sha256": "5b261863d9781f8095026e298afb108c99307eac4f9b480cc3fc2f14aab68d30"
+    },
+    {
+      "path": "test-results/p04-1054-native-detail.json",
+      "sha256": "7cdf5a8bddbd19778c9998419f3f2ec8ff0617e6626159ffaf21a35d96ea1bab"
+    },
+    {
+      "path": "test-results/p04-1054-native-history.json",
+      "sha256": "eb5c5cb228c5ead0a97d9551605ddc7aa75d85f0226e7efb6a15b53bf2f763a6"
+    }
+  ],
+  "checks": [
+    "native_summary_and_tag_persisted",
+    "status_four_lines_including_plain_text_mention",
+    "create_and_two_status_saves_only",
+    "status_saves_do_not_change_other_fields",
+    "fresh_get_matches_independent_sql",
+    "each_status_line_date_matches_real_audit"
+  ]
+}

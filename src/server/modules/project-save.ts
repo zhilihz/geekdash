@@ -20,7 +20,7 @@ type Values = TextValues & { signalNote: string; chipstatNote: string; statusDes
 type Field = keyof Values;
 const keys = [...Object.keys(columns), ...collections, 'stagePlans', 'riskOps', 'nodeOps', 'changeOps'] as Field[];
 export const scopeFields = {
-  basic: ['name', 'summary', 'marketExpectation', 'detailNote', 'priority', 'customerId', 'odmCustomerId', 'productLineId', 'appId', 'groupId', 'chipIds', 'people'],
+  basic: ['name', 'summary', 'marketExpectation', 'detailNote', 'priority', 'customerId', 'odmCustomerId', 'productLineId', 'appId', 'groupId', 'chipIds', 'tagIds', 'people'],
   status: ['statusDesc'], tags: ['tagIds'], signal: ['signal', 'signalNote'], summaryNote: ['summaryNote'], chipstatNote: ['chipstatNote'],
   stage: ['stagePlans'], risk: ['riskOps'], change: ['changeOps'], customerNode: ['nodeOps'], projectNodes: ['nodeOps'],
 } satisfies Record<string, string[]>;

@@ -8,8 +8,10 @@ const stageSource = readFileSync(new URL('./geekdashdesktop/projects-data.js', i
 if (!stageSource) throw new Error('原面板阶段定义未找到');
 const stages = runInNewContext(stageSource[1], Object.create(null), { timeout: 1000 });
 if (!Array.isArray(stages) || stages.length !== 7 || stages.some((stage, index) => stage.id !== index + 1)) throw new Error('原面板七阶段定义无效');
+const themeInit = readFileSync(new URL('./src/web/shared/theme-init.js', import.meta.url), 'utf8');
 
 export default defineConfig({
+  plugins: [{ name: 'geekdash-initial-theme', transformIndexHtml: { order: 'pre', handler: () => [{ tag: 'script', attrs: { 'data-theme-init': '' }, children: themeInit, injectTo: 'head-prepend' }] } }],
   define: { __GEEKDASH_STAGES__: JSON.stringify(stages) },
   root: fileURLToPath(new URL('./src/web/', import.meta.url)),
   envDir: false,

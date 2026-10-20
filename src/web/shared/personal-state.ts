@@ -41,15 +41,24 @@ export class PersonalPreference {
     this.deviceKey=this.global?'account':device;this.cacheKey=`geekdash_preference:${account!.id}:${scope}`;
     document.addEventListener('geekdash-identity-changed',()=>{this.stopped=true;clearTimeout(this.timer);});
   }
-  private cache(){if(this.stopped)return;try{(this.global?localStorage:sessionStorage).setItem(this.cacheKey,JSON.stringify(this.value));}catch{this.feedback('本机页面状态无法保留，当前操作仍可继续。');}}
+  private cache(){if(this.stopped)return;try{(this.global?localStorage:sessionStorage).setItem(this.cacheKey,JSON.stringify({...this.value,...this.scope==='appearance' && this.changes.theme?{pendingTheme:this.changes.theme,pendingThemeVersion:this.version}:{}}));}catch{this.feedback('本机页面状态无法保留，当前操作仍可继续。');}}
   private read(){return get<PreferenceRow>('/api/personal/preferences?'+new URLSearchParams({deviceKey:this.deviceKey,scope:this.scope}),undefined,false);}
   current(){return structuredClone(this.value);}
   async load():Promise<PreferenceValue>{
-    const generation=this.generation;let cached:PreferenceValue|undefined;
-    try{const parsed=JSON.parse((this.global?localStorage:sessionStorage).getItem(this.cacheKey) ?? 'null');if(parsed?.schemaVersion===1)cached=parsed;}catch{}
+    const generation=this.generation;let cached:PreferenceValue|undefined,pendingTheme:string|undefined,pendingVersion:string|undefined;
+    try{const parsed=JSON.parse((this.global?localStorage:sessionStorage).getItem(this.cacheKey) ?? 'null');if(parsed?.schemaVersion===1){const {pendingTheme:pending,pendingThemeVersion:version,...value}=parsed;cached=value;if(this.scope==='appearance' && ['dark','light','warm'].includes(pending)){pendingTheme=pending;if(typeof version==='string' && /^(0|[1-9][0-9]*)$/.test(version))pendingVersion=version;}}}catch{}
     try{const row=await this.read();if(this.stopped)return {schemaVersion:1};this.version=row.version;this.serverValue=row.value ?? {schemaVersion:1};if(generation===this.generation)this.value=(!this.global && cached?cached:row.value ?? cached) ?? {schemaVersion:1};}
     catch{if(generation===this.generation && cached)this.value=cached;this.feedback('页面偏好暂未同步，当前页面仍可使用。');}
-    this.cache();return structuredClone(this.value);
+    if(generation===this.generation && pendingTheme){
+      if(this.version===undefined)return structuredClone(this.value); // 读取失败，保留原基线缓存供下次读取，不借未知版本重放。
+      if(this.serverValue.theme!==pendingTheme){
+        if(this.version===pendingVersion){this.update({theme:pendingTheme},0);return structuredClone(this.value);}
+        this.value={...this.value,theme:pendingTheme};
+        this.feedback('主题偏好已有新版本，本页颜色保持；再次选择颜色后才会同步。');
+      }
+    }
+    this.cache();
+    return structuredClone(this.value);
   }
   update(changes:Record<string,unknown>,delay=500){
     if(this.stopped)return;this.changes={...this.changes,...structuredClone(changes)};this.value={...this.value,...structuredClone(changes),schemaVersion:1};this.generation++;this.cache();
@@ -62,10 +71,11 @@ export class PersonalPreference {
       if(this.version===undefined){const current=await this.read();if(this.stopped)return;this.version=current.version;this.serverValue=current.value ?? {schemaVersion:1};}
       const changes=structuredClone(this.changes),submitted={...this.serverValue,...changes,schemaVersion:1};
       const row=await send<PreferenceRow>('/api/personal/preferences/save','POST',{deviceKey:this.deviceKey,scope:this.scope,expectedVersion:this.version,value:submitted},false);
-      if(this.stopped)return;this.version=row.version;this.serverValue=row.value ?? {schemaVersion:1};for(const key of Object.keys(changes))if(equal(changes[key],this.changes[key]))delete this.changes[key];this.handledGeneration=generation;saved=true;
+      if(this.stopped)return;this.version=row.version;this.serverValue=row.value ?? {schemaVersion:1};for(const key of Object.keys(changes))if(equal(changes[key],this.changes[key]))delete this.changes[key];this.handledGeneration=generation;saved=true;this.cache();
     }catch(error){
       if(this.stopped)return;
       this.handledGeneration=this.generation;this.changes={};clearTimeout(this.timer);
+      this.cache();
       // 不自动重放冲突或未知写入；仅更新版本供下一次明确操作使用。
       try{const current=await this.read();if(!this.stopped){this.version=current.version;this.serverValue=current.value ?? {schemaVersion:1};}}catch{this.version=undefined;}
       this.feedback(error instanceof SaveError && error.code==='PREFERENCE_VERSION_CONFLICT'?'页面偏好已有新版本，当前布局保持；下次操作将重新同步。':'页面状态尚未同步，当前标签中的操作已保留。');

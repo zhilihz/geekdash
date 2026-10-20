@@ -8,6 +8,7 @@ import { mountReferencePickers, syncReferencePickers } from './shared/reference-
 import { PersonalDrafts, type DraftRef } from './shared/personal-state';
 import { ProjectNotifications } from './shared/notifications';
 import { refreshProjectOptions } from './shared/project-options';
+import { attachStatusMentions } from './shared/status-mentions';
 import { readableFields } from './shared/history';
 setupTheme(); setupDateZone();
 const form = document.getElementById('create') as HTMLFormElement;
@@ -23,7 +24,7 @@ let managerIds:string[]=[];
 const value: EditValues = { name: '', summary: '', marketExpectation: '', detailNote: '', summaryNote: '', statusDesc: '', chipstatNote: '', signalNote: '', signal: 'green', priority: 'mid', customerId: null, odmCustomerId: null, productLineId: null, appId: null, groupId: null, chipIds: [], tagIds: [], people: [] };
 const draft: BasicIntent = { filingDate: '', startDate: '', dueDate: '', closedOn: '', proposalDate: '', originalDueDate: '', state: 'proposal', planKind: 'reschedule', reason: '', measures: '', closureType: 'normal', closureNote: '', remainingWorkNote: '', maintenance: false };
 const key = () => `geekdash_create:${account!.id}`;
-function fields(): Fields { return { ...Object.fromEntries(scopeFields.basic.map(key => [key, structuredClone(value[key])])), statusDesc: value.statusDesc, tagIds:value.tagIds, filingDate: draft.filingDate || null, dueDate: draft.dueDate || null, managerIds:[...managerIds] }; }
+function fields(): Fields { return { ...Object.fromEntries(scopeFields.basic.map(key => [key, structuredClone(value[key])])), statusDesc: value.statusDesc, filingDate: draft.filingDate || null, dueDate: draft.dueDate || null, managerIds:[...managerIds] }; }
 const emptyFields=JSON.stringify(fields());
 const hasInput=()=>JSON.stringify(fields())!==emptyFields;
 function restoreFields(restored:Fields){
@@ -84,6 +85,7 @@ function render() {
     delete errors[name];const error=document.getElementById('error-'+name);if(error)error.textContent='';remember();
   });
   document.getElementById('cancel')!.onclick = () => { void leave(); };
+  attachStatusMentions(document.getElementById('edit-statusDesc') as HTMLTextAreaElement, () => (catalog?.engineers ?? []).filter(person => person.enabled));
   mountReferencePickers(form); controls();
 }
 async function execute(confirm: boolean) {

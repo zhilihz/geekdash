@@ -62,7 +62,7 @@ async function editable(c: PoolConnection, actor: Actor, id: string) {
 const preferenceKeys: Record<string, string[]> = {
   appearance: ['theme','layout','visibleFilters'], 'summary-layout': ['columns','hiddenColumns','showStatus','showNotes','showChipNotes'],
   board: ['view','filters','sort','page','anchor','scrollY','filtersOpen'], checks: ['view','filters','page','anchor','scrollY','expanded'],
-  summary: ['filters','sort','rowOrder','hiddenRows','scrollY','anchor'], detail: ['projectId','tab','expanded','scrollY','viewport'],
+  summary: ['filters','sort','rowOrder','hiddenRows','scrollY','anchor','filtersOpen'], detail: ['projectId','tab','expanded','scrollY','viewport'],
 };
 function preferenceAddress(device: unknown, scope: unknown) {
   if (typeof scope !== 'string' || !Object.hasOwn(preferenceKeys,scope) || (['appearance','summary-layout'].includes(scope) ? device !== 'account' : !uuid(device))) failure('INVALID_PERSONAL_STATE',400);
@@ -78,7 +78,7 @@ function preferenceValue(scope: string, value: unknown) {
     if (scope==='summary' && ['rowOrder','hiddenRows'].includes(key) && (!Array.isArray(item) || item.some(id=>!validId(id)))) failure('INVALID_PERSONAL_STATE',400);
     if (scope==='summary-layout' && ['columns','hiddenColumns'].includes(key) && (!Array.isArray(item) || item.some(name=>!['customer','group','name','chips','status','engineers','note','chipNote','stage','node','dueDate','delay'].includes(name)))) failure('INVALID_PERSONAL_STATE',400);
     if (key === 'theme' && (typeof item!=='string' || !['dark','light','warm'].includes(item)) || key === 'layout' && (typeof item!=='string' || !['cards','progress'].includes(item))) failure('INVALID_PERSONAL_STATE',400);
-    if (key === 'filters') { if (!object(item) || Object.keys(item).some(name => !['search','customer','productLine','odmFactory','app','group','status','priority','signal','stage','progress','chip','tags','owner','deadline','checkToday'].includes(name)) || Object.values(item).some(v => typeof v !== 'string' && (!Array.isArray(v) || v.some(x => typeof x !== 'string')))) failure('INVALID_PERSONAL_STATE',400); }
+    if (key === 'filters') { if (!object(item) || Object.keys(item).some(name => !['search','customer','productLine','odmFactory','app','group','status','priority','signal','stage','progress','chip','tags','owner','deadline','checkToday',...scope==='summary'?['assignment']:[]].includes(name)) || Object.values(item).some(v => typeof v !== 'string' && (!Array.isArray(v) || v.some(x => typeof x !== 'string')))) failure('INVALID_PERSONAL_STATE',400); }
     else if (key === 'viewport') { if (!object(item) || Object.keys(item).some(k => !['x','y','zoom'].includes(k)) || Object.values(item).some(v => typeof v !== 'number' || !Number.isFinite(v))) failure('INVALID_PERSONAL_STATE',400); }
     else if (Array.isArray(item)) { if (item.some(v => typeof v !== 'string' || v.length > 255)) failure('INVALID_PERSONAL_STATE',400); }
     else if (!['string','number','boolean'].includes(typeof item) || typeof item === 'string' && item.length > 2048) failure('INVALID_PERSONAL_STATE',400);

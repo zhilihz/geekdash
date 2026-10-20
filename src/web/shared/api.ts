@@ -12,7 +12,7 @@ export function applyCompany(company:Company|null|undefined) {
 export type Project = {
   id: string; version: string; dataKind: 'business' | 'trial'; name: string; status: string; priority: string; signal: string;
   customer: string | null; odmFactory: string | null; productLine: string | null; app: string | null; projectGroup: string | null;
-  proposalDate: string | null; dueDate: string | null; marketExpectation: string; statusDesc: string; summaryNote?: string;
+  proposalDate: string | null; dueDate: string | null; marketExpectation: string; summary: string; statusDesc: string; statusEntries?: { text: string; date: string }[]; summaryNote?: string;
   deadline: Deadline; checkStatus: CheckStatus; resumeStatus: string | null; maintenanceEnabled: number; updatedAt: string; stage: string; stageState: string; progress: string | number;
   chips: { id: string; name: string }[]; people: { id: string; name: string; role: string }[]; tags: { id: string; name: string }[];
   managers: { id: string; name: string; enabled: number }[];
@@ -199,10 +199,12 @@ export function projectTags(project: Project, options: { userTags?: boolean; che
 }
 export function applyTheme(value: string) {
     document.documentElement.dataset.theme = ['dark', 'light', 'warm'].includes(value) ? value : 'dark';
+    document.documentElement.style.colorScheme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+    try { localStorage.setItem('geekdash_theme', document.documentElement.dataset.theme); } catch {}
     document.querySelectorAll<HTMLButtonElement>('button[data-theme]').forEach(button => button.classList.toggle('active', button.dataset.theme === document.documentElement.dataset.theme));
 }
 export function setupTheme() {
-  applyTheme('dark');
+  applyTheme(document.documentElement.dataset.theme ?? 'dark');
   document.querySelectorAll<HTMLButtonElement>('button[data-theme]').forEach(button => button.onclick = () => {
     if(contextChanged)return;themeTouched=true;applyTheme(button.dataset.theme!);
     appearance?.update({theme:button.dataset.theme!});

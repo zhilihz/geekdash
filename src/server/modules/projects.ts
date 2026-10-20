@@ -8,6 +8,7 @@ import { currentClosure } from './project-closures.js';
 import { lifecycleNotes } from './project-lifecycle.js';
 import { checkConditions, enrichChecks, todayCheckCondition } from './project-checks.js';
 import { companyInformation } from './public-settings.js';
+import { projectStatusEntries, projectStatusOwners, type StatusChange, type StatusEntry } from './project-status-entries.js';
 
 // V1.050 的阶段名称、完成权重和里程碑；查询不自动改变业务状态。
 export const stages = [
@@ -32,7 +33,7 @@ const columns = `CAST(p.id AS CHAR) id, CAST(p.version AS CHAR) version, p.data_
  c.name customer, odm.name odmFactory, pl.name productLine, a.name app, g.name projectGroup,
  DATE_FORMAT(p.proposed_on,'%Y-%m-%d') proposalDate, DATE_FORMAT(p.current_due_date,'%Y-%m-%d') dueDate,
  DATE_FORMAT(p.closed_on,'%Y-%m-%d') closedOn,DATE_FORMAT(p.closure_due_date,'%Y-%m-%d') closureDueDate,p.closure_type closureType,${closurePlanKnownExpression} closurePlanKnown,
- p.market_expectation marketExpectation, p.status_description statusDesc,
+ p.market_expectation marketExpectation, p.summary summary, p.status_description statusDesc,
  p.maintenance_enabled maintenanceEnabled, p.updated_at updatedAt,p.resume_status resumeStatus,DATE_FORMAT(p.first_check_week,'%Y-%m-%d') firstCheckWeek`;
 const dimensionColumns: Record<string, string> = { customer: 'c.name', productLine: 'pl.name', odmFactory: 'odm.name', app: 'a.name', group: 'g.name', status: 'p.status', priority: 'p.priority', signal: 'p.signal' };
 const collectionFilters: Record<string, string> = {
@@ -83,7 +84,7 @@ function conditions(query: ProjectQuery, includeFilters: boolean, today: string)
   return { sql: clauses.length ? 'WHERE ' + clauses.join(' AND ') : '', values };
 }
 
-async function enrich(connection: PoolConnection, projects: RowDataPacket[]) {
+async function enrich(connection: PoolConnection, projects: RowDataPacket[], includeStatusEntries = true) {
   if (!projects.length) return projects;
   const ids = projects.map(project => project.id);
   const slots = ids.map(() => '?').join(',');
@@ -91,26 +92,39 @@ async function enrich(connection: PoolConnection, projects: RowDataPacket[]) {
   const people = await rows(connection, `SELECT CAST(pp.project_id AS CHAR) projectId,CAST(e.id AS CHAR) id,e.name,pp.role FROM project_people pp JOIN engineers e ON e.id=pp.engineer_id WHERE pp.project_id IN (${slots}) ORDER BY pp.sort_order,e.id,pp.role`, ids);
   const tags = await rows(connection, `SELECT CAST(pt.project_id AS CHAR) projectId,CAST(t.id AS CHAR) id,t.name FROM project_tags pt JOIN tags t ON t.id=pt.tag_id WHERE pt.project_id IN (${slots}) ORDER BY pt.sort_order,t.id`, ids);
   const responsible = await rows(connection, `SELECT CAST(r.project_id AS CHAR) projectId,CAST(u.id AS CHAR) id,u.display_name name,u.enabled FROM project_responsibilities r JOIN users u ON u.id=r.user_id WHERE r.project_id IN (${slots}) ORDER BY u.id`, ids);
+  const statusChanges = new Map<string, StatusChange[]>();
+  if (includeStatusEntries) {
+    const audits = await rows(connection, `SELECT CAST(project_id AS CHAR) projectId,action,
+      CASE WHEN JSON_TYPE(JSON_EXTRACT(before_json,'$.statusDesc'))='STRING' THEN JSON_UNQUOTE(JSON_EXTRACT(before_json,'$.statusDesc')) ELSE NULL END beforeText,
+      JSON_UNQUOTE(JSON_EXTRACT(after_json,'$.statusDesc')) afterText,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%s.%fZ') createdAt
+      FROM audit_log WHERE project_id IN (${slots}) AND entity_type='project' AND JSON_TYPE(JSON_EXTRACT(after_json,'$.statusDesc'))='STRING' ORDER BY audit_log.id`, ids);
+    for (const audit of audits) {
+      const changes = statusChanges.get(audit.projectId) ?? [];
+      changes.push(audit as RowDataPacket & StatusChange); statusChanges.set(audit.projectId, changes);
+    }
+  }
   for (const project of projects) {
     project.chips = chips.filter(item => item.projectId === project.id).map(({ projectId: _projectId, ...item }) => item);
     project.people = people.filter(item => item.projectId === project.id).map(({ projectId: _projectId, ...item }) => item);
     project.tags = tags.filter(item => item.projectId === project.id).map(({ projectId: _projectId, ...item }) => item);
     project.managers = responsible.filter(item => item.projectId === project.id).map(({ projectId: _projectId, ...item }) => item);
+    if (includeStatusEntries) project.statusEntries = projectStatusEntries(project.statusDesc, statusChanges.get(project.id) ?? []);
   }
   return projects;
 }
 
-async function readDetail(connection: PoolConnection, id: string, accountId: string | undefined, now: Date, withHistory = true) {
+async function readDetail(connection: PoolConnection, id: string, accountId: string | undefined, now: Date, withHistory = true, statusEntries?: StatusEntry[]) {
         const todayCheck = todayCheckCondition(businessToday(now));
         const project = (await enrich(connection, await rows(connection, `SELECT ${columns},${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress,${todayCheck.sql} checkedToday,
           DATE_FORMAT(p.filed_on,'%Y-%m-%d') filingDate,DATE_FORMAT(p.started_on,'%Y-%m-%d') startDate,
           DATE_FORMAT(p.original_due_date,'%Y-%m-%d') originalDueDate,CAST(p.first_check_rule_version AS CHAR) firstCheckRuleVersion,
-          p.signal_note signalNote,p.detail_note detailNote,p.summary_note summaryNote,p.chipstat_note chipstatNote,p.summary summary,
+          p.signal_note signalNote,p.detail_note detailNote,p.summary_note summaryNote,p.chipstat_note chipstatNote,
           CAST(p.customer_id AS CHAR) customerId,CAST(p.odm_customer_id AS CHAR) odmCustomerId,
           CAST(p.product_line_id AS CHAR) productLineId,CAST(p.app_id AS CHAR) appId,CAST(p.group_id AS CHAR) groupId,
           p.pre_close_status preCloseStatus,CAST(p.source_import_item_id AS CHAR) sourceImportItemId,p.closure_note closureNote,p.remaining_work_note remainingWorkNote,CAST(p.created_by AS CHAR) createdBy
-          ${joins} WHERE p.id=?`, [...todayCheck.values, id])))[0];
+          ${joins} WHERE p.id=?`, [...todayCheck.values, id]), statusEntries === undefined))[0];
         if (!project) return null;
+        if (statusEntries) project.statusEntries = statusEntries;
         project.checkedToday = Number(project.checkedToday) === 1;
         const projectStages = await rows(connection, `SELECT CAST(s.id AS CHAR) id,s.stage_code code,s.state,s.planned_days plannedDays,s.note,
           DATE_FORMAT(s.started_on,'%Y-%m-%d') startedOn,DATE_FORMAT(s.completed_on,'%Y-%m-%d') completedOn,
@@ -143,17 +157,17 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
     summary(accountId: string) {
       const now=clock(),today=businessToday(now);
       return database.readSnapshot(async connection=>{
-        const items=await enrich(connection,await rows(connection,`SELECT ${columns},p.summary,p.summary_note summaryNote,p.chipstat_note chipstatNote,p.detail_note detailNote,${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress ${joins} ORDER BY p.id`));
+        const items=await enrich(connection,await rows(connection,`SELECT ${columns},p.summary_note summaryNote,p.chipstat_note chipstatNote,p.detail_note detailNote,${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress ${joins} ORDER BY p.id`));
         await enrichChecks(connection,items,{businessDate:today});
         const nodes=await rows(connection,"SELECT CAST(project_id AS CHAR) projectId,CAST(id AS CHAR) id,title,DATE_FORMAT(target_date,'%Y-%m-%d') targetDate FROM project_nodes WHERE kind='project' AND deleted_at IS NULL AND completed_on IS NULL ORDER BY project_id,sort_order,id");
+        const engineers=await rows(connection,'SELECT name FROM engineers ORDER BY name,id'),engineerNames=engineers.map(item=>String(item.name));
         for(const item of items){
           item.deadline=deadlineResult(item as RowDataPacket & DateFacts,today);
           item.canEdit=item.managers.some((manager:{id:string;enabled:number})=>manager.id===accountId && !!manager.enabled);
           item.pendingNodes=nodes.filter(node=>node.projectId===item.id).map(({projectId:_projectId,...node})=>node);
           // 继承1051的当前说明提名语义；不写人员库，不授予责任或账号权限。
-          item.statusOwners=[...new Set(Array.from(String(item.statusDesc ?? '').matchAll(/@([^\s@，,。；;：:！？!?（）()\[\]【】、<>]+)/gu),match=>match[1]))];
+          item.statusOwners=projectStatusOwners(String(item.statusDesc ?? ''),engineerNames);
         }
-        const engineers=await rows(connection,'SELECT name FROM engineers ORDER BY name,id');
         return {items,businessDate:today,capturedAt:now.toISOString(),company:await companyInformation(connection),ownerOptions:[...new Set([...engineers.map(item=>item.name),...items.flatMap(item=>item.statusOwners)])]};
       });
     },
@@ -177,7 +191,7 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
         const pageSize = query.pageSize ?? 24;
         const pageCount = Math.max(1, Math.ceil(total / pageSize));
         const page = Math.min(query.page ?? 1, pageCount);
-        const items = await enrich(connection, await rows(connection, `SELECT ${columns},${query.dashboard ? 'p.summary summary,p.summary_note summaryNote,' : ''}${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress,${todayCheck.sql} checkedToday,EXISTS (SELECT 1 FROM project_responsibilities r WHERE r.project_id=p.id AND r.user_id=?) canCheck ${joins} ${filtered.sql} ORDER BY p.id DESC LIMIT ? OFFSET ?`, [...todayCheck.values, accountId ?? null, ...filtered.values, pageSize, (page - 1) * pageSize]));
+        const items = await enrich(connection, await rows(connection, `SELECT ${columns},${query.dashboard ? 'p.summary_note summaryNote,' : ''}${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress,${todayCheck.sql} checkedToday,EXISTS (SELECT 1 FROM project_responsibilities r WHERE r.project_id=p.id AND r.user_id=?) canCheck ${joins} ${filtered.sql} ORDER BY p.id DESC LIMIT ? OFFSET ?`, [...todayCheck.values, accountId ?? null, ...filtered.values, pageSize, (page - 1) * pageSize]));
         for (const project of items) {
           project.deadline = deadlineResult(project as RowDataPacket & DateFacts, today);
           project.checkedToday = Number(project.checkedToday) === 1;
@@ -185,7 +199,7 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
           delete project.canCheck;
         }
         await enrichChecks(connection, items, { businessDate: today });
-        if (query.details === 'checks') for (const item of items) item.inspection = await readDetail(connection, item.id, accountId, now, false);
+        if (query.details === 'checks') for (const item of items) item.inspection = await readDetail(connection, item.id, accountId, now, false, item.statusEntries);
         const options: Record<string, string[]> = {};
         const optionQueries: string[] = [];
         for (const [key, column] of Object.entries(dimensionColumns)) {

@@ -98,10 +98,14 @@ try {
   checks.push('PRD9.5：完整同构字段创建、七阶段与创建者负责、简介和原备注独立；新GET/SQL、原号重放、停用资料与审计失败无孤儿项目');
   await c.execute("INSERT INTO project_people (project_id,engineer_id,role,sort_order) VALUES (?,?,'pm',0)", [id, engineer]);
   const basic = await save('basic', { name: prefix + '修改', summary: '独立简介', people: [{ id: engineer, role: 'hardware_owner' }] });
-  assert(!Object.hasOwn(basic.result.values, 'statusDesc')); assert(!Object.hasOwn(basic.result.display, 'tagIds'));
+  assert(!Object.hasOwn(basic.result.values, 'statusDesc')); assert.deepEqual(basic.result.display.tagIds, []);
   assert.equal((await fresh(id)).project_people.filter(p => p.role === 'pm').length, 1);
   assert.equal((await a.api(path)).responsible[0].id, users[0].id);
   const status = await save('status', { statusDesc: '第一行\n最新状态' }); assert.deepEqual(Object.keys(status.result.values), ['statusDesc']);
+  const statusRead = (await a.api(path)).project;
+  assert.deepEqual(statusRead.statusEntries.map(line => line.text), ['第一行', '最新状态']);
+  const statusTime = (await c.query("SELECT DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%s.%fZ') savedAt FROM audit_log WHERE project_id=? AND action='project.ordinary.save' AND version_after=?",[id,version]))[0][0].savedAt;
+  assert(statusRead.statusEntries.every(line => line.date === statusTime), '逐行日期来自实际保存审计，正文保持人工输入');
   await save('summaryNote', { summaryNote: '汇总备注' }); await save('chipstatNote', { chipstatNote: '芯片备注' });
   await save('signal', { signal: 'red', signalNote: '人工说明' });
   let scopeRead=await a.api(path),scopeFacts=await fresh(id);

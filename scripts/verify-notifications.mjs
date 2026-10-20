@@ -23,13 +23,15 @@ function client(){const cookies=new Map();let actor;return {
 async function waitFor(predicate,message,milliseconds=10000){const until=Date.now()+milliseconds;while(Date.now()<until){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,20));}throw Error(message);}
 async function stream(user,actor,projectId){
   const controller=new AbortController(),instanceId=randomUUID(),events=[];
-  const response=await user.request('/api/events?'+new URLSearchParams({accountId:actor,instanceId,projectId}),'GET',undefined,controller.signal);
+  const query=new URLSearchParams({accountId:actor,instanceId});if(projectId)query.set('projectId',projectId);
+  const response=await user.request('/api/events?'+query,'GET',undefined,controller.signal);
   assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/text\/event-stream/);assert.equal(response.headers.get('x-accel-buffering'),'no');
   const item={instanceId,events,controller,closed:false};streams.push(item);
   item.done=(async()=>{const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';try{for(;;){const next=await reader.read();if(next.done)break;buffer+=decoder.decode(next.value,{stream:true});let end;while((end=buffer.indexOf('\n\n'))>=0){const frame=buffer.slice(0,end);buffer=buffer.slice(end+2);const event=frame.match(/^event: (.+)$/m)?.[1],data=frame.match(/^data: (.+)$/m)?.[1];if(event && data)events.push({event,data:JSON.parse(data)});}}}catch(error){if(!controller.signal.aborted)throw error;}finally{item.closed=true;}})();
   await waitFor(()=>events.some(event=>event.event==='connected'),'SSE连接消息');return item;
 }
-const lastEditors=s=>s.events.filter(event=>event.event==='editors').at(-1)?.data.users;
+const lastEditors=(s,projectId)=>s.events.filter(event=>event.event==='editors' && (!projectId || event.data.projectId===projectId)).at(-1)?.data.users;
+const editorIds=(s,projectId)=>lastEditors(s,projectId)?.map(user=>user.id).sort();
 try{
   for(let i=0;i<2;i++){await c.execute('INSERT INTO users(login_name,password_hash,display_name,must_change_password,created_at,updated_at) VALUES(?,?,?,0,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))',[prefix+i,await hashPassword(password),'通知验证'+i]);users.push((await c.query('SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0][0].id);}
   const db=await openRuntimeDatabase('test_app');app=await createApp(db,{origin:'http://localhost',secure:false});origin=await app.listen({host:'127.0.0.1',port:0});
@@ -48,8 +50,23 @@ try{
   assert.equal((await c.query('SELECT COUNT(*) n FROM audit_log WHERE project_id=?',[id]))[0][0].n,auditBefore);
   assert.deepEqual((await c.query('SELECT token_hash,last_seen_at FROM sessions WHERE user_id=? ORDER BY token_hash',[users[0]]))[0],seenBefore);
   checks.push('PRD9.17：真实Cookie与SSE账号上下文校验；只查看不在场、非负责人拒绝、同账号双标签按人合并；登记不写审计或续会话');
+  const home=await stream(b,users[1]);
+  await waitFor(()=>editorIds(home,id)?.join()===users[0],'首页无projectId订阅收到既有编辑者快照');
+  assert.deepEqual(lastEditors(home,id),[{id:users[0],name:'通知验证0'}]);
+  assert.deepEqual(Object.keys(home.events.find(event=>event.event==='editors').data).sort(),['projectId','users']);
   await b.api(path+'/responsibility','POST',{action:'join',expectedVersion:created.result.savedVersion,idempotencyKey:randomUUID()});
   await b.api('/api/editing','POST',editor(sb,true));await waitFor(()=>lastEditors(s1)?.length===2,'两名实际编辑者');
+  await waitFor(()=>editorIds(home,id)?.join()===users.slice().sort().join(),'首页收到后续两名编辑者');
+  await a.api('/api/editing','POST',editor(s2,false));
+  await waitFor(()=>editorIds(home,id)?.join()===users[1],'首页收到明确结束编辑');
+  const disconnecting=await stream(a,users[0],id);
+  await a.api('/api/editing','POST',editor(disconnecting,true));
+  await waitFor(()=>editorIds(home,id)?.join()===users.slice().sort().join(),'断流前首页显示两人');
+  disconnecting.controller.abort();await disconnecting.done;
+  await waitFor(()=>editorIds(home,id)?.join()===users[1],'编辑者断流后首页清除其名单');
+  await a.api('/api/editing','POST',editor(s2,true));
+  await waitFor(()=>editorIds(home,id)?.join()===users.slice().sort().join(),'原编辑实例重新登记后首页恢复');
+  checks.push('PRD9.17：首页无projectId真实SSE收到已有名单快照、两人变化、明确结束与编辑者断流清除；仅含项目及人员标识，不写业务');
   const before=await a.api(path),operationId=randomUUID();
   const saved=await a.api(path,'PATCH',{expectedVersion:before.project.version,idempotencyKey:operationId,scope:'basic',changes:{name:prefix+'新名称'}});
   await waitFor(()=>sb.events.some(event=>event.event==='project' && event.data.operationId===operationId),'真实提交后通知');
@@ -62,9 +79,27 @@ try{
   checks.push('PRD9.17：保存后真实事件→另一会话新GET→独立SQL；消息只有编号/版本/操作号；冲突拒绝不发提交事件，不泄露字段输入');
   await b.api(path+'/responsibility','POST',{action:'leave',expectedVersion:saved.result.savedVersion,idempotencyKey:randomUUID()});
   await waitFor(()=>lastEditors(s1)?.length===1,'退出责任后清编辑名单');
+  await waitFor(()=>editorIds(home,id)?.join()===users[0],'首页同步清除已失负责资格的编辑者');
   await b.api('/api/editing','POST',editor(sb,true),403);
+  const second=await a.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+'第二项目'}}),secondId=second.result.projectId;projects.push(secondId);
+  const homeEditor=await stream(a,users[0]);
+  await a.api('/api/editing','POST',editor(s2,false));
+  await waitFor(()=>editorIds(home,id)?.length===0,'切项目前结束旧详情实例');
+  await a.api('/api/editing','POST',editor(homeEditor,true));
+  await waitFor(()=>editorIds(home,id)?.join()===users[0],'首页同实例开始编辑项目A');
+  await a.api('/api/editing','POST',{projectId:secondId,instanceId:homeEditor.instanceId,editing:true});
+  await waitFor(()=>editorIds(home,id)?.length===0 && editorIds(home,secondId)?.join()===users[0],'同实例切B后A清空、B显示');
+  await a.api('/api/editing','POST',editor(homeEditor,false));
+  const freshSecond=await stream(b,users[1],secondId);
+  await waitFor(()=>editorIds(freshSecond,secondId)?.join()===users[0],'迟到A结束请求后新订阅仍读到B编辑事实');
+  assert.equal((await a.api('/api/projects/'+secondId)).project.version,second.result.savedVersion,'切换编辑对象不改项目版本');
+  await a.api('/api/editing','POST',{projectId:secondId,instanceId:homeEditor.instanceId,editing:false});
+  await waitFor(()=>editorIds(home,secondId)?.length===0 && editorIds(freshSecond,secondId)?.length===0,'明确结束B后首页与详情均清空');
+  await a.api('/api/editing','POST',editor(s2,true));
+  await waitFor(()=>editorIds(home,id)?.join()===users[0],'恢复A编辑用于退出会话核对');
+  checks.push('PRD9.17：首页同一instance从A切B清除A并展示B；迟到A的editing=false不删除B，独立新SSE确认；失权即时清除，编辑切换不改版本');
   await a.api('/api/auth/logout','POST',{});await waitFor(()=>s1.closed && s2.closed,'退出会话关闭全部对应流');
-  await waitFor(()=>lastEditors(sb)?.length===0,'退出后名单清空');assert(s1.events.some(event=>event.event==='identity'));
+  await waitFor(()=>lastEditors(sb)?.length===0 && editorIds(home,id)?.length===0,'退出后详情及首页名单清空');assert(s1.events.some(event=>event.event==='identity'));
   checks.push('PRD9.17：退出负责后立即清名单并拒绝续报；退出登录关闭该会话双标签SSE，其他账号名单更新');
   sb.controller.abort();await sb.done;
   const again=await stream(b,users[1],id);assert.deepEqual(lastEditors(again) ?? [],[]);again.controller.abort();await again.done;

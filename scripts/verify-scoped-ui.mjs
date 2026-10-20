@@ -140,13 +140,20 @@ try {
   await c.execute('INSERT INTO tags (name,created_at,updated_at) VALUES (?,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))',[tagName]);
   const tagId=(await c.query('SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0][0].id; references.push(tagId);
   const p=await page(a,id), read=()=>a.api(path);
-  assert.equal(p.$('#tags-edit'),null);await waitFor(()=>p.$('#edit-tagIds') && !p.$('#edit-tagIds').disabled,'常驻标签候选加载');assert(p.$('[data-save-scope="tags"]').hidden);assert(p.$('#tags-cancel').hidden);p.input('#edit-tagIds',tagName);p.click('[data-reference-value="'+tagId+'"]');p.visibleClick('[data-save-scope="tags"]');
-  await waitFor(()=>p.dom.projectReads.at(-1)?.project.tags.some(tag=>tag.id===tagId) && !p.$('#reload').disabled,'项目标签正式保存');
-  assert(p.$('#d-tags').textContent.includes(tagName),'保存后的标题区必须显示实际项目标签');
-  assert(p.$('[data-save-scope="tags"]').hidden);assert(p.$('#tags-cancel').hidden);
-  const tagReadback=await page(a,id);assert(tagReadback.$('#d-tags').textContent.includes(tagName),'重新进入仍显示正式标签');
+  assert.equal(p.$('#tags-edit'),null);await waitFor(()=>p.$('#edit-tagIds') && !p.$('#edit-tagIds').disabled,'基本信息标签候选加载');
+  assert.equal(p.$('[data-save-scope="tags"]'),null);assert.equal(p.$('#d-tags [data-edit]'),null);assert.equal(p.$('#d-meta'),null);
+  assert(p.$('[data-region="basic"] #edit-tagIds'),'标签位于基本信息中');
+  p.input('#edit-tagIds',tagName);p.click('[data-reference-value="'+tagId+'"]');
+  p.input('#edit-name','');p.visibleClick('[data-save-scope="basic"]');
+  await waitFor(()=>p.$('#error-name')?.textContent && !p.$('#reload').disabled,'空名称阻止整个基本区提交');
+  assert.equal((await read()).project.tags.length,0,'失败不先写标签');assert.equal((await read()).project.name,prefix);
+  p.input('#edit-name',prefix);p.visibleClick('[data-save-scope="basic"]');
+  await waitFor(()=>p.dom.projectReads.at(-1)?.project.tags.some(tag=>tag.id===tagId) && !p.$('#reload').disabled,'项目标签与基本区同次保存');
+  assert(!p.$('#d-tags').textContent.includes(tagName),'标题不重复展示用户标签');
+  assert.equal(p.$('[data-save-scope="tags"]'),null);
+  const tagReadback=await page(a,id);assert.equal(tagReadback.$('#edit-tagIds-source').selectedOptions[0].value,tagId,'重新进入基本区仍选中正式标签');
   assert.equal(Number((await c.query('SELECT COUNT(*) n FROM project_tags WHERE project_id=? AND tag_id=?',[id,tagId]))[0][0].n),1);
-  checks.push('PRD9.7：标签独立保存后标题区实际显示，重新进入与独立SQL关联一致');
+  checks.push('PRD9.4/9.7：标签融入基本区同次保存；无独立重复入口，非法名称全事务不写，新请求与独立SQL关联一致');
   assert.equal(p.$('#basic-edit'),null);assert.equal(p.$('#edit-name').value,prefix);assert(p.$('#edit-statusDesc'));
   for(const scope of ['basic','status'])assert(p.$(`[data-region="${scope}"] > .region-save [data-save-scope="${scope}"]`),'区保存位于本区字段之后');
   p.input('#edit-statusDesc','说明暂不提交');p.input('#edit-name',prefix+'改名');
@@ -371,6 +378,20 @@ try {
   await waitFor(()=>liveA.dom.events.filter(item=>item.event==='connected').length>connections,'断流后有界重连');
   assert.equal((await b.api('/api/projects/'+liveId)).project.statusDesc,'本页正式保存');
   checks.push('PRD9.17：真实SSE驱动三页面编辑名单；本人保存不误冻，同账号另一标签及另一账号保留输入并冻结旧保存；断流后重连补查');
+  const liveBoard=await page(a,liveId,false,{board:true,realtime:true,query:'?view=all&search='+encodeURIComponent(prefix+'通知项目')});
+  await waitFor(()=>liveA.$('#project-editors .editing-badge') && liveBoard.$(`[data-project-editors="${liveId}"] .editing-badge`),'详情与首页消费同一真实编辑名单');
+  liveBoard.click(`[data-project-id="${liveId}"] [data-status-action="edit"]`);liveBoard.input(`[data-status-input="${liveId}"]`,'身份变化时首页状态输入');
+  for(const target of [liveA,liveBoard]){
+    target.w.document.dispatchEvent(new target.w.Event('geekdash-identity-changed'));
+    assert.equal(target.$('.editing-badge'),null,'身份失效即清空旧编辑名单');
+    assert(target.dom.streams.every(stream=>stream.closed),'身份失效关闭通知连接');
+    target.dom.streams.at(-1).dispatchEvent(new target.w.MessageEvent('editors',{data:JSON.stringify({projectId:liveId,users:[{id:users[1].id,name:'迟到编辑者'}]})}));
+    assert.equal(target.$('.editing-badge'),null,'迟到旧连接名单不能恢复徽章');
+  }
+  assert.equal(liveA.$('#edit-statusDesc').value,'重复通知后仍保留的未保存输入');assert(liveA.$('[data-save-scope="status"]').disabled);
+  assert.equal(liveBoard.$(`[data-status-input="${liveId}"]`).value,'身份变化时首页状态输入');assert(liveBoard.$('[data-status-action="save"]').disabled);
+  assert.deepEqual(await facts(liveId),notificationFacts,'身份显示失效不写正式业务');
+  checks.push('PRD9.17：详情与首页身份失效立即清空真实编辑者徽章，关闭旧连接并忽略迟到名单；两页未保存输入保留、正式保存冻结、业务数据不变');
   const offlineCreated=await a.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+'草稿离线'}}),offlineId=offlineCreated.result.projectId;projects.push(offlineId);
   const offline=await page(a,offlineId);offline.dom.rejectDrafts=true;offline.input('#edit-name',prefix+'正式保存可用');offline.input('#edit-statusDesc','其他区离线输入');
   offline.click('[data-save-scope="basic"]');await waitFor(()=>offline.dom.projectReads.at(-1)?.project.name===prefix+'正式保存可用' && !offline.$('#reload').disabled,'仅草稿接口离线仍可正式保存');

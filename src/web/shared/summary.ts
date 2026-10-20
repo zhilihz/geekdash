@@ -1,11 +1,14 @@
 import { label, type Project, type Company } from './api';
+import { statusText } from './status-text';
 
 export type SummaryProject=Omit<Project,'checkStatus'> & {summary:string;detailNote:string;summaryNote:string;chipstatNote:string;statusOwners:string[];pendingNodes:{id:string;title:string;targetDate:string|null}[];canEdit:boolean};
 export type SummarySnapshot={items:SummaryProject[];businessDate:string;capturedAt:string;company:Company|null;ownerOptions:string[]};
 export const summaryColumns={customer:'客户',group:'分组',name:'项目名称',chips:'核心芯片',status:'项目最新状态',engineers:'负责人',note:'备注',chipNote:'芯片备注',stage:'当前阶段',node:'关键节点',dueDate:'预计结案日期',delay:'是否延期'};
 export type SummaryColumn=keyof typeof summaryColumns;
 export const defaultColumns=Object.keys(summaryColumns).filter(key=>key!=='chipNote') as SummaryColumn[];
-export type SummaryFilters={group:string[];status:string[];owner:string[];chip:string[]};
+export const summaryFilterTitles={customer:'客户',productLine:'产品线',odmFactory:'ODM 工厂',app:'配套 APP',status:'项目状态',priority:'优先级',signal:'信号灯',stage:'项目阶段',progress:'进度',chip:'芯片',tags:'项目标签',group:'分组',assignment:'分工人员',owner:'状态提及人员',deadline:'计划结果'};
+export type SummaryFilter=keyof typeof summaryFilterTitles;
+export type SummaryFilters=Partial<Record<SummaryFilter,string[]>> & {search?:string};
 export type SummarySort='customer'|'group'|'chip'|'stage'|'dueDate';
 export function summaryValue(project:SummaryProject,column:SummaryColumn):string {
   switch(column){
@@ -13,7 +16,7 @@ export function summaryValue(project:SummaryProject,column:SummaryColumn):string
     case 'group':return project.projectGroup || '未分组';
     case 'name':return project.name;
     case 'chips':return project.chips.map(chip=>chip.name).join('、');
-    case 'status':return project.statusDesc;
+    case 'status':return statusText(project);
     case 'engineers':return project.statusOwners.join('、');
     case 'note':return project.summaryNote;
     case 'chipNote':return project.chipstatNote;
@@ -24,13 +27,29 @@ export function summaryValue(project:SummaryProject,column:SummaryColumn):string
   }
 }
 const compare=(a:string|null|undefined,b:string|null|undefined)=>String(a ?? '').localeCompare(String(b ?? ''),'zh-CN',{numeric:true});
+const deadlineNames={upcoming:'未到期',due:'今日到期',overdue:'已超期',unset:'计划未定',closed_on_time:'按期结案',closed_late:'超期结案',closed_unplanned:'无计划结案',closed_unknown:'结案日期待核对',terminated:'终止结案'};
+function filterChoices(project:SummaryProject,kind:SummaryFilter):[string,string][]{
+  if(kind==='chip' || kind==='tags')return (kind==='chip'?project.chips:project.tags).map(item=>[item.id,item.name]);
+  if(kind==='assignment')return [...project.managers.map(person=>['user:'+person.id,person.name] as [string,string]),...project.people.filter(person=>person.role!=='pm').map(person=>['engineer:'+person.id,person.name] as [string,string])];
+  if(kind==='owner')return project.statusOwners.map(name=>[name,name]);
+  if(kind==='group'){const value=project.projectGroup || '未分组';return [[value,value]];}
+  if(kind==='deadline')return [[project.deadline.kind,deadlineNames[project.deadline.kind]]];
+  const value=String(project[kind] ?? '');
+  return value ? [[value,kind==='progress'?value+'%':['status','priority','signal','stage'].includes(kind)?label(value):value]] : [];
+}
+export function summaryFilterOptions(snapshot:SummarySnapshot):Record<SummaryFilter,[string,string][]>{
+  const fixed:Partial<Record<SummaryFilter,string[]>>={status:['proposal','ongoing','paused','closed'],priority:['high','mid','low'],signal:['green','yellow','red'],stage:['S1','S2','S3','S4','S5','S6','S7','completed','unconfigured'],progress:['0','5','10','20','60','80','90','100'],deadline:Object.keys(deadlineNames)};
+  return Object.fromEntries((Object.keys(summaryFilterTitles) as SummaryFilter[]).map(kind=>{
+    const values=fixed[kind]?.map(value=>[value,kind==='deadline'?deadlineNames[value as keyof typeof deadlineNames]:kind==='progress'?value+'%':label(value)] as [string,string])
+      ?? [...new Map([...snapshot.items.flatMap(project=>filterChoices(project,kind)),...(kind==='owner'?snapshot.ownerOptions.map(name=>[name,name] as [string,string]):[])]).entries()].sort((a,b)=>compare(a[1],b[1]));
+    return [kind,values];
+  })) as Record<SummaryFilter,[string,string][]>;
+}
 export function summaryRows(items:SummaryProject[],filters:SummaryFilters,sort:SummarySort,order:string[]=[],hidden:string[]=[],quickIds?:string[]) {
-  const omitted=new Set(hidden),scope=quickIds ? new Set(quickIds) : null,positions=new Map(order.map((id,index)=>[id,index]));
+  const omitted=new Set(hidden),scope=quickIds ? new Set(quickIds) : null,positions=new Map(order.map((id,index)=>[id,index])),search=filters.search?.trim().toLowerCase();
   const result=items.filter(project=>!omitted.has(project.id) && (!scope || scope.has(project.id))
-    && (!filters.group.length || filters.group.includes(project.projectGroup || '未分组'))
-    && (!filters.status.length || filters.status.includes(project.status))
-    && (!filters.owner.length || project.statusOwners.some(name=>filters.owner.includes(name)))
-    && (!filters.chip.length || project.chips.some(chip=>filters.chip.includes(chip.id))));
+    && (Object.keys(summaryFilterTitles) as SummaryFilter[]).every(kind=>!filters[kind]?.length || filterChoices(project,kind).some(([value])=>filters[kind]!.includes(value)))
+    && (!search || [[project.name,project.customer,project.productLine,project.odmFactory,project.app,project.marketExpectation,project.statusDesc].filter(Boolean).join(' '),...project.chips.map(chip=>chip.name),...project.people.filter(person=>person.role!=='pm').map(person=>person.name),...project.managers.map(person=>person.name)].some(value=>value.toLowerCase().includes(search))));
   return result.sort((a,b)=>{
     if(positions.has(a.id) || positions.has(b.id)){const rank=(positions.get(a.id) ?? Number.MAX_SAFE_INTEGER)-(positions.get(b.id) ?? Number.MAX_SAFE_INTEGER);if(rank)return rank;}
     const first=sort==='chip' ? compare(a.chips[0]?.name || '\uffff',b.chips[0]?.name || '\uffff') : sort==='dueDate' ? compare(a.dueDate || '9999-12-31',b.dueDate || '9999-12-31') : sort==='stage' ? compare(a.stage,b.stage) : sort==='group' ? compare(a.projectGroup,b.projectGroup) : compare(a.customer,b.customer);
@@ -56,7 +75,7 @@ function csvCell(value:string){
 export function summaryCsv(projects:SummaryProject[],columns:SummaryColumn[],chipFormat=false){
   if(!projects.length)throw new Error('请先选择要导出的项目。');
   const headers=chipFormat?['核心芯片','客户','项目名称','量产维护','项目最新状态','备注','当前阶段','关键节点','预计结案日期','是否延期']:columns.map(key=>summaryColumns[key]);
-  const rows=projects.map(project=>chipFormat?[summaryValue(project,'chips'),summaryValue(project,'customer'),project.name,project.maintenanceEnabled?'是':'否',project.statusDesc,project.chipstatNote,summaryValue(project,'stage'),summaryValue(project,'node'),summaryValue(project,'dueDate'),summaryValue(project,'delay')]:columns.map(key=>summaryValue(project,key)));
+  const rows=projects.map(project=>chipFormat?[summaryValue(project,'chips'),summaryValue(project,'customer'),project.name,project.maintenanceEnabled?'是':'否',summaryValue(project,'status'),project.chipstatNote,summaryValue(project,'stage'),summaryValue(project,'node'),summaryValue(project,'dueDate'),summaryValue(project,'delay')]:columns.map(key=>summaryValue(project,key)));
   return '\ufeff'+[headers,...rows].map(row=>row.map(csvCell).join(',')).join('\r\n');
 }
 export function primaryOwner(project:SummaryProject){

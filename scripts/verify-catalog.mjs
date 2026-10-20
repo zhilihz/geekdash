@@ -54,14 +54,17 @@ async function page(user,session={},name='data-manage',realtime=false,query='',f
       if(dom.failIdentityRead){dom.failIdentityRead=false;return new Response(JSON.stringify({code:'DATABASE_UNAVAILABLE',outcome:'not_committed'}),{status:503,headers:{'Content-Type':'application/json'}});}
       const gate=dom.identityGate,response=await user.fetch(path,options);if(gate){dom.identityHeld=true;await gate;dom.identityHeld=false;}return response;
     }
-    if(dom.failSummaryRead && path==='/api/project-summary'){dom.failSummaryRead=false;throw Error('模拟正式回读暂时失败');}const response=await user.fetch(path,options);
+    if(dom.failSummaryRead && path==='/api/project-summary'){dom.failSummaryRead=false;throw Error('模拟正式回读暂时失败');}
+    if(dom.expireQuery && path.endsWith('/save-results/query')){dom.expireQuery=false;await user.api('/api/auth/logout','POST',{});}
+    const response=await user.fetch(path,options);
     if(name==='project-new' && path==='/api/projects' && options?.method==='POST' && response.ok){dom.created=await response.clone().json();projects.push(dom.created.result.projectId);}
+    if(dom.expireAfterAck && options?.method==='PATCH' && response.ok){dom.expireAfterAck=false;await user.api('/api/auth/logout','POST',{});}
     if(dom.dropAck && (path.startsWith('/api/catalog/') && path.endsWith('/save') || options?.method==='PATCH')){dom.dropAck=false;await response.arrayBuffer();throw Error('模拟保存回应丢失');}return response;};
   const context=dom.getInternalVMContext(),modules=new Map();
   function load(path){if(path.endsWith('.css'))return {};path=resolve(path.endsWith('.ts')?path:path+'.ts');if(modules.has(path))return modules.get(path).exports;const module={exports:{}};modules.set(path,module);const code=ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2023,module:ts.ModuleKind.CommonJS}}).outputText;vm.runInContext('(function(require,exports,module){'+code+'\n})',context,{filename:path})(name=>load(resolve(dirname(path),name)),module.exports,module);return module.exports;}
-  w.scrollTo=()=>{};dom.load=load;if(faults.moduleOnly)load('src/web/shared/api.ts').setAccount((await user.api('/api/auth/me')).account);else load('src/web/'+(name==='project-detail'?'detail':name)+'.ts');const $=selector=>w.document.querySelector(selector);
+  w.scrollTo=()=>{};dom.load=load;if(faults.moduleOnly)load('src/web/shared/api.ts').setAccount((await user.api('/api/auth/me')).account);else load('src/web/'+(name==='project-detail'?'detail':name==='index'?'board':name)+'.ts');const $=selector=>w.document.querySelector(selector);
   dom.$=$;dom.input=(selector,value)=>{const input=$(selector);assert(input,selector);input.value=value;input.dispatchEvent(new w.Event('input',{bubbles:true}));};
-  if(!faults.moduleOnly)await waitFor(()=>name==='data-manage'?$('#catalog-tabs button') && !$('#catalog-reload').disabled:['project-new','project-detail'].includes(name)?$('#edit-chipIds-source') && !$('#edit-chipIds-source').disabled && (!$('#options-retry') || $('#options-retry').hidden):$('#summary-date').textContent.startsWith('列表读取日期：') && $('#summary-table tbody tr'),'页面就绪');return dom;
+  if(!faults.moduleOnly)await waitFor(()=>name==='data-manage'?$('#catalog-tabs button') && !$('#catalog-reload').disabled:['project-new','project-detail'].includes(name)?$('#edit-chipIds-source') && !$('#edit-chipIds-source').disabled && (!$('#options-retry') || $('#options-retry').hidden):name==='index'?$('#card-grid').getAttribute('aria-busy')==='false' && $('#card-grid .card'):$('#summary-date').textContent.startsWith('列表读取日期：') && $('#summary-table tbody tr'),'页面就绪');return dom;
 }
 const command=(id,expectedVersion,changes)=>({id,expectedVersion,changes,idempotencyKey:randomUUID()});
 let a,b;
@@ -177,7 +180,7 @@ try{
   await waitFor(()=>ui.$('#catalog-detail').textContent.includes('UI-FW') && ui.$('#catalog-edit') && !ui.$('#catalog-edit').disabled,'页面新增并回读');
   const uiChip=(await a.api('/api/catalog/chips')).items.find(item=>item.name===prefix+' 页面芯片');assert(uiChip);created.push(['chips',uiChip.id]);
   assert.equal((await read('chips',uiChip.id)).originalModel,'UI-MODEL');
-  const uiProject=await b.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+' 页面引用',chipIds:[uiChip.id]}});projects.push(uiProject.result.projectId);
+  const uiProject=await b.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+' 页面引用',chipIds:[uiChip.id],customerId:customer,odmCustomerId:customer,productLineId:product,appId,groupId:group,tagIds:[tag],priority:'high',dueDate:'2026-12-30',people:[{id:engineer,role:'hardware_owner'}]}});projects.push(uiProject.result.projectId);
   ui.$('#catalog-edit').click();ui.input('#catalog-name',prefix+' 页面改名');ui.$('#catalog-save').click();
   await waitFor(()=>ui.$('#catalog-apply') && !ui.$('#catalog-apply').disabled,'改名影响预览');
   assert.match(ui.$('.comparison-table').textContent,/页面芯片/);assert.match(ui.$('.comparison-table').textContent,/页面改名/);assert.doesNotMatch(ui.$('#catalog-detail').textContent,/1 个项目|页面引用/);assert.equal(ui.$('#catalog-detail a[href*="project-detail"]'),null,'资料维护不展示引用项目数量、名单或跳转');
@@ -215,6 +218,51 @@ try{
   assert.match(csv,/核心芯片/);assert.match(csv,/页面改名/);assert.match(csv,/状态简要备注/);assert(!csv.includes('=芯片备注'));
   assert.match(chipCsv,/"'=芯片备注"/);assert(!chipCsv.includes('状态简要备注'));assert.equal(chipCsv.split('\r\n')[0].split(',').length,10);
   assert.match(md,/原始项目状态/);assert.match(md,/展示状态依据/);assert.match(md,/&lt;检查&gt;/);assert(!md.includes('不混入客户节点'));
+  const completeFilters={customer:[prefix+' 客户'],productLine:[prefix+' 产品线'],odmFactory:[prefix+' 客户'],app:[prefix+' APP'],status:['proposal'],priority:['high'],signal:['green'],stage:['S1'],progress:['0'],chip:[uiChip.id],tags:[tag],group:[prefix+' 分组'],assignment:['engineer:'+engineer],owner:['王工'],deadline:[summary.deadline.kind]};
+  for(const [kind,value] of Object.entries(completeFilters)){
+    assert(model.summaryRows(snapshot.items,{[kind]:value},'customer').some(row=>row.id===summary.id),kind+'筛选命中正式项目');
+    assert.equal(model.summaryRows(snapshot.items,{[kind]:['无匹配项']},'customer').length,0,kind+'无匹配不显示全部');
+  }
+  assert.deepEqual(model.summaryRows(snapshot.items,completeFilters,'chip').map(row=>row.id),[summary.id]);
+  assert.deepEqual(model.summaryRows(snapshot.items,{...completeFilters,assignment:['user:'+users[1].id,'engineer:18446744073709551615'],owner:['不存在','王工']},'chip').map(row=>row.id),[summary.id],'同维任一、跨维同时命中，经理和提名独立');
+  assert.equal(model.summaryRows(snapshot.items,completeFilters,'chip',[],[],[]).length,0,'新增筛选不扩大原快速范围');
+  for(const search of [prefix.toUpperCase()+' 页面引用','页面改名',prefix+' 人员','资料测试1'])assert(model.summaryRows(snapshot.items,{...completeFilters,search},'chip').some(row=>row.id===summary.id),'搜索项目、芯片、业务人员和真实经理');
+  const filterPage=await page(b,{},'project-status-summary'),fw=filterPage.window,f$=filterPage.$;
+  assert.equal(f$('#summary-filter-rows').hidden,true);
+  f$('#summary-filter-toggle').click();assert.equal(f$('#summary-filter-rows').hidden,false);
+  const selectBeforeFilter=f$('#select-all');selectBeforeFilter.checked=true;selectBeforeFilter.dispatchEvent(new fw.Event('change',{bubbles:true}));
+  f$(`tr[data-row="${summary.id}"] [data-edit="summaryNote"]`).click();filterPage.input(`tr[data-row="${summary.id}"] textarea`,'筛选切换保留未保存备注');
+  for(const [kind,[value]] of Object.entries(completeFilters)){
+    const input=[...fw.document.querySelectorAll(`[data-filter="${kind}"]`)].find(input=>input.value===value);assert(input,kind+'具有可选项');
+    input.checked=true;input.dispatchEvent(new fw.Event('change',{bubbles:true}));
+  }
+  assert.deepEqual([...fw.document.querySelectorAll('tbody tr[data-row]')].map(row=>row.dataset.row),[summary.id]);
+  f$('#summary-filter-toggle').click();assert.equal(f$('#summary-filter-rows').hidden,true);assert.equal(fw.document.querySelectorAll('[data-remove-filter]').length,15,'收起保留全部已选摘要');
+  const searchInput=f$('#summary-search');searchInput.value='输入法尚未结束';searchInput.dispatchEvent(new fw.InputEvent('input',{bubbles:true,isComposing:true}));assert(f$(`tr[data-row="${summary.id}"]`),'中文合成中不改变筛选');
+  searchInput.value='页面引用';searchInput.dispatchEvent(new fw.CompositionEvent('compositionend',{bubbles:true}));
+  const searchIdentity=f$('#summary-search');f$('#summary-filter-toggle').click();f$('#summary-filter-toggle').click();
+  assert.equal(f$('#summary-search'),searchIdentity,'筛选区重绘不替换正在输入的搜索框');
+  assert.equal(f$(`tr[data-row="${summary.id}"] textarea`).value,'筛选切换保留未保存备注');
+  fw.Blob=Blob;let filteredFile;
+  fw.showDirectoryPicker=async()=>({name:'筛选输出验证',async getFileHandle(){return {async createWritable(){return {async write(blob){filteredFile=Buffer.from(await blob.arrayBuffer());},async close(){},async abort(){}};}};}});
+  f$('#choose-folder').click();await waitFor(()=>f$('#folder-status').textContent.includes('筛选输出验证'),'筛选输出目录');
+  f$('[data-export="csv"]').click();await waitFor(()=>filteredFile && f$('#summary-feedback').textContent.includes('已保存到'),'筛选结果实际导出');
+  assert.deepEqual([...filteredFile.subarray(0,3)],[0xef,0xbb,0xbf],'实际CSV文件保留UTF-8 BOM');
+  assert.equal(csv.charCodeAt(0),0xfeff);
+  const filteredText=new TextDecoder('utf-8',{fatal:true}).decode(filteredFile.subarray(3));
+  assert.equal(filteredText,csv.slice(1),'即使之前全选过其他项目，实际CSV完整正文仅含当前筛选表格所选正式值');
+  assert(!filteredText.includes('筛选切换保留未保存备注'));await writeFile('test-results/p04-summary-filtered.csv',filteredFile);
+  const deviceKey=fw.localStorage.getItem('geekdash_device');
+  await waitFor(async()=>{const saved=await b.api('/api/personal/preferences?'+new URLSearchParams({scope:'summary',deviceKey}));return saved.value?.filters?.assignment?.[0]==='engineer:'+engineer && saved.value.filtersOpen===false;},'全部筛选及折叠状态持久化');
+  const cachedFilters=Object.fromEntries(Object.entries(fw.sessionStorage)),filterReturn=await page(b,cachedFilters,'project-status-summary');
+  assert.equal(filterReturn.$('#summary-search').value,'页面引用');assert.equal(filterReturn.$('#summary-filter-rows').hidden,true);
+  assert.deepEqual([...filterReturn.window.document.querySelectorAll('tbody tr[data-row]')].map(row=>row.dataset.row),[summary.id],'返回保留完整筛选与表格范围');
+  filterReturn.window.close();
+  filterPage.input('#summary-search','没有此项目');assert.equal(fw.document.querySelectorAll('tbody tr[data-row]').length,0);
+  f$('[data-clear-filters]').click();assert(fw.document.querySelectorAll('tbody tr[data-row]').length>1);assert.equal(f$(`tr[data-row="${summary.id}"] textarea`).value,'筛选切换保留未保存备注');
+  assert.equal((await b.api(uiPath)).project.version,'7','筛选、返回和导出不保存业务数据');
+  filterPage.window.close();
+  checks.push('项目状态简要完整筛选：真实保存资料和分工经新GET进入15维候选；同维OR/跨维AND、快速范围、搜索、中文合成、折叠摘要与偏好返回；表格所见筛选与实际CSV严格一致，其他已选项目及未保存备注不进入文件');
   await b.api(uiPath,'PATCH',{expectedVersion:'7',idempotencyKey:randomUUID(),scope:'status',changes:{statusDesc:'生成期间的后续更新'}});
   assert.equal(model.summaryCsv(selected,columns),csv,'本次输出固定正式快照，不拼入后来数据');
   checks.push('PRD9.20/SPEC020局部：完整正式摘要、提名去重与权限区分、仅有效项目节点、备注独立、资料/企业消费；组合筛选、隐藏及空选择；真实CSV/原芯片CSV/Markdown文件生成及快照固定，PDF/PNG/统一页交互仍待验');
@@ -280,14 +328,17 @@ try{
   const statusOp=randomUUID();await otherSession.api(livePath,'PATCH',{expectedVersion:'1',idempotencyKey:statusOp,scope:'status',changes:{statusDesc:'通知后的正式说明'}});
   await waitFor(()=>live.events.some(e=>e.data.operationId===statusOp),'收到状态更新');assert.equal(live.$(liveRow+' textarea'),composing,'中文组合输入期间不拆输入节点');
   composing.dispatchEvent(new live.window.CompositionEvent('compositionend',{bubbles:true}));
-  await waitFor(()=>live.$(liveRow+' [data-column="status"]').textContent==='通知后的正式说明','组合输入后更新静态值');
+  await waitFor(()=>live.$(liveRow+' [data-column="status"] .status-line')?.firstChild?.textContent==='通知后的正式说明','组合输入后更新静态值');
+  assert.equal(live.window.document.querySelectorAll(liveRow+' [data-column="status"] .status-line').length,1);
+  assert.equal(live.$(liveRow+' [data-column="status"] time').dateTime,(await otherSession.api(livePath)).project.statusEntries[0].date,'静态状态日期来自正式状态审计');
   assert.equal(live.$(liveRow+' textarea').value,'输入法文字保留');assert.equal(live.window.document.activeElement,live.$(liveRow+' textarea'));assert.equal(live.$(liveRow+' textarea').selectionStart,2);
   assert(live.$(liveRow+' [data-note-action="save"]').disabled,'他人更新后旧稿不直接保存');
   const oldStream=live.streams.find(stream=>!stream.closed);assert(oldStream);
   live.window.dispatchEvent(new live.window.PageTransitionEvent('pagehide',{persisted:true}));assert(live.streams.every(stream=>stream.closed));
   await otherSession.api(livePath,'PATCH',{expectedVersion:'2',idempotencyKey:randomUUID(),scope:'status',changes:{statusDesc:'返回时新读取'}});
   live.window.dispatchEvent(new live.window.PageTransitionEvent('pageshow',{persisted:true}));
-  await waitFor(()=>live.$(liveRow+' [data-column="status"]').textContent==='返回时新读取' && live.events.filter(e=>e.event==='connected').length>=2,'缓存页返回重新连接并读取');
+  await waitFor(()=>live.$(liveRow+' [data-column="status"] .status-line')?.firstChild?.textContent==='返回时新读取' && live.events.filter(e=>e.event==='connected').length>=2,'缓存页返回重新连接并读取');
+  assert.equal(live.$(liveRow+' [data-column="status"] time').dateTime,(await otherSession.api(livePath)).project.statusEntries[0].date,'缓存返回按新正式状态渲染日期');
   assert.equal(live.streams.filter(stream=>!stream.closed).length,1,'缓存返回仅保留一个活动通知连接');
   const staleReads=live.requests.length;
   for(const [event,data] of [['project',{projectId:liveId,version:'9999',operationId:randomUUID()}],['resource',{resource:'catalog',kind:'company',operationId:randomUUID()}],['connected',{}],['identity',{}]])oldStream.dispatchEvent(new live.window.MessageEvent(event,{data:JSON.stringify(data)}));
@@ -379,7 +430,9 @@ try{
   assert.deepEqual((await a.api('/api/settings/check-rule/results/query','POST',legacyRule)).result,legacyResult);assert.deepEqual((await a.api('/api/settings/check-rule','POST',legacyRule)).result,legacyResult);
   await a.api('/api/settings/check-rule/results/query','POST',{...legacyRule,deadlineWeekday:1},409);
   assert.deepEqual(await read('company','1'),configBeforeRetired);assert.equal(Number((await c.query('SELECT COUNT(*) n FROM check_rule_revisions'))[0][0].n),ruleCount);
-  assert.equal(ui.$('a[href="/settings.html"]'),null);assert(ui.$('a[href="/login.html?change=1"]'));
+  assert.equal(ui.$('a[href="/settings.html"]'),null);
+  const accountLink=[...ui.window.document.querySelectorAll('a[href]')].find(link=>link.pathname==='/login.html' && new URL(link.href).searchParams.get('change')==='1');assert(accountLink);
+  assert.equal(new URL(accountLink.href).searchParams.get('returnTo'),'/data-manage.html');assert.equal(new URL(accountLink.href).searchParams.get('returnAccount'),users[1].id,'账号入口保留原页及本人返回上下文');
   checks.push('DEC133：资料页移除检查设置入口且保留我的账号；未初始化规则不阻塞资料及项目；旧规则新增/修改返回410且不写修订，历史回执仍可核对和重放，同键不同内容拒绝');
   checks.push('PRD9.20：无目录API明确说明浏览器下载；画布不可用明确失败并保留选择和备注，正式项目版本不变');
   checks.push('PRD9.20：真实页面拖动行列、全选多项目并生成可读CSV，顺序与字段一致且逐项目完整，重置顺序恢复；未保存备注及正式版本保持');
@@ -467,6 +520,76 @@ try{
   const newDetail=await a.api('/api/projects/'+openCreate.created.result.projectId);assert.equal(newDetail.project.name,prefix+' 保留新建输入');assert.deepEqual(newDetail.project.chips.map(item=>item.id),[candidate.result.id]);
   const {connection:candidateRead}=await connectDatabase('test_app');try{for(const projectId of [candidateProject.result.projectId,openCreate.created.result.projectId])assert.equal(Number((await candidateRead.query('SELECT COUNT(*) n FROM project_chips WHERE project_id=? AND chip_id=?',[projectId,candidate.result.id]))[0][0].n),1);}finally{await candidateRead.end();}
   checks.push('DEC132：业务账号新增芯片→真实SSE刷新已打开详情/新建候选并保留原输入和已有选择→实际选择保存→新GET及独立SQL回读正式项目关联');
+  const cardName=prefix+' 卡片原位',cardSource='第一行\n第二行\n第三行\n第四行\n第五行';
+  const cardMade=await b.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:cardName,summary:'标题下的项目简介',summaryNote:'不应冒充项目简介的简要备注',statusDesc:cardSource,managerIds:[users[0].id]}});
+  const cardId=cardMade.result.projectId;projects.push(cardId);
+  const another=await b.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+' 卡片另一项'}});projects.push(another.result.projectId);
+  const cardPath='/api/projects/'+cardId,boardQuery='?view=all&search='+encodeURIComponent(prefix+' 卡片'),cardSelector=`article[data-project-id="${cardId}"]`;
+  const readonlyBoard=await page(a,{},'index',false,boardQuery);
+  assert.equal(readonlyBoard.$(`article[data-project-id="${another.result.projectId}"] [data-status-action="edit"]`),null,'非负责人卡片没有编辑入口');
+  const board=await page(b,{},'index',true,boardQuery),bw=board.window,b$=board.$;
+  await waitFor(()=>board.events.some(event=>event.event==='connected'),'卡片真实SSE');
+  assert.equal(b$(cardSelector).tagName,'ARTICLE');assert.equal(b$(cardSelector).getAttribute('href'),null);assert(b$(cardSelector+' .card-name a'));
+  assert.equal(b$(cardSelector+' .card-desc').textContent,'标题下的项目简介');assert(!b$(cardSelector).textContent.includes('不应冒充'));
+  assert.equal(bw.document.querySelectorAll(cardSelector+' .board-status-lines p').length,5);assert.match(b$(cardSelector).textContent,/第五行/);
+  b$(cardSelector+' [data-status-action="edit"]').click();board.input('[data-status-input="'+cardId+'"]','保留未保存卡片输入');
+  b$(`article[data-project-id="${another.result.projectId}"] [data-status-action="edit"]`).click();
+  b$(cardSelector+' [data-status-action="edit"]').click();assert.equal(b$('[data-status-input="'+cardId+'"]').value,'保留未保存卡片输入','切换编辑卡片保留输入');
+  const otherVersion=(await b.api('/api/projects/'+another.result.projectId)).project.version;
+  await b.api('/api/projects/'+another.result.projectId,'PATCH',{expectedVersion:otherVersion,idempotencyKey:randomUUID(),scope:'status',changes:{statusDesc:'触发其他卡片更新'}});
+  await waitFor(()=>board.events.some(event=>event.event==='project' && event.data.projectId===another.result.projectId),'其他卡片SSE');
+  assert.equal(b$('[data-status-input="'+cardId+'"]').value,'保留未保存卡片输入');
+  board.input('[data-status-input="'+cardId+'"]','@'+prefix);
+  await waitFor(()=>b$(cardSelector+' [data-mention-name="'+prefix+' 人员"]'),'真实工程师候选');
+  b$(cardSelector+' [data-mention-name="'+prefix+' 人员"]').dispatchEvent(new bw.MouseEvent('mousedown',{bubbles:true,cancelable:true}));
+  assert.equal(b$('[data-status-input="'+cardId+'"]').value,'@'+prefix+' 人员 ');
+  const mentionedName=prefix+' 人员',cardText=b$('[data-status-input="'+cardId+'"]').value+'已约定联调\n保留第二行';board.input('[data-status-input="'+cardId+'"]',cardText);
+  board.dropAck=true;b$(cardSelector+' [data-status-action="save"]').click();
+  await waitFor(()=>b$(cardSelector+' [data-status-action="query"]') && !b$(cardSelector+' [data-status-action="query"]').disabled,'卡片保存回应未知');
+  assert.equal((await a.api(cardPath)).project.statusDesc,cardText,'未知回应下正式数据已写入');
+  b$(cardSelector+' [data-status-action="query"]').click();await waitFor(()=>b$(cardSelector+' [data-status-action="edit"]') && !b$('[data-status-input="'+cardId+'"]'),'卡片原回执回读');
+  const cardSaved=await a.api(cardPath),checkSaved=await a.api('/api/projects?view=all&details=checks&search='+encodeURIComponent(cardName)),summarySaved=await a.api('/api/project-summary');
+  assert.equal(cardSaved.project.version,'2');assert.equal(checkSaved.items[0].inspection.project.statusDesc,cardText);assert.equal(summarySaved.items.find(item=>item.id===cardId).statusDesc,cardText);assert.equal(cardSaved.responsible.length,2,'@不改变负责关系');
+  const mentionSummary=summarySaved.items.find(item=>item.id===cardId);
+  assert.deepEqual(mentionSummary.statusOwners,[mentionedName],'候选插入的含空格全名不能被截断');
+  assert(summarySaved.ownerOptions.includes(mentionedName));assert(!mentionSummary.statusOwners.includes(prefix));
+  const mentionPage=await page(a,{},'project-status-summary'),mw=mentionPage.window,m$=mentionPage.$;
+  m$('#summary-filter-toggle').click();
+  const fullNameFilter=[...mw.document.querySelectorAll('[data-filter="owner"]')].find(input=>input.value===mentionedName);assert(fullNameFilter);
+  fullNameFilter.checked=true;fullNameFilter.dispatchEvent(new mw.Event('change',{bubbles:true}));
+  assert.deepEqual([...mw.document.querySelectorAll('tbody tr[data-row]')].map(row=>row.dataset.row),[cardId],'按完整提及姓名筛选命中已保存项目');
+  assert.equal(m$(`tr[data-row="${cardId}"] [data-column="engineers"]`).textContent,mentionedName,'负责人显示完整姓名且不加@');
+  const mentionPick=m$(`[data-select="${cardId}"]`);mentionPick.checked=true;mentionPick.dispatchEvent(new mw.Event('change',{bubbles:true}));
+  mw.Blob=Blob;let mentionCsvBytes;
+  mw.showDirectoryPicker=async()=>({name:'完整姓名输出验证',async getFileHandle(){return {async createWritable(){return {async write(blob){mentionCsvBytes=Buffer.from(await blob.arrayBuffer());},async close(){},async abort(){}};}};}});
+  m$('#choose-folder').click();await waitFor(()=>m$('#folder-status').textContent.includes('完整姓名输出验证'),'完整姓名输出目录');
+  m$('[data-export="csv"]').click();await waitFor(()=>mentionCsvBytes && m$('#summary-feedback').textContent.includes('已保存到'),'按完整姓名筛选后实际导出');
+  const mentionColumns=[...mw.document.querySelectorAll('[data-column-drag]')].map(node=>node.dataset.columnDrag);
+  assert.deepEqual(mentionCsvBytes,Buffer.from(model.summaryCsv([mentionSummary],mentionColumns),'utf8'),'实际CSV所有字节和筛选后的正式项目一致，保留状态原文与完整负责人姓名');
+  await writeFile('test-results/p04-summary-mention.csv',mentionCsvBytes);mentionPage.window.close();
+  assert.equal(Number((await c.query("SELECT COUNT(*) n FROM audit_log WHERE project_id=? AND action='project.ordinary.save'",[cardId]))[0][0].n),1);
+  b$(cardSelector+' [data-status-action="edit"]').click();board.input('[data-status-input="'+cardId+'"]','本页未提交旧版文字');
+  await a.api(cardPath,'PATCH',{expectedVersion:'2',idempotencyKey:randomUUID(),scope:'status',changes:{statusDesc:'另一经理已提交'}});
+  await waitFor(()=>b$('[data-status-input="'+cardId+'"]')?.readOnly && b$(cardSelector+' .board-status-feedback').textContent.includes('他人更新'),'他人更新冻结旧输入');
+  assert.equal(b$('[data-status-input="'+cardId+'"]').value,'本页未提交旧版文字');assert.equal(b$(cardSelector+' [data-status-action="save"]').disabled,true);
+  b$(cardSelector+' [data-status-action="cancel"]').click();assert(b$('[data-status-input="'+cardId+'"]').readOnly,'取消期间只读防止后来输入丢失');
+  await waitFor(()=>b$(cardSelector+' [data-status-action="edit"]') && b$(cardSelector+' .board-status-lines .status-line')?.firstChild?.textContent==='另一经理已提交','取消旧输入并读到对方正式版本');
+  b$(cardSelector+' [data-status-action="edit"]').click();board.input('[data-status-input="'+cardId+'"]','已确认提交后失去会话');
+  board.expireAfterAck=true;b$(cardSelector+' [data-status-action="save"]').click();
+  await waitFor(()=>{const state=JSON.parse(bw.sessionStorage.getItem('geekdash_page:'+users[1].id+':board-status') ?? '[]');return state.find(item=>item.id===cardId)?.committed && b$('[data-status-input="'+cardId+'"]')?.readOnly;},'已提交但正式GET身份失效仍保留回执');
+  let boardState=Object.fromEntries(Object.entries(bw.sessionStorage));const savedReceipt=JSON.parse(boardState['geekdash_page:'+users[1].id+':board-status']).find(item=>item.id===cardId);assert(savedReceipt.pending);assert.equal(savedReceipt.committed.savedVersion,'4');
+  await b.login(1);const afterLogin=await page(b,boardState,'index',false,boardQuery);
+  await waitFor(()=>afterLogin.$(cardSelector+' .board-status-lines')?.textContent.includes('已确认提交后失去会话') && !JSON.parse(afterLogin.window.sessionStorage.getItem('geekdash_page:'+users[1].id+':board-status') ?? '[]').some(item=>item.id===cardId) && afterLogin.$('#card-grid').getAttribute('aria-busy')==='false' && afterLogin.$('#message').textContent==='状态已保存。','同账号回来读取已保存结果并完成看板回读');
+  assert.equal(afterLogin.requests.filter(request=>request.method==='PATCH').length,0,'已确认提交不会再次写入');
+  afterLogin.$(cardSelector+' [data-status-action="edit"]').click();afterLogin.input('[data-status-input="'+cardId+'"]','未知回应再遇查询身份失效');afterLogin.dropAck=true;afterLogin.$(cardSelector+' [data-status-action="save"]').click();
+  await waitFor(()=>afterLogin.$(cardSelector+' [data-status-action="query"]') && !afterLogin.$(cardSelector+' [data-status-action="query"]').disabled,'第二次未知回应');
+  afterLogin.expireQuery=true;afterLogin.$(cardSelector+' [data-status-action="query"]').click();await waitFor(()=>afterLogin.$('[data-status-input="'+cardId+'"]').readOnly && afterLogin.$(cardSelector+' [data-status-action="query"]').disabled,'原号查询身份失效');
+  boardState=Object.fromEntries(Object.entries(afterLogin.window.sessionStorage));const unknownReceipt=JSON.parse(boardState['geekdash_page:'+users[1].id+':board-status']).find(item=>item.id===cardId);assert(unknownReceipt.pending);assert.equal(unknownReceipt.committed,undefined);
+  await b.login(1);const queried=await page(b,boardState,'index',false,boardQuery);
+  await waitFor(()=>queried.$(cardSelector+' .board-status-lines')?.textContent.includes('未知回应再遇查询身份失效') && !JSON.parse(queried.window.sessionStorage.getItem('geekdash_page:'+users[1].id+':board-status') ?? '[]').some(item=>item.id===cardId) && queried.$('#card-grid').getAttribute('aria-busy')==='false' && queried.$('#message').textContent==='状态已保存。','同账号恢复未知原号并完成看板回读');
+  assert.equal(queried.requests.filter(request=>request.method==='PATCH').length,0);assert.equal((await a.api(cardPath)).project.version,'5');
+  assert.equal(Number((await c.query("SELECT COUNT(*) n FROM audit_log WHERE project_id=? AND action='project.ordinary.save'",[cardId]))[0][0].n),4,'回应丢失和登录恢复均没有重复保存');
+  checks.push('首页卡片：简介独立/五行状态完整；实际经理原位保存/@仅写文字，含空格候选全名经保存→summary全名提及→实际筛选→CSV全部字节一致，非负责人只读；切卡片/其他SSE保留输入，另一经理保存冻结旧稿；回应丢失及已提交GET失效/未知原号查询失效保留回执，登录回来仅核对；新GET/独立SQL/检查卡/简要一致');
   await writeFile('test-results/catalog.json',JSON.stringify({status:'passed',checks,browserTested:false},null,2));console.log(JSON.stringify({status:'passed',checks:checks.length,evidence:'test-results/catalog.json'}));
 }catch(error){console.error(error);throw error;}finally{
   fault='';for(const stream of streams)stream.controller.abort();await Promise.allSettled(streams.map(stream=>stream.done));for(const dom of views){for(const stream of dom.streams ?? [])stream.close();dom.window.close();}if(app)await app.close();

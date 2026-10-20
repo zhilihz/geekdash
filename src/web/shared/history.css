@@ -1,0 +1,10 @@
+.audit-entry.audit-timeline-entry { position:relative; margin:0 0 0 5px; padding:0 0 24px 22px; border:0; border-left:1px solid var(--border); }
+.audit-entry.audit-timeline-entry::before { content:""; position:absolute; width:7px; height:7px; left:-4px; top:6px; border-radius:50%; background:var(--accent); }
+.audit-entry.audit-timeline-entry > h3 { margin:0 0 10px; color:var(--text-dim); font-size:12px; font-weight:400; }
+.audit-change + .audit-change { margin-top:14px; }
+.audit-change h4 { margin:0 0 5px; font-size:14px; font-weight:600; }
+.audit-change p, .status-history-text { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.75; font-size:13px; }
+.audit-change .history-reason, .history-scope { color:var(--text-dim); font-size:12px; }
+.audit-comparison { margin-top:10px; }
+.audit-comparison > summary { cursor:pointer; width:fit-content; color:var(--text-dim); font-size:12px; }
+.audit-comparison .read-table-wrap { margin-top:10px; }

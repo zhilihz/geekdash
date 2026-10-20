@@ -1,7 +1,7 @@
 import type { EditValues, SaveRequest, SaveScope } from './api';
 
 export const scopeFields: Record<SaveScope, (keyof EditValues)[]> = {
-  basic: ['name', 'summary', 'marketExpectation', 'detailNote', 'priority', 'customerId', 'odmCustomerId', 'productLineId', 'appId', 'groupId', 'chipIds', 'people'],
+  basic: ['name', 'summary', 'marketExpectation', 'detailNote', 'priority', 'customerId', 'odmCustomerId', 'productLineId', 'appId', 'groupId', 'chipIds', 'tagIds', 'people'],
   status: ['statusDesc'], tags: ['tagIds'], signal: ['signal', 'signalNote'], summaryNote: ['summaryNote'], chipstatNote: ['chipstatNote'],
   stage: ['stagePlans'], risk: ['riskOps'], change: ['changeOps'], customerNode: ['nodeOps'], projectNodes: ['nodeOps'],
 };

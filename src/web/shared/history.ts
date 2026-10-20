@@ -1,4 +1,5 @@
 import { esc, label, actionLabels, dateTitles, closureTitles, type AuditPage } from './api';
+import './history.css';
 
 const names: Record<string, string> = { ...dateTitles, ...closureTitles, name: '项目名称', summary: '项目简介', marketExpectation: '市场预期', detailNote: '详细说明', summaryNote: '状态简要备注', chipstatNote: '芯片备注', statusDesc: '最新状态说明', signal: '信号灯', signalNote: '灯色说明', priority: '优先级', customerId: '客户', odmCustomerId: 'ODM 工厂', productLineId: '产品线', appId: 'APP', groupId: '分组', chipIds: '芯片', tagIds: '标签', people: '项目分工', managers: '项目经理', status: '项目状态', progress: '进度', startedOn: '实际开始日期', completedOn: '实际完成日期', plannedDays: '计划工期', note: '说明', state: '阶段状态', completionNote: '完成说明', content: '内容', level: '等级', resolved: '风险状态', resolution: '解除说明', source: '来源', decision: '决定', title: '节点名称', stage: '所属阶段', targetDate: '目标完成日期', output: '成果', previousNodeId: '前置节点', nextNodeId: '后续节点', x: '横向位置', y: '纵向位置', deletedAt: '记录状态', enabled: '是否启用', maintenanceEnabled: '结案后维护', oldDate: '调整前日期', newDate: '调整后日期', measures: '应对措施', conclusion: '检查结论', responsible: '本人负责资格' };
 const metadata = new Set(['id','createdBy','actorId','actorName','createdByName','createdAt','updatedAt','sourceKey','sourceImportItemId','sortOrder','resolvedAt','resolvedByName','operations','closureSource','firstCheckWeek','firstCheckRuleVersion','resumeStatus','preCloseStatus','responsibleUserId','ruleVersion','observedVersion','resultVersion','weekStart','checkedAt','kind','code']);
@@ -32,18 +33,18 @@ export function readableFields(values: Facts, titles: Record<string,string> = {}
     return [`${title}：${show(key,value)}`];
   }).join('\n');
 }
-function changes(before: Facts, after: Facts, catalog = false): { before: string[]; after: string[] } {
+function changes(before: Facts, after: Facts, catalog = false, reasonTitle = ''): { before: string[]; after: string[] } {
   const left: string[] = [], right: string[] = [];
   for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
-    if (metadata.has(key) || ['reason','correctionReason','remaining','stageFacts','catalogName'].includes(key)) continue;
+    if (metadata.has(key) || key === 'reason' && !reasonTitle || ['correctionReason','remaining','stageFacts','catalogName'].includes(key)) continue;
     const a = before[key], b = after[key];
     if (JSON.stringify(a ?? null) === JSON.stringify(b ?? null) || (a == null || a === '') && (b == null || b === '')) continue;
     if (key === 'stageChanges' || key === 'stagePlans') {
       const old = (Array.isArray(a) ? a : []) as Facts[], next = (Array.isArray(b) ? b : []) as Facts[];
       for (const row of next) { const diff = changes(old.find(item => item.code === row.code) ?? {}, row); if (diff.after.length) { left.push(label(row.code) + '\n' + diff.before.join('\n')); right.push(label(row.code) + '\n' + diff.after.join('\n')); } }
     } else if (object(a) && !('name' in a) || object(b) && !('name' in b)) {
-      const diff = changes(object(a) ? a : {}, object(b) ? b : {}); left.push(...diff.before); right.push(...diff.after);
-    } else { const title=(catalog ? catalogNames[key] : undefined) ?? names[key] ?? key;left.push(`${title}：${show(key, a)}`); right.push(`${title}：${show(key, b)}`); }
+      const diff = changes(object(a) ? a : {}, object(b) ? b : {}, false, key === 'change' ? '决定理由' : key === 'scheduleRecord' ? '计划说明' : ''); left.push(...diff.before); right.push(...diff.after);
+    } else { const title=(catalog ? catalogNames[key] : undefined) ?? names[key] ?? (key === 'reason' ? reasonTitle : key);left.push(`${title}：${show(key, a)}`); right.push(`${title}：${show(key, b)}`); }
   }
   return { before: left, after: right };
 }
@@ -51,25 +52,33 @@ export function auditHistory(items: AuditPage['items']) {
   const groups = new Map<string, AuditPage['items']>();
   for (const item of items) { const key = JSON.stringify([item.versionBefore,item.versionAfter,item.actorDisplayName,item.createdAt]); groups.set(key,[...groups.get(key) ?? [],item]); }
   return [...groups.values()].map(group => {
-    const entries = new Map<string, { title: string; before: Facts; after: Facts; reasons: string[]; catalog:boolean }>();
+    const entries = new Map<string, { title: string; before: Facts; after: Facts; reasons: string[]; catalog:boolean; checkOnly:boolean }>();
     for (const item of [...group].reverse()) {
       const before = item.beforeValues ?? {}, after = item.afterValues ?? {};
       const kind = ['risk','change','node','check'].find(key => object(after[key]) || object(before[key]));
       const record = kind ? (after[kind] ?? before[kind]) as Facts : undefined;
       const key = kind ? kind + ':' + (record?.id ?? item.id) : item.action;
       const prior = entries.get(key);
-      const cause = after.correctionReason ?? after.reason;
+      const cause = after.correctionReason ?? (object(after.scheduleRecord) && after.reason === after.scheduleRecord.reason ? undefined : after.reason);
       const catalog=item.action.startsWith('catalog.');
       const recordTitle=kind==='node' ? `${record?.kind==='customer'?'客户节点':'项目节点'}：${record?.title ?? '#'+record?.id}` : kind==='risk' ? `风险：${record?.content ?? '#'+record?.id}` : kind==='change' ? `需求变更：${record?.content ?? '#'+record?.id}` : kind==='check' ? '项目检查' : undefined;
-      entries.set(key, { title:catalog ? `${catalogKinds[item.action.split('.')[1]] ?? '共享资料'}：${after.catalogName ?? before.catalogName ?? ''}` : recordTitle ?? actionLabels[item.action] ?? '项目信息', catalog,before: prior?.before ?? before, after: prior ? { ...prior.after, ...after } : after, reasons: [...prior?.reasons ?? [], ...typeof cause === 'string' && cause ? [cause] : []] });
+      entries.set(key, { title:catalog ? `${catalogKinds[item.action.split('.')[1]] ?? '共享资料'}：${after.catalogName ?? before.catalogName ?? ''}` : recordTitle ?? actionLabels[item.action] ?? '项目信息', catalog,before: prior?.before ?? before, after: prior ? { ...prior.after, ...after } : after, reasons: [...prior?.reasons ?? [], ...typeof cause === 'string' && cause ? [cause] : []], checkOnly:item.action === 'project.check.save' && (prior?.checkOnly ?? true) });
     }
-    const rows = [...entries.values()].map(entry => {
+    const visible = [...entries.values()].flatMap(entry => {
       const diff = changes(entry.before, entry.after,entry.catalog);
-      if (!diff.after.length && !entry.reasons.length) return '';
-      return `<tr><th scope="row">${esc(entry.title)}</th><td>${esc(Object.keys(entry.before).length ? diff.before.join('\n') || '—' : '无记录')}</td><td>${esc(diff.after.join('\n') || '说明已更新')}${entry.reasons.length ? `<p class="history-reason">原因：${esc([...new Set(entry.reasons)].join('；'))}</p>` : ''}</td></tr>`;
+      return diff.after.length || entry.checkOnly ? [{...entry,diff}] : [];
+    });
+    if (!visible.length) return '';
+    const summary = visible.map(entry => `<section class="audit-change"><h4>${esc(entry.checkOnly ? '检查项目' : entry.title)}</h4>${entry.checkOnly ? '' : `<p>${esc(entry.diff.after.join('\n'))}</p>${entry.reasons.length ? `<p class="history-reason">说明：${esc([...new Set(entry.reasons)].join('；'))}</p>` : ''}`}</section>`).join('');
+    const rows = visible.filter(entry => !entry.checkOnly).map(entry => {
+      return `<tr><th scope="row">${esc(entry.title)}</th><td>${esc(Object.keys(entry.before).length ? entry.diff.before.join('\n') || '—' : '无记录')}</td><td>${esc(entry.diff.after.join('\n'))}${entry.reasons.length ? `<p class="history-reason">说明：${esc([...new Set(entry.reasons)].join('；'))}</p>` : ''}</td></tr>`;
     }).join('');
-    if (!rows) return '';
     const first = group[0], time = historyTime(first.createdAt);
-    return `<article class="audit-entry" data-audit-version="${esc(first.versionAfter)}"><h3>${esc(first.actorDisplayName)} · ${esc(time)}</h3><div class="read-table-wrap"><table class="read-table comparison-table"><thead><tr><th>修改事项</th><th>修改前</th><th>修改后</th></tr></thead><tbody>${rows}</tbody></table></div></article>`;
+    return `<article class="audit-entry audit-timeline-entry" data-audit-version="${esc(first.versionAfter)}"><h3><time datetime="${esc(first.createdAt)}">${esc(time)}</time> · ${esc(first.actorDisplayName)}</h3>${summary}${rows ? `<details class="audit-comparison"><summary>查看修改前后</summary><div class="read-table-wrap"><table class="read-table comparison-table"><thead><tr><th>修改事项</th><th>修改前</th><th>修改后</th></tr></thead><tbody>${rows}</tbody></table></div></details>` : ''}</article>`;
   }).join('');
+}
+
+export function statusDescriptionHistory(items: AuditPage['items']) {
+  const snapshots = items.filter(item => typeof item.afterValues?.statusDesc === 'string' && item.afterValues.statusDesc !== (item.beforeValues?.statusDesc ?? ''));
+  return '<p class="history-scope">仅显示已读取记录中的状态说明。</p>' + (snapshots.map(item => `<article class="audit-entry audit-timeline-entry"><h3><time datetime="${esc(item.createdAt)}">${esc(historyTime(item.createdAt))}</time> · ${esc(item.actorDisplayName)}</h3><p class="status-history-text">${esc(item.afterValues!.statusDesc || '（已清空状态说明）')}</p></article>`).join('') || '<p class="history-empty">已读取记录中暂无状态说明变更。</p>');
 }

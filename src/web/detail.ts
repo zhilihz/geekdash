@@ -1,13 +1,15 @@
 import './shared/detail.css';
 import './shared/read.css';
-import { auditHistory, historyTime, readableFields } from './shared/history';
+import { auditHistory, statusDescriptionHistory, historyTime, readableFields } from './shared/history';
 import './shared/reference-picker.css';
 import { mountReferencePickers, syncReferencePickers } from './shared/reference-picker';
 import { basicFields, basicIntent, basicIntentChanged, referenceSelect, type BasicIntent } from './shared/project-form';
 import { scopeFields, scopeChanges, carryInputs } from './shared/scoped-editor';
 import { PersonalDrafts, PersonalPreference, type PersonalDraft } from './shared/personal-state';
-import { ProjectNotifications } from './shared/notifications';
+import { ProjectNotifications, editorBadges } from './shared/notifications';
 import { refreshProjectOptions } from './shared/project-options';
+import { attachStatusMentions } from './shared/status-mentions';
+import { statusHtml } from './shared/status-text';
 import type { SaveScope } from './shared/api';
 import { get, send, SaveError, esc, label, projectTags, setupTheme, requireIdentity, account, loginUrl, stageMessages, actionLabels, dateTitles, isPlanCommand, isLifecycleCommand, isClosureCommand, isCheckCommand, type ChangeOperation, type ChangeRecord, type ChangePreview, type ChangeFields, type NodeOperation, type NodeRecord, type NodePreview, type NodeFields, type RiskOperation, type RiskRecord, type RiskPreview, type CheckCommand, type CheckPreview, type CheckPage, closureTitles, type ClosureCommand, type ClosurePreview, type LifecycleCommand, type LifecyclePreview, type PlanCommand, type PlanPreview, type ScheduleRecord, type CorrectionCommand, type CorrectionPreview, type StageCommand, type StartCommand, type ProjectCommand, type Detail, type Entry, type EditValues, type Catalog, type SaveRequest, type SaveResult, type AuditPage } from './shared/api';
 
@@ -15,6 +17,7 @@ const element = (id: string) => document.getElementById(id)!;
 const id = new URLSearchParams(location.search).get('id') ?? '';
 let snapshot: Detail | undefined;
 let tab = 'info';
+let statusHistoryOpen = false;
 let readingPreference:PersonalPreference|undefined;
 let notifications:ProjectNotifications|undefined;
 function updateEditing(){notifications?.setEditing(!!snapshot?.capabilities.editText && !stale && !authFrozen && (dirty() || !!stageDraft || !!correctionDraft || !!planDraft || !!lifecycleDraft || !!closureDraft || !!checkDraft || !!document.activeElement?.matches('[data-edit]')));}
@@ -930,10 +933,8 @@ function controls() {
   });
   document.querySelectorAll<HTMLButtonElement>('[data-save-scope]').forEach(button => {
     button.disabled = frozen || actionOpen || stale || authFrozen || !snapshot?.capabilities.editText || !scopeDirty(button.dataset.saveScope as SaveScope, button.dataset.target);
-    if (button.dataset.saveScope === 'tags') button.hidden = !scopeDirty('tags');
   });
-  const cancelTags = document.getElementById('tags-cancel'); if (cancelTags) cancelTags.hidden = !scopeDirty('tags');
-  for (const name of ['basic-cancel', 'tags-cancel']) {
+  for (const name of ['basic-cancel']) {
     const button = document.getElementById(name) as HTMLButtonElement | null;
     if (button) button.disabled = frozen || stale || authFrozen;
   }
@@ -995,7 +996,7 @@ function persist() {
 }
 function captureDrafts() {
   if(!personalDrafts || !snapshot || !values || authFrozen || loading)return;
-  for(const scope of ['basic','status','tags','signal','summaryNote','chipstatNote','projectNodes'] as SaveScope[]){
+  for(const scope of ['basic','status','signal','summaryNote','chipstatNote','projectNodes'] as SaveScope[]){
     const changes=scopeChanges(baseline(),values,scope);
     const hasIntent=scope==='basic' && basicDraft && basicIntentChanged(snapshot,basicDraft);
     if(!Object.keys(changes).length && !hasIntent && !(scope==='projectNodes' && nodeDraft && tab!=='custnodes'))continue;
@@ -1030,7 +1031,7 @@ async function restorePersonalDraft(row:PersonalDraft){
     else if(key!=='nodeOps' || row.formKind==='projectNodes')Object.assign(values,{[key]:structuredClone(Object.hasOwn(restored,key)?restored[key]:base[key])});
   }
   if(row.formKind==='basic'){basicDraft=row.payload.intent?structuredClone(row.payload.intent) as unknown as BasicIntent:basicIntent(snapshot);tab='info';}
-  if(row.formKind==='status')tab='info';
+  if(row.formKind==='status' || row.formKind==='tags')tab='info';
   if(row.formKind==='stage')tab='stages';
   if(row.formKind==='risk'){riskDraft=structuredClone(row.payload.record) as RiskOperation;tab='risk';}
   if(row.formKind==='change'){changeDraft=structuredClone(row.payload.record) as ChangeOperation;tab='risk';}
@@ -1108,14 +1109,7 @@ async function copyText() {
 function editor() {
   const editable = snapshot!.capabilities.editText;
   basicDraft ??= basicIntent(snapshot!);
-  return `<section class="trial-editor project-info" aria-label="基本信息与项目分工" data-region="basic"><div class="section-heading"><h2>基本信息与项目分工</h2></div>${basicFields(snapshot!, values!, basicDraft, editable, selectReference, validationErrors)}${editable && catalogMessage ? `<p class="read-message">${esc(catalogMessage)}</p>` : ''}${editable && !catalog ? '<button class="back-btn" id="options-retry">重新读取候选资料</button>' : ''}${editable ? '<div class="edit-actions region-save"><button class="save-btn" data-save-scope="basic">保存基本信息</button><button class="back-btn" id="basic-cancel">取消修改</button></div>' : ''}</section><section class="trial-editor status-editor" data-region="status"><div class="section-heading"><h2>最新状态说明</h2></div>${editable ? `<textarea data-edit data-scope="status" id="edit-statusDesc" rows="6" aria-label="最新状态说明" placeholder="填写需要同步的项目进展、问题或下一步。">${esc(values!.statusDesc)}</textarea><span class="field-error" id="error-statusDesc">${esc(validationErrors.statusDesc)}</span><div class="edit-actions region-save"><button class="save-btn" data-save-scope="status">保存状态说明</button></div>` : `<p class="field-fact">${esc(snapshot!.project.statusDesc || '—')}</p>`}</section>`;
-}
-function tagsEditor() {
-  const badges = projectTags(snapshot!.project, { userTags: false, check: false });
-  const tags = snapshot!.capabilities.editText
-    ? `<div class="tag-editor" data-region="tags"><label for="edit-tagIds-source">标签</label>${selectReference('tagIds', 'tags')}<button class="save-btn" data-save-scope="tags" hidden>保存标签</button><button class="back-btn" id="tags-cancel" hidden>取消</button></div>`
-    : snapshot!.project.tags.map(tag => `<span class="st-tag">${esc(tag.name)}</span>`).join('');
-  return `<div class="project-badges">${badges}</div>${tags}`;
+  return `<section class="trial-editor project-info" aria-label="基本信息与项目分工" data-region="basic"><div class="section-heading"><h2>基本信息与项目分工</h2></div>${basicFields(snapshot!, values!, basicDraft, editable, selectReference, validationErrors)}${editable && catalogMessage ? `<p class="read-message">${esc(catalogMessage)}</p>` : ''}${editable && !catalog ? '<button class="back-btn" id="options-retry">重新读取候选资料</button>' : ''}${editable ? '<div class="edit-actions region-save"><button class="save-btn" data-save-scope="basic">保存基本信息</button><button class="back-btn" id="basic-cancel">取消修改</button></div>' : ''}</section><section class="trial-editor status-editor" data-region="status"><div class="section-heading"><h2>最新状态说明</h2></div>${editable ? `<textarea data-edit data-scope="status" id="edit-statusDesc" rows="6" aria-label="最新状态说明" placeholder="填写需要同步的项目进展、问题或下一步。">${esc(values!.statusDesc)}</textarea><span class="field-error" id="error-statusDesc">${esc(validationErrors.statusDesc)}</span><div class="edit-actions region-save"><button class="save-btn" data-save-scope="status">保存状态说明</button></div>` : `<div class="field-fact">${snapshot!.project.statusDesc ? statusHtml(snapshot!.project) : '—'}</div>`}<details id="status-history" class="secondary-section"${statusHistoryOpen ? ' open' : ''}><summary>状态说明历史</summary><div id="status-history-content"></div></details></section>`;
 }
 function selectReference(key: string, table: string, role?: string) {
   const base = baseline();
@@ -1180,7 +1174,6 @@ function bindEditor() {
     const base = baseline(); for (const key of scopeFields.basic) Object.assign(values!, { [key]: structuredClone(base[key]) });
     basicDraft = basicIntent(snapshot!); validationErrors = {}; persist(); render();
   };
-  const tagsCancel = document.getElementById('tags-cancel'); if (tagsCancel) tagsCancel.onclick = async () => { if(!await discardPersonal('tags'))return;values!.tagIds = baseline().tagIds; persist(); render(); };
   document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('[data-basic]').forEach(input => {
     input.oninput = () => { Object.assign(basicDraft!, { [input.dataset.basic!]: input.dataset.basic === 'maintenance' ? input.value === 'true' : input.value }); persist(); };
     input.onchange = () => { input.dispatchEvent(new Event('input')); if (input.dataset.basic === 'state') { if (input.value === 'ongoing' && snapshot!.project.status === 'proposal' && !basicDraft!.startDate) basicDraft!.startDate = snapshot!.businessDate; if (input.value === 'closed' && !basicDraft!.closedOn) basicDraft!.closedOn = snapshot!.businessDate; persist(); } if (!['reason','measures','closureNote','remainingWorkNote'].includes(input.dataset.basic!)) render(); };
@@ -1200,6 +1193,8 @@ function bindEditor() {
     const input = document.getElementById('edit-' + key) as HTMLInputElement | HTMLTextAreaElement | null;
     if (input) input.oninput = () => { values![key] = input.value; delete validationErrors[key]; const error = document.getElementById('error-' + key); if (error) error.textContent = ''; persist(); };
   });
+  const statusInput = document.getElementById('edit-statusDesc') as HTMLTextAreaElement | null;
+  if (statusInput) attachStatusMentions(statusInput, () => (catalog?.engineers ?? []).filter(person => person.enabled));
   for (const key of ['signal', 'priority', ...Object.keys(referenceFields)]) {
     for (const role of key === 'people' ? roles : ['']) {
       const input = document.getElementById('edit-' + key + (role ? '-' + role : '') + (Object.hasOwn(referenceFields, key) ? '-source' : '')) as HTMLSelectElement | null;
@@ -1344,8 +1339,6 @@ async function observe(afterSave = false, active = true) {
       const changed=current.businessDate!==entry.businessDate;
       entry.project.deadline = current.project.deadline; entry.project.checkStatus = current.project.checkStatus; entry.project.checkedToday = current.project.checkedToday; entry.businessDate = current.businessDate;
       refreshCheckButton();
-      // 保持现有标签编辑与点击绑定；保存或重新进入时统一重绘。
-      element('d-meta').textContent = detailMeta(entry.project);
       if(changed){if(checks)void loadChecks();else refreshCheckHistory();}
     }
   } catch (error) {
@@ -1357,13 +1350,21 @@ async function observe(afterSave = false, active = true) {
 }
 async function loadAudit(more = false) {
   const token = ++auditGeneration;
-  auditMessage = '正在读取服务器修改历史…'; if (tab === 'history') render();
+  auditMessage = '正在读取历史…'; if (tab === 'history') render(); else renderStatusHistory();
   try {
     const page = await get<AuditPage>('/api/projects/' + id + '/audit' + (more && audit?.nextCursor ? '?before=' + audit.nextCursor : ''));
     if (token !== auditGeneration) return;
     audit = { ...page, items: more && audit ? [...audit.items, ...page.items] : page.items }; auditMessage = '';
   } catch (error) { if (token === auditGeneration) auditMessage = (error as Error).message + ' 可重试读取历史。'; }
   if (token === auditGeneration && tab === 'history') refreshReadView();
+  if (token === auditGeneration && tab === 'info') renderStatusHistory();
+}
+function renderStatusHistory() {
+  const box = document.getElementById('status-history-content');
+  if (!box || !statusHistoryOpen) return;
+  box.innerHTML = (audit ? statusDescriptionHistory(audit.items) : '') + `<p class="read-message">${esc(auditMessage)}</p>${!audit || auditMessage ? '<button class="back-btn" data-status-history-load>读取历史</button>' : ''}${audit?.nextCursor ? '<button class="back-btn" data-status-history-more>读取更早记录</button>' : ''}`;
+  box.querySelector<HTMLButtonElement>('[data-status-history-load]')?.addEventListener('click', () => { void loadAudit(); });
+  box.querySelector<HTMLButtonElement>('[data-status-history-more]')?.addEventListener('click', () => { void loadAudit(true); });
 }
 element('action-close').onclick = dismissAction;
 element('action-copy').onclick = () => { void copyText(); };
@@ -1452,20 +1453,18 @@ function render() {
   if (hadForm && dialog.contains(element('project-notice'))) closeNotice();
   if (dialog.open) dialog.close(); element('action-fields').replaceChildren(); element('action-message').textContent = '';
   const p = snapshot.project;
-  element('notice').textContent = ''; element('notice').hidden = true;
   element('d-title').textContent = p.name;
-  element('d-tags').innerHTML = tagsEditor();
-  element('d-meta').textContent = detailMeta(p);
+  element('d-tags').innerHTML = projectTags(p, { userTags: false, check: false });
   let content = '';
   let recovery = '';
   if (tab === 'info') {
     content = editor();
   } else if (tab === 'stages') content = stagePanel();
   else if (tab === 'nodes' || tab === 'custnodes' || tab === 'flow') content = nodePanel(tab === 'custnodes' ? 'customer' : 'project', tab === 'flow') + deletedNodePanel(tab === 'custnodes' ? 'customer' : 'project');
-  else if (tab === 'history') content = '<h2>更新历史</h2><p class="read-message">只有实际变化才产生修改历史。</p>'
+  else if (tab === 'history') content = '<h2>更新历史</h2><div class="audit-history">'
     + (audit?.items.length ? auditHistory(audit.items) : audit ? '<p>暂无服务器修改历史。</p>' : '')
-    + `<p class="read-message">${esc(auditMessage)}</p><button class="back-btn" id="audit-refresh">重新读取历史</button>${audit?.nextCursor ? '<button class="back-btn" id="audit-more">读取更早记录</button>' : ''}`
-    + '<h2>旧来源历史</h2><p class="read-message">保留原来源时间文本，与服务器修改历史分开。</p>' + table(snapshot.history.slice().reverse(), [['date', '来源时间'], ['text', '更新内容']]);
+    + `</div><p class="read-message">${esc(auditMessage)}</p><button class="back-btn" id="audit-refresh">重新读取历史</button>${audit?.nextCursor ? '<button class="back-btn" id="audit-more">读取更早记录</button>' : ''}`
+    + (snapshot.history.length ? '<details class="secondary-section"><summary>本地原有记录</summary><div class="history">' + snapshot.history.slice().reverse().map(item => `<div class="h-item"><span class="h-dot" aria-hidden="true"></span><div class="h-date">${esc(item.date)}</div><div class="h-text">${esc(item.text)}</div></div>`).join('') + '</div></details>' : '');
   else if (tab === 'risk') content = signalEditor() + riskPanel() + changePanel();
   if (planDraft && !stagePending) recovery += `<p>${esc(actionLabels[planDraft.action])}</p><button class="back-btn" id="plan-restore">恢复计划/日期表单</button><button class="back-btn" id="plan-discard">放弃该副本</button>${planDraft.action === 'reschedulePlan' ? '<button class="back-btn" id="plan-as-note">作为补充说明重新预览</button>' : ''}`;
   if (tab === 'history' && snapshot.lifecycleNotes.length) {
@@ -1525,6 +1524,8 @@ function render() {
   const startButton = document.getElementById('project-start'); if (startButton) startButton.onclick = () => { editProjectState('ongoing'); };
   const restoreStage = document.getElementById('stage-restore'); if (restoreStage) restoreStage.onclick = () => { if (stageDraft) { if (stageDraft.action === 'startProject') void openStart(); else void openStage(stageDraft.stageCode, stageDraft.action); } };
   const discardStage = document.getElementById('stage-discard'); if (discardStage) discardStage.onclick = () => { stageDraft = undefined; persistStage(); render(); };
+  const statusHistory = document.getElementById('status-history') as HTMLDetailsElement | null;
+  if (statusHistory) { statusHistory.ontoggle = () => { statusHistoryOpen = statusHistory.open; if (statusHistoryOpen && !audit && !auditMessage) void loadAudit(); else renderStatusHistory(); }; renderStatusHistory(); }
   const refresh = document.getElementById('audit-refresh'); if (refresh) refresh.onclick = () => { void loadAudit(); };
   const more = document.getElementById('audit-more'); if (more) more.onclick = () => { void loadAudit(true); };
   for(const name of ['stage-discard','correction-discard','plan-discard','lifecycle-discard','closure-discard','check-discard']){
@@ -1600,11 +1601,10 @@ document.querySelectorAll<HTMLAnchorElement>('.project-nav a, .top-sticky a').fo
 };});
 element('copy').onclick = () => { void copyText(); };
 window.addEventListener('focus', refreshContext);
-function detailMeta(p: Detail['project']) { return `客户：${p.customer ?? '—'} · 产品线：${p.productLine ?? '—'} · 芯片：${p.chips.map(chip => chip.name).join(' / ') || '—'}`; }
 setInterval(() => { if (snapshot && !inFlight && !loading && document.visibilityState === 'visible' && snapshot.businessDate !== new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date())) void observe(false, false); }, 60000);
 window.addEventListener('beforeunload', event => { if (!leaving && (dirty() || pending || stagePending || stageDraft || correctionDraft || planDraft || lifecycleDraft || closureDraft || checkDraft)) { persist(); persistStage(); event.preventDefault(); } });
 document.addEventListener('geekdash-login-leave', () => { persist(); persistStage(); leaving = true; });
-document.addEventListener('geekdash-identity-changed', () => { persist(); authFrozen = true; note('账号已变化。请复制未保存内容，重新登录原账号后再进入。', true); controls(); });
+document.addEventListener('geekdash-identity-changed', () => { persist(); authFrozen = true; element('project-editors').replaceChildren(); note('账号已变化。请复制未保存内容，重新登录原账号后再进入。', true); controls(); });
 void requireIdentity().then(async () => {
   restoreBoardReturn();readingPreference=new PersonalPreference('detail',text=>note(text,true));const reading=await readingPreference.load();
   if(reading.projectId===id && reading.viewport && typeof reading.viewport==='object'){
@@ -1642,8 +1642,8 @@ void requireIdentity().then(async () => {
   await load(true); legacyCopy = readBuffer(`geekdash_trial_text_v1:${id}`); await loadCatalog(); if (responsibilityPending) await changeResponsibility(true);
   if(reading.projectId===id && !new URLSearchParams(location.search).has('tab') && typeof reading.scrollY==='number')window.scrollTo(0,reading.scrollY);
   if(tab==='history' && !audit)void loadAudit();
-  const online=document.createElement('p');online.className='read-label';online.id='project-editors';online.setAttribute('aria-live','polite');element('d-meta').after(online);
-  notifications=new ProjectNotifications((event,own)=>{if(event.projectId!==id || own || !snapshot || BigInt(event.version)<=BigInt(snapshot.project.version))return;stale=true;persist();note('项目已被他人更新，请重新进入项目。未保存输入保留供复制。',true);controls();},refreshContext,text=>{online.textContent=text;},id,personalDrafts.instanceId,refreshContext);
+  const online=element('project-editors');
+  notifications=new ProjectNotifications((event,own)=>{if(event.projectId!==id || own || !snapshot || BigInt(event.version)<=BigInt(snapshot.project.version))return;stale=true;persist();note('项目已被他人更新，请重新进入项目。未保存输入保留供复制。',true);controls();},refreshContext,text=>{online.textContent=text;online.classList.toggle('presence-unavailable',!!text);},id,personalDrafts.instanceId,refreshContext,event=>{online.classList.remove('presence-unavailable');online.innerHTML=editorBadges(event.users);});
   updateEditing();
   if(!dirty() && !pending && !stagePending && !stageDraft && !correctionDraft && !planDraft && !lifecycleDraft && !closureDraft && !checkDraft){if(candidate)offerSessionDraft();else void personalDrafts.offer();}
   if (!element('drafts').hidden && !stagePending && !(element('editor-dialog') as HTMLDialogElement).open && element('project-notice').hidden) note('发现本标签页未保存的操作，可继续编辑或查看并复制。', false, true);
