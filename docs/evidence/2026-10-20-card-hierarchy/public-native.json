@@ -1,0 +1,204 @@
+{
+  "status": "passed",
+  "build": {
+    "revision": "364c63fe16ac286e6f16df6b38b3d60ebab6200e",
+    "dirty": false,
+    "builtAt": "2026-10-20T10:01:39.638Z",
+    "stage": "project-list",
+    "schemaVersion": "0005-check-facts"
+  },
+  "theme": "warm",
+  "groups": [
+    {
+      "label": "项目范围",
+      "buttons": [
+        {
+          "text": "进行中",
+          "pressed": "false"
+        },
+        {
+          "text": "提案 / 暂缓",
+          "pressed": "false"
+        },
+        {
+          "text": "已结案",
+          "pressed": "false"
+        },
+        {
+          "text": "量产维护",
+          "pressed": "false"
+        },
+        {
+          "text": "全部项目",
+          "pressed": "true"
+        }
+      ]
+    },
+    {
+      "label": "展示方式",
+      "buttons": [
+        {
+          "text": "卡片",
+          "pressed": "true"
+        },
+        {
+          "text": "驾驶舱",
+          "pressed": "false"
+        }
+      ]
+    }
+  ],
+  "days": [
+    {
+      "id": "28",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "27",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "26",
+      "label": "✓ 今日已检查",
+      "days": 0,
+      "latest": "2026-10-20T03:00:55.382000Z"
+    },
+    {
+      "id": "25",
+      "label": "✓ 今日已检查",
+      "days": 0,
+      "latest": "2026-10-20T03:18:02.950000Z"
+    },
+    {
+      "id": "24",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "23",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "22",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "21",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "20",
+      "label": "○ 已 7 天未检查",
+      "days": 7,
+      "latest": "2026-10-13T02:22:42.666000Z"
+    },
+    {
+      "id": "19",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "18",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "17",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "16",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "15",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "14",
+      "label": "○ 已 7 天未检查",
+      "days": 7,
+      "latest": "2026-10-13T03:17:45.283000Z"
+    },
+    {
+      "id": "13",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "12",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "11",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "10",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "9",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "8",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "7",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "3",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "2",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    }
+  ],
+  "counts": "全部项目 25 · 今日已检查 2 · 今日未检查 23",
+  "layoutBorder": "0.666667px",
+  "overflow": false,
+  "independentControls": true,
+  "scopeChangePreservesGlobalChecks": true,
+  "businessWrites": false,
+  "checkedAt": "2026-10-20T10:08:02Z"
+}

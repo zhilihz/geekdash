@@ -20,4 +20,6 @@
 
 ## 3. 发布
 
-待固定版本发布后回填。完整P04未验收，不合并main。
+产品`364c63fe16ac286e6f16df6b38b3d60ebab6200e`已推送施工分支并部署；本地41865和新加坡测试站为同一clean构建`2026-10-20T10:01:39.638Z`、0005。固定构建[本地原生](../../evidence/2026-10-20-card-hierarchy/local-native.json)与[公网原生](../../evidence/2026-10-20-card-hierarchy/public-native.json)各核24张当页卡片，天数与真实列表检查时间/业务日一致，四日期不展示；实际切换范围和展示方式保留对方选择，独立检查模块总数保持，暖色无横向溢出。
+
+[公网资源](../../evidence/2026-10-20-card-hierarchy/public-resources.json)核8页23资源SHA一致、live/ready通过及匿名401。公网本轮只有读取与视图切换，没有新增业务写入；持久化链在隔离测试库验证。两库/备份及应用回退查[部署记录](../../operations/deployments/2026-10-20-card-hierarchy.md)。完整P04未验收，不合并main；不把本轮局部验收当全站/实际PDF等剩余范围完成。

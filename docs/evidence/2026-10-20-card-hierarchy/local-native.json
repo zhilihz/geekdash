@@ -1,0 +1,204 @@
+{
+  "status": "passed",
+  "build": {
+    "revision": "364c63fe16ac286e6f16df6b38b3d60ebab6200e",
+    "dirty": false,
+    "builtAt": "2026-10-20T10:01:39.638Z",
+    "stage": "project-list",
+    "schemaVersion": "0005-check-facts"
+  },
+  "theme": "warm",
+  "groups": [
+    {
+      "label": "项目范围",
+      "buttons": [
+        {
+          "text": "进行中",
+          "pressed": "false"
+        },
+        {
+          "text": "提案 / 暂缓",
+          "pressed": "false"
+        },
+        {
+          "text": "已结案",
+          "pressed": "false"
+        },
+        {
+          "text": "量产维护",
+          "pressed": "false"
+        },
+        {
+          "text": "全部项目",
+          "pressed": "true"
+        }
+      ]
+    },
+    {
+      "label": "展示方式",
+      "buttons": [
+        {
+          "text": "卡片",
+          "pressed": "true"
+        },
+        {
+          "text": "驾驶舱",
+          "pressed": "false"
+        }
+      ]
+    }
+  ],
+  "days": [
+    {
+      "id": "9007199254760591",
+      "label": "✓ 今日已检查",
+      "days": 0,
+      "latest": "2026-10-20T08:52:56.897000Z"
+    },
+    {
+      "id": "9007199254760582",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "9007199254760581",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "9007199254760580",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "9007199254760579",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "9007199254760578",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "9007199254760577",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "9007199254760576",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "9007199254760575",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "9007199254760542",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "9007199254760501",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "9007199254760433",
+      "label": "✓ 今日已检查",
+      "days": 0,
+      "latest": "2026-10-20T02:37:51.956000Z"
+    },
+    {
+      "id": "9007199254760365",
+      "label": "○ 已 1 天未检查",
+      "days": 1,
+      "latest": "2026-10-19T09:12:47.459000Z"
+    },
+    {
+      "id": "9007199254760319",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "9007199254760274",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "9007199254760260",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "9007199254760259",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "9007199254760258",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "9007199254760257",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "9007199254760192",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "9007199254760174",
+      "label": "○ 已 3 天未检查",
+      "days": 3,
+      "latest": "2026-10-16T21:23:30.572000Z"
+    },
+    {
+      "id": "9007199254760116",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "9007199254760115",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    },
+    {
+      "id": "9007199254760114",
+      "label": "○ 尚未检查",
+      "days": null,
+      "latest": null
+    }
+  ],
+  "counts": "全部项目 31 · 今日已检查 2 · 今日未检查 29",
+  "layoutBorder": "0.666667px",
+  "overflow": false,
+  "independentControls": true,
+  "scopeChangePreservesGlobalChecks": true,
+  "businessWrites": false,
+  "checkedAt": "2026-10-20T10:03:46Z"
+}
