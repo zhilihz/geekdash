@@ -1,0 +1,179 @@
+{
+  "status": "passed",
+  "at": "2026-10-20T04:28:37.773Z",
+  "revision": "86731ee8da07062a153a2cb15c3fd85e535de95b",
+  "readOnly": true,
+  "scope": "本地隔离库，合成原生页面验收项目；未访问公网",
+  "sources": [
+    {
+      "path": "test-results/p04-recovery-native-fixed.json",
+      "sha256": "eb8c15cbef9742692eac325b2e47f59bff72290505fb8de735dc304fb0abc7be"
+    },
+    {
+      "path": "test-results/p04-recovery-native-rebase.json",
+      "sha256": "e8e6774ca3b346035bb0869eb1e601b104227eea1b19ab44fbd03a7291dab043"
+    }
+  ],
+  "project": {
+    "id": "9007199254760501",
+    "version": "5",
+    "name": "任务恢复页面验收 已核对",
+    "summary": "修复后在新页接续验证",
+    "dueDate": "2026-11-21",
+    "statusDesc": "已确认联调时间，周三携带样机。"
+  },
+  "audits": [
+    {
+      "id": "5744",
+      "action": "project.create",
+      "versionBefore": null,
+      "versionAfter": "1",
+      "beforeValues": null,
+      "afterValues": {
+        "name": "任务恢复页面验收 2026-10-20",
+        "appId": null,
+        "people": [],
+        "tagIds": [],
+        "chipIds": [],
+        "dueDate": "2026-11-20",
+        "groupId": null,
+        "summary": "",
+        "managers": [
+          {
+            "id": "29",
+            "name": "p04_ui_1"
+          }
+        ],
+        "priority": "mid",
+        "createdBy": "29",
+        "customerId": null,
+        "detailNote": "",
+        "filingDate": "2026-10-20",
+        "statusDesc": "",
+        "odmCustomerId": null,
+        "productLineId": null,
+        "marketExpectation": ""
+      }
+    },
+    {
+      "id": "5745",
+      "action": "project.ordinary.save",
+      "versionBefore": "1",
+      "versionAfter": "2",
+      "beforeValues": {
+        "name": "任务恢复页面验收 2026-10-20"
+      },
+      "afterValues": {
+        "name": "任务恢复页面验收 已核对"
+      }
+    },
+    {
+      "id": "5746",
+      "action": "project.plan.correctProjectDates",
+      "versionBefore": "1",
+      "versionAfter": "2",
+      "beforeValues": {
+        "dueDate": "2026-11-20"
+      },
+      "afterValues": {
+        "reason": "",
+        "dueDate": "2026-11-21"
+      }
+    },
+    {
+      "id": "5817",
+      "action": "project.ordinary.save",
+      "versionBefore": "2",
+      "versionAfter": "3",
+      "beforeValues": {
+        "statusDesc": ""
+      },
+      "afterValues": {
+        "statusDesc": "等待客户确认接口，周三安排样机测试。"
+      }
+    },
+    {
+      "id": "5818",
+      "action": "project.ordinary.save",
+      "versionBefore": "3",
+      "versionAfter": "4",
+      "beforeValues": {
+        "summary": ""
+      },
+      "afterValues": {
+        "summary": "修复后在新页接续验证"
+      }
+    },
+    {
+      "id": "5819",
+      "action": "project.ordinary.save",
+      "versionBefore": "4",
+      "versionAfter": "5",
+      "beforeValues": {
+        "statusDesc": "等待客户确认接口，周三安排样机测试。"
+      },
+      "afterValues": {
+        "statusDesc": "已确认联调时间，周三携带样机。"
+      }
+    }
+  ],
+  "drafts": [
+    {
+      "formKind": "basic",
+      "state": "committed",
+      "baseVersion": "1",
+      "submittedProjectVersion": "2",
+      "statusText": null
+    },
+    {
+      "formKind": "status",
+      "state": "active",
+      "baseVersion": "1",
+      "submittedProjectVersion": null,
+      "statusText": "等待客户确认接口，周三安排样机测试。"
+    },
+    {
+      "formKind": "status",
+      "state": "committed",
+      "baseVersion": "2",
+      "submittedProjectVersion": "3",
+      "statusText": "等待客户确认接口，周三安排样机测试。"
+    },
+    {
+      "formKind": "basic",
+      "state": "committed",
+      "baseVersion": "3",
+      "submittedProjectVersion": "4",
+      "statusText": null
+    },
+    {
+      "formKind": "status",
+      "state": "active",
+      "baseVersion": "4",
+      "submittedProjectVersion": null,
+      "statusText": "已确认联调时间，周三携带样机。"
+    },
+    {
+      "formKind": "status",
+      "state": "committed",
+      "baseVersion": "4",
+      "submittedProjectVersion": "5",
+      "statusText": "已确认联调时间，周三携带样机。"
+    }
+  ],
+  "receipt": {
+    "responseCode": 200,
+    "scope": "status",
+    "savedVersion": "5",
+    "draftState": "committed"
+  },
+  "checks": [
+    "native_fixed_build_matches_sql_v5",
+    "basic_v4_did_not_submit_status_area",
+    "native_active_status_draft_rebased_to_v4",
+    "status_v5_consumed_matching_rebased_draft",
+    "old_v1_copy_preserved",
+    "audit_version_chain_preserved",
+    "formal_write_receipt_matches_committed_draft"
+  ]
+}

@@ -1,18 +1,18 @@
 # GeekDash 文档目录
 
-导航更新：2026-10-19。项目仓库：[zhilihz/geekdash](https://github.com/zhilihz/geekdash)。全部项目文档在本目录；协作与分类规则只维护于根目录[AGENTS.md](../AGENTS.md)。
+导航更新：2026-10-20。项目仓库：[zhilihz/geekdash](https://github.com/zhilihz/geekdash)。全部项目文档在本目录；协作与分类规则只维护于根目录[AGENTS.md](../AGENTS.md)。
 
 ## 本轮阅读入口
 
-当前工作：沿[操作链收敛计划1.2.3](implementation/execution-plan.md#123-按功能区收敛操作链2026-10-19)接续登录返回、本人草稿和后端基本区意图处理。先看[当前结论](status/current-system-truth.md#1-一句话结论)、[交接](handoff/handoff.md)和[本轮验证](testing/reports/2026-10-20-work-recovery.md)；完整P04仍未完成，不新增阶段。
+当前工作：沿[操作链收敛计划1.2.3](implementation/execution-plan.md#123-按功能区收敛操作链2026-10-19)接续，登录返回、本人草稿和后端基本区意图处理已测试部署；继续核完整视觉、实际PDF及仍缺证据的专有分支。先看[当前结论](status/current-system-truth.md#1-一句话结论)、[交接](handoff/handoff.md)和[本轮验证](testing/reports/2026-10-20-work-recovery.md)；完整P04仍未完成，不新增阶段。
 
-当前交付：[操作收敛部署](operations/deployments/2026-10-20-operation-simplification.md)，成果60a1c7f已推送施工分支并更新测试服务器，结构0005；main仍b96712a，完整阶段验收后再合并。此前[详情候选](operations/deployments/2026-10-19-detail-simplification.md)等记录保留历史来源。
+当前交付：[原任务返回与草稿接续部署](operations/deployments/2026-10-20-work-recovery.md)，成果86731ee8已推送施工分支并更新测试服务器，结构保持0005；main仍b96712a，完整阶段验收后再合并。此前[操作收敛](operations/deployments/2026-10-20-operation-simplification.md)、[详情候选](operations/deployments/2026-10-19-detail-simplification.md)等记录保留历史来源。
 
 2026-10-16整链方案已按DEC-127收口：检查信息补全归[P04-09](implementation/execution-plan.md#p04-09-保留阶段动作与检查的原业务闭环)，跨页面消费归P04-15；布局只查[PRD](product/PRD.md#检查信息完整性已确认dec-127)，读取及修正返回只查SPEC-005，执行范围/共同实现方法只查计划1.2。Q-031已解决；设计与实际实现状态查系统真相及阶段报告，不据早期缺口描述重复施工。
 
 用户进一步要求逐行为列全结果，已按DEC-128补[PRD第9节](product/PRD.md#9-逐行为结果与恢复清单)：共用结果、各功能专有结果、输入去向与恢复入口，以及现有16步对应表。处理入口和故障验证方法在执行计划1.2与[测试策略](testing/testing.md#按prd行为结果验收dec-128)，它们是待实施/待验要求，实际状态见真相73。
 
-1. [交接](handoff/handoff.md)与[当前运行事实](status/current-system-truth.md#1-一句话结论)：确认本地候选、线上版本、已验范围及未验缺口；本轮证据查[操作链收敛报告](testing/reports/2026-10-20-operation-simplification.md)。
+1. [交接](handoff/handoff.md)与[当前运行事实](status/current-system-truth.md#1-一句话结论)：确认本地候选、线上版本、已验范围及未验缺口；本轮证据查[原任务返回与草稿接续报告](testing/reports/2026-10-20-work-recovery.md)。
 2. [首页完整筛选](product/PRD.md#首页完整筛选)、[视觉意图](product/PRD.md#813-ui09正式视觉稿2026-10-14设计中)、[UI11设计报告](testing/reports/2026-10-14-ui11-complete-filters.md)及[Figma文件](https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=142-3499)：用户已认可当前设计，实施沿同一稿。[PRD8.12](product/PRD.md#812-ui08全站结构与日常操作2026-10-14结构评审稿)为结构与操作依据；历史设计范围仍可查[UI08](testing/reports/2026-10-14-ui08-wireframes.md)、[UI09](testing/reports/2026-10-14-ui09-visual-design.md)、[UI10](testing/reports/2026-10-14-ui10-reference-style.md)，不作为当前部署状态。
 3. [P04既有实施计划](implementation/execution-plan.md#12-p04完整实施计划2026-10-15)：用于核对已有范围和技术依赖；当前收敛步骤只维护在1.2.3，[规格书](specifications/specification.md)仍是行为契约来源。
 4. [UI07提示与副本报告](testing/reports/2026-10-13-e04-ui07-notifications.md)、[UI07部署与恢复](operations/deployments/2026-10-13-e04-ui07.md)、[UI06网页报告](testing/reports/2026-10-13-e04-ui06-frontend.md)、[UI06部署与恢复](operations/deployments/2026-10-13-e04-ui06.md)、[看板及已有入口报告](testing/reports/2026-10-12-e04-ui03-c.md)、[上下文动作报告](testing/reports/2026-10-12-e04-ui03-b.md)、[详情结构报告](testing/reports/2026-10-12-e04-ui03-a.md)、[设计核查报告](testing/reports/2026-10-12-e04-ui01-design.md)及[实际设计回读](evidence/2026-10-12-e04-ui01-design-audit.json)：分别核查实现、设计子集与未测范围。

@@ -1,0 +1,53 @@
+{
+  "status": "passed",
+  "revision": "86731ee8da07062a153a2cb15c3fd85e535de95b",
+  "checkedAt": "2026-10-20T04:28:24.593687+00:00",
+  "nativeBrowserAcceptance": false,
+  "build": {
+    "revision": "86731ee8da07062a153a2cb15c3fd85e535de95b",
+    "dirty": false,
+    "builtAt": "2026-10-20T04:21:06.356Z",
+    "stage": "project-list",
+    "schemaVersion": "0005-check-facts"
+  },
+  "projectId": "27",
+  "project": {
+    "id": "27",
+    "version": "3",
+    "name": "任务恢复验收 86731ee8da07 已定计划",
+    "summary": "合成验收项目，不含真实业务数据。",
+    "statusDesc": "样机已完成接口自检，等待客户确认联调时间。",
+    "dueDate": "2026-11-10",
+    "status": "proposal"
+  },
+  "actorId": "1",
+  "managerCount": 1,
+  "auditCount": 4,
+  "draftId": "e4301ff8-56f7-4da4-b60f-6faaf845c5b0",
+  "draftState": "committed",
+  "draftVersion": "1",
+  "submittedProjectVersion": "3",
+  "operationIds": [
+    "7a31756c-4545-4901-b2e1-c1dc2a24ff22",
+    "fab4a90d-4f82-4138-9536-cdeb4a343b7f",
+    "772aeb2c-3dfa-40c4-88df-4c034fa1dd66"
+  ],
+  "replayedFromReceipt": {
+    "create": false,
+    "basic": false,
+    "status": false
+  },
+  "checks": [
+    "same_basic_intent_name_and_initial_plan_one_project_version",
+    "fresh_detail_and_changed_history",
+    "exact_original_receipts",
+    "personal_status_draft_synced_and_reread",
+    "draft_did_not_change_formal_project_or_audit",
+    "explicit_status_save_commits_matching_draft",
+    "fresh_board_consumes_name_plan_and_status",
+    "no_shared_catalog_or_other_projects_written"
+  ],
+  "databaseVerification": "separate_independent_sql_pending",
+  "ownSessionsLoggedOut": true,
+  "finishedAt": "2026-10-20T04:29:26.108176+00:00"
+}

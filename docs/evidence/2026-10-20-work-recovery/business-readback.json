@@ -1,0 +1,50 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-20T04:29:48.115345+00:00",
+  "revision": "86731ee8da07062a153a2cb15c3fd85e535de95b",
+  "project": {
+    "id": "27",
+    "name": "任务恢复验收 86731ee8da07 已定计划",
+    "status": "proposal",
+    "dueDate": "2026-11-10",
+    "summary": "合成验收项目，不含真实业务数据。",
+    "version": "3",
+    "statusDesc": "样机已完成接口自检，等待客户确认联调时间。",
+    "originalDueDate": "2026-11-10",
+    "statusUpdatedAt": "2026-10-20T04:29:08.006000Z"
+  },
+  "actorId": "1",
+  "managerCount": 1,
+  "draft": {
+    "clientDraftId": "e4301ff8-56f7-4da4-b60f-6faaf845c5b0",
+    "formKind": "status",
+    "baseVersion": "2",
+    "draftVersion": "1",
+    "state": "committed",
+    "submittedProjectVersion": "3"
+  },
+  "auditCount": 4,
+  "auditActions": [
+    "project.create",
+    "project.ordinary.save",
+    "project.plan.setPlan",
+    "project.ordinary.save"
+  ],
+  "receiptCount": 3,
+  "operationIds": [
+    "7a31756c-4545-4901-b2e1-c1dc2a24ff22",
+    "fab4a90d-4f82-4138-9536-cdeb4a343b7f",
+    "772aeb2c-3dfa-40c4-88df-4c034fa1dd66"
+  ],
+  "checks": [
+    "client_and_sql_exact_synthetic_text_dates_and_versions",
+    "same_basic_transaction_name_and_plan_history",
+    "exact_receipt_results_actor_and_scope",
+    "draft_payload_matches_client",
+    "draft_committed_to_explicit_status_version",
+    "status_text_is_human_input"
+  ],
+  "independentSQL": true,
+  "charset": "utf8mb4",
+  "nativeBrowserAcceptance": false
+}
