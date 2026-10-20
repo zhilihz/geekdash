@@ -1,0 +1,17 @@
+{
+  "build": {
+    "revision": "cc0bc73efe0f95b647e8662646c69a391c1fd3a5",
+    "dirty": false,
+    "builtAt": "2026-10-20T09:08:00.763Z",
+    "stage": "project-list",
+    "schemaVersion": "0005-check-facts"
+  },
+  "globalChecks": {
+    "total": 25,
+    "todayChecked": 2,
+    "todayUnchecked": 23
+  },
+  "status": "passed",
+  "independentSQL": true,
+  "businessWrites": false
+}

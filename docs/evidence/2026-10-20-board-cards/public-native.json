@@ -1,0 +1,63 @@
+{
+  "status": "passed",
+  "before": {
+    "build": {
+      "revision": "cc0bc73efe0f95b647e8662646c69a391c1fd3a5",
+      "dirty": false,
+      "builtAt": "2026-10-20T09:08:00.763Z",
+      "stage": "project-list",
+      "schemaVersion": "0005-check-facts"
+    },
+    "url": "https://geekdash.zhiluan.cool/?view=all&page=1",
+    "theme": "warm",
+    "counts": "全部项目 25 · 今日已检查 2 · 今日未检查 23",
+    "entry": "/project-checks.html?view=all&checkToday=unchecked",
+    "projectId": "28",
+    "card": "绿灯\n中优先级\n提案中\n○ 今日未检查\n1054面板使用修正验收 5b5746489412 已定计划\n合成验收项目，不含真实业务数据。\n基本资料与日期\n客户—\n产品线—\nODM 工厂—\nAPP—\n芯片—\n分组—\n立案日期\n—\n实际启动\n—\n预计结案\n2026-11-10\n实际结案\n—\n项目分工\n项目经理business01\n硬件负责人未分配\n软件负责人未分配\n参与人员未分配\n当前阶段：需求立项 · 待开始\n0%\n\n里程碑：完成主控芯片选型、整机硬件方案匹配、项目初步成本预估，锁定项目成本与技术准入基线。\n\n最新状态说明\n\n样机已完成接口自检，等待客户确认联调时间。　10-20\n\n更新状态\n最近检查：尚未检查\n查看详情 ↗",
+    "stage": "里程碑：完成主控芯片选型、整机硬件方案匹配、项目初步成本预估，锁定项目成本与技术准入基线。",
+    "badges": [
+      {
+        "text": "绿灯",
+        "background": "rgba(63, 185, 80, 0.15)",
+        "radius": "20px"
+      },
+      {
+        "text": "中优先级",
+        "background": "rgba(240, 136, 62, 0.15)",
+        "radius": "20px"
+      },
+      {
+        "text": "提案中",
+        "background": "rgba(163, 113, 247, 0.15)",
+        "radius": "20px"
+      }
+    ],
+    "groups": [
+      {
+        "title": "基本资料与日期",
+        "border": "0.666667px"
+      },
+      {
+        "title": "项目分工",
+        "border": "0.666667px"
+      }
+    ],
+    "stageBox": true,
+    "overflow": false
+  },
+  "filtered": {
+    "url": "https://geekdash.zhiluan.cool/?view=closed&page=1",
+    "counts": "全部项目 25 · 今日已检查 2 · 今日未检查 23",
+    "entry": "/project-checks.html?view=all&checkToday=unchecked"
+  },
+  "checkEntry": {
+    "url": "https://geekdash.zhiluan.cool/project-checks.html?view=all&checkToday=unchecked",
+    "scope": "全部项目",
+    "theme": "warm"
+  },
+  "wholeCardOpened": {
+    "url": "https://geekdash.zhiluan.cool/project-detail.html?id=28",
+    "theme": "warm"
+  },
+  "businessWrites": false
+}

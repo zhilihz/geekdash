@@ -20,6 +20,10 @@
 
 `dashboard=1`另返回`quickRanges`，键与`stats`相同，每项为当前看板及全部筛选命中该统计条件的项目ID字符串数组。与统计在同一数据库读取快照，范围不限于当前分页；不包含项目正文或未保存输入。前端将选中统计范围保存在账号隔离的标签页上下文，再进入统一摘要；缺少该上下文时提示重新选择，不能回退为全部项目。语义归SPEC-020。
 
+2026-10-20卡片补充（对应产品`cc0bc73`）：`dashboard=1`另返回`globalChecks: { total, todayChecked, todayUnchecked }`，均为数字，在同次快照中统计全部项目，不使用view、search、筛选或分页条件。首页独立“项目检查”消费这一组；它不替换`stats`和`quickRanges`的当前筛选口径。准确语义归SPEC-005/018。
+
+列表项目补`filingDate/startDate`，与既有`dueDate/closedOn`均为日期字符串或null；与详情使用同一字段投影。另有`riskSummary: { unresolvedCount, highestLevel }`，只计未删除且未解除风险，最高等级为`high/mid/low`，没有风险为`0/null`。当前阶段的静态里程碑仍复用前端既有阶段定义，不新增API字段或业务输入。
+
 `GET /api/projects`
 
 | 参数 | 类型与范围 |
@@ -46,7 +50,7 @@ dashboard=1在同一只读快照附加：items.summaryNote、dashboard.distribut
 
 列表items包含checkedToday:boolean和capabilities.canCheck:boolean。前者根据checked_at位于上海当天00:00至次日00:00的UTC半开区间判断；同一天多条只算一个已检查项目。后者来自当前可信账号的project_responsibilities关系，不由业务人员姓名推断；写入仍会重新校验。详情的project同样返回checkedToday，检查操作权限沿详情readOnly与capabilities读取。
 
-stats包含todayChecked/todayUnchecked，均为包含checkToday在内的当前过滤集合计数，二者相加等于total；在unchecked查询里todayChecked自然为0，不得当作另一个已检查标签的总数。首页不带日条件，消费完整当前范围的两项计数；检查页以实际查询分页总数展示。今日未查是事实标记，不表示每日强制任务；周义务、截止、按时和逾期检查判定已退出。
+stats包含todayChecked/todayUnchecked，均为包含checkToday在内的当前过滤集合计数，二者相加等于total；在unchecked查询里todayChecked自然为0，不得当作另一个已检查标签的总数。首页独立检查模块使用上方`globalChecks`，进入时固定`view=all&checkToday=unchecked`；检查页以实际查询分页总数展示。今日未查是事实标记，不表示每日强制任务；周义务、截止、按时和逾期检查判定已退出。
 
 `details=checks`时，当前页每项的`inspection`复用同一数据库快照中的详情读取，包括基本资料、分工、阶段、有效节点、风险、需求变更和说明。为避免批量列表加载整段历史，`inspection.history`与`inspection.lifecycleNotes`为空；需要历史时进入详情并使用相应分页入口。它不另取较新项目版本，也不创建检查。
 

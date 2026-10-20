@@ -4,9 +4,9 @@
 
 ## 本轮阅读入口
 
-当前工作：沿[操作链收敛计划1.2.3](implementation/execution-plan.md#123-按功能区收敛操作链2026-10-19)接续，登录返回、本人草稿和后端基本区意图处理已测试部署；继续核完整视觉、实际PDF及仍缺证据的专有分支。先看[当前结论](status/current-system-truth.md#1-一句话结论)、[交接](handoff/handoff.md)和[本轮验证](testing/reports/2026-10-20-work-recovery.md)；完整P04仍未完成，不新增阶段。
+当前工作沿[操作链收敛计划1.2.3](implementation/execution-plan.md#123-按功能区收敛操作链2026-10-19)接续。先看[当前结论](status/current-system-truth.md#1-一句话结论)、[交接](handoff/handoff.md)和[首页卡片与每日检查核验](testing/reports/2026-10-20-board-cards.md)；实际完成及未验范围只在这些入口核对，不新增阶段。
 
-当前交付：[原任务返回与草稿接续部署](operations/deployments/2026-10-20-work-recovery.md)，成果86731ee8已推送施工分支并更新测试服务器，结构保持0005；main仍b96712a，完整阶段验收后再合并。此前[操作收敛](operations/deployments/2026-10-20-operation-simplification.md)、[详情候选](operations/deployments/2026-10-19-detail-simplification.md)等记录保留历史来源。
+当前交付记录：[首页卡片与每日检查部署](operations/deployments/2026-10-20-board-cards.md)。此前[1054修正](operations/deployments/2026-10-20-local-1054.md)、[原任务返回与草稿接续](operations/deployments/2026-10-20-work-recovery.md)、[操作收敛](operations/deployments/2026-10-20-operation-simplification.md)等记录保留历史来源。
 
 2026-10-16整链方案已按DEC-127收口：检查信息补全归[P04-09](implementation/execution-plan.md#p04-09-保留阶段动作与检查的原业务闭环)，跨页面消费归P04-15；布局只查[PRD](product/PRD.md#检查信息完整性已确认dec-127)，读取及修正返回只查SPEC-005，执行范围/共同实现方法只查计划1.2。Q-031已解决；设计与实际实现状态查系统真相及阶段报告，不据早期缺口描述重复施工。
 
