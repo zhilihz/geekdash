@@ -1,0 +1,53 @@
+{
+  "status": "passed",
+  "revision": "5b57464894121eb243d7fd6bf3a35359869893dc",
+  "checkedAt": "2026-10-20T07:43:44.590841+00:00",
+  "nativeBrowserAcceptance": false,
+  "build": {
+    "revision": "5b57464894121eb243d7fd6bf3a35359869893dc",
+    "dirty": false,
+    "builtAt": "2026-10-20T07:38:49.765Z",
+    "stage": "project-list",
+    "schemaVersion": "0005-check-facts"
+  },
+  "projectId": "28",
+  "project": {
+    "id": "28",
+    "version": "3",
+    "name": "1054面板使用修正验收 5b5746489412 已定计划",
+    "summary": "合成验收项目，不含真实业务数据。",
+    "statusDesc": "样机已完成接口自检，等待客户确认联调时间。",
+    "dueDate": "2026-11-10",
+    "status": "proposal"
+  },
+  "actorId": "1",
+  "managerCount": 1,
+  "auditCount": 4,
+  "draftId": "732fb854-4469-4f90-899e-67359961ff66",
+  "draftState": "committed",
+  "draftVersion": "1",
+  "submittedProjectVersion": "3",
+  "operationIds": [
+    "65b09de1-a900-49e5-9e30-cb2bcd9add29",
+    "c9de12e9-7b75-4243-b90c-60478a98bfaf",
+    "7233cb8c-4bae-46f5-934d-acda6bb83098"
+  ],
+  "replayedFromReceipt": {
+    "create": false,
+    "basic": false,
+    "status": false
+  },
+  "checks": [
+    "same_basic_intent_name_and_initial_plan_one_project_version",
+    "fresh_detail_and_changed_history",
+    "exact_original_receipts",
+    "personal_status_draft_synced_and_reread",
+    "draft_did_not_change_formal_project_or_audit",
+    "explicit_status_save_commits_matching_draft",
+    "fresh_board_consumes_name_plan_and_status",
+    "no_shared_catalog_or_other_projects_written"
+  ],
+  "databaseVerification": "separate_independent_sql_pending",
+  "ownSessionsLoggedOut": true,
+  "finishedAt": "2026-10-20T07:44:31.078936+00:00"
+}

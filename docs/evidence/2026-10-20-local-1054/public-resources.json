@@ -1,0 +1,204 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-20T07:44:55.366Z",
+  "build": {
+    "revision": "5b57464894121eb243d7fd6bf3a35359869893dc",
+    "dirty": false,
+    "builtAt": "2026-10-20T07:38:49.765Z",
+    "stage": "project-list",
+    "schemaVersion": "0005-check-facts"
+  },
+  "checks": [
+    {
+      "path": "/data-manage.html",
+      "status": 200,
+      "sha256": "acb14a3e5851ceacea7c05347ed7446de619095a9b5990c3976f75a5f834fa43",
+      "matchesDist": true
+    },
+    {
+      "path": "/",
+      "status": 200,
+      "sha256": "62f869f4ca16c7bdfb46d4c3eb4f794677740bddd22201a67a0d7c05dd19dd50",
+      "matchesDist": true
+    },
+    {
+      "path": "/login.html",
+      "status": 200,
+      "sha256": "971311e73271e4fd9ce82073846b5720a20f7f74c4c267a005131849959af144",
+      "matchesDist": true
+    },
+    {
+      "path": "/project-checks.html",
+      "status": 200,
+      "sha256": "e95b9796b195a6950a80d916c4cf1e0860982eef053c0bd109e6305f68845899",
+      "matchesDist": true
+    },
+    {
+      "path": "/project-detail.html",
+      "status": 200,
+      "sha256": "0437185c58335e49cb70474f9288d92687e5e0b7746074016e512df0b7c4aa73",
+      "matchesDist": true
+    },
+    {
+      "path": "/project-new.html",
+      "status": 200,
+      "sha256": "c102aecee845df5c9af31817b9fd0945d52d25adc8f3e1a7adc099e2ad38b8ce",
+      "matchesDist": true
+    },
+    {
+      "path": "/project-status-summary.html",
+      "status": 200,
+      "sha256": "9938d1a1dd5622fb6e2d06abf058de87c819cf3e7e0195a28fe004e7cb08dacb",
+      "matchesDist": true
+    },
+    {
+      "path": "/settings.html",
+      "status": 200,
+      "sha256": "4dec03dc90da848c9ae3e688a5019186e833469fb6e9f9055240b1790c19a71a",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/data-manage-Ag7nvR-2.js",
+      "status": 200,
+      "sha256": "f34b3c60c0a47f4cc0a561e8ffd761c2747274bee71e2270428b061eab6dda25",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/api-DLZTrYYN.js",
+      "status": 200,
+      "sha256": "7079ebdeb162cacb0319319f693f457032b33edb0a0cac7d47c09b0ab94f35cb",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/notifications-Ccqgf2h1.js",
+      "status": 200,
+      "sha256": "c9a99eb2b874c480f00c5f7a3dcc0b3a63348c6536f2f8f04b5dd5720151e908",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/api-mm1yZm3g.css",
+      "status": 200,
+      "sha256": "78e02718c7b699b3a7258db9fc0fd2b1bb4e2d2ff8ac0a119e65287279908cb4",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/data-manage-Bk-2UBJj.css",
+      "status": 200,
+      "sha256": "c122fced89056792515d36a40750ecd13b6d9c22a2b061e68f9209c025c585bf",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/board-Buhf5ru8.css",
+      "status": 200,
+      "sha256": "65dda0aefe3464ec2fa4d00f1860c8657e63fb612dc2dd3abf8130fcf5d569cf",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/index-JZsZBPu9.js",
+      "status": 200,
+      "sha256": "57d23773caeca3c44af500723889f5810e523120f128d0d9012088739eef2d4d",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/status-mentions-BEKWmcfs.js",
+      "status": 200,
+      "sha256": "53609d4c5f99d480b0b1a8e359f7d943fb16507d76feef0e71be99c5515ac1d8",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/status-text-D2TF5kGK.js",
+      "status": 200,
+      "sha256": "ee0f24368d688fc3c1bee509ff488aafafbc8ee66ae050fc810e43d21579f855",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/status-mentions-C7V-HnNg.css",
+      "status": 200,
+      "sha256": "356893628f579f2a15122974c3f5345c8cf9ba62182d668a12acbaf47e914f41",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/index-Cf-ajSOL.css",
+      "status": 200,
+      "sha256": "806fd4af64b6f576b47d7f212679107e533a39f17e7c0eed56508fae95455ce9",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/login-BoIcFi3H.js",
+      "status": 200,
+      "sha256": "8a080e094de0b59b283eecb4a835be42b5363f644ee4a0e3aefb1f3d26341a97",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/login-D9KYl3tU.css",
+      "status": 200,
+      "sha256": "e179bf8998912737851b88af0bc94aeff622a19313ac40fe5dd626fb3206ece0",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/detail-cEBp5Wvl.css",
+      "status": 200,
+      "sha256": "54ba2130fee42e4409afc1e5cafcee45bf124b1275758e08df5f68b5bfa9ef47",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-checks-CsC06Sc_.js",
+      "status": 200,
+      "sha256": "d55341e05d4c6dacc900dd2f5a07eb99d8ad259357d92a3c34d7b10f715f3f30",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-checks-lawCJIj9.css",
+      "status": 200,
+      "sha256": "c225acd772443391e52c4c991063d64f3f1462caf34bc632e9001ff3c6825609",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-detail-BfOVct_E.js",
+      "status": 200,
+      "sha256": "0ded2bf10519bf6b58cff17e1c7893b8bc32a92c685f6f5185f5091230499b75",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-options-BWj9NT-P.js",
+      "status": 200,
+      "sha256": "cc56f1793ef33ba8264c37028679299aa560943a2fcf23a702ab0e731690ce16",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-options-CjjHA-vc.css",
+      "status": 200,
+      "sha256": "b329eab4502f60f2562a236a1a69b3816f170c80e72b4557ef83971d3bbba6c0",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-new-Fy3yuPtd.js",
+      "status": 200,
+      "sha256": "1d69115e1bbbb477008018b1df26041f54b72fc6a05fca889f648576ba6e89c9",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-status-summary-D7fxRgiC.js",
+      "status": 200,
+      "sha256": "50fe9fde8855921e30ebc77bb7bb542749dec854089574b5279ba0f3b77d6ccd",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-status-summary-BCj6m17I.css",
+      "status": 200,
+      "sha256": "2647c252f97afc08d1b9704a125a62e68a57fbe8830a551e1647b9b8fe98ba48",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/settings-DzvtmoMT.js",
+      "status": 200,
+      "sha256": "eabe14902c23b1de4fee34f0c7f835aa30cca5ee8ea9f0ff861f4bd67bb9b60e",
+      "matchesDist": true
+    }
+  ],
+  "anonymousStatus": 401,
+  "anonymousCode": "AUTH_REQUIRED",
+  "source": "Edge同源HTTPS新请求；静态摘要一致，不替代原生写入验收",
+  "pageCount": 8,
+  "assetCount": 23
+}

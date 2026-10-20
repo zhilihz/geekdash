@@ -1,0 +1,46 @@
+{
+  "status": "passed",
+  "revision": "5b57464894121eb243d7fd6bf3a35359869893dc",
+  "projectId": "28",
+  "checkedAt": "2026-10-20T07:46:21.801566+00:00",
+  "nativeBrowserAcceptance": false,
+  "build": {
+    "revision": "5b57464894121eb243d7fd6bf3a35359869893dc",
+    "dirty": false,
+    "builtAt": "2026-10-20T07:38:49.765Z",
+    "stage": "project-list",
+    "schemaVersion": "0005-check-facts"
+  },
+  "projectVersion": "3",
+  "auditCount": 4,
+  "projectFingerprintBefore": "1a98a2f4fb6d2d023f3a0ac9e25e133090b2799cf2e3ac30a1ad250072805a6a",
+  "auditFingerprintBefore": "9064bf9cd8466122e0c0e49f045651a9cdb8eef33f1d4e866d1844bd7ab135ec",
+  "globalSseConnections": 1,
+  "editorCounts": [
+    1,
+    1,
+    0
+  ],
+  "businessUnchanged": true,
+  "projectFingerprintAfter": "1a98a2f4fb6d2d023f3a0ac9e25e133090b2799cf2e3ac30a1ad250072805a6a",
+  "auditFingerprintAfter": "9064bf9cd8466122e0c0e49f045651a9cdb8eef33f1d4e866d1844bd7ab135ec",
+  "checks": [
+    "current_release_smoke_project_only",
+    "independent_cookie_jar_and_own_session",
+    "global_sse_without_project_parameter",
+    "editing_true_person_appears",
+    "repeat_same_instance_no_duplicate_person",
+    "editing_false_person_clears",
+    "new_get_project_and_audit_identical"
+  ],
+  "sources": [
+    {
+      "path": "test-results/p04-1054-public-smoke.json",
+      "sha256": "c14ebf3f4d207e531db8fe1e0a3d99d465a9bd7231800045f2289c25f78bb2ac"
+    }
+  ],
+  "ownEditingStateCleared": true,
+  "ownSseClosed": true,
+  "ownSessionLoggedOut": true,
+  "finishedAt": "2026-10-20T07:47:23.426628+00:00"
+}

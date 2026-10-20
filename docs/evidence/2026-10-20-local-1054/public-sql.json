@@ -1,0 +1,50 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-20T07:45:06.947729+00:00",
+  "revision": "5b57464894121eb243d7fd6bf3a35359869893dc",
+  "project": {
+    "id": "28",
+    "name": "1054面板使用修正验收 5b5746489412 已定计划",
+    "status": "proposal",
+    "dueDate": "2026-11-10",
+    "summary": "合成验收项目，不含真实业务数据。",
+    "version": "3",
+    "statusDesc": "样机已完成接口自检，等待客户确认联调时间。",
+    "originalDueDate": "2026-11-10",
+    "statusUpdatedAt": "2026-10-20T07:44:19.458000Z"
+  },
+  "actorId": "1",
+  "managerCount": 1,
+  "draft": {
+    "clientDraftId": "732fb854-4469-4f90-899e-67359961ff66",
+    "formKind": "status",
+    "baseVersion": "2",
+    "draftVersion": "1",
+    "state": "committed",
+    "submittedProjectVersion": "3"
+  },
+  "auditCount": 4,
+  "auditActions": [
+    "project.create",
+    "project.ordinary.save",
+    "project.plan.setPlan",
+    "project.ordinary.save"
+  ],
+  "receiptCount": 3,
+  "operationIds": [
+    "65b09de1-a900-49e5-9e30-cb2bcd9add29",
+    "c9de12e9-7b75-4243-b90c-60478a98bfaf",
+    "7233cb8c-4bae-46f5-934d-acda6bb83098"
+  ],
+  "checks": [
+    "client_and_sql_exact_synthetic_text_dates_and_versions",
+    "same_basic_transaction_name_and_plan_history",
+    "exact_receipt_results_actor_and_scope",
+    "draft_payload_matches_client",
+    "draft_committed_to_explicit_status_version",
+    "status_text_is_human_input"
+  ],
+  "independentSQL": true,
+  "charset": "utf8mb4",
+  "nativeBrowserAcceptance": false
+}
