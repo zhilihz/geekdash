@@ -1,0 +1,38 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-20T09:57:03.697Z",
+  "checks": [
+    "全局检查总量含进行中/提案/暂缓/结案/维护，跨视图/搜索空结果/今日筛选均与独立SQL一致；现有范围统计仍独立",
+    "项目范围与展示方式分成两个具名按钮组；驾驶舱切换范围保持展示方式，切回卡片保持项目范围及各自选中状态",
+    "真实检查页点击→唯一检查/审计落库→新详情版本与检查时间→待查移出→首页全局数量减少一项；人工正文与资料不变",
+    "卡片移除四个项目日期而详情原值保留，继续显示真实最近检查时间；今日/从未检查区分；资料/标签/简介/阶段与整卡点击保持，文字选择/原位编辑/输入不导航",
+    "上海自然日跨日不足24小时显示1天未检查；跨月/跨年从服务端businessDate计算天数，最近时间/版本保持；真实首页定时事件消费投影且保留未保存输入（非真实等候过夜）",
+    "风险真实新增/等级纠正/解除/删除后新列表摘要计数及最高等级一致；解除与误录删除保留各自SQL事实且不计当前风险"
+  ],
+  "requestCount": 80,
+  "build": {
+    "revision": "75ac0adc0b43eaa7d03febf3a67b5ab85bb08cd1",
+    "dirty": true,
+    "builtAt": "2026-10-20T09:54:21.752Z",
+    "stage": "project-list",
+    "schemaVersion": "0005-check-facts"
+  },
+  "projectId": "9007199254760596",
+  "savedVersion": "2",
+  "checkTime": "2026-10-20T09:57:02.375000Z",
+  "globalCountsBefore": {
+    "total": 36,
+    "todayChecked": 2,
+    "todayUnchecked": 34
+  },
+  "globalCountsAfter": {
+    "total": 36,
+    "todayChecked": 3,
+    "todayUnchecked": 33
+  },
+  "isolatedTestDatabase": true,
+  "nativeBrowserAcceptance": false,
+  "overnightWallClockWait": false,
+  "nativeFixtureRetained": false,
+  "ownSessionLoggedOut": true
+}

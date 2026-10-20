@@ -14,10 +14,16 @@
 .board-primary { display: inline-flex; align-items: center; justify-content: center; padding: 10px 20px; border: 1px solid var(--accent-dim); border-radius: 6px; background: var(--accent-dim); color: #fff; font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; }
 .board-primary:hover { filter: brightness(1.1); }
 .board-primary[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
-.board-views { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin: 16px 0; }
-.board-page .board-views .view-switch { background: transparent; border: 0; padding: 0; gap: 12px; }
-.board-page .board-views .view-switch button { border: 1px solid var(--border); border-radius: 8px; }
-.board-page .board-views .view-switch button.active { background: transparent; color: var(--accent); border-color: transparent; }
+.board-views { display: flex; align-items: flex-end; gap: 24px; margin: 20px 0; }
+.board-view-group { min-width: 0; }
+.board-view-label { display: block; color: var(--text-dim); font-size: 12px; margin-bottom: 8px; }
+.board-layout-group { margin-left: auto; padding-left: 24px; border-left: 1px solid var(--border); flex-shrink: 0; }
+.board-page .board-views .view-switch { background: transparent; border: 0; padding: 0; gap: 6px; flex-wrap: wrap; }
+.board-page .board-views .view-switch button { border: 1px solid transparent; border-radius: 6px; }
+.board-page .board-views .view-switch button.active { background: var(--accent-dim); color: #fff; border-color: var(--accent-dim); }
+.board-page .board-layout-group .view-switch { background: var(--bg-soft); border: 1px solid var(--border); padding: 3px; gap: 2px; border-radius: 8px; }
+.board-page .board-layout-group .view-switch button.active { background: var(--card); color: var(--accent); border-color: var(--border); }
+.board-page .board-views button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .board-page .toolbar-panel { padding: 16px 18px; margin-bottom: 16px; }
 .board-page .read-label { margin: 0 0 7px; }
 .board-page #search { width: 100%; box-sizing: border-box; background: var(--bg-soft); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; font: inherit; font-size: 14px; margin-bottom: 0; }
@@ -64,9 +70,7 @@
 .board-card-facts dd, .board-card-people dd { display: inline; margin: 0; overflow-wrap: anywhere; }
 .board-card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
 .board-card-tags span { color: var(--text-dim); background: var(--bg-soft); border: 1px solid var(--border); border-radius: 4px; padding: 3px 7px; font-size: 12px; }
-.board-card-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; margin: 0 0 14px; }
-.board-card-dates span, .board-card-status > span { display: block; color: var(--text-dim); font-size: 12px; margin-bottom: 6px; }
-.board-card-dates strong { font-weight: 400; font-size: 13px; }
+.board-card-status > span { display: block; color: var(--text-dim); font-size: 12px; margin-bottom: 6px; }
 .board-card-market { font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; margin: 0 0 14px; }
 .board-card-market span { display: block; color: var(--text-dim); font-size: 12px; margin-bottom: 4px; }
 .board-card-stage { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 16px; }
@@ -117,3 +121,4 @@
 .board-page .board-team .read-table th, .board-page .board-team .read-table td { padding: 12px; }
 @media (max-width: 1100px) { .board-page .page { padding: 20px 28px 48px; } .board-page .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 700px) { .board-page .page { padding: 16px; } .board-page .grid, .board-page .chart-grid { grid-template-columns: 1fr; } .board-page .head-actions { margin-left: 0; flex-wrap: wrap; } .board-check-entry { align-items: flex-start; flex-direction: column; padding: 16px; } .board-page .filter-label { flex-basis: 100%; } .board-page .board-header { gap: 12px; } .board-page .board-views .view-switch { flex-wrap: wrap; gap: 8px; } }
+@media (max-width: 700px) { .board-views { align-items: stretch; flex-direction: column; gap: 14px; } .board-layout-group { margin-left: 0; padding: 14px 0 0; border-left: 0; border-top: 1px solid var(--border); } }

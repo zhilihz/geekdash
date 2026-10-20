@@ -76,17 +76,19 @@ function selectedFilters() {
 }
 function card(project: ListProject) {
   const stage = __GEEKDASH_STAGES__.find(item => 'S' + item.id === project.stage);
+  const checkedOn = project.checkStatus.latest ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date(project.checkStatus.latest.checkedAt)) : null;
+  const daysUnchecked = checkedOn ? Math.round((Date.parse(businessDate) - Date.parse(checkedOn)) / 86400000) : null;
+  const checkLabel = project.checkedToday ? '✓ 今日已检查' : daysUnchecked !== null && daysUnchecked > 0 ? `○ 已 ${daysUnchecked} 天未检查` : '○ 尚未检查';
   const stageName = (project.status === 'paused' ? '暂缓保留 · ' : '') + (project.stage === 'completed' ? '七阶段全部完成' : label(project.stage) + ' · ' + (project.status === 'proposal' && project.stage !== 'S1' ? '需先启动项目' : label(project.stageState)));
   const people = [['pm', '项目经理'], ['hardware_owner', '硬件负责人'], ['software_owner', '软件负责人'], ['participant', '参与人员']].map(([role, title]) => `<div><dt>${title}</dt><dd>${esc((role === 'pm' ? project.managers : project.people.filter(person => person.role === role)).map(person => person.name).join('、') || '未分配')}</dd></div>`).join('');
   const facts = [['客户', project.customer], ['产品线', project.productLine], ['ODM 工厂', project.odmFactory], ['APP', project.app], ['芯片', project.chips.map(chip => chip.name).join(' / ')], ['分组', project.projectGroup]].map(([title, value]) => `<div><dt>${title}</dt><dd>${esc(value || '—')}</dd></div>`).join('');
-  const dates = [['立案日期', project.filingDate], ['实际启动', project.startDate], ['预计结案', project.dueDate || '计划未定'], ['实际结案', project.closedOn]].map(([title, value]) => `<div><span>${title}</span><strong>${esc(value || '—')}</strong></div>`).join('');
   const risk = project.riskSummary;
   const statusClasses: Record<string, string> = { proposal: 'proposal', ongoing: 'active', paused: 'hold', closed: 'closed' };
   return `<article class="card ${project.priority === 'high' ? 'pri-border-high' : ''}" data-project-id="${project.id}" tabindex="0" aria-label="打开项目：${esc(project.name)}">
-    <div class="card-top"><div class="board-card-badges"><span class="signal-tag signal-${esc(project.signal)}"><span class="signal-dot"></span>${esc(label(project.signal))}</span><span class="pri-tag pri-${esc(project.priority)}">${esc(label(project.priority))}优先级</span><span class="st-tag st-${statusClasses[project.status]}">${esc(label(project.status))}</span>${project.maintenanceEnabled ? '<span class="maintenance-badge">量产维护</span>' : ''}${risk?.unresolvedCount ? `<span class="board-risk signal-${risk.highestLevel === 'high' ? 'red' : 'yellow'}">风险 ${risk.unresolvedCount} · ${esc(label(risk.highestLevel))}</span>` : ''}${project.deadline.kind === 'overdue' ? '<span class="board-risk signal-red">已超期</span>' : ''}</div><span class="board-check-state ${project.checkedToday ? 'checked-today' : ''}">${project.checkedToday ? '✓ 今日已检查' : '○ 今日未检查'}</span></div>
+    <div class="card-top"><div class="board-card-badges"><span class="signal-tag signal-${esc(project.signal)}"><span class="signal-dot"></span>${esc(label(project.signal))}</span><span class="pri-tag pri-${esc(project.priority)}">${esc(label(project.priority))}优先级</span><span class="st-tag st-${statusClasses[project.status]}">${esc(label(project.status))}</span>${project.maintenanceEnabled ? '<span class="maintenance-badge">量产维护</span>' : ''}${risk?.unresolvedCount ? `<span class="board-risk signal-${risk.highestLevel === 'high' ? 'red' : 'yellow'}">风险 ${risk.unresolvedCount} · ${esc(label(risk.highestLevel))}</span>` : ''}${project.deadline.kind === 'overdue' ? '<span class="board-risk signal-red">已超期</span>' : ''}</div><span class="board-check-state ${project.checkedToday ? 'checked-today' : ''}">${checkLabel}</span></div>
     <div class="board-card-heading"><h3 class="card-name"><a data-project-link href="project-detail.html?id=${project.id}">${esc(project.name)}</a></h3><span data-project-editors="${project.id}">${editorBadges(editors.get(project.id) ?? [])}</span></div>${project.summary ? `<div class="card-desc">${esc(project.summary)}</div>` : ''}
-    <section class="board-card-section"><h4>基本资料与日期</h4><dl class="board-card-facts">${facts}</dl>${project.tags.length ? `<div class="board-card-tags">${project.tags.map(tag=>`<span>${esc(tag.name)}</span>`).join('')}</div>` : ''}
-    <div class="board-card-dates">${dates}</div>${project.marketExpectation ? `<p class="board-card-market"><span>市场预期</span>${esc(project.marketExpectation)}</p>` : ''}</section>
+    <section class="board-card-section"><h4>基本资料</h4><dl class="board-card-facts">${facts}</dl>${project.tags.length ? `<div class="board-card-tags">${project.tags.map(tag=>`<span>${esc(tag.name)}</span>`).join('')}</div>` : ''}
+    ${project.marketExpectation ? `<p class="board-card-market"><span>市场预期</span>${esc(project.marketExpectation)}</p>` : ''}</section>
     <section class="board-card-section"><h4>项目分工</h4><dl class="board-card-people">${people}</dl></section>
     <div class="board-card-stage"><div class="board-stage-heading"><span>当前阶段：${esc(stageName)}</span><strong>${project.progress}%</strong></div><div class="board-card-progress"><div class="stage-bar-track"><div class="stage-bar-fill" style="width:${Number(project.progress)}%"></div></div></div><p class="board-card-milestone">${stage ? '里程碑：' + esc(stage.milestone) : project.stage === 'completed' ? '七阶段里程碑已全部完成。' : '阶段待确认'}</p></div>
     <div class="board-card-status"><div class="board-status-heading"><span>最新状态说明</span></div>${statusContent(project)}</div>
@@ -223,7 +225,7 @@ async function load(active = true) {
   message.classList.remove('error');
   message.textContent = '正在读取项目…';
   history.replaceState(null, '', location.pathname + '?' + query);
-  document.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(button => button.classList.toggle('active', button.dataset.view === query.get('view')));
+  document.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(button => { const active = button.dataset.view === query.get('view'); button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
   try {
     const requestQuery = new URLSearchParams(query); requestQuery.delete('layout'); requestQuery.set('dashboard', '1');
     const requestedPage = Number(requestQuery.get('page') ?? 1);
