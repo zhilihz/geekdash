@@ -1,0 +1,28 @@
+{
+  "revision": "250af541ced5edf14659683d65c787618e7e96bd",
+  "local": {
+    "historyBeforeStatus": true,
+    "historyOpen": false,
+    "historyLabel": "状态说明历史",
+    "statusTitle": "最新状态说明",
+    "textareaExists": true,
+    "saveExists": true,
+    "historyBottom": 327.2604293823242,
+    "statusHeadingTop": 359.9270935058594,
+    "theme": "warm",
+    "historyExpandsWithSavedText": true,
+    "inputUnchangedOnExpand": true
+  },
+  "public": {
+    "historyBeforeStatus": true,
+    "historyOpen": false,
+    "historyLabel": "状态说明历史",
+    "statusTitle": "最新状态说明",
+    "textareaExists": true,
+    "saveExists": true,
+    "historyBottom": 327.5937728881836,
+    "statusHeadingTop": 360.26043701171875,
+    "theme": "warm"
+  },
+  "businessWritePerformed": false
+}
