@@ -1,0 +1,69 @@
+{
+  "status": "passed",
+  "revision": "60a1c7f356db0639cc816f387ede3f70d98b11f6",
+  "checkedAt": "2026-10-20T03:00:18.857150+00:00",
+  "nativeBrowserAcceptance": false,
+  "sse": {
+    "statusSave": {
+      "projectId": "26",
+      "operationId": "e7ee6b66-a721-40c5-af70-896acac1ca0e",
+      "version": "2",
+      "observedAt": "2026-10-20T03:00:43.512280+00:00",
+      "status": "observed",
+      "source": "current_stream"
+    },
+    "check": {
+      "projectId": "26",
+      "operationId": "cf74e346-7528-4510-9220-bb59eaec977c",
+      "version": "3",
+      "observedAt": "2026-10-20T03:00:51.018406+00:00",
+      "status": "observed",
+      "source": "current_stream"
+    }
+  },
+  "build": {
+    "revision": "60a1c7f356db0639cc816f387ede3f70d98b11f6",
+    "dirty": false,
+    "builtAt": "2026-10-20T02:54:29.584Z",
+    "stage": "project-list",
+    "schemaVersion": "0005-check-facts"
+  },
+  "catalogReadableByEnabledAccount": true,
+  "optionsBusinessDate": "2026-10-20",
+  "projectId": "26",
+  "businessChecksStatus": "passed",
+  "sseStatus": "observed",
+  "projectVersion": "3",
+  "checkBusinessDate": "2026-10-20",
+  "currentBusinessDate": "2026-10-20",
+  "managerCount": 2,
+  "auditCount": 3,
+  "checkCount": 1,
+  "checkId": "10",
+  "createOperationId": "89b80990-8ead-4c5a-bab2-9c5e343076ef",
+  "saveOperationId": "e7ee6b66-a721-40c5-af70-896acac1ca0e",
+  "checkOperationId": "cf74e346-7528-4510-9220-bb59eaec977c",
+  "replayedFromReceipt": {
+    "create": false,
+    "save": false,
+    "check": false
+  },
+  "checks": [
+    "independent_cookie_jars",
+    "selected_manager_can_edit",
+    "enabled_account_catalog_capability",
+    "project_options_business_date",
+    "synthetic_status_saved",
+    "direct_check_without_rule_or_preview",
+    "check_does_not_change_business_fields",
+    "new_check_week_and_rule_are_null",
+    "server_checked_today_matches_board",
+    "both_accounts_fresh_detail_and_board",
+    "one_check_true_actor_time_versions",
+    "exact_receipts_without_duplicate_check",
+    "creator_receives_status_and_check_sse"
+  ],
+  "databaseVerification": "separate_readback_pending",
+  "ownSessionsLoggedOut": true,
+  "finishedAt": "2026-10-20T03:01:55.169097+00:00"
+}

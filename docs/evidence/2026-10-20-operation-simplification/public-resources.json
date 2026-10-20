@@ -1,0 +1,192 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-20T03:01:13.468Z",
+  "build": {
+    "revision": "60a1c7f356db0639cc816f387ede3f70d98b11f6",
+    "dirty": false,
+    "builtAt": "2026-10-20T02:54:29.584Z",
+    "stage": "project-list",
+    "schemaVersion": "0005-check-facts"
+  },
+  "checks": [
+    {
+      "path": "/data-manage.html",
+      "status": 200,
+      "sha256": "8581ae7b0426f71571f3b7fe94b66672740f065facb4d370923a1e39af7a9f26",
+      "matchesDist": true
+    },
+    {
+      "path": "/",
+      "status": 200,
+      "sha256": "003027c5db3e9f201b13aa8999bd537932c3c6b845fc985a6998f5e6ab41da61",
+      "matchesDist": true
+    },
+    {
+      "path": "/login.html",
+      "status": 200,
+      "sha256": "f12d9abcd8838244aaf0e2a17e97140d7c9788343f24b2c333a22ed00e4c3e3c",
+      "matchesDist": true
+    },
+    {
+      "path": "/project-checks.html",
+      "status": 200,
+      "sha256": "810c3672d645455ad853b5ba2cc5f1194dcb2a2236598e2dbc92ab57233cad2d",
+      "matchesDist": true
+    },
+    {
+      "path": "/project-detail.html",
+      "status": 200,
+      "sha256": "c6553a36fc30f7f2085abbf42f3c730c0bbc9c6e826f0706705fcccbbe3035d3",
+      "matchesDist": true
+    },
+    {
+      "path": "/project-new.html",
+      "status": 200,
+      "sha256": "b3c4a3d622db3e792460d16f5e2ab5c94ddd354bc5f6d5b66d12df195f1f403d",
+      "matchesDist": true
+    },
+    {
+      "path": "/project-status-summary.html",
+      "status": 200,
+      "sha256": "c354617032707a33693b9c4f7fa60272148440dc4d13e1ea4e1ae5c7e0bf11ec",
+      "matchesDist": true
+    },
+    {
+      "path": "/settings.html",
+      "status": 200,
+      "sha256": "dac4c11357b1db73cfe0fff70d782f3f305951f7d0f09b642420ae29546b74e7",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/data-manage-Ctw_nw2Q.js",
+      "status": 200,
+      "sha256": "00204c5eeceeafbebfae127df737fb1cca2990e76a88c4fee36f5f9c9a999189",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/api-69dSK2wW.js",
+      "status": 200,
+      "sha256": "5325a2d6dd992cc9afc3c5d002601f7775f4fa4bdd604d036e103482a692dcea",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/notifications-S-iwyM6O.js",
+      "status": 200,
+      "sha256": "3144228f9a594375981e0d066bbdb828a2ff2b3d9605f205840032c289e496af",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/api-BKqNy8F-.css",
+      "status": 200,
+      "sha256": "815cb15c2b1cd11a9324ba952f030958334697380f83ba3507bb812fcd201ee2",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/data-manage-Bk-2UBJj.css",
+      "status": 200,
+      "sha256": "c122fced89056792515d36a40750ecd13b6d9c22a2b061e68f9209c025c585bf",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/board-Buhf5ru8.css",
+      "status": 200,
+      "sha256": "65dda0aefe3464ec2fa4d00f1860c8657e63fb612dc2dd3abf8130fcf5d569cf",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/index-JxSlv46Z.js",
+      "status": 200,
+      "sha256": "562b08de68406ec054861f715a132eb3d5ddd485f547a424abf8394250fe3324",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/index-CihLxPjF.css",
+      "status": 200,
+      "sha256": "b28674b6d2236f4b94f3ca6724656912c361f4ac83b7bc96782cdbabad967d9c",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/login-ORr-GRCb.js",
+      "status": 200,
+      "sha256": "3c2f7c5b3bcd841426973a42e24583739cf1804aaeb91d5693c25b8294a347f6",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/login-D9KYl3tU.css",
+      "status": 200,
+      "sha256": "e179bf8998912737851b88af0bc94aeff622a19313ac40fe5dd626fb3206ece0",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/detail-77ss3FnP.css",
+      "status": 200,
+      "sha256": "a8deebd1297edc027debefe7f2e1a0c6e4d53a85d9bb3796fd99b90fe535c376",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-checks-DBP4sFi8.js",
+      "status": 200,
+      "sha256": "e537d666ac10fc01b0fec779865070c8872e7584be81fd80219c1478cfd50243",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/history-D_RovDk1.js",
+      "status": 200,
+      "sha256": "39bcee104fe290e7b8d83b2be1794f25ea07225d0bc1cae00db44ce9bace4665",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-checks-lawCJIj9.css",
+      "status": 200,
+      "sha256": "c225acd772443391e52c4c991063d64f3f1462caf34bc632e9001ff3c6825609",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-detail-DzH-Awku.js",
+      "status": 200,
+      "sha256": "e6bbd1fda48dbf588a7c73fd4cb9d7fa56fcf332ab1690174b873abfd4e4582e",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-options-CP2F_afI.js",
+      "status": 200,
+      "sha256": "a9abf00d509f638a2c726b322c999041917b1af1fb0462c8474ea3bd09313b0c",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-options-CjjHA-vc.css",
+      "status": 200,
+      "sha256": "b329eab4502f60f2562a236a1a69b3816f170c80e72b4557ef83971d3bbba6c0",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-new-D3MvfFid.js",
+      "status": 200,
+      "sha256": "5f815b244649121013f15525dd9185e92edcf3d10ee85c7c0f0860fc13594e43",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-status-summary-9ZMVw8PZ.js",
+      "status": 200,
+      "sha256": "0e553a3d5ad5ee832cfb19c501855cfe426ee9532b39af006b7c16572a79a1c6",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/project-status-summary-DlqO6-jo.css",
+      "status": 200,
+      "sha256": "7265f6ec41cc1d0252b3ba2f45c867177ad17a6c2ea94f18240fa6a5e7bcf4f7",
+      "matchesDist": true
+    },
+    {
+      "path": "/assets/settings-CVHyTehG.js",
+      "status": 200,
+      "sha256": "5df54e5a3a70eab1144ee331e43bab9a7d9cf21c9b2559b14ba08dde3247b802",
+      "matchesDist": true
+    }
+  ],
+  "anonymousStatus": 401,
+  "anonymousCode": "AUTH_REQUIRED",
+  "source": "Edge同源HTTPS新请求；静态摘要一致，不替代原生写入验收",
+  "pageCount": 8,
+  "assetCount": 21
+}

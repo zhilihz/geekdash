@@ -1,0 +1,62 @@
+{
+  "checkedAt": "2026-10-20T03:02:50.439Z",
+  "url": "https://geekdash.zhiluan.cool/project-detail.html?id=26",
+  "build": {
+    "revision": "60a1c7f356db0639cc816f387ede3f70d98b11f6",
+    "dirty": false,
+    "builtAt": "2026-10-20T02:54:29.584Z",
+    "stage": "project-list",
+    "schemaVersion": "0005-check-facts"
+  },
+  "overflow": false,
+  "dialogs": 0,
+  "basicEditable": true,
+  "noWeeklyText": true,
+  "noSettingsLink": true,
+  "values": [
+    {
+      "id": "edit-summary",
+      "value": "合成验证项目：检查事实与共享资料权限，不含真实业务数据。"
+    },
+    {
+      "id": "edit-marketExpectation",
+      "value": ""
+    },
+    {
+      "id": "edit-detailNote",
+      "value": ""
+    },
+    {
+      "id": "edit-statusDesc",
+      "value": "合成验证：另一负责人已保存最新状态，随后明确检查；不建立周检查规则。"
+    }
+  ],
+  "buttons": [
+    "深色",
+    "浅色",
+    "暖色",
+    "▾",
+    "基本信息",
+    "项目阶段",
+    "项目节点",
+    "项目 Flow",
+    "客户节点",
+    "项目风险与变更",
+    "更新历史",
+    "重新进入项目",
+    "▾",
+    "▾",
+    "▾",
+    "▾",
+    "▾",
+    "▾",
+    "▾",
+    "本人退出",
+    "▾",
+    "▾",
+    "保存基本信息",
+    "取消修改",
+    "保存状态说明",
+    "个人草稿"
+  ]
+}

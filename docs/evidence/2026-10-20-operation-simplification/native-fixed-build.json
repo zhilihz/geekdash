@@ -1,0 +1,33 @@
+{
+  "checkedAt": "2026-10-20T02:59:54.618Z",
+  "build": {
+    "revision": "60a1c7f356db0639cc816f387ede3f70d98b11f6",
+    "dirty": false,
+    "builtAt": "2026-10-20T02:54:29.584Z",
+    "stage": "project-list",
+    "schemaVersion": "0005-check-facts"
+  },
+  "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760433",
+  "overflow": false,
+  "openDialogs": 0,
+  "basicEditable": true,
+  "values": [
+    {
+      "id": "edit-summary",
+      "value": "验证资料选取、阶段和检查的连续操作"
+    },
+    {
+      "id": "edit-marketExpectation",
+      "value": ""
+    },
+    {
+      "id": "edit-detailNote",
+      "value": ""
+    },
+    {
+      "id": "edit-statusDesc",
+      "value": "已完成主板初验，等待客户确认接口。"
+    }
+  ],
+  "noWeeklyText": true
+}
