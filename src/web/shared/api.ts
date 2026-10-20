@@ -12,14 +12,14 @@ export function applyCompany(company:Company|null|undefined) {
 export type Project = {
   id: string; version: string; dataKind: 'business' | 'trial'; name: string; status: string; priority: string; signal: string;
   customer: string | null; odmFactory: string | null; productLine: string | null; app: string | null; projectGroup: string | null;
-  proposalDate: string | null; dueDate: string | null; marketExpectation: string; summary: string; statusDesc: string; statusEntries?: { text: string; date: string }[]; summaryNote?: string;
+  proposalDate: string | null; filingDate: string | null; startDate: string | null; closedOn: string | null; dueDate: string | null; marketExpectation: string; summary: string; statusDesc: string; statusEntries?: { text: string; date: string }[]; summaryNote?: string;
   deadline: Deadline; checkStatus: CheckStatus; resumeStatus: string | null; maintenanceEnabled: number; updatedAt: string; stage: string; stageState: string; progress: string | number;
   chips: { id: string; name: string }[]; people: { id: string; name: string; role: string }[]; tags: { id: string; name: string }[];
   managers: { id: string; name: string; enabled: number }[];
 };
-export type ListProject = Project & { checkedToday: boolean; capabilities: { canCheck: boolean }; inspection?: Detail };
+export type ListProject = Project & { checkedToday: boolean; capabilities: { canCheck: boolean }; riskSummary?: { unresolvedCount: number; highestLevel: 'high' | 'mid' | 'low' | null }; inspection?: Detail };
 export type Dashboard = { distributions: Record<string, { value: string; count: number }[]>; focusTotal: number; focus: Pick<Project, 'id' | 'name' | 'status' | 'priority' | 'stage' | 'progress'>[]; latest: Pick<Project, 'id' | 'name' | 'statusDesc' | 'updatedAt'>[]; team: { id: string; name: string; count: number; pmCount: number; hardwareCount: number; softwareCount: number }[] };
-export type List = { items: ListProject[]; businessDate: string; company?:Company|null; stats: Record<string, number> & { todayChecked: number; todayUnchecked: number }; options: Record<string, string[]>; optionLabels?: Record<string, Record<string, string>>; stageCounts: { value: string; count: string | number }[]; pagination: { page: number; pageSize: number; total: number; pageCount: number }; readOnly: true; dashboard?: Dashboard; quickRanges?: Record<string,string[]> };
+export type List = { items: ListProject[]; businessDate: string; company?:Company|null; stats: Record<string, number> & { todayChecked: number; todayUnchecked: number }; options: Record<string, string[]>; optionLabels?: Record<string, Record<string, string>>; stageCounts: { value: string; count: string | number }[]; pagination: { page: number; pageSize: number; total: number; pageCount: number }; readOnly: true; dashboard?: Dashboard; globalChecks?: { total: number; todayChecked: number; todayUnchecked: number }; quickRanges?: Record<string,string[]> };
 export type Entry = Record<string, string | number | null>;
 export type TextValues = { name: string; marketExpectation: string; detailNote: string; summaryNote: string; summary: string };
 export type RiskOperation = { op: 'add'; tempId: string; content: string; level: 'high' | 'mid' | 'low' } | { op: 'correct'; id: string; changes: Partial<{ content: string; level: 'high' | 'mid' | 'low'; resolution: string }>; reason: string } | { op: 'resolve'; id: string; resolution: string } | { op: 'undoResolve'; id: string; reason: string } | { op: 'delete'; id: string };
@@ -69,6 +69,9 @@ export type CheckRecord = { id: string; actorId: string; actorName: string; chec
 export type CheckPage = { items: CheckRecord[]; projectVersion: string; nextCursor: string | null; pageSize: number };
 export type CheckPreview = { projectId: string; expectedVersion: string; changed: boolean; beforeValues: { check: { conclusion: string; note: string } } | null; afterValues: { check: { conclusion: string; note: string; weekStart?: string; checkedAt?: string } }; deadlineDate?: string | null; onTime?: boolean; checkedAt?: string; actorName?: string; weekStart?: string; ruleVersion?: string; observedVersion?: string; resultVersion?: string };
 export type CheckStatus = { kind: string; label: string; updatedAfterCheck: boolean; latest: { id: string; actorId: string | null; actorName: string | null; checkedAt: string; conclusion: string; note: string; observedVersion: string; resultVersion: string } | null };
+export function checkTime(check: CheckStatus) {
+  return check.latest ? new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(check.latest.checkedAt)) : '尚未检查';
+}
 export type LifecycleNote = { id: string; action: string; note: string; originalNote: string; actorDisplayName: string; createdAt: string; versionBefore: string; versionAfter: string; corrections: { id: string; reason: string; actorDisplayName: string; createdAt: string }[] };
 export type LifecyclePreview = { projectId: string; expectedVersion: string; changed: boolean; beforeValues: Record<string, unknown>; afterValues: Record<string, unknown>; beforeCheck: CheckStatus; afterCheck: CheckStatus; plan?: PlanPreview };
 export const closureTitles = { closedOn: '实际结案日', closureDueDate: '结案时计划', closureType: '结案类型', closureNote: '结案说明', remainingWorkNote: '遗留处置说明' } as const;

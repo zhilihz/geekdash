@@ -1,11 +1,13 @@
 import './shared/board.css';
 import './shared/read.css';
 import './shared/board-page.css';
-import { get, send, SaveError, esc, label, applyCompany, setupTheme, setupDateZone, appearance, account, loginUrl, type Dashboard, type List, type ListProject, type Detail, type SaveRequest, type SaveResult } from './shared/api';
+import { get, send, SaveError, esc, label, checkTime, applyCompany, setupTheme, setupDateZone, appearance, account, loginUrl, type Dashboard, type List, type ListProject, type Detail, type SaveRequest, type SaveResult } from './shared/api';
 import { PersonalPreference, PersonalDrafts } from './shared/personal-state';
 import { ProjectNotifications, editorBadges, type EditingPresence } from './shared/notifications';
 import { attachStatusMentions } from './shared/status-mentions';
 import { statusHtml } from './shared/status-text';
+
+declare const __GEEKDASH_STAGES__: { id: number; name: string; milestone: string }[];
 
 const element = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const search = element<HTMLInputElement>('search');
@@ -73,17 +75,21 @@ function selectedFilters() {
   return selected.map(item => item.text);
 }
 function card(project: ListProject) {
+  const stage = __GEEKDASH_STAGES__.find(item => 'S' + item.id === project.stage);
   const stageName = (project.status === 'paused' ? '暂缓保留 · ' : '') + (project.stage === 'completed' ? '七阶段全部完成' : label(project.stage) + ' · ' + (project.status === 'proposal' && project.stage !== 'S1' ? '需先启动项目' : label(project.stageState)));
-  const people = [['pm', '项目经理'], ['hardware_owner', '硬件'], ['software_owner', '软件']].map(([role, title]) => `<span><em>${title}</em>${esc((role === 'pm' ? project.managers : project.people.filter(person => person.role === role)).map(person => person.name).join('、') || '未分配')}</span>`).join('');
-  const materials = [project.chips.map(chip => chip.name).join(' / '), project.odmFactory, project.app].filter(Boolean).join(' · ');
-  return `<article class="card ${project.priority === 'high' ? 'pri-border-high' : ''}" data-project-id="${project.id}">
-    <div class="card-top"><span class="board-signal signal-${esc(project.signal)}">${esc(label(project.signal))}</span><span>${esc(label(project.priority))}优先级 · ${esc(label(project.status))}</span></div>
-    <h3 class="card-name"><a href="project-detail.html?id=${project.id}">${esc(project.name)}</a></h3>${project.summary ? `<div class="card-desc">${esc(project.summary)}</div>` : ''}<p class="board-card-meta">${esc([project.customer || '未选择客户', project.productLine].filter(Boolean).join(' · '))}</p>${materials ? `<p class="board-card-materials">${esc(materials)}</p>` : ''}
-    <div class="board-card-dates"><div><span>预计结案</span><strong>${esc(project.dueDate || '计划未定')}</strong></div><div><span>项目阶段</span><strong>${esc(stageName)}</strong></div></div>
-    <div class="board-card-progress"><div class="stage-bar-track"><div class="stage-bar-fill" style="width:${Number(project.progress)}%"></div></div><span>${project.progress}%</span></div>
-    <div class="board-card-people">${people}</div>
-    <div class="board-card-status"><div class="board-status-heading"><span>最新状态说明</span><span data-project-editors="${project.id}">${editorBadges(editors.get(project.id) ?? [])}</span></div>${statusContent(project)}</div>
-    <div class="board-card-footer"><span class="${project.checkedToday ? 'checked-today' : ''}" title="${esc(project.checkStatus.label + (project.checkStatus.updatedAfterCheck ? ' · 检查后有更新' : ''))}">${project.checkedToday ? '✓ 今日已检查' : '○ 今日未检查'}</span><a href="project-detail.html?id=${project.id}">查看详情 ↗</a></div></article>`;
+  const people = [['pm', '项目经理'], ['hardware_owner', '硬件负责人'], ['software_owner', '软件负责人'], ['participant', '参与人员']].map(([role, title]) => `<div><dt>${title}</dt><dd>${esc((role === 'pm' ? project.managers : project.people.filter(person => person.role === role)).map(person => person.name).join('、') || '未分配')}</dd></div>`).join('');
+  const facts = [['客户', project.customer], ['产品线', project.productLine], ['ODM 工厂', project.odmFactory], ['APP', project.app], ['芯片', project.chips.map(chip => chip.name).join(' / ')], ['分组', project.projectGroup]].map(([title, value]) => `<div><dt>${title}</dt><dd>${esc(value || '—')}</dd></div>`).join('');
+  const dates = [['立案日期', project.filingDate], ['实际启动', project.startDate], ['预计结案', project.dueDate || '计划未定'], ['实际结案', project.closedOn]].map(([title, value]) => `<div><span>${title}</span><strong>${esc(value || '—')}</strong></div>`).join('');
+  const risk = project.riskSummary;
+  return `<article class="card ${project.priority === 'high' ? 'pri-border-high' : ''}" data-project-id="${project.id}" tabindex="0" aria-label="打开项目：${esc(project.name)}">
+    <div class="card-top"><div class="board-card-badges"><span class="board-signal signal-${esc(project.signal)}">${esc(label(project.signal))}</span><span>${esc(label(project.priority))}优先级 · ${esc(label(project.status))}</span>${project.maintenanceEnabled ? '<span class="maintenance-badge">量产维护</span>' : ''}${risk?.unresolvedCount ? `<span class="board-risk signal-${risk.highestLevel === 'high' ? 'red' : 'yellow'}">风险 ${risk.unresolvedCount} · ${esc(label(risk.highestLevel))}</span>` : ''}${project.deadline.kind === 'overdue' ? '<span class="board-risk signal-red">已超期</span>' : ''}</div><span class="board-check-state ${project.checkedToday ? 'checked-today' : ''}">${project.checkedToday ? '✓ 今日已检查' : '○ 今日未检查'}</span></div>
+    <div class="board-card-heading"><h3 class="card-name"><a data-project-link href="project-detail.html?id=${project.id}">${esc(project.name)}</a></h3><span data-project-editors="${project.id}">${editorBadges(editors.get(project.id) ?? [])}</span></div>${project.summary ? `<div class="card-desc">${esc(project.summary)}</div>` : ''}
+    <dl class="board-card-facts">${facts}</dl>${project.tags.length ? `<div class="board-card-tags">${project.tags.map(tag=>`<span>${esc(tag.name)}</span>`).join('')}</div>` : ''}
+    <div class="board-card-dates">${dates}</div>${project.marketExpectation ? `<p class="board-card-market"><span>市场预期</span>${esc(project.marketExpectation)}</p>` : ''}
+    <dl class="board-card-people">${people}</dl>
+    <div class="board-card-stage"><div class="board-stage-heading"><span>当前阶段：${esc(stageName)}</span><strong>${project.progress}%</strong></div><div class="board-card-progress"><div class="stage-bar-track"><div class="stage-bar-fill" style="width:${Number(project.progress)}%"></div></div></div><p class="board-card-milestone">${stage ? '里程碑：' + esc(stage.milestone) : project.stage === 'completed' ? '七阶段里程碑已全部完成。' : '阶段待确认'}</p></div>
+    <div class="board-card-status"><div class="board-status-heading"><span>最新状态说明</span></div>${statusContent(project)}</div>
+    <div class="board-card-footer"><div class="board-check-time">最近检查：${project.checkStatus.latest ? `<time datetime="${esc(project.checkStatus.latest.checkedAt)}">${esc(checkTime(project.checkStatus))}</time>${project.checkStatus.latest.actorName ? ' · ' + esc(project.checkStatus.latest.actorName) : ''}` : '尚未检查'}${project.checkStatus.updatedAfterCheck ? '<span class="board-check-updated">检查后有更新</span>' : ''}</div><a href="project-detail.html?id=${project.id}">查看详情 ↗</a></div></article>`;
 }
 function statusContent(project:ListProject){
   const edit=statusEdits.get(project.id),editable=canEditStatus(project),stale=!!edit && (edit.stale || edit.version!==project.version || !editable);
@@ -222,7 +228,7 @@ async function load(active = true) {
     const requestedPage = Number(requestQuery.get('page') ?? 1);
     const data = await get<List>('/api/projects?' + requestQuery, controller.signal, active);
     if (current !== generation) return;
-    if (!data.dashboard) throw new Error('看板统计尚未读取，请刷新。');
+    if (!data.dashboard || !data.globalChecks) throw new Error('看板统计尚未读取，请刷新。');
     if(frozen)return false;
     currentData = data; pagination = data.pagination;applyCompany(data.company);
     for(const project of data.items){const edit=statusEdits.get(project.id);if(edit && !edit.pending && (edit.version!==project.version || !canEditStatus(project)))edit.stale=true;}
@@ -239,9 +245,8 @@ async function load(active = true) {
     const selected = selectedFilters();
     element('result-count').textContent = `共 ${pagination.total} 个项目 · 截至 ${businessDate}`;
     element('result-count').title = selected.join(' · ') || '未设置筛选';
-    element('today-check-count').textContent = `当前范围今天还有 ${data.stats.todayUnchecked} 个项目未检查`;
-    const checkQuery = new URLSearchParams(query); checkQuery.delete('layout'); checkQuery.delete('page'); checkQuery.set('checkToday', 'unchecked');
-    element<HTMLAnchorElement>('check-entry').href = '/project-checks.html?' + checkQuery;
+    element('today-check-count').textContent = `全部项目 ${data.globalChecks.total} · 今日已检查 ${data.globalChecks.todayChecked} · 今日未检查 ${data.globalChecks.todayUnchecked}`;
+    element<HTMLAnchorElement>('check-entry').href = '/project-checks.html?view=all&checkToday=unchecked';
     element('check-entry').removeAttribute('aria-disabled');
     element('page-info').textContent = `${pagination.page} / ${pagination.pageCount} 页`;
     previous.disabled = pagination.page <= 1;
@@ -260,13 +265,13 @@ async function load(active = true) {
     if (current !== generation) return;
     message.classList.add('error');
     message.textContent = (error as Error).message + (hasResult ? ' 当前显示保留的旧结果，尚未刷新。' : '');
-    element('today-check-count').textContent = '当前范围读取失败，请刷新后进入检查';
+    element('today-check-count').textContent = '项目检查统计读取失败，请刷新后进入检查';
     element('card-grid').setAttribute('aria-busy', 'false');
     return false;
   }
 }
 function change(key: string, value: string) { value ? query.set(key, value) : query.delete(key); query.delete('page'); remember();void load(); }
-function freezeCheckEntry() { document.querySelectorAll<HTMLButtonElement>('[data-quick]').forEach(button=>button.disabled=true);element('check-entry').removeAttribute('href'); element('check-entry').setAttribute('aria-disabled', 'true'); element('today-check-count').textContent = '正在读取当前范围的检查情况…'; }
+function freezeCheckEntry() { document.querySelectorAll<HTMLButtonElement>('[data-quick]').forEach(button=>button.disabled=true);element('check-entry').removeAttribute('href'); element('check-entry').setAttribute('aria-disabled', 'true'); element('today-check-count').textContent = '正在读取全部项目的检查情况…'; }
 
 document.addEventListener('click',event=>{
   const button=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-quick]');
@@ -302,6 +307,15 @@ document.addEventListener('click', event => {
   if ((event.target as HTMLElement).closest('a')?.closest('[data-project-id],#check-entry')) {
     try { if(account)sessionStorage.setItem('geekdash_board_return:'+account.id, JSON.stringify({ url: location.href, scrollY: scrollY })); } catch { /* 无浏览器存储时可正常跳转。 */ }
   }
+});
+element('card-grid').addEventListener('click', event => {
+  const target = event.target as HTMLElement;
+  if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || window.getSelection()?.toString() || target.closest('a,button,input,textarea,select,label,summary,details,[contenteditable],[role="button"],[role="option"]')) return;
+  target.closest('[data-project-id]')?.querySelector<HTMLAnchorElement>('[data-project-link]')?.click();
+});
+element('card-grid').addEventListener('keydown', event => {
+  const card = event.target as HTMLElement;
+  if (event.key === 'Enter' && card.matches('article[data-project-id]')) { event.preventDefault(); card.querySelector<HTMLAnchorElement>('[data-project-link]')?.click(); }
 });
 window.addEventListener('focus', () => { if (hasResult) void load(); });
 window.addEventListener('scroll',()=>{if(!hasResult || scrollTimer)return;scrollTimer=setTimeout(()=>{scrollTimer=undefined;remember();},2000);},{passive:true});

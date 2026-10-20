@@ -1,0 +1,37 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-20T08:52:57.932Z",
+  "checks": [
+    "全局检查总量含进行中/提案/暂缓/结案/维护，跨视图/搜索空结果/今日筛选均与独立SQL一致；现有范围统计仍独立",
+    "真实检查页点击→唯一检查/审计落库→新详情版本与检查时间→待查移出→首页全局数量减少一项；人工正文与资料不变",
+    "真实首页资料/标签/简介/日期完整；整卡普通内容可点击，文字选择/原位编辑按钮/输入框不导航，原详情链接无重复跳转",
+    "上海跨日由真实数据库读取模块注入时钟核对：今日标记重置、最近时间/版本保持；真实首页定时事件消费投影且保留未保存输入（非真实等候过夜）",
+    "风险真实新增/等级纠正/解除/删除后新列表摘要计数及最高等级一致；解除与误录删除保留各自SQL事实且不计当前风险"
+  ],
+  "requestCount": 74,
+  "build": {
+    "revision": "116898dba05321bfac27a6807c0e4235b7f3b963",
+    "dirty": true,
+    "builtAt": "2026-10-20T08:51:26.477Z",
+    "stage": "project-list",
+    "schemaVersion": "0005-check-facts"
+  },
+  "projectId": "9007199254760591",
+  "savedVersion": "2",
+  "checkTime": "2026-10-20T08:52:56.897000Z",
+  "globalCountsBefore": {
+    "total": 35,
+    "todayChecked": 1,
+    "todayUnchecked": 34
+  },
+  "globalCountsAfter": {
+    "total": 35,
+    "todayChecked": 2,
+    "todayUnchecked": 33
+  },
+  "isolatedTestDatabase": true,
+  "nativeBrowserAcceptance": false,
+  "overnightWallClockWait": false,
+  "nativeFixtureRetained": true,
+  "ownSessionLoggedOut": true
+}

@@ -6,7 +6,7 @@ import { auditHistory } from './shared/history';
 import { PersonalPreference } from './shared/personal-state';
 import { ProjectNotifications } from './shared/notifications';
 import type { AuditPage, CheckPage } from './shared/api';
-import { esc, get, label, requireIdentity, SaveError, send, setupTheme, type CheckCommand, type List, type ListProject } from './shared/api';
+import { esc, get, label, checkTime, requireIdentity, SaveError, send, setupTheme, type CheckCommand, type List, type ListProject } from './shared/api';
 
 type Command = Extract<CheckCommand, { action: 'saveCheck' }>;
 type Pending = { projectId: string; projectName: string; command: Command };
@@ -16,7 +16,7 @@ const scopeKeys = ['view', 'search', ...Object.keys(dimensions)];
 const query = new URLSearchParams();
 const originalQuery = new URLSearchParams(location.search);
 for (const key of [...scopeKeys, 'checkToday', 'page']) if (originalQuery.get(key)) query.set(key, originalQuery.get(key)!);
-if (!query.has('view')) query.set('view', 'active');
+if (!query.has('view')) query.set('view', 'all');
 if (!query.has('checkToday')) query.set('checkToday', 'unchecked');
 let list: List | undefined;
 let notificationPending=false;
@@ -100,7 +100,7 @@ function card(project: ListProject) {
     ${project.tags.length ? `<div class="check-tags">${project.tags.map(tag => `<span class="read-tag">${esc(tag.name)}</span>`).join('')}</div>` : ''}
     ${project.inspection ? inspectionContent(project.inspection) : '<p role="alert">完整项目内容尚未读到，请重新读取后检查。</p>'}
     <details class="inspection-section" data-inspection="历史" data-check-history="${esc(project.id)}"><summary>检查与更新历史</summary><div class="inspection-history">展开后读取记录</div></details>
-    <div class="check-card-foot"><span>${project.checkedToday ? '今日已检查' : '今日未检查'} · 更新于 ${esc(updated)}</span><span class="${project.capabilities.canCheck ? 'check-status-label' : 'check-warning'}">${project.capabilities.canCheck ? esc(project.checkStatus.label) + (project.checkStatus.updatedAfterCheck ? ' · 检查后有更新' : '') : '仅项目负责人可以通过检查'}</span></div></div>
+    <div class="check-card-foot"><span>${project.checkedToday ? '今日已检查' : '今日未检查'} · 最近检查：${esc(checkTime(project.checkStatus))}${project.checkStatus.latest?.actorName ? ' · ' + esc(project.checkStatus.latest.actorName) : ''}<br>项目更新于 ${esc(updated)}</span><span class="${project.capabilities.canCheck ? 'check-status-label' : 'check-warning'}">${project.capabilities.canCheck ? esc(project.checkStatus.label) + (project.checkStatus.updatedAfterCheck ? ' · 检查后有更新' : '') : '仅项目负责人可以通过检查'}</span></div></div>
     <div class="check-card-actions"><button class="head-btn check-pass" data-check-project="${esc(project.id)}" disabled>${project.checkedToday ? '今日已检查' : '通过检查'}</button><a class="head-btn" data-correct-project="${esc(project.id)}" href="/project-detail.html?${esc(detail)}">进入修正</a></div>
   </article>`;
 }

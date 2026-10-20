@@ -32,6 +32,7 @@ const joins = `FROM projects p
 const columns = `CAST(p.id AS CHAR) id, CAST(p.version AS CHAR) version, p.data_kind dataKind, p.name, p.status, p.priority, p.signal,
  c.name customer, odm.name odmFactory, pl.name productLine, a.name app, g.name projectGroup,
  DATE_FORMAT(p.proposed_on,'%Y-%m-%d') proposalDate, DATE_FORMAT(p.current_due_date,'%Y-%m-%d') dueDate,
+ DATE_FORMAT(p.filed_on,'%Y-%m-%d') filingDate,DATE_FORMAT(p.started_on,'%Y-%m-%d') startDate,
  DATE_FORMAT(p.closed_on,'%Y-%m-%d') closedOn,DATE_FORMAT(p.closure_due_date,'%Y-%m-%d') closureDueDate,p.closure_type closureType,${closurePlanKnownExpression} closurePlanKnown,
  p.market_expectation marketExpectation, p.summary summary, p.status_description statusDesc,
  p.maintenance_enabled maintenanceEnabled, p.updated_at updatedAt,p.resume_status resumeStatus,DATE_FORMAT(p.first_check_week,'%Y-%m-%d') firstCheckWeek`;
@@ -116,7 +117,6 @@ async function enrich(connection: PoolConnection, projects: RowDataPacket[], inc
 async function readDetail(connection: PoolConnection, id: string, accountId: string | undefined, now: Date, withHistory = true, statusEntries?: StatusEntry[]) {
         const todayCheck = todayCheckCondition(businessToday(now));
         const project = (await enrich(connection, await rows(connection, `SELECT ${columns},${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress,${todayCheck.sql} checkedToday,
-          DATE_FORMAT(p.filed_on,'%Y-%m-%d') filingDate,DATE_FORMAT(p.started_on,'%Y-%m-%d') startDate,
           DATE_FORMAT(p.original_due_date,'%Y-%m-%d') originalDueDate,CAST(p.first_check_rule_version AS CHAR) firstCheckRuleVersion,
           p.signal_note signalNote,p.detail_note detailNote,p.summary_note summaryNote,p.chipstat_note chipstatNote,
           CAST(p.customer_id AS CHAR) customerId,CAST(p.odm_customer_id AS CHAR) odmCustomerId,
@@ -183,7 +183,10 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
         const stats = (await rows(connection, `SELECT COUNT(*) total,COALESCE(SUM(p.priority='high'),0) high,COALESCE(SUM(p.signal='green'),0) green,COALESCE(SUM(p.signal='yellow'),0) yellow,COALESCE(SUM(p.signal='red'),0) red,${statistics.map(condition => `COALESCE(SUM(${condition.sql}),0) \`${condition.key}\``).join(',')} ${joins} ${filtered.sql}`, [...statistics.flatMap(condition => condition.values), ...filtered.values]))[0];
         const total = Number(stats.total);
         let quickRanges:Record<string,string[]>|undefined;
+        let globalChecks:{total:number;todayChecked:number;todayUnchecked:number}|undefined;
         if(query.dashboard){
+          const allChecks=(await rows(connection,`SELECT COUNT(*) total,COALESCE(SUM(${todayCheck.sql}),0) todayChecked FROM projects p`,todayCheck.values))[0];
+          globalChecks={total:Number(allChecks.total),todayChecked:Number(allChecks.todayChecked),todayUnchecked:Number(allChecks.total)-Number(allChecks.todayChecked)};
           const quickConditions=[{key:'total',sql:'1',values:[]},{key:'high',sql:"p.priority='high'",values:[]},...['green','yellow','red'].map(color=>({key:color,sql:`p.signal='${color}'`,values:[]})),...statistics];
           const matches=await rows(connection,`SELECT CAST(p.id AS CHAR) id,${quickConditions.map(condition=>`(${condition.sql}) AS \`${condition.key}\``).join(',')} ${joins} ${filtered.sql} ORDER BY p.id DESC`,[...quickConditions.flatMap(condition=>condition.values),...filtered.values]);
           quickRanges=Object.fromEntries(quickConditions.map(condition=>[condition.key,matches.filter(row=>Number(row[condition.key])===1).map(row=>String(row.id))]));
@@ -192,7 +195,10 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
         const pageCount = Math.max(1, Math.ceil(total / pageSize));
         const page = Math.min(query.page ?? 1, pageCount);
         const items = await enrich(connection, await rows(connection, `SELECT ${columns},${query.dashboard ? 'p.summary_note summaryNote,' : ''}${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress,${todayCheck.sql} checkedToday,EXISTS (SELECT 1 FROM project_responsibilities r WHERE r.project_id=p.id AND r.user_id=?) canCheck ${joins} ${filtered.sql} ORDER BY p.id DESC LIMIT ? OFFSET ?`, [...todayCheck.values, accountId ?? null, ...filtered.values, pageSize, (page - 1) * pageSize]));
+        const risks = items.length ? await rows(connection, `SELECT CAST(project_id AS CHAR) projectId,COUNT(*) unresolvedCount,ELT(MAX(FIELD(level,'low','mid','high')),'low','mid','high') highestLevel FROM project_risks WHERE project_id IN (${items.map(() => '?').join(',')}) AND deleted_at IS NULL AND resolved=0 GROUP BY project_id`, items.map(project => project.id)) : [];
         for (const project of items) {
+          const risk = risks.find(risk => risk.projectId === project.id);
+          project.riskSummary = { unresolvedCount: Number(risk?.unresolvedCount ?? 0), highestLevel: risk?.highestLevel ?? null };
           project.deadline = deadlineResult(project as RowDataPacket & DateFacts, today);
           project.checkedToday = Number(project.checkedToday) === 1;
           project.capabilities = { canCheck: Number(project.canCheck) === 1 };
@@ -231,7 +237,7 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
           team.sort((a,b) => Number(b.count)-Number(a.count) || a.name.localeCompare(b.name,'zh-CN') || a.id.localeCompare(b.id));
           dashboard = { distributions, focusTotal: focus.length, focus: focus.slice(0, 12).map(({ id, name, status, priority, stage, progress }) => ({ id, name, status, priority, stage, progress })), latest: [...all].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 10).map(({ id, name, statusDesc, updatedAt }) => ({ id, name, statusDesc, updatedAt })), team: team.map(member => ({ ...member, count: Number(member.count), pmCount: Number(member.pmCount), hardwareCount: Number(member.hardwareCount), softwareCount: Number(member.softwareCount) })) };
         }
-        return { items, businessDate: today, company:await companyInformation(connection),stats: Object.fromEntries(Object.entries(stats).map(([key, value]) => [key, Number(value)])), stageCounts, options, optionLabels, pagination: { page, pageSize, total, pageCount }, readOnly: true, ...(dashboard ? { dashboard,quickRanges } : {}) };
+        return { items, businessDate: today, company:await companyInformation(connection),stats: Object.fromEntries(Object.entries(stats).map(([key, value]) => [key, Number(value)])), stageCounts, options, optionLabels, pagination: { page, pageSize, total, pageCount }, readOnly: true, ...(dashboard ? { dashboard,quickRanges,globalChecks } : {}) };
       });
     },
     detail(id: string, accountId?: string) {
