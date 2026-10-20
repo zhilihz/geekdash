@@ -1,0 +1,99 @@
+{
+  "status": "passed",
+  "at": "2026-10-20T02:41:13.580Z",
+  "projectId": "9007199254760433",
+  "project": {
+    "version": "6",
+    "status": "ongoing",
+    "startDate": "2026-10-20",
+    "dueDate": null,
+    "statusDesc": "已完成主板初验，等待客户确认接口。"
+  },
+  "stages": [
+    {
+      "code": "S1",
+      "state": "completed",
+      "startedOn": "2026-10-19",
+      "completedOn": "2026-10-20"
+    },
+    {
+      "code": "S2",
+      "state": "ready",
+      "startedOn": null,
+      "completedOn": null
+    },
+    {
+      "code": "S3",
+      "state": "locked",
+      "startedOn": null,
+      "completedOn": null
+    },
+    {
+      "code": "S4",
+      "state": "locked",
+      "startedOn": null,
+      "completedOn": null
+    },
+    {
+      "code": "S5",
+      "state": "locked",
+      "startedOn": null,
+      "completedOn": null
+    },
+    {
+      "code": "S6",
+      "state": "locked",
+      "startedOn": null,
+      "completedOn": null
+    },
+    {
+      "code": "S7",
+      "state": "locked",
+      "startedOn": null,
+      "completedOn": null
+    }
+  ],
+  "checks": [
+    {
+      "weekStart": null,
+      "ruleVersion": null,
+      "observedVersion": "5",
+      "resultVersion": "6",
+      "conclusion": "checked",
+      "note": ""
+    }
+  ],
+  "audits": [
+    {
+      "action": "project.create",
+      "versionBefore": null,
+      "versionAfter": "1"
+    },
+    {
+      "action": "project.stage.start",
+      "versionBefore": "1",
+      "versionAfter": "2"
+    },
+    {
+      "action": "project.stage.complete",
+      "versionBefore": "2",
+      "versionAfter": "3"
+    },
+    {
+      "action": "project.start",
+      "versionBefore": "3",
+      "versionAfter": "4"
+    },
+    {
+      "action": "project.stage.correctStageFacts",
+      "versionBefore": "4",
+      "versionAfter": "5"
+    },
+    {
+      "action": "project.check.save",
+      "versionBefore": "5",
+      "versionAfter": "6"
+    }
+  ],
+  "scope": "Edge实际创建、阶段开始/完成、合并区启动、单阶段日期直改及一键检查；独立SQL与新HTTP请求一致"
+}

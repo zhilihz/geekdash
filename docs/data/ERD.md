@@ -1,6 +1,6 @@
 # 数据模型与实体关系（ERD）
 
-版本：D0.75；日期：2026-10-10；状态：0001初始34表/313列/55条引用，0002基线34/314/55，0003两端实际34/315/55；E03最小身份、责任和会话复用现有实体，无新结构。DEC-107节点恢复增量归5.8，已加一列并接有效过滤，删除/恢复固定两端真实写入已验，实际结果归系统真相；DEC-108日期未知复用现有可空列。实际约束核对范围见[F02/F03 实际报告](../testing/reports/2026-10-08-e01-f02-f03.md)。第5.6节由0002-trial-save实现，实际结果归系统真相及保存报告，不以设计批准新自动化。
+版本：D0.76；日期：2026-10-20；状态：历史结构基线为0001初始34表/313列/55条引用、0002的34/314/55及0003的34/315/55，0004增量归5.10/5.11；各运行环境当前结构只归系统真相。0005取消周检查依据的可执行增量已编写，字段契约归5.12，本条不声称迁移已实测。E03身份、责任和会话复用原实体，DEC-108日期未知复用可空列；原约束验证范围见[F02/F03实际报告](../testing/reports/2026-10-08-e01-f02-f03.md)。
 
 本文分清三类来源：**B** 是真实 V1.044 备份中观察到的结构，**C** 是 V1.050 源码的读写或归一化结构，**T** 是服务器目标表达。旧系统是 JSON 与浏览器存储，下面的实体名称不代表旧系统已有 MySQL 表。字段反推完成的范围是本次备份与七个运行文件；不证明备份覆盖全部业务数据，也不替代剩余业务规则确认或可执行 DDL。
 
@@ -142,7 +142,7 @@ V1.050 的备份白名单共 25 键，见 `projects-data.js:22～31`。下表为
 | 类别 | C 键 | T 归属及边界 |
 |---|---|---|
 | 个人显示 | theme、display_mode、meeting_float、zone_settings、activity_settings、filter_settings、filter_collapsed_default、welcome_dismissed、kb_auto_sync | user_preferences；旧来源不证明属于哪个登录用户，分配/默认使用边界待 Q-017 |
-| 检查显示/规则 | check_mode、check_rule | check_mode 的个人显示与 check_rule 的公共业务设置分别处理；不能导入某浏览器值直接改写服务器公共规则；SPEC-019 |
+| 检查显示/规则 | check_mode、check_rule | 原浏览器来源保留；DEC-133已取消服务器周截止规则，不能将旧check_rule导入为当前设置或重新创建义务。个人显示偏好与旧业务规则分别核对；SPEC-019 |
 | 旧纪要布局 | summary_order、summary_hidden、summary_sort、summary_show_note、summary_show_node | 保留旧键来源，目标为user_preferences中统一状态简要的页面上下文；合并及冲突处理见SPEC-020 |
 | 旧芯片统计布局 | chipstat_order、chipstat_hidden、chipstat_sort、chipstat_show_note、chipstat_show_node、chipstat_colvis | 保留旧键来源，与旧纪要布局收敛到同一个页面上下文，不创建第二份当前布局；迁移见SPEC-020 |
 | 页面业务备注 | summary_notes、chipstat_notes | projects.summary_note / projects.chipstat_note；两者都按项目 ID 存储，并不是按芯片名称存储；同项目两份备注互不覆盖，服务器修改按项目负责范围 |
@@ -199,7 +199,7 @@ erDiagram
     USERS o|--o{ SCHEDULE_CHANGES : actor
     PROJECTS ||--o{ PROJECT_CHECKS : project
     USERS ||--o{ PROJECT_CHECKS : actor
-    CHECK_RULE_REVISIONS ||--o{ PROJECT_CHECKS : rule_version
+    CHECK_RULE_REVISIONS o|--o{ PROJECT_CHECKS : legacy_rule_version
     USERS o|--o{ AUDIT_LOG : actor
     PROJECTS o|--o{ AUDIT_LOG : project
     USERS ||--o{ USER_PREFERENCES : user
@@ -458,7 +458,7 @@ erDiagram
 | users | `id:I`、`login_name:V64`、`password_hash:V255`、`display_name:V128`、`enabled:B`、`must_change_password:B`、`version:R`、`created_at:T`、`updated_at:T` | PK(id)；UK(login_name)，登录名采用 ASCII 小写；enabled/must_change_password ∈ {0,1}。 | 独立身份与凭据；按登录名定位，负责关系不能替代账号。 |
 | sessions | `user_id:I`、`token_hash:H`、`csrf_hash:H`、`created_at:T`、`last_seen_at:T`、`absolute_expires_at:T`、`revoked_at:T?` | PK(token_hash)；IDX(user_id,revoked_at)，IDX(absolute_expires_at)。 | 多设备会话、单独撤销及重启恢复，用户一行无法表达多个独立会话。 |
 | system_configuration | `id:I`、`maintenance_user_id:I`、`full_name:V255`、`short_name:V128`、`manager_text:X`、`name_prefix:V128`、`version:R`、`updated_by:I`、`updated_at:T` | PK(id)，单例 id=1（不使用 AUTO_INCREMENT）；维护人与企业信息同一配置聚合。 | 一个公共配置入口；合并旧 company_profile，避免两个单例表互相同步。 |
-| check_rule_revisions | `version:I`、`deadline_weekday:S`、`effective_week:D`、`saved_at:T`、`saved_by:I` | PK(version)，AUTO_INCREMENT 单调递增修订号；CHECK(deadline_weekday BETWEEN 1 AND 7)；IDX(effective_week,version)。 | 截止修订必须追加，不能用当前配置覆盖旧周和报告依据；version 同时是修订 ID。 |
+| check_rule_revisions | `version:I`、`deadline_weekday:S`、`effective_week:D`、`saved_at:T`、`saved_by:I` | PK(version)，AUTO_INCREMENT修订号；CHECK(deadline_weekday BETWEEN 1 AND 7)；IDX(effective_week,version)。 | DEC-133后只保留旧检查/旧首次义务/报告的规则来源，不再追加现行截止规则，不用当前日期重算历史。 |
 | projects | `id:I`、`name:V255`、`customer_id:I?`、`odm_customer_id:I?`、`product_line_id:I?`、`app_id:I?`、`group_id:I?`、`created_by:I?`、`source_import_item_id:I?`、`source_namespace:V64?`、`source_key:V128?`、`status:V16`、`version:R`、`proposed_on:D?`、`filed_on:D?`、`started_on:D?`、`original_due_date:D?`、`current_due_date:D?`、`manual_delayed:B`、`priority:V16`、`signal:V16`、`signal_note:X`、`market_expectation:X`、`status_description:X`、`status_description_updated_at:T?`、`detail_note:X`、`summary_note:X`、`chipstat_note:X`、`closure_due_date:D?`、`resume_status:V16?`、`pre_close_status:V16?`、`closure_type:V16?`、`closed_on:D?`、`closure_note:X`、`remaining_work_note:X`、`maintenance_enabled:B`、`first_check_week:D?`、`first_check_rule_version:I?`、`created_at:T`、`updated_at:T` | PK(id)；UK(source_namespace,source_key)，两个来源字段同时空或同时有值由模块校验；IDX(status,id)、IDX(customer_id,status,id)、IDX(current_due_date,id)。 | 项目聚合根、统一版本及筛选字段；两份固定页面备注并入项目；来源身份防止同库重复新增。 |
 | project_responsibilities | `project_id:I`、`user_id:I`、`joined_at:T` | 联合 PK(project_id,user_id)；IDX(user_id,project_id)。 | 项目修改授权；DEC-117目标中同时作为分工里的项目经理账号来源，仍不赋予系统维护权限。与旧业务PM姓名区别，退出历史由审计承接，不复制另一份经理授权表；新入口尚未实施。 |
 | project_stages | `id:I`、`project_id:I`、`stage_code:V2`、`state:V16`、`planned_days:S?`、`note:X`、`started_on:D?`、`completed_on:D?`、`expected_end_on:D?` | PK(id)；UK(project_id,stage_code)，UK(project_id,id) 支持节点的同项目复合外键；七阶段完整性/前置状态在项目事务校验。 | 七阶段的独立状态、工期与实际日期；查询按 project_id 一次取七行，不把状态存在页面偏好中。 |
@@ -478,7 +478,7 @@ erDiagram
 | project_risks | `id:I`、`project_id:I`、`content:X`、`level:V16`、`resolved:B`、`resolution:X`、`resolved_at:T?`、`actor_id:I?`、`created_at:T`、`source_key:V128?`、`sort_order:N` | PK(id)；IDX(project_id,resolved,sort_order,id)；level 与 priority 分开，旧不明日期留在原始导入项。 | 人工风险内容与解除结果，不能从灯色推导；保留原规则及人工纠正入口。 |
 | project_changes | `id:I`、`project_id:I`、`source:V255`、`content:X`、`decision:V16`、`reason:X`、`actor_id:I?`、`created_at:T`、`source_key:V128?`、`sort_order:N` | PK(id)；IDX(project_id,sort_order,id)。decision 使用 accept/reject 对应原版接受/拒绝，不新增审批状态。 | 客户等业务需求变更，与系统发布日志、审计不同。 |
 | schedule_changes | `id:I`、`project_id:I`、`kind:V16`、`old_date:D?`、`new_date:D?`、`reason:X`、`measures:X`、`actor_id:I?`、`created_at:T`、`source_key:V128?` | PK(id)；IDX(project_id,id)。有效改期与说明分开；未来日期可作计划，实际日期约束不套到计划。 | 计划变化的业务记录与说明；不能从项目一个当前日期还原历史。 |
-| project_checks | `id:I`、`project_id:I`、`actor_id:I`、`checked_at:T`、`week_start:D`、`conclusion:V16`、`note:X`、`rule_version:I`、`observed_version:I`、`result_version:I` | PK(id)；IDX(project_id,week_start,id)、IDX(week_start,project_id,id)。不设 project/week 唯一，允许真实多次检查。 | 已确认的检查事实和当时规则/版本，不能从浏览记录或普通保存推定。 |
+| project_checks | `id:I`、`project_id:I`、`actor_id:I`、`checked_at:T`、`week_start:D?`、`conclusion:V16`、`note:X`、`rule_version:I?`、`observed_version:I`、`result_version:I` | PK(id)；既有IDX(project_id,week_start,id)、IDX(week_start,project_id,id)保留。不设project/week唯一；0005仅将两个旧依据列改可空，见5.12。 | 检查事实及核对版本；新检查不写周/规则，旧非空值保留来源，不能从浏览或普通保存推定检查。 |
 | audit_log | `id:I`、`actor_id:I?`、`actor_display_name:V128`、`actor_kind:V16`、`action:V64`、`entity_type:V32`、`entity_id:I?`、`project_id:I?`、`version_before:I?`、`version_after:I?`、`before_json:J`、`after_json:J`、`request_id:V64`、`created_at:T` | PK(id)；IDX(project_id,id)、IDX(entity_type,entity_id,id)；actor_kind 区分可信 user 和受控 system，不写密码/会话哈希。 | 业务提交、纠错、回退和维护的追加证据；当前状态描述的修改历史直接由本表生成，撤掉重复 status_updates 表。 |
 | user_preferences | `user_id:I`、`device_key:V36`、`scope:V96`、`value_json:J`、`version:R`、`updated_at:T` | 联合 PK(user_id,device_key,scope)；device_key=global 表示账号偏好，其余为随机设备标识；scope 白名单。 | 账号偏好、设备阅读位置及本人导入选择分别 scope，避免增加每页状态表和 selected_by 的共享选择列。 |
 | project_drafts | `id:I`、`user_id:I`、`project_id:I?`、`client_draft_id:U`、`form_kind:V32`、`base_version:I?`、`draft_version:R`、`client_sequence:I`、`payload_json:J`、`state:V16`、`submitted_project_version:I?`、`created_at:T`、`updated_at:T` | PK(id)；UK(user_id,client_draft_id)；IDX(user_id,state,updated_at,id)、IDX(user_id,project_id,state,id)。 | 私人未提交输入、独立修订及迟到请求保护；不能并入正式项目或用偏好表承载业务底稿。 |
@@ -524,7 +524,7 @@ erDiagram
 | sessions.absolute_expires_at | 绝对到期边界；活动不能无限延长会话 |
 | sessions.revoked_at | 已撤销事实；退出/停用后旧令牌不能恢复 |
 | system_configuration.id | 唯一公共配置行 id=1；不自动生成多公司配置 |
-| system_configuration.maintenance_user_id | 唯一指定维护账号；公共维护的授权依据 |
+| system_configuration.maintenance_user_id | 唯一指定账号及系统维护账号；DEC-132后不是共享基础资料/企业信息维护的授权条件 |
 | system_configuration.full_name | 企业完整名称；资料页面与历史输出消费 |
 | system_configuration.short_name | 企业简称；页面和纪要展示 |
 | system_configuration.manager_text | 负责人展示文字；原值保留，不当认证身份 |
@@ -532,9 +532,9 @@ erDiagram
 | system_configuration.version | 聚合并发修订；旧页面不能覆盖新提交 |
 | system_configuration.updated_by | 配置最后提交人；维护页面与审计核对 |
 | system_configuration.updated_at | 最后成功提交时间；用于状态展示及恢复列表 |
-| check_rule_revisions.version | 追加规则修订主键；与已执行检查和首次义务关联 |
-| check_rule_revisions.deadline_weekday | 自然周截止星期；供当前周判定与用户设置 |
-| check_rule_revisions.effective_week | 本次保存所属自然周；过去周查询仍使用旧修订 |
+| check_rule_revisions.version | 旧规则修订主键；保留与旧检查及旧首次义务的来源关联，不再追加现行修订 |
+| check_rule_revisions.deadline_weekday | 旧截止星期来源；不参与现行判定或设置 |
+| check_rule_revisions.effective_week | 旧修订所属自然周；保留历史，不重写旧检查或固定报告 |
 | check_rule_revisions.saved_at | 设置保存事实；区分同周先后修改 |
 | check_rule_revisions.saved_by | 可信设置提交人；追溯规则更改 |
 | projects.id | 稳定对象标识；供关联、定位及游标使用 |
@@ -574,8 +574,8 @@ erDiagram
 | projects.closure_note | 当前有效结案说明；重开后建议空字符串（现有列NOT NULL），原文及更正保留审计，不覆盖普通项目备注 |
 | projects.remaining_work_note | 当前结案遗留处置说明；重开后建议空字符串并保留历史，节点/风险等原记录继续存在，不因清除结案投影删除 |
 | projects.maintenance_enabled | 量产维护开关；不误重启研发阶段 |
-| projects.first_check_week | 首次应检自然周；改截止不反推新义务 |
-| projects.first_check_rule_version | 首次义务所用规则；可解释为何从本周或下周开始 |
+| projects.first_check_week | 旧首次应检周来源；DEC-133后不再创建或消费当前义务，既有值保留 |
+| projects.first_check_rule_version | 旧首次义务规则引用；保留FK及旧值，不再参与现行启动/检查前置 |
 | projects.created_at | 服务器入库时间；区分来源旧日期并支撑查询排序 |
 | projects.updated_at | 最后成功提交时间；用于状态展示及恢复列表 |
 | project_responsibilities.project_id | 所属正式项目；供项目聚合读取、授权与外键隔离 |
@@ -708,13 +708,13 @@ erDiagram
 | project_checks.id | 稳定对象标识；供关联、定位及游标使用 |
 | project_checks.project_id | 所属正式项目；供项目聚合读取、授权与外键隔离 |
 | project_checks.actor_id | 实际保存检查的可信账号，现有列NOT NULL；旧检查人未知不生成本表记录，只保留来源，不从业务姓名推断 |
-| project_checks.checked_at | 服务器记录的检查时间；DEC-099当前周首次记录判断按时，各次记录仍保存自己的时间，不由客户端补录 |
-| project_checks.week_start | 检查归属自然周；当前/历史周查询 |
+| project_checks.checked_at | 服务器实际检查时间；今日事实使用上海业务日边界，不能由客户端补录，不再判断按时/晚查 |
+| project_checks.week_start | 0005后可空；新检查NULL，旧归属周仅保留来源，不新增本周检查义务 |
 | project_checks.conclusion | 显式检查结论；不是普通保存自动生成 |
 | project_checks.note | 该对象的业务说明；供详情/检查阅读与明确保存 |
-| project_checks.rule_version | 当时检查规则引用；后改设置仍可追溯原依据 |
+| project_checks.rule_version | 0005后可空；新检查NULL，旧非空规则引用及FK保留来源 |
 | project_checks.observed_version | 检查核对的项目版本；并发时拒绝过期事实 |
-| project_checks.result_version | 检查保存后的版本；DEC-099当前周最新记录判断后来是否又有更新，避免首次版本误报 |
+| project_checks.result_version | 检查保存后的版本；最近一次有效检查与当前项目版本比较是否后来有更新，不再限定本周，避免检查自己的提交误报 |
 | audit_log.id | 稳定对象标识；供关联、定位及游标使用 |
 | audit_log.actor_id | 可信操作身份；历史未知保持空，不从业务姓名推断 |
 | audit_log.actor_display_name | 操作人姓名快照；改名后历史称谓保留 |
@@ -1004,7 +1004,7 @@ DEC-108复用projects.proposed_on/filed_on/started_on/closed_on及project_stages
 
 1. 收到原文件后校验哈希并保存受控原始字节，解析生成批次/卡片；不可变文件与对应 JSON 原值纳入完整备份，未知字段不经旧归一化器丢弃。
 2. 用户明确同一旧数据库的 source_namespace；稳定来源 ID 与正式 ID 分开。有效 (source_namespace,source_key) 唯一绑定正式项目。同名、不同旧库相同数字 ID、无稳定来源 ID 均不能自动合并；无可靠绑定时人工选择目标。每张卡片保留原 ID、数组顺序和映射结果。
-3. 客户/工程师资料为空而有名称引用时提出待确认映射；只有维护账号能保存共享资料。普通提交者复用已维护的映射，未解决项留待审。昵称、NFKC/大小写或空白归一化只辅助搜索，不成为身份或合并事实。
+3. 客户/工程师资料为空而有名称引用时提出待确认映射；共享资料写入按SPEC-006/DEC-132验证启用账号及有效会话，不要求先负责项目；批次纠正/入库仍受各自权限约束。复用明确维护的ID映射，未解决项留待审。昵称、NFKC/大小写或空白归一化只辅助搜索，不成为身份或合并事实。
 4. 七阶段按位置/旧阶段码映射，缺日期留 NULL；非法连续性报告，不能自动补完成。dueDate/延期原文与原始计划不确定性保留；旧 lastCheckAt 不生成新检查；旧混合历史按 source_sequence 原样留存，不补 actor。
 5. 先创建无循环依赖的账号/资料/配置/批次表，再创建 projects（来源 FK 暂后加）、import_items、项目子表、草稿/会议/输出及审计/回执；最后补 projects.source_import_item_id 与 import_items 的循环 FK。正式新项目入库顺序为已有待审项 → 项目 → 子记录/负责关系/历史 → 待审结果，均在该项目事务完成。
 6. 旧基础资料重建 ID 映射后再迁移项目关联和节点前后引用；节点先插入全部对象，再设置连线。空资料、坏引用、重复来源不因 FK 建表顺序被忽略。
@@ -1056,3 +1056,16 @@ DEC-108复用projects.proposed_on/filed_on/started_on/closed_on及project_stages
 现有 `src/web/detail.ts` 将 `summaryNote` 标为“项目简介”，`src/web/board.ts` 也把该字段用于卡片简介。这证明当前显示用途混用，不能证明每条已有 `summary_note` 的内容实际来自哪一种用途。结构升级保留其原值和既有历史，不执行从 `summary_note` 批量复制、移动或清空来填 `summary` 的迁移；只有可核对的原 `p.summary` 或明确人工纠正才能写入独立简介。来源无法确定的记录保留原值及“来源待核对”的迁移差异，不根据内容、页面标签或时间猜测后覆盖目标字段。
 
 `status_description`、`detail_note`、`market_expectation` 的已有用途不变。原始备份仍按受控来源保存；本节不授权P04导入真实备份。增量与候选应用必须一起核对独立读写及旧值保留，实施步骤见[P04-02](../implementation/execution-plan.md#p04-02-数据增量旧值保留与升级兼容)。
+
+### 5.12 检查事实与共享资料授权的兼容收敛
+
+DEC-132/133取消共享资料的维护账号专属限制，并退出周检查规则。行为归SPEC-005/006/019；本节只记录结构契约。[0005-check-facts.json](../../migrations/0005-check-facts.json)已编写，本节不代表数据库升级已执行或验证。
+
+| 对象 | 0005及当前目标 | 历史兼容边界 |
+| --- | --- | --- |
+| `project_checks.week_start` | `DATE NULL DEFAULT NULL`；新检查写NULL | 不回填、不清空旧记录已有周次；历史原值仍可读 |
+| `project_checks.rule_version` | `BIGINT UNSIGNED NULL DEFAULT NULL`；新检查写NULL | 既有外键、索引和旧非空引用保留；不创建占位规则供新检查引用 |
+| `check_rule_revisions`、项目首次应检依据 | 保留现有表及项目列，退出当前检查写入及派生 | 不因规则退役删除历史；旧设置命令回执仍可核对，不能把回执恢复视为创建新规则 |
+| `system_configuration.maintenance_user_id`、资料审计 | 不增表或列；维护账号字段仍用于账号和系统维护；共享资料写入人复用既有审计及`updated_by` | 有效启用账号均可维护共享资料，不新增资料负责人、成员或权限表；项目自身修改资格不随资料授权改变 |
+
+0005只改变两列的可空性和默认值，不增删表、列、外键或索引；0001～0004保持原始迁移内容。升级保留旧检查事实，新增检查的时间、操作人及观察版本继续使用既有字段。实际结构计数、含数据升级和新旧检查回读须由对应测试证据确认，不能据迁移文件存在宣称通过。回退需同时核对旧构建的结构校验及非空字段假设，按运维流程选用兼容应用或隔离恢复方案，不把DDL变化描述为事务自动回滚。

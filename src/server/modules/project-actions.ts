@@ -3,7 +3,7 @@ import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 import { assertActor, type Actor } from './identity.js';
 import { failure, validId } from './project-save.js';
-import { businessToday, checkContext, closurePlanKnownExpression, initialPlan, requireDate } from './project-dates.js';
+import { businessToday, closurePlanKnownExpression, initialPlan, requireDate } from './project-dates.js';
 import { dateColumns, isPlanCommand, planCandidate, validatePlan, type PlanCommand, type ProjectDates, type DateChanges } from './project-plans.js';
 import { isLifecycleCommand, lifecycleCandidate, validateLifecycle, type LifecycleCommand, type LifecycleProject } from './project-lifecycle.js';
 import { closureCandidate, closureColumns, isClosureCommand, validateClosure, type ClosureCommand, type ClosureFacts } from './project-closures.js';
@@ -13,7 +13,7 @@ export { businessToday } from './project-dates.js';
 
 export type StageFact = { code: string; state: string; startedOn: string | null; completedOn: string | null };
 export type StageCommand = { action: 'startStage' | 'completeStage'; stageCode: string; actualDate: string; expectedVersion: string; idempotencyKey: string; completionNote?: string };
-export type StartCommand = { action: 'startProject'; actualDate: string; dueDate: string; planReason?: string; expectedVersion: string; idempotencyKey: string; configVersion: string; ruleVersion: string; previewWeek: string; previewFirstCheckWeek: string };
+export type StartCommand = { action: 'startProject'; actualDate: string; dueDate: string | null; planReason?: string; expectedVersion: string; idempotencyKey: string; configVersion?: string; ruleVersion?: string; previewWeek?: string; previewFirstCheckWeek?: string };
 export type CorrectionCommand = { action: 'correctStageFacts'; changes: { code: string; startedOn?: string | null; completedOn?: string | null }[]; reason: string; expectedVersion: string; idempotencyKey: string }
   | { action: 'undoStageStart' | 'undoStageComplete' | 'rollbackStage'; stageCode: string; undoStart?: boolean; reason: string; expectedVersion: string; idempotencyKey: string };
 export type ActionCommand = (StageCommand | StartCommand | CorrectionCommand | PlanCommand | LifecycleCommand | ClosureCommand | CheckCommand) & { draft?: DraftRef };
@@ -29,12 +29,12 @@ export function validateAction(value: unknown): ActionCommand {
   if (isLifecycleCommand(value as { action: string })) return validateLifecycle(value);
   if (isPlanCommand(value as { action: string })) return validatePlan(value);
   if (correctionActions.includes((value as { action: string }).action)) {
-    const body = value as CorrectionCommand;
+    const body = { ...value, ...!Object.hasOwn(value, 'reason') && (value as CorrectionCommand).action === 'correctStageFacts' ? { reason: '' } : {} } as CorrectionCommand;
     const required = ['action', 'reason', 'expectedVersion', 'idempotencyKey', body.action === 'correctStageFacts' ? 'changes' : 'stageCode'];
     if (required.some(key => !Object.hasOwn(body, key)) || Object.keys(body).some(key => ![...required, ...(body.action === 'undoStageComplete' ? ['undoStart'] : [])].includes(key))
       || !validId(body.expectedVersion) || typeof body.idempotencyKey !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(body.idempotencyKey)
       || typeof body.reason !== 'string' || !body.reason.isWellFormed() || Buffer.byteLength(body.reason, 'utf8') > 65535) failure('INVALID_STAGE_COMMAND', 400);
-    if (!body.reason.trim()) failure('CORRECTION_REASON_REQUIRED', 422, { fields: { reason: '请填写纠错或回退原因' } });
+    if (body.action !== 'correctStageFacts' && !body.reason.trim()) failure('CORRECTION_REASON_REQUIRED', 422, { fields: { reason: '请填写撤销或回退原因' } });
     if (body.action === 'correctStageFacts') {
       if (!Array.isArray(body.changes) || !body.changes.length || body.changes.length > 7) failure('INVALID_STAGE_COMMAND', 400);
       for (const item of body.changes) {
@@ -50,11 +50,14 @@ export function validateAction(value: unknown): ActionCommand {
   }
   if ((value as { action?: string }).action === 'startProject') {
     const body = value as StartCommand;
-    const required = ['action', 'actualDate', 'dueDate', 'expectedVersion', 'idempotencyKey', 'configVersion', 'ruleVersion', 'previewWeek', 'previewFirstCheckWeek'];
-    if (required.some(key => !Object.hasOwn(body, key)) || Object.keys(body).some(key => ![...required, 'planReason'].includes(key)) || ![body.expectedVersion, body.configVersion, body.ruleVersion].every(validId)
+    const required = ['action', 'actualDate', 'dueDate', 'expectedVersion', 'idempotencyKey'];
+    if (required.some(key => !Object.hasOwn(body, key)) || Object.keys(body).some(key => ![...required, 'planReason', 'configVersion', 'ruleVersion', 'previewWeek', 'previewFirstCheckWeek'].includes(key)) || !validId(body.expectedVersion)
+      || [body.configVersion, body.ruleVersion].some(version => version !== undefined && !validId(version))
       || typeof body.idempotencyKey !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(body.idempotencyKey)
       || body.planReason !== undefined && (typeof body.planReason !== 'string' || !body.planReason.isWellFormed() || Buffer.byteLength(body.planReason, 'utf8') > 65535)) failure('INVALID_PROJECT_COMMAND', 400);
-    for (const key of ['actualDate', 'dueDate', 'previewWeek', 'previewFirstCheckWeek'] as const) requireDate(body[key], key);
+    requireDate(body.actualDate, 'actualDate');
+    if (body.dueDate !== null) requireDate(body.dueDate, 'dueDate');
+    for (const key of ['previewWeek', 'previewFirstCheckWeek'] as const) if (body[key] !== undefined) requireDate(body[key], key);
     return { ...body, planReason: body.planReason ?? '' };
   }
   const body = value as StageCommand;
@@ -73,12 +76,12 @@ export function validSequence(facts: StageFact[]) {
   const first = facts.findIndex(fact => fact.state !== 'completed');
   return first === -1 || ['ready', 'active'].includes(facts[first].state) && facts.slice(first + 1).every(fact => fact.state === 'locked');
 }
-export function startProjectBlock(project: { status: string; startDate: string | null; firstCheckWeek: unknown }, facts: StageFact[], today = businessToday()) {
+export function startProjectBlock(project: { status: string; startDate: string | null }, facts: StageFact[], today = businessToday()) {
   if (project.status !== 'proposal') return 'PROJECT_START_BLOCKED';
   if (facts[0]?.state !== 'completed') return 'PROJECT_S1_REQUIRED';
   if (!validSequence(facts) || facts[1].state !== 'ready') return 'STAGE_SEQUENCE_REVIEW_REQUIRED';
   if (!facts[0].startedOn || !facts[0].completedOn || facts[0].startedOn > facts[0].completedOn || facts[0].completedOn > today
-    || facts.slice(1).some(fact => fact.startedOn || fact.completedOn) || project.startDate || project.firstCheckWeek) return 'PROJECT_START_HISTORY_REVIEW_REQUIRED';
+    || facts.slice(1).some(fact => fact.startedOn || fact.completedOn) || project.startDate) return 'PROJECT_START_HISTORY_REVIEW_REQUIRED';
   return null;
 }
 export function stageBlock(status: string, facts: StageFact[], code: string, action: StageCommand['action']): string | null {
@@ -135,17 +138,16 @@ const projectSql = `SELECT ${closurePlanKnownExpression} closurePlanKnown,status
 export async function applyAction(c: PoolConnection, actor: Actor, id: string, body: ActionCommand, now: Date, combinedDates?: DateChanges) {
   const project = (await rows(c, projectSql, [id]))[0];
   if (!project) failure('PROJECT_NOT_FOUND', 404);
-  const context = body.action === 'startProject' || body.action === 'saveCheck' ? await checkContext(c, actor.id, now) : null;
   const facts = await rows(c, stageSql, [id]) as (RowDataPacket & StageFact)[];
   const savedVersion = String(BigInt(project.version) + 1n);
   const finish = (action: string, beforeValues: unknown, afterValues: unknown, details: Record<string, unknown>, changed = true, entity = { type: 'project', id }) =>
     ({ action, beforeValues, afterValues, details, changed, entity });
   if (isCheckCommand(body)) {
-    const candidate = await checkCandidate(c, id, project as { version: string }, body, now, context ?? undefined);
+    const candidate = await checkCandidate(c, id, project as { version: string }, body, now);
     let checkId = body.action === 'correctCheck' ? body.checkId : '';
     if (body.action === 'saveCheck') {
       const value = candidate.afterValues.check;
-      await c.execute('INSERT INTO project_checks (project_id,actor_id,checked_at,week_start,conclusion,note,rule_version,observed_version,result_version) VALUES (?,?,?,?,?,?,?,?,?)', [id, actor.id, now.toISOString().slice(0, 23).replace('T', ' '), 'weekStart' in value ? value.weekStart : null, body.conclusion, body.note, body.ruleVersion, project.version, savedVersion]);
+      await c.execute('INSERT INTO project_checks (project_id,actor_id,checked_at,week_start,conclusion,note,rule_version,observed_version,result_version) VALUES (?,?,?,NULL,?,?,NULL,?,?)', [id, actor.id, now.toISOString().slice(0, 23).replace('T', ' '), body.conclusion, body.note, project.version, savedVersion]);
       checkId = (await rows(c, 'SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0].id;
       Object.assign(value, { id: checkId, actorId: actor.id, actorName: actor.name });
     }
@@ -185,18 +187,16 @@ export async function applyAction(c: PoolConnection, actor: Actor, id: string, b
     return finish('project.stage.' + body.action, { stageChanges: correction.beforeStages, progress: correction.progressBefore }, { stageChanges: correction.stageChanges, progress: correction.progressAfter, reason: body.reason }, correction, correction.changed);
   }
   if (body.action === 'startProject') {
-    const blocked = startProjectBlock(project as { status: string; startDate: string | null; firstCheckWeek: unknown }, facts, businessToday(now));
+    const blocked = startProjectBlock(project as { status: string; startDate: string | null }, facts, businessToday(now));
     if (blocked) failure(blocked, 422);
     if (body.actualDate > businessToday(now) || body.actualDate < facts[0].completedOn!) failure('INVALID_PROJECT_DATE', 422, { fields: { actualDate: '实际启动日期不能在未来或早于S1实际完成日期' } });
-    if (body.dueDate < body.actualDate) failure('INVALID_PROJECT_DATE', 422, { fields: { dueDate: '预计结案日期不能早于实际启动日期' } });
-    if (!context?.rule || !context.firstCheckWeek) failure('CHECK_RULE_REQUIRED', 422);
-    if (body.configVersion !== context.configVersion || body.ruleVersion !== context.rule.version || body.previewWeek !== context.weekStart || body.previewFirstCheckWeek !== context.firstCheckWeek) failure('CHECK_PREVIEW_CHANGED', 409);
+    if (body.dueDate && body.dueDate < body.actualDate) failure('INVALID_PROJECT_DATE', 422, { fields: { dueDate: '预计结案日期不能早于实际启动日期' } });
     if (project.dueDate && project.dueDate !== body.dueDate && !body.planReason?.trim()) failure('PLAN_REASON_REQUIRED', 422);
-    const originalDueDate = await initialPlan(c, id, project as RowDataPacket & { originalDueDate: string | null; dueDate: string | null; createdBy: string | null; sourceImportItemId: unknown }, body.dueDate);
+    const originalDueDate = body.dueDate ? await initialPlan(c, id, project as RowDataPacket & { originalDueDate: string | null; dueDate: string | null; createdBy: string | null; sourceImportItemId: unknown }, body.dueDate) : project.originalDueDate;
     if (project.dueDate && project.dueDate !== body.dueDate) await c.execute("INSERT INTO schedule_changes (project_id,kind,old_date,new_date,reason,measures,actor_id,created_at) VALUES (?,'reschedule',?,?,?,'',?,?)", [id, project.dueDate, body.dueDate, body.planReason, actor.id, now.toISOString().slice(0, 23).replace('T', ' ')]);
-    const after = { status: 'ongoing', startDate: body.actualDate, dueDate: body.dueDate, originalDueDate, firstCheckWeek: context.firstCheckWeek, firstCheckRuleVersion: context.rule.version };
-    await c.execute("UPDATE projects SET status='ongoing',started_on=?,current_due_date=?,original_due_date=?,first_check_week=?,first_check_rule_version=? WHERE id=?", [body.actualDate, body.dueDate, originalDueDate, context.firstCheckWeek, context.rule.version, id]);
-    return finish('project.start', { status: project.status, startDate: project.startDate, dueDate: project.dueDate, originalDueDate: project.originalDueDate, firstCheckWeek: null }, after, after);
+    const after = { status: 'ongoing', startDate: body.actualDate, dueDate: body.dueDate, originalDueDate };
+    await c.execute("UPDATE projects SET status='ongoing',started_on=?,current_due_date=?,original_due_date=? WHERE id=?", [body.actualDate, body.dueDate, originalDueDate, id]);
+    return finish('project.start', { status: project.status, startDate: project.startDate, dueDate: project.dueDate, originalDueDate: project.originalDueDate }, after, after);
   }
   const blocked = stageBlock(project.status, facts, body.stageCode, body.action);
   if (blocked) failure(blocked, 422);
@@ -244,8 +244,6 @@ export function projectActions(database: RuntimeDatabase, clock = () => new Date
     if (confirm) return database.readSnapshot(async c => { const result = await lookup(c, false); return result ? { outcome: 'committed', result } : { outcome: 'not_found' }; });
     return database.writeTransaction(async c => {
       await assertActor(c, actor);
-      const needsRule = body.action === 'startProject' || body.action === 'saveCheck';
-      if (needsRule) await c.query('SELECT id FROM system_configuration WHERE id=1 FOR SHARE');
       const project = (await rows(c, projectSql + ' FOR UPDATE', [id]))[0];
       if (!project) failure('PROJECT_NOT_FOUND', 404);
       const prior = await lookup(c, true); if (prior) return { outcome: 'committed', result: prior };

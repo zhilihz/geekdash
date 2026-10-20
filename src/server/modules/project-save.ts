@@ -5,6 +5,7 @@ import { assertActor, type Actor } from './identity.js';
 import { applyAction, validateAction, type ActionCommand } from './project-actions.js';
 import { finishDraft, validateDraftRef, type DraftRef } from './personal-state.js';
 import { validateChangeOps, changeCandidate, writeChanges, type ChangeOperation, validateRiskOps, riskCandidate, writeRisks, validateNodeOps, nodeCandidate, writeNodes, type NodeOperation, type RiskOperation } from './project-records.js';
+import { businessToday } from './project-dates.js';
 
 export const textColumns = { name: 'name', marketExpectation: 'market_expectation', detailNote: 'detail_note', summaryNote: 'summary_note', summary: 'summary' } as const;
 export const columns = { ...textColumns, signalNote: 'signal_note', chipstatNote: 'chipstat_note', statusDesc: 'status_description', signal: 'signal', priority: 'priority', customerId: 'customer_id', odmCustomerId: 'odm_customer_id', productLineId: 'product_line_id', appId: 'app_id', groupId: 'group_id' } as const;
@@ -110,8 +111,9 @@ function validateScope(value: Record<string, unknown>) {
       return validateAction({ ...item, expectedVersion: value.expectedVersion, idempotencyKey: value.idempotencyKey });
     }).sort((a, b) => (a.action === 'setMaintenance' ? 2 : Number(stateActions.includes(a.action))) - (b.action === 'setMaintenance' ? 2 : Number(stateActions.includes(b.action))));
     const commands = value.commands as ActionCommand[];
+    const startup = commands.find(command => command.action === 'startProject');
     if (categories.has('plan') && commands.some(command => command.action === 'startProject' || command.action === 'resumeProject' && command.dueDate !== undefined || command.action === 'correctProjectDates' && (Object.hasOwn(command.changes, 'dueDate') || Object.hasOwn(command.changes, 'originalDueDate')))
-      || commands.some(command => command.action === 'startProject') && commands.some(command => command.action === 'correctProjectDates' && ['startDate', 'dueDate', 'originalDueDate'].some(key => Object.hasOwn(command.changes, key)))) failure('SAVE_SCOPE_MISMATCH', 400, { fields: { commands: '同次操作不能包含两份相互覆盖的计划或启动日期' } });
+      || startup && commands.some(command => command.action === 'correctProjectDates' && (['startDate', 'originalDueDate'].some(key => Object.hasOwn(command.changes, key)) || Object.hasOwn(command.changes, 'dueDate') && command.changes.dueDate !== startup.dueDate))) failure('SAVE_SCOPE_MISMATCH', 400, { fields: { commands: '同次操作不能包含两份相互覆盖的计划或启动日期' } });
   }
 }
 async function checkNodeScope(connection: PoolConnection, id: string, request: SaveRequest) {
@@ -236,7 +238,7 @@ export function projectSaves(database: RuntimeDatabase) {
         const result: Record<string, RowDataPacket[]> = {};
         for (const table of [...new Set(Object.values(referenceFields))].sort()) result[table] = await query(connection, `SELECT CAST(id AS CHAR) id,name,enabled${table === 'chips' ? ',original_model originalModel,manufacturer,firmware_version firmwareVersion' : ''} FROM ${table} ORDER BY name,${table}.id`);
         result.managerAccounts = await query(connection, 'SELECT CAST(id AS CHAR) id,display_name name,enabled FROM users WHERE enabled=1 ORDER BY display_name,id');
-        return result;
+        return { ...result, businessDate: businessToday() };
       });
     },
     save(id: string, request: SaveRequest, requestId: string, actor?: Actor) {
@@ -246,7 +248,6 @@ export function projectSaves(database: RuntimeDatabase) {
         if (actor) await assertActor(connection, actor);
         const extended = !!request.scope || mode(request) === 'ordinary';
         // 资料锁在项目锁之前；取得锁后才检查原回执和新增引用资格。
-        if (request.commands?.length) await connection.query('SELECT id FROM system_configuration WHERE id=1 FOR SHARE');
         const locked = extended ? await lockReferences(connection, request.changes) : {};
         const current = await project(connection, id, true, !!actor);
         // 当前锁定读在版本判断前，等待前一次提交后可读到真实回执。

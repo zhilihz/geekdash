@@ -55,7 +55,7 @@ async function page(user, projectId, holdCatalog = false, options={}) {
   const virtualConsole = new VirtualConsole(), navigationAttempts=[]; virtualConsole.on('jsdomError', error => { if(options.create && /navigation/i.test(error.message))navigationAttempts.push(error.message);else reject(error); });
   const dom = new JSDOM(options.create?await readFile('src/web/project-new.html','utf8'):options.board?await readFile('src/web/index.html','utf8'):html, { url: origin + (options.create?'/project-new.html':options.board?'/'+(options.query ?? ''):'/project-detail.html?id=' + projectId+(options.returnTo?'&returnTo='+encodeURIComponent(options.returnTo):'')), cookieJar: user.jar, runScripts: 'outside-only', virtualConsole });
   views.push(dom); const w = dom.window;
-  dom.projectReads = [];dom.draftWrites=[];dom.preferenceWrites=[];dom.createWrites=[];dom.navigationAttempts=navigationAttempts;
+  dom.projectReads = [];dom.draftWrites=[];dom.preferenceWrites=[];dom.createWrites=[];dom.actionWrites=[];dom.navigationAttempts=navigationAttempts;
   Object.assign(w, { TextEncoder, TextDecoder, structuredClone, AbortSignal, AbortController, __GEEKDASH_STAGES__: stages });
   w.performance.getEntriesByType=()=>[];w.confirm=()=>true;
   w.scrollTo=()=>{};
@@ -96,7 +96,11 @@ async function page(user, projectId, holdCatalog = false, options={}) {
     }
     if (dom.holdSave && options?.method === 'PATCH') { dom.holdSave = false; await new Promise(resolve => { dom.releaseSave = resolve; }); }
     if (dom.dropSaveAck && options?.method === 'PATCH') { dom.dropSaveAck = false; await response.arrayBuffer(); throw new Error('模拟真实COMMIT后的确认丢失'); }
-    if (dom.dropActionAck && path === '/api/projects/' + projectId + '/actions' && options?.method === 'POST') { dom.dropActionAck = false; await response.arrayBuffer(); throw new Error('模拟真实动作COMMIT后的确认丢失'); }
+    if (path === '/api/projects/' + projectId + '/actions' && options?.method === 'POST') {
+      dom.actionWrites.push({status:response.status,body:await response.clone().json()});
+      if(dom.holdAction){dom.holdAction=false;await new Promise(resolve=>{dom.releaseAction=resolve;});}
+      if(dom.dropActionAck){dom.dropActionAck=false;await response.arrayBuffer();throw new Error('模拟真实动作COMMIT后的确认丢失');}
+    }
     return response;
   };
   const context = dom.getInternalVMContext(), modules = new Map();
@@ -168,30 +172,28 @@ try {
   assert((await c.query('SELECT deleted_at FROM project_risks WHERE id=?',[risk.id]))[0][0].deleted_at);
   p.click('[data-change="add"]');p.input('#chg-content','变更内容');p.input('#chg-reason','接受原因');p.click('#change-submit');
   await waitFor(()=>p.$('.chg-content')?.textContent==='变更内容' && !p.$('#reload').disabled,'需求一次保存');
-  p.click('[data-change="correct"]');p.input('#chg-content','只改需求文字');assert(p.$('#chg-impact').hidden);p.click('#change-submit');
+  p.click('[data-change="correct"]');p.input('#chg-content','只改需求文字');assert(!p.$('#chg-correction-reason'));p.click('#change-submit');
   await waitFor(()=>p.$('.chg-content')?.textContent==='只改需求文字' && !p.$('#reload').disabled,'需求普通纠错');
   checks.push('PRD9.10/9.11：风险与需求每条正式保存一次，普通纠错不强制预览，风险误录删除持久保留来源');
   const legacyChange = (await read()).changes[0];
   await c.execute('UPDATE project_changes SET source=? WHERE id=?', ['旧未知来源', legacyChange.id]);
   const legacyPage = await page(a,id); legacyPage.tab('risk'); legacyPage.click('[data-change="correct"]');
-  assert(legacyPage.$('#chg-impact').hidden, '未触及旧来源不能自动成为来源纠错');
+  assert.equal(legacyPage.$('#chg-source').value,'旧未知来源','未触及旧来源不能自动成为来源纠错');
   legacyPage.input('#chg-content','仅纠正旧记录文字'); legacyPage.click('#change-submit');
   await waitFor(()=>legacyPage.dom.projectReads.at(-1)?.changes[0].content==='仅纠正旧记录文字' && !legacyPage.$('#reload').disabled,'旧来源保持的普通文字保存');
   const legacyRead=(await read()).changes[0]; assert.equal(legacyRead.source,'旧未知来源'); assert.equal(legacyRead.createdAt,legacyChange.createdAt);
-  legacyPage.click('[data-change="correct"]'); legacyPage.input('#chg-source','业务'); assert(!legacyPage.$('#chg-impact').hidden);
-  legacyPage.input('#chg-correction-reason','核对原始业务来源'); legacyPage.click('#change-submit');
-  await waitFor(()=>!legacyPage.$('#change-accept').hidden && !legacyPage.$('#change-accept').disabled,'来源纠错影响预览');
-  assert.equal((await read()).changes[0].source,'旧未知来源'); legacyPage.click('#change-accept');
+  legacyPage.click('[data-change="correct"]'); legacyPage.input('#chg-source','业务'); assert(!legacyPage.$('#chg-correction-reason'));
+  assert.equal((await read()).changes[0].source,'旧未知来源'); legacyPage.click('#change-submit');
   await waitFor(()=>legacyPage.dom.projectReads.at(-1)?.changes[0].source==='业务' && !legacyPage.$('#reload').disabled,'明确纠正来源');
   assert.equal((await c.query('SELECT source FROM project_changes WHERE id=?',[legacyChange.id]))[0][0].source,'业务');
   legacyPage.dom.window.close(); p.click('#reload'); await waitFor(()=>p.dom.projectReads.at(-1)?.changes[0].source==='业务' && !p.$('#reload').disabled,'原页重读');
-  checks.push('PRD9.11：旧未知来源只读保留、普通内容直接保存；明确选来源后才预览，确认前不写，确认后SQL与另一页面新读一致');
+  checks.push('PRD9.11：旧未知来源保留、普通内容直接保存；明确选来源后一次保存且不另填纠错原因，保存前不写，保存后SQL与另一页面新读一致');
   p.tab('custnodes');p.click('[data-node="add"]');p.input('[data-node-field="title"]','客户交付');p.input('[data-node-field="note"]','客户说明');p.click('#node-edit [type="submit"]');
   await waitFor(()=>p.dom.projectReads.at(-1)?.nodes.some(n=>n.title==='客户交付') && !p.$('#reload').disabled,'客户节点一次保存');
   p.tab('nodes');p.click('[data-node="add"]');p.input('[data-node-field="title"]','阶段成果');p.input('[data-node-field="stage"]','S1');p.input('[data-node-field="targetDate"]','2030-10-01');p.input('[data-node-field="output"]','成果说明');p.click('#node-edit [type="submit"]');
-  await waitFor(()=>!p.$('#node-edit'),'项目节点回到共享副本');assert.equal((await read()).nodes.filter(n=>n.kind==='project').length,0);
-  p.tab('flow');assert.match(p.$('#detail-body').textContent,/阶段成果/);p.click('[data-save-scope="projectNodes"]');
-  await waitFor(()=>p.dom.projectReads.at(-1)?.nodes.some(n=>n.title==='阶段成果') && !p.$('#reload').disabled,'Flow保存同一节点');
+  await waitFor(()=>p.dom.projectReads.at(-1)?.nodes.some(n=>n.title==='阶段成果') && !p.$('#reload').disabled,'项目节点一次保存');
+  assert.equal((await read()).nodes.filter(n=>n.kind==='project').length,1);
+  p.tab('flow');assert.match(p.$('#detail-body').textContent,/阶段成果/);assert(p.$('[data-save-scope="projectNodes"]').disabled,'已保存节点在Flow可直接使用，无第二次保存');
   const dragNode=(dx,dy,cancel=false)=>{const node=p.$('[data-node-drag]');node.setPointerCapture=()=>{};node.onpointerdown({button:0,pointerId:1,clientX:300,clientY:100});node.onpointermove({clientX:300+dx,clientY:100+dy});(cancel?node.onpointercancel:node.onpointerup)({clientX:300+dx,clientY:100+dy});};
   const beforeMove=await read();dragNode(0,0);assert(p.$('[data-save-scope="projectNodes"]').disabled);
   dragNode(100,30,true);assert(p.$('[data-save-scope="projectNodes"]').disabled);assert(!p.$('#action-dialog').open);
@@ -209,18 +211,16 @@ try {
   assert.match(p.$('#detail-body').textContent,/项目节点：阶段成果/);assert.match(p.$('#detail-body').textContent,/需求变更：只改需求文字/);
   checks.push('PRD9.14：真实更新历史展示修改内容，业务操作后新请求消费');
   p.tab('nodes');p.click('[data-node="correct"]');p.click('#node-delete-selected');p.click('#node-edit [type="submit"]');
-  await waitFor(()=>p.$('#node-accept') && !p.$('#node-accept').disabled,'删除预览');p.click('#node-accept');p.click('[data-save-scope="projectNodes"]');
   await waitFor(()=>!p.dom.projectReads.at(-1)?.nodes.some(n=>n.kind==='project') && !p.$('#reload').disabled,'节点正式删除');
   p.click('#deleted-refresh');await waitFor(()=>p.$('[data-node="restore"]'),'读取原删除节点');p.click('[data-node="restore"]');
   assert(p.$('[data-restore-field="output"]').disabled);assert(p.$('#restore-actual').disabled);
   p.click('[data-restore-select="output"]');assert(!p.$('[data-restore-field="output"]').disabled);
   p.input('[data-restore-field="output"]','恢复时核对后的成果');
   p.click('[data-restore-select="title"]');assert(!p.$('[data-restore-field="title"]').disabled);p.input('[data-restore-field="title"]','取消纠正不提交此名称');p.click('[data-restore-select="title"]');assert(p.$('[data-restore-field="title"]').disabled);
-  p.input('#node-reason','合成验收：恢复误删并核对成果');p.click('#node-edit [type="submit"]');
-  await waitFor(()=>p.$('#node-accept') && !p.$('#node-accept').disabled,'恢复及所选纠错预览');assert(p.$('[data-restore-field="title"]').disabled);assert(!p.$('[data-restore-field="output"]').disabled);
-  p.click('#node-accept');p.click('[data-save-scope="projectNodes"]');await waitFor(()=>p.dom.projectReads.at(-1)?.nodes.some(n=>n.output==='恢复时核对后的成果') && !p.$('#reload').disabled,'恢复及纠正同次保存');
+  p.input('#node-reason','合成验收：恢复误删并核对成果');assert(p.$('[data-restore-field="title"]').disabled);assert(!p.$('[data-restore-field="output"]').disabled);p.click('#node-edit [type="submit"]');
+  await waitFor(()=>p.dom.projectReads.at(-1)?.nodes.some(n=>n.output==='恢复时核对后的成果') && !p.$('#reload').disabled,'恢复及纠正同次保存');
   const recovered=(await read()).nodes.find(n=>n.kind==='project');assert.equal(recovered.id,moved.nodes.find(n=>n.kind==='project').id);assert.equal(recovered.title,'阶段成果');assert.equal(recovered.output,'恢复时核对后的成果');
-  checks.push('PRD9.12：恢复字段仅明确勾选后可编辑，取消勾选不夹带输入；预览后仍保持启用规则，同次恢复和所选纠错新GET确认原ID');
+  checks.push('PRD9.12：恢复字段仅明确勾选后可编辑，取消勾选不夹带输入；同次恢复和所选纠错直接保存一次，新GET确认原ID');
   p.tab('info');p.input('#edit-statusDesc','服务器个人草稿待恢复');
   await waitFor(()=>p.dom.draftWrites.some(row=>row.payload.values?.statusDesc==='服务器个人草稿待恢复') && p.$('#personal-drafts').title==='草稿已同步；正式项目仍需点击保存','服务器自动底稿确认');
   const syncCount=p.dom.draftWrites.length;await new Promise(resolve=>setTimeout(resolve,1300));assert.equal(p.dom.draftWrites.length,syncCount,'相同JSON内容不能反复同步');
@@ -245,13 +245,28 @@ try {
   await waitFor(()=>restored.dom.projectReads.at(-1)?.stages[0].state==='active' && !restored.$('#reload').disabled,'阶段动作带底稿提交');
   assert.equal((await a.api('/api/personal/drafts?clientDraftId='+actionDraft.clientDraftId)).items[0].state,'committed');
   checks.push('PRD9.7/9.15：阶段表单自动底稿、实际开始保存丢回应后核对原操作、新GET和对应稿同事务终结');
-  restored.click('[data-correction="correctStageFacts"]');await waitFor(()=>restored.$('#correction-edit'),'阶段日期纠错入口');
-  assert(restored.$('[data-correct-date="S1:startedOn"]').disabled);restored.click('[data-correct-select="S1:startedOn"]');assert(!restored.$('[data-correct-date="S1:startedOn"]').disabled);
-  restored.input('[data-correct-date="S1:startedOn"]','2026-09-30');restored.input('#correction-reason','合成验收：仅纠正开始日期');restored.click('#correction-edit [type="submit"]');
-  await waitFor(()=>!restored.$('#correction-save').disabled,'日期差异预览');const correctionText=restored.$('#correction-preview').textContent;
-  assert.match(correctionText,/需求立项 · 实际开始/);assert(!correctionText.includes('实际完成'));assert(!correctionText.includes('需求立项：需求立项'));assert(restored.$('[data-correct-date="S1:completedOn"]').disabled);
-  restored.click('#correction-save');await waitFor(()=>restored.dom.projectReads.at(-1)?.stages[0].startedOn==='2026-09-30' && !restored.$('#reload').disabled,'阶段纠错新读');
-  assert.equal((await read()).stages[0].state,'active');checks.push('PRD9.7：阶段日期仅勾选可编辑；预览仅变更字段，不重复阶段名称，保存日期不改变阶段状态');
+  const beforeStageFailure=await facts(id);restored.click('[data-stage="S1"][data-stage-action="completeStage"]');await waitFor(()=>restored.$('#stage-date'),'完成阶段填写入口');
+  restored.input('#stage-date','2026-09-30');restored.input('#stage-note','联调结论输入应保留');restored.dom.holdAction=true;restored.click('#stage-form [type="submit"]');
+  await waitFor(()=>restored.dom.releaseAction,'阶段请求回应暂扣');
+  for(const input of restored.w.document.querySelectorAll('#stage-form input,#stage-form textarea,#stage-form button'))assert(input.disabled,'实际阶段保存处理中冻结全部操作控件');
+  assert.equal(restored.dom.actionWrites.at(-1).status,422);restored.dom.releaseAction();
+  await waitFor(()=>restored.$('#stage-date') && !restored.$('#stage-date').disabled && !restored.$('#reload').disabled,'阶段日期非法后恢复原输入');
+  assert.equal(restored.$('#stage-date').value,'2026-09-30');assert.equal(restored.$('#stage-note').value,'联调结论输入应保留');assert.deepEqual(await facts(id),beforeStageFailure);
+  restored.click('#stage-cancel');await waitFor(()=>!restored.$('#stage-form'),'取消失败动作后无残留表单');
+  checks.push('PRD9.7：实际阶段请求处理中输入与按钮冻结；服务端拒绝日期矛盾后原输入可继续修改，版本/审计未变化，取消无残留表单');
+  restored.click('[data-correction="correctStageFacts"][data-stage="S1"]');await waitFor(()=>restored.$('#correction-edit'),'阶段日期纠错入口');
+  assert(!restored.$('[data-correct-date="S1:startedOn"]').disabled);assert(!restored.$('[data-correct-select]'));assert(!restored.$('#correction-reason'));
+  assert.equal(restored.w.document.querySelectorAll('[data-correct-date]').length,2);assert(!restored.$('[data-correct-date="S2:startedOn"]'));
+  const actionCount=restored.dom.actionWrites.length;restored.click('#correction-edit [type="submit"]');assert.equal(restored.$('#correction-error').textContent,'没有修改日期。');assert.equal(restored.dom.actionWrites.length,actionCount,'无实际日期变化不发动作请求');
+  restored.input('[data-correct-date="S1:startedOn"]','2026-09-29');restored.click('[data-correction="correctStageFacts"][data-stage="S2"]');
+  await waitFor(()=>restored.$('[data-choice="cancel"]'),'换阶段先处理未保存日期');restored.click('[data-choice="cancel"]');assert.equal(restored.$('[data-correct-date="S1:startedOn"]').value,'2026-09-29');assert(!restored.$('[data-correct-date="S2:startedOn"]'));
+  restored.click('[data-correction="correctStageFacts"][data-stage="S2"]');await waitFor(()=>restored.$('[data-choice="discard"]'),'明确放弃旧阶段稿');restored.click('[data-choice="discard"]');
+  await waitFor(()=>restored.$('[data-correct-date="S2:startedOn"]'),'只打开目标阶段日期');assert.equal(restored.w.document.querySelectorAll('[data-correct-date]').length,2);assert(!restored.$('[data-correct-date="S1:startedOn"]'));
+  restored.click('#correction-cancel');await waitFor(()=>!restored.$('#correction-edit'),'取消目标阶段日期稿');assert.equal(restored.w.document.querySelectorAll('[data-correct-date]').length,0);
+  restored.click('[data-correction="correctStageFacts"][data-stage="S1"]');await waitFor(()=>restored.$('[data-correct-date="S1:startedOn"]'),'取消后重新进入原阶段');assert.equal(restored.$('[data-correct-date="S1:startedOn"]').value,'2026-10-01');
+  const stageBeforeCorrection=(await read()).stages[0];restored.input('[data-correct-date="S1:startedOn"]','2026-09-30');restored.click('#correction-edit [type="submit"]');
+  await waitFor(()=>restored.dom.projectReads.at(-1)?.stages[0].startedOn==='2026-09-30' && !restored.$('#reload').disabled,'阶段日期直接保存后新读');
+  const stageAfterCorrection=(await read()).stages[0];assert.equal(stageAfterCorrection.state,'active');assert.equal(stageAfterCorrection.completedOn,stageBeforeCorrection.completedOn);checks.push('PRD9.7：只显示当前阶段日期，无变化不发请求；换阶段先处理原稿、取消后无残留。直接保存一次免勾选和重复原因，新GET确认只改选中日期，不改完成事实和阶段状态');
   restored.tab('info');restored.input('#edit-name','取消这一份基本稿');restored.input('#edit-statusDesc','状态区仍须保留');
   await waitFor(()=>restored.dom.draftWrites.some(row=>row.payload.values?.name==='取消这一份基本稿') && restored.dom.draftWrites.some(row=>row.payload.values?.statusDesc==='状态区仍须保留'),'两区底稿同步');
   const cancelled=restored.dom.draftWrites.filter(row=>row.payload.values?.name==='取消这一份基本稿').at(-1);
@@ -428,26 +443,49 @@ try {
   await waitFor(()=>combined.dom.projectReads.at(-1)?.project.status==='paused' && !combined.$('#reload').disabled,'名称日期暂缓同次成功');
   const savedCombined=await a.api('/api/projects/'+combinedId);assert.equal(savedCombined.project.name,prefix+'合并区已保存');assert.equal(savedCombined.project.dueDate,'2030-12-01');assert.equal(BigInt(savedCombined.project.version),BigInt(combinedCreated.result.savedVersion)+1n);assert.equal(savedCombined.project.statusDesc,'');assert.equal(combined.$('#edit-statusDesc').value,'其他区暂不保存');
   combined.input('#edit-dueDate','');combined.$('#edit-dueDate').dispatchEvent(new combined.w.Event('change',{bubbles:true}));combined.click('[data-save-scope="basic"]');
-  await waitFor(()=>combined.$('#message').textContent.includes('明确勾选'),'清空日期需要明确意图');assert.equal((await a.api('/api/projects/'+combinedId)).project.dueDate,'2030-12-01');
-  combined.$('[data-basic-clear="dueDate"]').checked=true;combined.$('[data-basic-clear="dueDate"]').dispatchEvent(new combined.w.Event('change',{bubbles:true}));combined.input('#edit-reason','原计划误录，当前未定');combined.click('[data-save-scope="basic"]');
   await waitFor(()=>combined.dom.projectReads.at(-1)?.project.dueDate===null && !combined.$('#reload').disabled,'明确纠正为计划未定');
   const cleared=await a.api('/api/projects/'+combinedId);assert.equal(cleared.project.dueDate,null);assert.equal(cleared.project.status,'paused');assert.equal(combined.$('#edit-statusDesc').value,'其他区暂不保存');
-  checks.push('PRD9.4/9.8/9.9：真实合并区名称/计划/暂缓缺原因全部拒绝并保留输入；补原因一次版本全部保存，其他区不夹带；空日期不自动清除，明确纠正为未定后新读');
+  assert(!combined.$('[data-basic-clear="dueDate"]'));checks.push('PRD9.4/9.8/9.9：真实合并区名称/计划/暂缓缺原因全部拒绝并保留输入；补原因一次版本全部保存，其他区不夹带；日期留空后明确保存纠正为未定，无重复勾选或纠错原因');
   combined.input('#edit-state','closed');combined.$('#edit-state').dispatchEvent(new combined.w.Event('change',{bubbles:true}));
-  combined.input('#edit-closedOn',cleared.businessDate);combined.input('#edit-reason','合成结案');combined.input('#edit-closureNote','保留成果归档');combined.click('[data-save-scope="basic"]');
-  await waitFor(()=>combined.$('#error-remainingWorkNote')?.textContent && !combined.$('#reload').disabled,'结案缺遗留说明拒绝');assert.equal((await a.api('/api/projects/'+combinedId)).project.version,cleared.project.version);
-  combined.input('#edit-remainingWorkNote','未完成阶段保留，后续重新安排');combined.click('[data-save-scope="basic"]');
+  combined.input('#edit-closedOn',cleared.businessDate);assert(!combined.$('#edit-reason'));assert(!combined.$('#edit-remainingWorkNote'));combined.click('[data-save-scope="basic"]');
+  await waitFor(()=>combined.$('#error-closureNote')?.textContent && !combined.$('#reload').disabled,'有遗留结案缺单份说明拒绝');assert.equal((await a.api('/api/projects/'+combinedId)).project.version,cleared.project.version);
+  combined.input('#edit-closureNote','保留成果归档，未完成阶段后续重新安排');combined.click('[data-save-scope="basic"]');
   await waitFor(()=>combined.dom.projectReads.at(-1)?.project.status==='closed' && !combined.$('#reload').disabled,'结案明确保存');
-  assert.equal(combined.$('#error-remainingWorkNote').textContent,'','同区成功后不残留之前的拒绝提示');assert.equal(combined.$('#edit-statusDesc').value,'其他区暂不保存');
-  combined.input('[data-basic="maintenance"]','true');combined.input('#edit-reason','结案后继续维护');combined.click('[data-save-scope="basic"]');
+  assert.equal(combined.$('#error-closureNote').textContent,'','同区成功后不残留之前的拒绝提示');assert.equal(combined.$('#edit-statusDesc').value,'其他区暂不保存');
+  combined.input('[data-basic="maintenance"]','true');assert(!combined.$('#edit-reason'));combined.click('[data-save-scope="basic"]');
   await waitFor(()=>Number(combined.dom.projectReads.at(-1)?.project.maintenanceEnabled)===1 && !combined.$('#reload').disabled,'维护标记保存');assert.equal((await a.api('/api/projects/'+combinedId)).project.status,'closed');
-  combined.input('#edit-state','paused');combined.$('#edit-state').dispatchEvent(new combined.w.Event('change',{bubbles:true}));combined.input('#edit-reason','重新打开，恢复结案前暂缓状态');combined.click('[data-save-scope="basic"]');
+  combined.input('#edit-state','paused');combined.$('#edit-state').dispatchEvent(new combined.w.Event('change',{bubbles:true}));assert(!combined.$('#edit-reason'));combined.click('[data-save-scope="basic"]');
+  await waitFor(()=>combined.$('[data-choice="save"]'),'重开一次确认退出本次结案');assert.equal((await a.api('/api/projects/'+combinedId)).project.status,'closed');combined.click('[data-choice="save"]');
   await waitFor(()=>combined.dom.projectReads.at(-1)?.project.status==='paused' && !combined.$('#reload').disabled,'合法重开恢复此前状态');const reopenedProject=await a.api('/api/projects/'+combinedId);assert.equal(Number(reopenedProject.project.maintenanceEnabled),0);assert.equal(reopenedProject.project.closedOn,null);assert.equal(combined.$('#edit-statusDesc').value,'其他区暂不保存');
-  checks.push('PRD9.8：结案缺遗留处置整次拒绝，补齐成功后旧错误清除；维护保持结案，重开恢复此前状态并关闭维护，其他区输入全程保留');
+  checks.push('PRD9.8：有遗留结案缺单份说明整次拒绝，补齐后旧错误清除；维护保持结案，重开一次确认恢复此前状态并关闭维护，无重复原因，其他区输入全程保留');
   combined.tab('history');await waitFor(()=>combined.$('#lifecycle-history [data-lifecycle]'),'暂缓说明纠正入口');
   const lifecycleHistory=combined.$('#lifecycle-history');assert.equal(lifecycleHistory.open,false);assert(!lifecycleHistory.textContent.includes('UTC'));assert(!lifecycleHistory.querySelector('h3').textContent.includes('#'));assert(!lifecycleHistory.textContent.includes('本周截止'));
   lifecycleHistory.open=true;combined.click('#lifecycle-history [data-lifecycle]');await waitFor(()=>combined.$('#lifecycle-edit'),'折叠说明仍能原位调用纠正');combined.tab('info');assert.equal(combined.$('#edit-statusDesc').value,'其他区暂不保存');
   checks.push('PRD9.14：暂缓恢复说明默认折叠、时间按北京时间显示，主阅读无内部编号/UTC或重复检查提示；原纠正入口仍可打开且其他区输入保留');
+  for(const dueDate of ['2031-02-01','']){
+    const startupCreated=await a.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+'启动组合',dueDate:'2030-12-31'}}),startupId=startupCreated.result.projectId,startupPath='/api/projects/'+startupId;projects.push(startupId);
+    for(const action of ['startStage','completeStage'])await a.api(startupPath+'/actions','POST',{action,stageCode:'S1',actualDate:action==='startStage'?'2020-01-01':'2020-01-02',expectedVersion:(await a.api(startupPath)).project.version,idempotencyKey:randomUUID()});
+    const startupView=await page(a,startupId),beforeStartup=await facts(startupId);
+    startupView.input('#edit-name',prefix+'启动组合已保存');startupView.input('#edit-statusDesc','启动时这段说明仍未保存');startupView.input('#edit-state','ongoing');startupView.$('#edit-state').dispatchEvent(new startupView.w.Event('change',{bubbles:true}));
+    startupView.input('#edit-startDate','2020-01-03');startupView.input('#edit-dueDate',dueDate);startupView.$('#edit-dueDate').dispatchEvent(new startupView.w.Event('change',{bubbles:true}));
+    if(dueDate){
+      assert(startupView.$('#edit-reason'));startupView.click('[data-save-scope="basic"]');
+      await waitFor(()=>startupView.$('#message').textContent.includes('原因') && !startupView.$('#reload').disabled,'真实启动改期缺说明拒绝');assert.deepEqual(await facts(startupId),beforeStartup);
+      const rejectedStartup=await a.api(startupPath);assert.equal(rejectedStartup.project.status,'proposal');assert.equal(rejectedStartup.project.dueDate,'2030-12-31');assert.equal(startupView.$('#edit-dueDate').value,dueDate);
+      startupView.input('[data-basic="planKind"]','correction');startupView.$('[data-basic="planKind"]').dispatchEvent(new startupView.w.Event('change',{bubbles:true}));
+    }
+    assert(!startupView.$('#edit-reason'),'纠正或清空原计划与启动同存，不索要真实改期原因');startupView.click('[data-save-scope="basic"]');
+    await waitFor(()=>startupView.dom.projectReads.at(-1)?.project.status==='ongoing' && !startupView.$('#reload').disabled,'计划纠错与项目启动同次保存');
+    const started=await a.api(startupPath);assert.equal(started.project.name,prefix+'启动组合已保存');assert.equal(started.project.startDate,'2020-01-03');assert.equal(started.project.dueDate,dueDate||null);assert.equal(BigInt(started.project.version),BigInt(beforeStartup.project.version)+1n);assert.equal(started.project.statusDesc,'');assert.equal(startupView.$('#edit-statusDesc').value,'启动时这段说明仍未保存');
+    const {connection:startupRead}=await connectDatabase('test_app');
+    try{
+      const persisted=(await startupRead.query("SELECT status,DATE_FORMAT(started_on,'%Y-%m-%d') startedOn,DATE_FORMAT(current_due_date,'%Y-%m-%d') dueDate FROM projects WHERE id=?",[startupId]))[0][0];assert.equal(persisted.status,'ongoing');assert.equal(persisted.startedOn,'2020-01-03');assert.equal(persisted.dueDate,dueDate||null);
+      assert.equal(Number((await startupRead.query('SELECT COUNT(*) n FROM schedule_changes WHERE project_id=?',[startupId]))[0][0].n),0,'误填纠正不能记录成真实改期');
+      const audit=(await startupRead.query("SELECT action FROM audit_log WHERE project_id=? AND version_after=? ORDER BY id",[startupId,started.project.version]))[0].map(row=>row.action);assert(audit.includes('project.start'));assert(audit.some(action=>action.includes('correctProjectDates')));
+    }finally{await startupRead.end();}
+    startupView.dom.window.close();
+  }
+  checks.push('PRD9.4/9.9：有原计划首次启动时，明确纠错日期或清空未定均先纠错再启动，同事务一次版本；真实改期缺说明整笔拒绝，未误记改期，SQL/新GET一致且状态说明输入保留');
   const aggregationCreated=await a.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+'阶段日期汇总'}});
   const aggregationId=aggregationCreated.result.projectId;projects.push(aggregationId);
   const aggregationPath='/api/projects/'+aggregationId;

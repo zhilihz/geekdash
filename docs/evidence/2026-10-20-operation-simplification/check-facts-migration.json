@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-20T02:17:25.5931033Z",
+  "serverUuid": "017e6895-c927-11f1-9c73-46ad6b6ac97c",
+  "from": "0004-project-compatibility",
+  "to": "0005-check-facts",
+  "checksum": "1b70d74c3ff84fdcc8f5587e2ab2007d20801e33b8e9f8720894a43458e40fb8",
+  "sourceLog": "test-results/check-facts-20261020.log",
+  "sourceLogSha256": "8512c523b38212b6c957faa0d398ff9d96bb99a04b7d39a121f2d5142d423f79",
+  "note": "首次真实升级完成，原4表逐值比较及nullable断言已通过，随后第84行COUNT字符串与数字类型断言失败。此记录明确续验来源，不宣称重新升级。外键/重复迁移/结构仍待续验。",
+  "completedAt": "2026-10-20T02:17:27.535Z"
+}

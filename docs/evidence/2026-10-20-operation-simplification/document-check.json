@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-20T02:53:30.696604+00:00",
+  "markdownFiles": 19,
+  "localLinks": 507,
+  "anchors": 94,
+  "unchangedMigrations": {
+    "migrations/0001-foundation.json": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+    "migrations/0002-trial-save.json": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695",
+    "migrations/0003-node-recovery.json": "4a5b38bd7c84ea230d9d2b1b0b7f93c575107f20c5df9968109901c09296e578",
+    "migrations/0004-project-compatibility.json": "98ea64154f89c74ca08274f0d74be2998616d9b4ae4749fc9f544fb80f160e8a"
+  },
+  "nextCandidateNotValidatedByDocumentCheck": true
+}

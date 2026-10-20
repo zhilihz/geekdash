@@ -22,7 +22,7 @@ const stages = vm.runInNewContext(stageSource[1], Object.create(null), { timeout
 const { connection: c } = await connectDatabase('test_migrator');
 assert.equal(process.env.GEEKDASH_MIGRATION_PROBE, '1');
 assert.equal((await c.query('SELECT @@server_uuid uuid'))[0][0].uuid, process.env.GEEKDASH_MIGRATION_PROBE_SERVER_UUID);
-let app, origin, ownRule, requestCount = 0;
+let app, origin, requestCount = 0;
 const reject = error => errors.push(error);
 process.on('unhandledRejection', reject);
 
@@ -113,7 +113,7 @@ async function facts(id) {
   const { connection } = await connectDatabase('test_app');
   try {
     const [project] = await connection.query('SELECT CAST(version AS CHAR) version,status_description FROM projects WHERE id=?', [id]);
-    const [records] = await connection.query('SELECT CAST(id AS CHAR) id,CAST(actor_id AS CHAR) actorId,CAST(observed_version AS CHAR) observedVersion,CAST(result_version AS CHAR) resultVersion,conclusion,note FROM project_checks WHERE project_id=? ORDER BY id', [id]);
+    const [records] = await connection.query('SELECT CAST(id AS CHAR) id,CAST(actor_id AS CHAR) actorId,CAST(observed_version AS CHAR) observedVersion,CAST(result_version AS CHAR) resultVersion,conclusion,note,week_start,rule_version FROM project_checks WHERE project_id=? ORDER BY id', [id]);
     const [audit] = await connection.query("SELECT CAST(id AS CHAR) id,CAST(entity_id AS CHAR) entityId FROM audit_log WHERE project_id=? AND action='project.check.save' ORDER BY id", [id]);
     const [receipts] = await connection.query("SELECT idempotency_key FROM command_receipts WHERE command_scope LIKE CONCAT('user:%:project:',?,':actions') ORDER BY idempotency_key", [id]);
     return { project: { ...project[0] }, records: records.map(row => ({ ...row })), audit: audit.map(row => ({ ...row })), receipts: receipts.map(row => row.idempotency_key) };
@@ -129,12 +129,6 @@ try {
   }
   const runtime = await openRuntimeDatabase('test_app'); app = await createApp(runtime, { origin: 'http://localhost', secure: false }); origin = await app.listen({ host: '127.0.0.1', port: 0 });
   const a = client(), b = client(); await a.login(0); await b.login(1);
-  let rule = await a.api('/api/settings/check-rule');
-  if (!rule.rule) {
-    await c.execute('INSERT INTO check_rule_revisions (deadline_weekday,effective_week,saved_at,saved_by) VALUES (5,?,UTC_TIMESTAMP(3),?)', [rule.weekStart, users[0].id]);
-    ownRule = (await c.query('SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0][0].id;
-    rule = await a.api('/api/settings/check-rule');
-  }
   const ids = {};
   for (const name of ['success', 'correct', 'conflict', 'lost', 'denied']) {
     const user = name === 'denied' ? b : a;
@@ -164,6 +158,7 @@ try {
   const listPath = '/api/projects?view=proposal&search=' + prefix;
   const entry = '/project-checks.html?view=proposal&search=' + prefix + '&layout=dashboard';
   const panel = await page(a, entry); await waitFor(() => settled(panel), '初次检查页面就绪');
+  assert.equal(panel.requests.some(item=>item.path.startsWith('/api/settings/check-rule')),false,'检查页不再读取或初始化截止规则');
   assert.equal(panel.w.document.querySelectorAll('#check-list article').length, 5);
   assert.equal(panel.$('#check-list input,#check-list textarea,#check-list select'), null, '检查页最新说明只读');
   const inspected=panel.$(card(ids.success));
@@ -182,7 +177,7 @@ try {
   const sameDayRequests = panel.requests.length;panel.dayTick();
   assert.equal(panel.requests.length,sameDayRequests,'同一天的定时检查不额外刷新');
   const focusReads=lists(panel).length;panel.w.dispatchEvent(new panel.w.Event('focus'));
-  await waitFor(()=>settled(panel) && lists(panel).length>focusReads,'回到检查页重新读取当前项目及公共规则');
+  await waitFor(()=>settled(panel) && lists(panel).length>focusReads,'回到检查页重新读取当前项目与检查事实');
   assert.equal(new URL(lists(panel).at(-1).path,origin).searchParams.get('search'),prefix);
   for (const trigger of [() => panel.w.dispatchEvent(new panel.w.Event('focus')), () => panel.dayTick()]) {
     panel.now = nextDay; const beforeDayReads = lists(panel).length; trigger();
@@ -197,6 +192,9 @@ try {
   assert.equal(success.records.length, 1); assert.equal(success.audit.length, 1); assert.equal(success.receipts.length, 1);
   assert.equal(success.records[0].actorId, users[0].id); assert.equal(success.records[0].observedVersion, version);
   assert.equal(success.records[0].resultVersion, success.project.version); assert.equal(success.records[0].conclusion, 'checked'); assert.equal(success.records[0].note, '');
+  assert.equal(success.records[0].week_start,null);assert.equal(success.records[0].rule_version,null,'新检查不伪造旧规则来源');
+  const savedCommand=panel.requests.find(item=>item.path===recordPath+'/actions').body;
+  assert(!Object.hasOwn(savedCommand,'ruleVersion'));assert(!Object.hasOwn(savedCommand,'previewWeek'));assert.equal(panel.requests.some(item=>item.path.endsWith('/preview')),false);
   assert.equal(success.audit[0].entityId, success.records[0].id);
   const checkedRecords=await a.api(recordPath);
   for(const key of ['stages','nodes','risks','changes'])assert.deepEqual(checkedRecords[key],originalRecords[key],'通过检查不修改'+key);
@@ -291,7 +289,7 @@ try {
   const deniedBefore = await facts(ids.denied), deniedButton = recovered.$(pass(ids.denied));
   assert(deniedButton.disabled); assert.match(recovered.$(card(ids.denied)).textContent, /仅项目负责人/);
   const requestsBefore = recovered.requests.length; deniedButton.click(); assert.equal(recovered.requests.length, requestsBefore, '禁用按钮不发请求');
-  const denied = await a.api('/api/projects/' + ids.denied + '/actions', 'POST', { action: 'saveCheck', expectedVersion: deniedBefore.project.version, idempotencyKey: randomUUID(), ruleVersion: rule.rule.version, previewWeek: rule.weekStart, conclusion: 'checked', note: '' }, 403);
+  const denied = await a.api('/api/projects/' + ids.denied + '/actions', 'POST', { action: 'saveCheck', expectedVersion: deniedBefore.project.version, idempotencyKey: randomUUID(), conclusion: 'checked', note: '' }, 403);
   assert.equal(denied.code, 'PROJECT_READ_ONLY'); assert.deepEqual(await facts(ids.denied), deniedBefore);
   assert.equal(errors.length, 0);
   checks.push('无负责关系仍可读完整卡片但按钮禁用且不发请求；直接HTTP越权403，独立SQL事实/审计/版本保持');
@@ -325,6 +323,7 @@ try {
   await waitFor(()=>direct.reads.some(item=>item.path===directPath && item.data.project.checkedToday) && !direct.$('#reload').disabled,'标题一键检查后新读当日状态');
   const directRequest=direct.requests.find(item=>item.path===directPath+'/actions'),directFacts=await facts(directId),directAfter=await a.api(directPath);
   assert.equal(directRequest.body.action,'saveCheck');assert.equal(directRequest.body.conclusion,'checked');assert.equal(directRequest.body.note,'');assert.equal(directRequest.body.expectedVersion,directBefore.project.version);
+  assert(!Object.hasOwn(directRequest.body,'ruleVersion'));assert(!Object.hasOwn(directRequest.body,'previewWeek'));assert.equal(direct.requests.some(item=>item.path.startsWith('/api/settings/check-rule')),false);assert.equal(directAfter.project.checkStatus.updatedAfterCheck,false);
   assert.equal(direct.requests.filter(item=>item.path===directPath+'/actions').length,1);assert.equal(direct.requests.some(item=>item.path.endsWith('/preview')),false,'普通检查不增加预览步骤');assert.equal(direct.$('#check-edit'),null);assert.equal(direct.$('dialog[open]'),null);assert.equal(direct.$(checkButton),null,'已检查后隐藏检查入口');
   assert.equal(direct.$('#edit-name').value,'尚未保存的基本资料');assert.equal(direct.$('#edit-statusDesc').value,'尚未保存的人工说明');assert.deepEqual(await businessFacts(),directBusiness,'检查不夹带未保存输入或改写业务信息');
   for(const key of ['stages','nodes','risks','changes'])assert.deepEqual(directAfter[key],directBefore[key]);
@@ -335,8 +334,12 @@ try {
   direct.input('#edit-statusDesc','人工保存的最终进展\n保留原样，不追加系统状态。');direct.click('[data-save-scope="status"]');
   await waitFor(()=>direct.reads.some(item=>item.path===directPath && item.data.project.statusDesc==='人工保存的最终进展\n保留原样，不追加系统状态。') && !direct.$('#reload').disabled,'检查后人工说明独立保存');
   assert.equal(direct.$('#edit-name').value,'尚未保存的基本资料');assert.equal(direct.$('#edit-statusDesc').value,'人工保存的最终进展\n保留原样，不追加系统状态。');assert.equal((await facts(directId)).project.status_description,'人工保存的最终进展\n保留原样，不追加系统状态。');assert.equal((await facts(directId)).records.length,1);
-  const reopened=await page(a,'/project-detail.html?id='+directId);assert.equal(reopened.$('#edit-statusDesc').value,'人工保存的最终进展\n保留原样，不追加系统状态。');assert.equal(reopened.$(checkButton),null);
-  checks.push('详情一键检查：标题同排入口、无表单/预览，一次明确提交；未保存基本信息和说明保持，正式业务字段/阶段/风险不变，SQL检查事实/审计/回执与新GET及真实SSE一致；已查隐藏，随后人工说明保存及重入原文保持');
+  const updatedAfterCheck=await a.api(directPath);assert.equal(updatedAfterCheck.project.checkStatus.updatedAfterCheck,true);assert.equal(updatedAfterCheck.project.checkStatus.latest.id,directFacts.records[0].id);assert.equal(updatedAfterCheck.project.checkedToday,true);
+  const reopened=await page(a,'/project-detail.html?id='+directId);assert.equal(reopened.$('#edit-statusDesc').value,'人工保存的最终进展\n保留原样，不追加系统状态。');assert.equal(reopened.$(checkButton).textContent,'检查更新');
+  const beforeRecheck=await facts(directId);reopened.click(checkButton);
+  await waitFor(()=>reopened.reads.some(item=>item.path===directPath && item.data.project.version!==updatedAfterCheck.project.version && !item.data.project.checkStatus.updatedAfterCheck) && !reopened.$('#reload').disabled,'人工检查更新后新读确认');
+  const afterRecheck=await facts(directId);assert.equal(afterRecheck.records.length,2);assert.deepEqual(afterRecheck.records[0],beforeRecheck.records[0]);assert.equal(afterRecheck.project.status_description,beforeRecheck.project.status_description);assert.equal(reopened.$(checkButton),null);assert.equal(reopened.requests.filter(item=>item.path===directPath+'/actions').length,1);assert.equal(reopened.requests.some(item=>item.path.endsWith('/preview')),false);
+  checks.push('详情一键检查：标题同排入口、无表单/预览，一次明确提交；未保存基本信息和说明保持，正式业务字段/阶段/风险不变，SQL检查事实/审计/回执与新GET及真实SSE一致；随后人工说明保存及重入原文保持，检查更新追加事实并保留原记录，不改业务正文');
 
   const staleDetailId=detailProjects.conflict,staleDetailPath='/api/projects/'+staleDetailId,staleDetail=await page(a,'/project-detail.html?id='+staleDetailId),staleDetailBefore=await a.api(staleDetailPath);
   staleDetail.input('#edit-name','过期版本的基本区输入');staleDetail.input('#edit-statusDesc','过期版本的人工说明');
@@ -387,7 +390,6 @@ try {
     for (const table of ['project_changes', 'project_risks', 'project_nodes', 'project_checks', 'schedule_changes', 'audit_log', 'project_stages', 'project_responsibilities', 'project_chips', 'project_people', 'project_tags']) await c.execute('DELETE FROM ' + table + ' WHERE project_id=?', [id]);
     await c.execute("DELETE FROM command_receipts WHERE command_scope LIKE CONCAT('user:%:project:',?,':%')", [id]); await c.execute('DELETE FROM projects WHERE id=?', [id]);
   }
-  if (ownRule) await c.execute('DELETE FROM check_rule_revisions WHERE version=? AND saved_by=?', [ownRule, users[0].id]);
   for (const user of users) {
     for (const table of ['command_receipts', 'audit_log']) await c.execute('DELETE FROM ' + table + ' WHERE actor_id=?', [user.id]);
     await c.execute('DELETE FROM sessions WHERE user_id=?', [user.id]); await c.execute('DELETE FROM users WHERE id=?', [user.id]);

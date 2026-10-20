@@ -21,14 +21,14 @@ function changes(value: unknown, fields: string[]) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || !Object.keys(value).length || Object.keys(value).some(key => !fields.includes(key))) failure('INVALID_PLAN_COMMAND', 400);
 }
 export function validatePlan(value: unknown): PlanCommand {
-  const body = value as PlanCommand;
+  const body = { ...value as PlanCommand, ...!Object.hasOwn(value as object, 'reason') && ['correctProjectDates', 'correctScheduleRecord'].includes((value as PlanCommand).action) ? { reason: '' } : {} } as PlanCommand;
   const required = ['action', 'expectedVersion', 'idempotencyKey'];
   const extra = body.action === 'setPlan' ? ['dueDate'] : body.action === 'reschedulePlan' ? ['dueDate', 'reason', 'measures'] : body.action === 'notePlan' ? ['reason', 'measures'] : body.action === 'correctProjectDates' ? ['changes', 'reason'] : body.action === 'correctScheduleRecord' ? ['recordId', 'changes', 'reason', 'currentDueDate'] : ['recordId', 'reason', 'currentDueDate'];
   if (!planActions.includes(body.action) || required.some(key => !Object.hasOwn(body, key)) || Object.keys(body).some(key => ![...required, ...extra].includes(key)) || !validId(body.expectedVersion)
     || typeof body.idempotencyKey !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(body.idempotencyKey)) failure('INVALID_PLAN_COMMAND', 400);
   if ('reason' in body && !text(body.reason) || 'measures' in body && !text(body.measures)) failure('INVALID_PLAN_COMMAND', 400);
   if (body.action !== 'setPlan' && (!Object.hasOwn(body, 'reason') || !text(body.reason))) failure('INVALID_PLAN_COMMAND', 400);
-  if (body.action !== 'setPlan' && body.action !== 'notePlan' && !body.reason.trim()) failure('PLAN_REASON_REQUIRED', 422, { fields: { reason: '请填写调整或纠错原因' } });
+  if ((body.action === 'reschedulePlan' || body.action === 'voidScheduleRecord') && !body.reason.trim()) failure('PLAN_REASON_REQUIRED', 422, { fields: { reason: '请填写调整或撤销原因' } });
   if (body.action === 'notePlan' && !body.reason.trim() && !(body.measures ?? '').trim()) failure('PLAN_NOTE_REQUIRED', 422, { fields: { reason: '原因或措施至少填写一项' } });
   if (body.action === 'setPlan' || body.action === 'reschedulePlan') { requireDate(body.dueDate, 'dueDate'); return { ...body, ...(body.action === 'reschedulePlan' ? { measures: body.measures ?? '' } : {}) }; }
   if (body.action === 'notePlan') return { ...body, measures: body.measures ?? '' };

@@ -1,6 +1,6 @@
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import { failure, validId } from './project-save.js';
-import { checkContext, requireDate } from './project-dates.js';
+import { businessToday, requireDate } from './project-dates.js';
 import { enrichChecks } from './project-checks.js';
 import { planCandidate, type ProjectDates } from './project-plans.js';
 
@@ -13,7 +13,7 @@ export const lifecycleActions = ['pauseProject', 'resumeProject', 'correctLifecy
 export function isLifecycleCommand(body: { action: string }): body is LifecycleCommand { return lifecycleActions.includes(body.action); }
 const validText = (value: unknown): value is string => typeof value === 'string' && value.isWellFormed() && Buffer.byteLength(value, 'utf8') <= 65535;
 export function validateLifecycle(value: unknown): LifecycleCommand {
-  const body = value as LifecycleCommand;
+  const body = { ...value as LifecycleCommand, ...!Object.hasOwn(value as object, 'reason') && (value as LifecycleCommand).action === 'correctLifecycleNote' ? { reason: '' } : {} } as LifecycleCommand;
   const fields = ['action', 'expectedVersion', 'idempotencyKey', ...(body.action === 'pauseProject' ? ['reason'] : body.action === 'resumeProject' ? ['note', 'dueDate', 'planReason'] : ['auditId', 'note', 'reason'])];
   if (!lifecycleActions.includes(body.action) || Object.keys(body).some(key => !fields.includes(key)) || !validId(body.expectedVersion)
     || typeof body.idempotencyKey !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(body.idempotencyKey)) failure('INVALID_LIFECYCLE_COMMAND', 400);
@@ -23,7 +23,7 @@ export function validateLifecycle(value: unknown): LifecycleCommand {
     return { ...body, note: body.note ?? '', ...(body.dueDate !== undefined ? { planReason: body.planReason ?? '' } : {}) };
   }
   if (!validText(body.reason)) failure('INVALID_LIFECYCLE_COMMAND', 400);
-  if (!body.reason.trim()) failure('LIFECYCLE_REASON_REQUIRED', 422, { fields: { reason: '请填写暂缓或纠错原因' } });
+  if (body.action === 'pauseProject' && !body.reason.trim()) failure('LIFECYCLE_REASON_REQUIRED', 422, { fields: { reason: '请填写暂缓原因' } });
   if (body.action === 'correctLifecycleNote' && (!validId(body.auditId) || !validText(body.note))) failure('INVALID_LIFECYCLE_COMMAND', 400);
   return body;
 }
@@ -75,9 +75,8 @@ export async function lifecycleCandidate(c: PoolConnection, id: string, project:
     }
   }
   const changed = Object.keys(afterValues).length > 0;
-  const context = await checkContext(c, undefined, now);
   const current = { ...project, id } as RowDataPacket;
   const next = { ...current, ...(status ? { status } : {}), version: changed ? (BigInt(project.version) + 1n).toString() : project.version } as RowDataPacket;
-  await enrichChecks(c, [current, next], context);
+  await enrichChecks(c, [current, next], { businessDate: businessToday(now) });
   return { status, resumeStatus, plan, beforeValues, afterValues, changed, preview: { beforeValues, afterValues, changed, beforeCheck: current.checkStatus, afterCheck: next.checkStatus, ...(plan ? { plan: plan.preview } : {}) } };
 }

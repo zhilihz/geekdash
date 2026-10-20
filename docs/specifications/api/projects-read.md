@@ -1,6 +1,6 @@
 # 项目只读 API
 
-日期：2026-10-14；来源src/server/modules/projects.ts及routes/projects.ts，E04-UI12。当前业务查询要求可信登录，身份协议归[项目主干](project-core.md)；以下是读取协议，部署状态归系统真相，不能由本文推导。业务语义引用SPEC-002/004/005/014/018。
+日期：2026-10-20核对检查事实投影；来源src/server/modules/projects.ts、project-checks.ts及routes/projects.ts。当前业务查询要求可信登录，身份协议归[项目主干](project-core.md)；以下是读取协议，部署状态归系统真相，不能由本文推导。业务语义引用SPEC-002/004/005/014/018。
 
 2026-10-16 P04-02本地候选补充（基线f07450e+未提交改动，结构0004，未部署）：dashboard=1的items另含独立summary，既有summaryNote保留；详情project同样新增summary。stages.expectedEndOn由有效项目节点的最晚target_date投影，nodeCount及undatedNodeCount分别为有效项目节点总数及无目标日数量；无可用日期返回null，不回退旧独立阶段计划。risks及结案剩余风险排除deleted_at非空行。验证与旧值保留范围见[P04-02报告](../../testing/reports/2026-10-16-p04-02-compatibility.md)；前端消费仍待后续步骤。
 
@@ -35,6 +35,7 @@
 | stage | S1～S7/completed/unconfigured |
 | progress | 字符串 0/5/10/20/60/80/90/100 |
 | dashboard | 可选字符串1；请求看板完整筛选投影和卡片简介，普通模式保持原字段 |
+| details | 可选字符串checks；给当前页项目附加检查所需的详情快照inspection |
 | page/pageSize | 整数；page 1～1000000，pageSize 1～100，默认 1/24 |
 
 非法枚举、超长输入、未知参数返回 400。稳定按项目 ID 降序，超出最后一页时返回实际最后一页；没有结果仍为第 1/1 页。
@@ -43,9 +44,11 @@
 
 dashboard=1在同一只读快照附加：items.summaryNote、dashboard.distributions（客户/产品线/状态/优先级/信号灯/阶段的value/count）、focusTotal及focus（当前完整匹配范围，优先级/进度排序，最多12项；已结案及量产维护看板同样展示）、latest（当前匹配按项目更新时间最近10项，非状态单项修改时间）、team。team按当前完整筛选集合的非结案项目计算：id/name/count，以及pmCount/hardwareCount/softwareCount；总数按工程师与项目去重，各岗位分别按项目去重，保留零负载工程师。UI12按统一展示范围替代旧team全局口径。数量均为实际计数；focus有限展示不构成创建上限，分页变化不改变汇总口径。统计失败整次读取失败，不返回假零值。
 
-列表items增加checkedToday:boolean和capabilities.canCheck:boolean。前者根据checked_at位于上海当天00:00至次日00:00的UTC半开区间判断；同一天多条只算一个已检查项目。后者来自当前可信账号的project_responsibilities关系，不由业务人员姓名推断；写入仍会重新校验。只有列表使用ListProject类型，不能假定详情含这两个字段。
+列表items包含checkedToday:boolean和capabilities.canCheck:boolean。前者根据checked_at位于上海当天00:00至次日00:00的UTC半开区间判断；同一天多条只算一个已检查项目。后者来自当前可信账号的project_responsibilities关系，不由业务人员姓名推断；写入仍会重新校验。详情的project同样返回checkedToday，检查操作权限沿详情readOnly与capabilities读取。
 
-stats增加todayChecked/todayUnchecked，均为包含checkToday在内的当前过滤集合计数，二者相加等于total；在unchecked查询里todayChecked自然为0，不得当作另一个已检查标签的总数。首页不带日条件，消费完整当前范围的两项计数；检查页以实际查询分页总数展示。日标记不改变周检查义务和按时规则。
+stats包含todayChecked/todayUnchecked，均为包含checkToday在内的当前过滤集合计数，二者相加等于total；在unchecked查询里todayChecked自然为0，不得当作另一个已检查标签的总数。首页不带日条件，消费完整当前范围的两项计数；检查页以实际查询分页总数展示。今日未查是事实标记，不表示每日强制任务；周义务、截止、按时和逾期检查判定已退出。
+
+`details=checks`时，当前页每项的`inspection`复用同一数据库快照中的详情读取，包括基本资料、分工、阶段、有效节点、风险、需求变更和说明。为避免批量列表加载整段历史，`inspection.history`与`inspection.lifecycleNotes`为空；需要历史时进入详情并使用相应分页入口。它不另取较新项目版本，也不创建检查。
 
 `stats/stageCounts`跟随完整筛选范围，options按view提供可选范围。列表与统计/选项处于同一短读事务，businessDate来自同次服务器Asia/Shanghai时钟。stats含九个deadline类别计数，当前范围合计等于total；项目deadline含kind/asOfDate/days/label。未定或未知days=null，不能解释为0；不返回manualDelayed。空查询返回200和空数组/零计数；不可用不能伪装成空查询。
 
@@ -55,7 +58,7 @@ stats增加todayChecked/todayUnchecked，均为包含checkToday在内的当前�
 
 id 为正十进制 bigint 字符串，不超过 unsigned bigint；格式/越界返回 400，项目不存在返回 404/PROJECT_NOT_FOUND。
 
-返回project/stages/nodes/risks/changes/delays/planSummary/history/responsible/readOnly/capabilities及动作提示和公共规则。history仅旧来源记录，服务器完整审计按[保存API](project-save.md)独立分页。responsible是账号负责关系，与业务人员资料不同；当前身份与负责范围决定编辑能力，所有账号可读全部项目。
+返回project/stages/nodes/risks/changes/delays/planSummary/history/responsible/readOnly/capabilities及动作提示、businessDate；不再返回checkRule。history仅旧来源记录，服务器完整审计按[保存API](project-save.md)独立分页。responsible是账号负责关系，与业务人员资料不同；当前身份与负责范围决定编辑能力，所有账号可读全部项目。
 
 delays包含kind、有效oldDate/newDate/reason/measures/voided、原actorId/createdAt、original原值和corrections更正来源；读取全部关联更正，不受审计第一页20条限制。planSummary包含reschedules、laterAdjustments、unknownAdjustments及相对原始计划有符号netDays；缺日期netDays=null。note、撤销或同值记录不计真实改期，未知改期单列；不据历史数量判断当前超期。具体变更协议见[项目动作](project-actions.md)。
 
@@ -69,13 +72,13 @@ GET不创建账号、责任、检查、业务历史或草稿，不触发阶段/�
 
 验证方法归 TEST-036，执行结果归 [报告](../../testing/reports/2026-10-08-project-reads.md)。
 
-## E04-B05 周检查查询及暂缓说明
+## 检查事实查询及暂缓说明
 
-project增加resumeStatus（暂缓前proposal/ongoing或null）、firstCheckWeek与checkStatus；详情另返回lifecycleNotes。firstCheckWeek为YYYY-MM-DD或null。lifecycleNotes为原暂缓/恢复审计ID、action、originalNote/有效note、原人/UTC时间/版本及corrections（更正ID/人/时间/原因），不改写原历史。
+project包含resumeStatus（暂缓前proposal/ongoing或null）、firstCheckWeek与checkStatus；详情另保留firstCheckRuleVersion及lifecycleNotes。firstCheckWeek/firstCheckRuleVersion仅为旧来源值，可为null，不作为新启动、检查或统计的前置。lifecycleNotes为原暂缓/恢复审计ID、action、originalNote/有效note、原人/UTC时间/版本及corrections（更正ID/人/时间/原因），不改写原历史。
 
-checkStatus包含kind/label/required/weekStart/deadlineDate/onTime/updatedAfterCheck/latest。kind为excluded/not_due/basis_unknown/rule_unknown/pending/overdue/checked/checked_late；required只表示默认当周必查，已有主动检查可以required=false。onTime为首次检查对本周当前有效截止的判定，未知为null；updatedAfterCheck比较最新resultVersion。latest为本周最新id/actorId/actorName/checkedAt/conclusion/note/observedVersion/resultVersion，没有则null。时间为UTC，自然周/截止按服务器Asia/Shanghai；结论原值checked/follow_up。
+checkStatus只包含kind/label/updatedAfterCheck/latest。kind为unchecked或checked，label为今日未检查或今日已检查，与checkedToday一致。updatedAfterCheck比较当前项目版本和最近检查resultVersion，不再限定自然周；没有检查时为false。latest为按原检查ID选取的最近记录，包含id/actorId/actorName/checkedAt/conclusion/note/observedVersion/resultVersion，没有则null；conclusion/note采用有效更正。时间为UTC，今日按服务器Asia/Shanghai；结论原值checked/follow_up。
 
-stats增加checkRequired/checkPending/checkOverdue/checkDone/checkUpdated，沿完整筛选范围再应用默认必查范围；checkPending+checkOverdue+checkDone等于checkRequired，checkUpdated可以与已查计数重叠。暂缓移出必查不表示已查；恢复沿原首次义务立即查询。列表一次按当页项目批量读取周事实，详情相同投影；无定时业务写入或检查创建。B07已接明确检查和文字纠错；最新摘要采用有效文字，原检查事实及原规则保留。规则正文归SPEC-005/019，实际验收与运行范围见系统真相。
+stats保留checkUpdated，表示当前完整筛选范围中最近检查后有版本更新的项目数，可与todayChecked或todayUnchecked重叠；不再返回checkRequired/checkPending/checkOverdue/checkDone。列表批量读取当页检查事实，详情与统一状态简要使用同一投影。暂缓、恢复、结案及重新打开不会重建检查义务或清除原检查；读取本身不写业务数据。旧检查和旧规则来源保留，准确规则归SPEC-005/019，实际验收与运行范围见系统真相。
 
 ## E04-B06 当前结案来源
 
@@ -87,11 +90,11 @@ original为原结案审计内容，仅在详情读取；每次纠正通过物理
 
 ### E04-B07 检查历史分页
 
-GET `/api/projects/:id/checks?pageSize=20&before=字符串ID`；默认20、最大100，before为独立检查记录ID游标，总量无上限。可信账号可读，no-store；404项目不存在、400非法参数，数据库错误503。返回 projectVersion / items / nextCursor / pageSize / rule，同一数据库快照；项目版本不同于详情固定版本时客户端提示重入，不把新历史混入旧编辑基线。
+GET `/api/projects/:id/checks?pageSize=20&before=字符串ID`；默认20、最大100，before为独立检查记录ID游标，总量无上限。可信账号可读，no-store；404项目不存在、400非法参数，数据库错误503。返回 projectVersion / items / nextCursor / pageSize / businessDate，同一数据库快照，不再返回rule；项目版本不同于详情固定版本时客户端提示重入，不把新历史混入旧编辑基线。
 
-items 按原检查 ID 降序，每项保留 id / projectId / actorId / actorName / checkedAt / weekStart / ruleVersion / observedVersion / resultVersion；conclusion / note 为有效文字，original 为原文字，correction 为最新更正 id / actorName / createdAt / reason 或 null。完整更正过程仍读取项目审计。保存检查时的原人名快照来自创建审计，不随账号后来改名重写。
+items 按原检查 ID 降序，每项保留 id / projectId / actorId / actorName / checkedAt / weekStart / ruleVersion / observedVersion / resultVersion；新检查weekStart与ruleVersion为null，旧记录仍返回原值。conclusion / note 为有效文字，original 为原文字，correction 为最新更正 id / actorName / createdAt及原请求可选reason，或null；新纠正不强制附加原因。完整更正过程仍读取项目审计。保存检查时的原人名快照来自创建审计，不随账号后来改名重写。
 
-deadlineDate / effectiveRuleVersion / onTime 为当前采用的截止判定，originalDeadlineDate / originalOnTime 为原规则判定。本周采用最新有效设置；历史周取该周结束前有效的最后修订，以后的调整不重算过去。列表首查采用 MIN(id)、最新采用 MAX(id)，同毫秒和时钟回拨不会改成按最小时间选首查。列表只批量读取当页周摘要与有效文字，详情和历史复用同一投影。
+不再返回deadlineDate / effectiveRuleVersion / onTime / originalDeadlineDate / originalOnTime，也不据旧规则重新计算历史按时情况。最近记录使用MAX(id)，同毫秒或时钟回拨不改变登记顺序；今日标记独立根据checkedAt所在业务日判断。纠正结论/备注保留原人、检查时间及核对版本，不新增检查记录。
 
 ### E04-B08 已删除节点分页
 

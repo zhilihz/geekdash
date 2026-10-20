@@ -23,7 +23,7 @@ export async function loadSchema() {
   let manifest = structuredClone(foundation);
   const history = [{ version: foundation.version, checksum: createHash('sha256').update(bytes).digest() }];
   const increments: { previous: Manifest; manifest: Manifest; steps: { table: string; sql: string; columns?: Column[]; indexes?: Index[]; checks?: Check[] }[] }[] = [];
-  for (const [version, count] of [['0002-trial-save', 3], ['0003-node-recovery', 1], ['0004-project-compatibility', 2]] as const) {
+  for (const [version, count] of [['0002-trial-save', 3], ['0003-node-recovery', 1], ['0004-project-compatibility', 2], ['0005-check-facts', 1]] as const) {
     const bytes = await readFile(new URL('../../migrations/' + version + '.json', import.meta.url));
     const delta = JSON.parse(bytes.toString('utf8')) as { version: string; steps: typeof increments[number]['steps'] };
     if (delta.version !== version || delta.steps.length !== count) fail('DB_MIGRATION_RESOURCE_INVALID');

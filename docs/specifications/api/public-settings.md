@@ -1,13 +1,38 @@
-# 公共检查规则 API
+# 公共检查设置兼容 API
 
-来源：src/server/routes/settings.ts、modules/public-settings.ts；2026-10-10 E04-B07/F08。行为仅引用SPEC-019；初始化及本周立即生效的修改已编码，实际运行/验收归系统真相。身份与CSRF沿[项目主干](project-core.md)。
+来源：`src/server/routes/settings.ts`、`src/server/modules/public-settings.ts`；2026-10-20按SPEC-005/019、DEC-133核对当前代码。周检查设置已退出，新检查不再依赖规则配置。本页只记录旧接口兼容与回执读取协议；部署及实际验收状态归[系统真相](../../status/current-system-truth.md)，身份与CSRF沿[项目主干](project-core.md)。
 
-- GET `/api/settings/check-rule`：可信账号读取configVersion、canMaintain、rule、businessDate、weekStart、deadlineDate、firstCheckWeek。配置/规则未建返回null，不能把周五建议当已保存规则。
-- POST `/api/settings/check-rule`：`{action:"initializeCheckRule",deadlineWeekday:5,expectedVersion:"1",previewWeek:"2026-10-05",idempotencyKey:"UUIDv4"}`；修改时仅把action改为modifyCheckRule；星期为整数1～7，其余版本/日期/编号沿严格白名单。仅配置中的专用维护账号保存。
-- POST `/api/settings/check-rule/results/query`：原完整正文/编号确认，committed/result或not_found。原账号作用域，原编号正文变化409；后来配置改变也不改原回执。
+## 1. 读取退役状态
 
-成功200/result包含operationId、savedVersion、ruleVersion、deadlineWeekday/effectiveWeek；实际代码协议为准。配置版本、规则修订、设置审计和回执同一事务。403 MAINTENANCE_REQUIRED、409 SETTINGS_VERSION_CONFLICT/CHECK_PREVIEW_CHANGED、422 SYSTEM_CONFIGURATION_REQUIRED/CHECK_RULE_ALREADY_INITIALIZED；所有未提交错误保持原规则。503 unknown沿原请求确认；设置不增加项目版本或自动生成检查。
+`GET /api/settings/check-rule`，要求可信登录。返回：
 
-modifyCheckRule 要求规则已初始化，缺失返回422 CHECK_RULE_REQUIRED；本周保存成功后立即生效、以后沿用，历史周冻结。配置版本和规则版本分开，项目版本不批量增长。维护页保存前展示旧、新星期与本周影响供明确确认；服务端取配置独占锁后检查 expectedVersion / previewWeek，和启动/检查共享锁形成一致次序。
+```json
+{"retired":true,"code":"CHECK_RULE_RETIRED","businessDate":"2026-10-20"}
+```
 
-修改有变化时 result.changed=true，追加修订并增加配置版本、设置审计与回执；同星期 result.changed=false，只有回执，savedVersion/ruleVersion 保持。初始化原返回形状不变。原编号正文恢复不受后来规则/周变化影响；四个写点故障回滚和真实提交丢确认恢复已验证，来源见检查报告。
+`businessDate`取服务器上海业务日；不再返回`configVersion`、`canMaintain`、`rule`、`weekStart`、`deadlineDate`或`firstCheckWeek`。不要求初始化公共规则，不创建配置、规则或检查记录。
+
+## 2. 旧命令及原回执恢复
+
+保留以下两个入口，供已有客户端确认旧操作的实际结果：
+
+- POST `/api/settings/check-rule`
+- POST `/api/settings/check-rule/results/query`
+
+两者仍只接受原来的五个字段：
+
+```json
+{"action":"modifyCheckRule","deadlineWeekday":5,"expectedVersion":"1","previewWeek":"2026-10-05","idempotencyKey":"UUIDv4"}
+```
+
+`action`为`initializeCheckRule`或`modifyCheckRule`；星期为整数1～7，版本为正十进制ID字符串，`previewWeek`为有效`YYYY-MM-DD`，编号为小写UUIDv4。缺少、增加或误填字段返回400/`INVALID_CHECK_RULE_COMMAND`。这些字段用于核对旧请求，不会重新启用周规则。
+
+| 实际结果 | POST旧保存入口 | POST结果查询入口 |
+|---|---|---|
+| 当前账号作用域中存在同编号、同正文的已提交回执 | 200，`{outcome:"committed",result:原回执结果}` | 同左 |
+| 同编号已对应不同正文 | 409/`OPERATION_KEY_REUSED` | 同左 |
+| 没有原回执 | 410/`CHECK_RULE_RETIRED` | 200，`{outcome:"not_found"}` |
+
+作用域继续使用`user:{actorId}:settings:check-rule`；正文哈希仍按原顺序`[action,deadlineWeekday,expectedVersion,previewWeek]`计算。原回执中的`operationId`、`savedVersion`、`ruleVersion`等旧结果按原值返回，不受后来日期、账号维护资格或设置变化影响；读取时仍校验当前可信且有效的账号。
+
+以上兼容入口只读取旧回执，不写配置、规则修订、项目、审计或新回执，也不发送规则变更通知。会话失效、CSRF不符及数据库不可用沿共用协议返回，不能把未能读取解释为`not_found`。原始规则及已存历史由数据库迁移保留；新项目检查协议见[项目动作](project-actions.md)。

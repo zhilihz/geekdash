@@ -1,6 +1,6 @@
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import { failure, validId } from './project-save.js';
-import { businessToday, checkContext, deadlineResult, requireDate } from './project-dates.js';
+import { businessToday, deadlineResult, requireDate } from './project-dates.js';
 import { enrichChecks } from './project-checks.js';
 import type { LifecycleProject } from './project-lifecycle.js';
 import type { StageFact } from './project-actions.js';
@@ -17,18 +17,16 @@ export const closureActions = ['closeProject', 'reopenProject', 'setMaintenance'
 export function isClosureCommand(value: { action: string }): value is ClosureCommand { return closureActions.includes(value.action); }
 const text = (value: unknown): value is string => typeof value === 'string' && value.isWellFormed() && Buffer.byteLength(value, 'utf8') <= 65535;
 export function validateClosure(value: unknown): ClosureCommand {
-  const body = value as ClosureCommand;
+  const body = { ...value as ClosureCommand, ...!Object.hasOwn(value as object, 'reason') && ['correctClosure', 'setMaintenance', 'reopenProject'].includes((value as ClosureCommand).action) ? { reason: '' } : {} } as ClosureCommand;
   const fields = ['action', 'expectedVersion', 'idempotencyKey', ...(body.action === 'closeProject' ? ['closureType', 'closedOn', 'closureNote', 'remainingWorkNote'] : body.action === 'setMaintenance' ? ['enabled', 'reason'] : ['closureAuditId', 'reason', ...(body.action === 'correctClosure' ? ['changes'] : [])])];
   if (!isClosureCommand(body) || Object.keys(body).some(key => !fields.includes(key)) || !validId(body.expectedVersion)
     || typeof body.idempotencyKey !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(body.idempotencyKey)) failure('INVALID_CLOSURE_COMMAND', 400);
   if (body.action === 'closeProject') {
-    if (!['normal', 'terminated'].includes(body.closureType) || !text(body.closureNote) || body.remainingWorkNote !== undefined && !text(body.remainingWorkNote)) failure('INVALID_CLOSURE_COMMAND', 400);
+    if (!['normal', 'terminated'].includes(body.closureType) || body.closureNote !== undefined && !text(body.closureNote) || body.remainingWorkNote !== undefined && !text(body.remainingWorkNote)) failure('INVALID_CLOSURE_COMMAND', 400);
     requireDate(body.closedOn, 'closedOn');
-    if (!body.closureNote.trim()) failure('CLOSURE_NOTE_REQUIRED', 422, { fields: { closureNote: '请填写结案说明' } });
-    return { ...body, remainingWorkNote: body.remainingWorkNote ?? '' };
+    return { ...body, closureNote: body.closureNote ?? '', remainingWorkNote: body.remainingWorkNote ?? '' };
   }
   if (!text(body.reason)) failure('INVALID_CLOSURE_COMMAND', 400);
-  if (!body.reason.trim()) failure('CLOSURE_REASON_REQUIRED', 422, { fields: { reason: '请填写本次操作原因' } });
   if (body.action === 'setMaintenance') { if (typeof body.enabled !== 'boolean') failure('INVALID_CLOSURE_COMMAND', 400); return body; }
   if (body.closureAuditId !== null && !validId(body.closureAuditId)) failure('INVALID_CLOSURE_COMMAND', 400);
   if (body.action === 'reopenProject') return body;
@@ -39,7 +37,7 @@ export function validateClosure(value: unknown): ClosureCommand {
     const value = changes[key];
     if (key === 'closedOn' || key === 'closureDueDate') { if (value !== null) requireDate(value, key); normalized[key] = value; }
     else if (key === 'closureType') { if (!['normal', 'terminated'].includes(value!)) failure('INVALID_CLOSURE_COMMAND', 400); normalized[key] = value; }
-    else { if (!text(value)) failure('INVALID_CLOSURE_COMMAND', 400); if (key === 'closureNote' && !value.trim()) failure('CLOSURE_NOTE_REQUIRED', 422, { fields: { closureNote: '结案说明仍需非空' } }); normalized[key] = value; }
+    else { if (!text(value)) failure('INVALID_CLOSURE_COMMAND', 400); normalized[key] = value; }
   }
   return { ...body, changes: normalized };
 }
@@ -58,8 +56,7 @@ export async function closureCandidate(c: PoolConnection, id: string, project: L
   const hasRemaining = !!(remaining.stages.length || nodes.length || risks.length);
   if (body.action === 'closeProject') {
     if (!['proposal', 'ongoing', 'paused'].includes(project.status)) failure('PROJECT_CLOSE_BLOCKED', 422);
-    if (hasRemaining && !body.remainingWorkNote.trim()) failure('CLOSURE_REMAINING_REQUIRED', 422, { fields: { remainingWorkNote: '仍有未完成阶段、节点或未解除风险，请填写处置说明' } });
-    Object.assign(next, { status: 'closed', closurePlanKnown: true, preCloseStatus: project.status, closedOn: body.closedOn, closureDueDate: project.dueDate, closureType: body.closureType, closureNote: body.closureNote, remainingWorkNote: body.remainingWorkNote, maintenanceEnabled: 0 });
+    Object.assign(next, { status: 'closed', closurePlanKnown: true, preCloseStatus: project.status, closedOn: body.closedOn, closureDueDate: project.dueDate, closureType: body.closureType, closureNote: body.closureNote.trim() ? body.closureNote : body.remainingWorkNote, remainingWorkNote: body.remainingWorkNote, maintenanceEnabled: 0 });
   } else {
     if (project.status !== 'closed') failure('PROJECT_CLOSED_REQUIRED', 422);
     if (body.action !== 'setMaintenance' && body.closureAuditId !== source!.auditId) failure('CLOSURE_CHANGED', 409);
@@ -68,9 +65,12 @@ export async function closureCandidate(c: PoolConnection, id: string, project: L
       Object.assign(next, { status: project.preCloseStatus, preCloseStatus: null, closedOn: null, closureDueDate: null, closureType: null, closureNote: '', remainingWorkNote: '', maintenanceEnabled: 0 });
     } else if (body.action === 'setMaintenance') next.maintenanceEnabled = Number(body.enabled);
     else {
-      if (Object.hasOwn(body.changes, 'remainingWorkNote') && hasRemaining && !body.changes.remainingWorkNote!.trim()) failure('CLOSURE_REMAINING_REQUIRED', 422, { fields: { remainingWorkNote: '有遗留事项时处置说明不能清空' } });
       Object.assign(next, body.changes);
     }
+  }
+  if ((body.action === 'closeProject' || body.action === 'correctClosure' && ['closureNote', 'remainingWorkNote', 'closureType'].some(key => Object.hasOwn(body.changes, key)))
+    && (hasRemaining || next.closureType === 'terminated') && !next.closureNote.trim() && !next.remainingWorkNote.trim()) {
+    failure(hasRemaining ? 'CLOSURE_REMAINING_REQUIRED' : 'CLOSURE_NOTE_REQUIRED', 422, { fields: { closureNote: hasRemaining ? '仍有未完成阶段、节点或未解除风险，请在结案说明中说明后续安排' : '请填写终止结案说明' } });
   }
   if (body.action === 'closeProject' || body.action === 'correctClosure' && Object.hasOwn(body.changes, 'closedOn')) {
     const dates = [project.startDate, ...facts.flatMap(fact => [fact.startedOn, fact.completedOn])].filter((date): date is string => !!date);
@@ -81,6 +81,6 @@ export async function closureCandidate(c: PoolConnection, id: string, project: L
   const after = Object.fromEntries(Object.keys(closureColumns).map(key => [key, next[key as keyof typeof closureColumns]]));
   const beforeValues = { closure: before }, afterValues = { closure: after, ...(body.action === 'closeProject' ? { remaining, stageFacts: facts } : { closureSource: source, reason: body.reason }) };
   const current = { ...project, id } as RowDataPacket, candidate = { ...next, id, version: changed ? (BigInt(project.version) + 1n).toString() : project.version } as RowDataPacket;
-  await enrichChecks(c, [current, candidate], await checkContext(c, undefined, now));
+  await enrichChecks(c, [current, candidate], { businessDate: businessToday(now) });
   return { patch, beforeValues, afterValues, changed, preview: { beforeValues, afterValues, changed, remaining: { ...remaining, risks }, beforeDeadline: deadlineResult(project, businessToday(now)), afterDeadline: deadlineResult(next, businessToday(now)), beforeCheck: current.checkStatus, afterCheck: candidate.checkStatus, progress: [0, 5, 10, 20, 60, 80, 90, 100][facts.filter(fact => fact.state === 'completed').length] } };
 }

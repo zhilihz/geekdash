@@ -1,7 +1,7 @@
 import './shared/detail.css';
 import './shared/read.css';
 import './shared/reference-picker.css';
-import { requireIdentity, get, send, SaveError, account, setupTheme, setupDateZone, esc, type EditValues, type Catalog, type CheckRuleContext } from './shared/api';
+import { requireIdentity, get, send, SaveError, account, setupTheme, setupDateZone, esc, type EditValues, type Catalog } from './shared/api';
 import { basicFields, referenceSelect, type BasicIntent } from './shared/project-form';
 import { scopeFields } from './shared/scoped-editor';
 import { mountReferencePickers, syncReferencePickers } from './shared/reference-picker';
@@ -104,7 +104,7 @@ document.getElementById('options-retry')!.onclick = () => { void loadCatalog(); 
 async function loadCatalog() {
   if(identityChanged || !account)return;
   if(catalogLoading){catalogRefreshPending=true;return;}catalogLoading=true;catalogRefreshPending=false;
-  try { const next = await get<Catalog>('/api/project-options',undefined,false); if(identityChanged)return;catalog=next;document.getElementById('options-retry')!.hidden = true;refreshProjectOptions(form,reference);controls(); }
+  try { const next = await get<Catalog>('/api/project-options',undefined,false); if(identityChanged)return;catalog=next;businessDate=next.businessDate;form.querySelectorAll<HTMLInputElement>('input[type="date"][max]').forEach(input=>input.max=businessDate);document.getElementById('options-retry')!.hidden = true;refreshProjectOptions(form,reference);controls(); }
   catch { document.getElementById('options-retry')!.hidden = false; message.textContent = '候选资料暂未读到，输入已保留。可重试读取，或先创建已填写的内容。'; controls(); }
   finally{catalogLoading=false;if(catalogRefreshPending && !identityChanged)void loadCatalog();}
 }
@@ -124,8 +124,6 @@ void requireIdentity().then(async () => {
   const saved = sessionStorage.getItem(key());
   if (saved) try { const stored = JSON.parse(saved); pending = stored.idempotencyKey ? stored : stored.pending; const restored = stored.fields; if (restored && typeof restored === 'object' && (pending || confirm('发现本标签页的新建底稿，是否恢复？恢复后仍需明确保存项目。'))) { managerIds=Array.isArray(restored.managerIds)?restored.managerIds.filter((id:unknown):id is string=>typeof id==='string' && id!==account!.id):[]; for (const name of Object.keys(value)) if (Object.hasOwn(restored, name)) Object.assign(value, { [name]: restored[name] }); draft.filingDate = restored.filingDate ?? ''; draft.dueDate = restored.dueDate ?? ''; } }
   catch { message.textContent = '本页旧稿无法读取，请核对后重新填写。'; }
-  render();
-  try { businessDate = (await get<CheckRuleContext>('/api/settings/check-rule')).businessDate; } catch { /* 日期最终由服务器按业务时区校验。 */ }
   render();
   await loadCatalog(); if (pending) void execute(true);
   new ProjectNotifications(()=>{},()=>{void loadCatalog();},text=>{if(text)message.textContent=text;},undefined,undefined,event=>{if(event.resource==='catalog')void loadCatalog();});

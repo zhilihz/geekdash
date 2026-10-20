@@ -6,7 +6,7 @@ import { auditHistory } from './shared/history';
 import { PersonalPreference } from './shared/personal-state';
 import { ProjectNotifications } from './shared/notifications';
 import type { AuditPage, CheckPage } from './shared/api';
-import { esc, get, label, requireIdentity, SaveError, send, setupTheme, type CheckCommand, type CheckRuleContext, type List, type ListProject } from './shared/api';
+import { esc, get, label, requireIdentity, SaveError, send, setupTheme, type CheckCommand, type List, type ListProject } from './shared/api';
 
 type Command = Extract<CheckCommand, { action: 'saveCheck' }>;
 type Pending = { projectId: string; projectName: string; command: Command };
@@ -18,7 +18,7 @@ const originalQuery = new URLSearchParams(location.search);
 for (const key of [...scopeKeys, 'checkToday', 'page']) if (originalQuery.get(key)) query.set(key, originalQuery.get(key)!);
 if (!query.has('view')) query.set('view', 'active');
 if (!query.has('checkToday')) query.set('checkToday', 'unchecked');
-let list: List | undefined, rule: CheckRuleContext | undefined;
+let list: List | undefined;
 let notificationPending=false;
 let loading = false, busy = false, fresh = false, authFrozen = false, recoveryBroken = false, storageFailed = false;
 let ownerId = '', noticeTimer: ReturnType<typeof setTimeout> | undefined;
@@ -58,9 +58,9 @@ function recover() {
       const saved = JSON.parse(sessionStorage.getItem(savedKey)!);
       const command = saved?.command;
       if (!saved || !/^[1-9][0-9]{0,19}$/.test(saved.projectId) || savedKey !== key(saved.projectId) || typeof saved.projectName !== 'string'
-        || !command || command.action !== 'saveCheck' || !/^[1-9][0-9]{0,19}$/.test(command.expectedVersion) || !/^[1-9][0-9]{0,19}$/.test(command.ruleVersion)
+        || !command || command.action !== 'saveCheck' || !/^[1-9][0-9]{0,19}$/.test(command.expectedVersion) || command.ruleVersion !== undefined && !/^[1-9][0-9]{0,19}$/.test(command.ruleVersion)
         || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(command.idempotencyKey)
-        || !/^\d{4}-\d{2}-\d{2}$/.test(command.previewWeek) || command.conclusion !== 'checked' || command.note !== '') throw new Error('invalid recovery');
+        || command.previewWeek !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(command.previewWeek) || command.conclusion !== 'checked' || command.note !== '') throw new Error('invalid recovery');
       pending.set(saved.projectId, saved);
     }
   } catch { recoveryBroken = true; note('本标签页的检查恢复信息无法读取。请保留本页并核对原检查记录，暂不能再次提交检查。', true); }
@@ -71,7 +71,7 @@ function controls() {
   (element('check-reload') as HTMLButtonElement).disabled = frozen || !ownerId;
   document.querySelectorAll<HTMLButtonElement>('[data-check-project]').forEach(button => {
     const project = list?.items.find(item => item.id === button.dataset.checkProject);
-    button.disabled = frozen || !fresh || !rule?.rule || !project?.inspection || !project?.capabilities.canCheck || project.checkedToday || pending.has(project.id);
+    button.disabled = frozen || !fresh || !project?.inspection || !project?.capabilities.canCheck || project.checkedToday || pending.has(project.id);
   });
   document.querySelectorAll<HTMLAnchorElement>('[data-correct-project]').forEach(link => link.setAttribute('aria-disabled', String(busy || loading)));
   document.querySelectorAll<HTMLButtonElement>('[data-confirm-check],[data-retry-check]').forEach(button => button.disabled = frozen);
@@ -117,13 +117,13 @@ function restoreSections(saved: unknown) {
 function render() {
   if (!list) return;
   const opened = openSections();
-  element('check-rule').textContent = `${list.businessDate} · ${rule?.rule ? '每周' + ['一', '二', '三', '四', '五', '六', '日'][rule.rule.deadlineWeekday - 1] + '全天为检查截止' : '检查规则尚未设置'}`;
+  element('check-rule').textContent = list.businessDate;
   element('check-list').innerHTML = list.items.length ? list.items.map(card).join('') : `<p class="checks-empty">${query.get('checkToday') === 'checked' ? '当前范围今天还没有检查记录' : '当前范围今天没有待检查项目'}</p>`;
   element('page-info').textContent = `第 ${list.pagination.page} / ${list.pagination.pageCount} 页 · 共 ${list.pagination.total} 个项目`;
   document.querySelectorAll<HTMLButtonElement>('[data-check-project]').forEach(button => button.onclick = () => {
     const project = list?.items.find(item => item.id === button.dataset.checkProject);
-    if (busy || loading || !fresh || authFrozen || recoveryBroken || !project?.inspection || !project?.capabilities.canCheck || project.checkedToday || !rule?.rule || pending.has(project.id)) return;
-    const item: Pending = { projectId: project.id, projectName: project.name, command: { action: 'saveCheck', expectedVersion: project.version, idempotencyKey: crypto.randomUUID(), ruleVersion: rule.rule.version, previewWeek: rule.weekStart, conclusion: 'checked', note: '' } };
+    if (busy || loading || !fresh || authFrozen || recoveryBroken || !project?.inspection || !project?.capabilities.canCheck || project.checkedToday || pending.has(project.id)) return;
+    const item: Pending = { projectId: project.id, projectName: project.name, command: { action: 'saveCheck', expectedVersion: project.version, idempotencyKey: crypto.randomUUID(), conclusion: 'checked', note: '' } };
     pending.set(project.id, item); persist(item); renderRecovery(); void execute(project.id, false);
   });
   document.querySelectorAll<HTMLAnchorElement>('[data-correct-project]').forEach(link => link.onclick = event => {
@@ -142,7 +142,7 @@ async function loadHistory(section: HTMLDetailsElement, checkCursor?: string | n
     const [checks, audit] = await Promise.all([checkCursor !== null ? get<CheckPage>('/api/projects/' + id + '/checks' + (checkCursor ? '?before=' + checkCursor : '')) : undefined, auditCursor !== null ? get<AuditPage>('/api/projects/' + id + '/audit' + (auditCursor ? '?before=' + auditCursor : '')) : undefined]);
     if (!section.isConnected) return;
     if (!section.dataset.loaded) output.innerHTML = '<div class="inspection-check-records"></div><div class="inspection-audits"></div>';
-    if (checks) output.querySelector('.inspection-check-records')!.insertAdjacentHTML('beforeend', checks.items.map(item => `<p>${esc(item.actorName)} · ${esc(new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',dateStyle:'short',timeStyle:'short'}).format(new Date(item.checkedAt)))} · ${item.conclusion === 'checked' ? '已核对' : '需跟进'}${item.onTime === null ? '' : item.onTime ? ' · 按时' : ' · 逾期检查'}<br>${esc(item.note)}</p>`).join('') || (!section.dataset.loaded ? '<p>暂无检查记录</p>' : ''));
+    if (checks) output.querySelector('.inspection-check-records')!.insertAdjacentHTML('beforeend', checks.items.map(item => `<p>${esc(item.actorName)} · ${esc(new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',dateStyle:'short',timeStyle:'short'}).format(new Date(item.checkedAt)))} · ${item.conclusion === 'checked' ? '已核对' : '需跟进'}<br>${esc(item.note)}</p>`).join('') || (!section.dataset.loaded ? '<p>暂无检查记录</p>' : ''));
     if (audit) output.querySelector('.inspection-audits')!.insertAdjacentHTML('beforeend', auditHistory(audit.items) || (!section.dataset.loaded ? '<p>暂无更新记录</p>' : ''));
     output.querySelector('.inspection-history-more')?.remove();
     if (checks?.nextCursor || audit?.nextCursor) { const more = document.createElement('button'); more.className = 'back-btn inspection-history-more'; more.textContent = '读取更早记录'; more.onclick = () => { void loadHistory(section,checks?.nextCursor ?? null,audit?.nextCursor ?? null); }; output.append(more); }
@@ -157,9 +157,9 @@ async function load() {
   if (loading || authFrozen) return false;
   loading = true; fresh = false; controls(); element('check-loading').textContent = '正在读取项目…';
   try {
-    const [next, currentRule] = await Promise.all([get<List>('/api/projects?' + query + '&details=checks'), get<CheckRuleContext>('/api/settings/check-rule')]);
+    const next = await get<List>('/api/projects?' + query + '&details=checks');
     if (authFrozen) return false;
-    list = next; rule = currentRule; fresh = true;
+    list = next; fresh = true;
     renderScope();
     query.set('page', String(next.pagination.page)); history.replaceState(null, '', pageUrl());
     element('check-loading').textContent = ''; render();

@@ -2,7 +2,7 @@ import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import { changeRows, riskRows, nodeRows } from './project-records.js';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 import { stageBlock, startProjectBlock, type StageFact } from './project-actions.js';
-import { businessToday, checkContext, closurePlanKnownExpression, dayDifference, deadlineCondition, deadlineKinds, deadlineResult, type DateFacts, type DeadlineKind } from './project-dates.js';
+import { businessToday, closurePlanKnownExpression, dayDifference, deadlineCondition, deadlineKinds, deadlineResult, type DateFacts, type DeadlineKind } from './project-dates.js';
 import { scheduleRecords } from './project-plans.js';
 import { currentClosure } from './project-closures.js';
 import { lifecycleNotes } from './project-lifecycle.js';
@@ -130,12 +130,12 @@ async function readDetail(connection: PoolConnection, id: string, accountId: str
         const stageActions = projectStages.map(stage => ({ code: stage.code,
           startBlocked: !accountId || !editable ? 'PROJECT_READ_ONLY' : stageBlock(project.status, projectStages as (RowDataPacket & StageFact)[], stage.code, 'startStage'),
           completeBlocked: !accountId || !editable ? 'PROJECT_READ_ONLY' : stageBlock(project.status, projectStages as (RowDataPacket & StageFact)[], stage.code, 'completeStage') }));
-        const checkRule = await checkContext(connection, accountId, now);
-        await enrichChecks(connection, [project], checkRule);
+        const businessDate = businessToday(now);
+        await enrichChecks(connection, [project], { businessDate });
         const lifecycleHistory = withHistory ? await lifecycleNotes(connection, id) : [];
-        project.deadline = deadlineResult(project as RowDataPacket & DateFacts, checkRule.businessDate);
-        const startBlocked = !accountId || !editable ? 'PROJECT_READ_ONLY' : startProjectBlock(project as RowDataPacket & { status: string; startDate: string | null; firstCheckWeek: unknown }, projectStages as (RowDataPacket & StageFact)[], checkRule.businessDate) ?? (!checkRule.rule ? 'CHECK_RULE_REQUIRED' : null);
-        return { currentClosure: await currentClosure(connection, id, project as RowDataPacket & { status: string; sourceImportItemId: unknown }), project, stages: projectStages, stageActions, startBlocked, checkRule, lifecycleNotes: lifecycleHistory, businessDate: checkRule.businessDate, nodes, risks, changes, delays, planSummary, history, responsible, readOnly: !editable, capabilities: { editText: editable, editOrdinary: editable, join: !!accountId && !editable, leave: !!accountId && editable } };
+        project.deadline = deadlineResult(project as RowDataPacket & DateFacts, businessDate);
+        const startBlocked = !accountId || !editable ? 'PROJECT_READ_ONLY' : startProjectBlock(project as RowDataPacket & { status: string; startDate: string | null }, projectStages as (RowDataPacket & StageFact)[], businessDate);
+        return { currentClosure: await currentClosure(connection, id, project as RowDataPacket & { status: string; sourceImportItemId: unknown }), project, stages: projectStages, stageActions, startBlocked, lifecycleNotes: lifecycleHistory, businessDate, nodes, risks, changes, delays, planSummary, history, responsible, readOnly: !editable, capabilities: { editText: editable, editOrdinary: editable, join: !!accountId && !editable, leave: !!accountId && editable } };
 }
 
 export function projectReads(database: RuntimeDatabase, clock = () => new Date()) {
@@ -144,6 +144,7 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
       const now=clock(),today=businessToday(now);
       return database.readSnapshot(async connection=>{
         const items=await enrich(connection,await rows(connection,`SELECT ${columns},p.summary,p.summary_note summaryNote,p.chipstat_note chipstatNote,p.detail_note detailNote,${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress ${joins} ORDER BY p.id`));
+        await enrichChecks(connection,items,{businessDate:today});
         const nodes=await rows(connection,"SELECT CAST(project_id AS CHAR) projectId,CAST(id AS CHAR) id,title,DATE_FORMAT(target_date,'%Y-%m-%d') targetDate FROM project_nodes WHERE kind='project' AND deleted_at IS NULL AND completed_on IS NULL ORDER BY project_id,sort_order,id");
         for(const item of items){
           item.deadline=deadlineResult(item as RowDataPacket & DateFacts,today);
@@ -159,8 +160,7 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
     list(query: ProjectQuery, accountId?: string) {
       const now = clock(), today = businessToday(now);
       return database.readSnapshot(async connection => {
-        const checkRule = await checkContext(connection, undefined, now);
-        const checkStats = checkConditions(checkRule);
+        const checkStats = checkConditions();
         const base = conditions(query, false, today);
         const filtered = conditions(query, true, today);
         const deadlines = deadlineKinds.map(kind => ({ kind, ...deadlineCondition(kind, today) }));
@@ -184,7 +184,7 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
           project.capabilities = { canCheck: Number(project.canCheck) === 1 };
           delete project.canCheck;
         }
-        await enrichChecks(connection, items, checkRule);
+        await enrichChecks(connection, items, { businessDate: today });
         if (query.details === 'checks') for (const item of items) item.inspection = await readDetail(connection, item.id, accountId, now, false);
         const options: Record<string, string[]> = {};
         const optionQueries: string[] = [];

@@ -46,9 +46,8 @@ export function validateCatalog(kind: string, input: unknown): Command {
 
 async function configuration(c: PoolConnection, actor: Actor, lock = false) {
   await assertActor(c,actor);
-  const [rows]=await c.query<RowDataPacket[]>(`SELECT CAST(maintenance_user_id AS CHAR) maintenanceUserId FROM system_configuration WHERE id=1${lock ? ' FOR UPDATE' : ''}`);
+  const [rows]=await c.query<RowDataPacket[]>(`SELECT id FROM system_configuration WHERE id=1${lock ? ' FOR UPDATE' : ''}`);
   if (!rows.length) failure('SYSTEM_CONFIGURATION_REQUIRED',422);
-  return rows[0].maintenanceUserId === actor.id;
 }
 async function rows(c: PoolConnection, kind: string, id?: string, lock = false) {
   const def=definition(kind);
@@ -83,7 +82,7 @@ async function prepare(c: PoolConnection, kind: string, body: Command, lock: boo
   if (body.id && !before) failure('CATALOG_NOT_FOUND',404);
   if (before && before.version !== body.expectedVersion) failure('CATALOG_VERSION_CONFLICT',409,{currentVersion:before.version});
   const after: Values={...(before as Values | null ?? Object.fromEntries(Object.keys(def.fields).map(key=>[key,'']))),...(!before ? {enabled:true,...kind === 'customers' ? {tagIds:[]} : {}} : {}),...body.changes};
-  // 单一维护账号由配置行串行化；现有歧义允许纠正其他字段，不把同名实体合并。
+  // 共享资料写入由配置行串行化；现有歧义允许纠正其他字段，不把同名实体合并。
   if (Object.hasOwn(body.changes,'name') && (!before || before.name !== after.name)) {
     const [names]=await c.query<RowDataPacket[]>(`SELECT CAST(id AS CHAR) id,name FROM ${def.table}`);
     const conflicts=names.filter(item=>item.id !== body.id && nameKey(item.name) === nameKey(after.name as string));
@@ -107,15 +106,15 @@ async function prepare(c: PoolConnection, kind: string, body: Command, lock: boo
 
 export function catalog(database: RuntimeDatabase) {
   return {
-    read(actor: Actor, kind: string) { definition(kind); return database.readSnapshot(async c=>({canMaintain:await configuration(c,actor),items:await rows(c,kind)})); },
+    read(actor: Actor, kind: string) { definition(kind); return database.readSnapshot(async c=>{await configuration(c,actor);return {canMaintain:true,items:await rows(c,kind)};}); },
     detail(actor: Actor, kind: string, id: string) { return database.readSnapshot(async c=>{
       if (!validId(id)) failure('INVALID_CATALOG_COMMAND',400);
-      const canMaintain=await configuration(c,actor), item=(await rows(c,kind,id))[0];
+      await configuration(c,actor);const item=(await rows(c,kind,id))[0];
       if (!item) failure('CATALOG_NOT_FOUND',404);
-      return {canMaintain,item,...await references(c,kind,id)};
+      return {canMaintain:true,item,...await references(c,kind,id)};
     }); },
     preview(actor: Actor, kind: string, body: Command) { return database.readSnapshot(async c=>{
-      if (!await configuration(c,actor)) failure('MAINTENANCE_REQUIRED',403);
+      await configuration(c,actor);
       return prepare(c,kind,body,false);
     }); },
     save(actor: Actor, kind: string, body: Command, requestId: string, confirm = false) {
@@ -128,10 +127,9 @@ export function catalog(database: RuntimeDatabase) {
       };
       if (confirm) return database.readSnapshot(async c=>{await assertActor(c,actor);const result=await lookup(c);return result ? {outcome:'committed',result} : {outcome:'not_found'};});
       return database.writeTransaction(async c=>{
-        // ponytail: 单一维护账号的资料写入共用配置行锁；仅在维护吞吐成为瓶颈时细分。
-        const allowed=await configuration(c,actor,true), prior=await lookup(c);
+        // ponytail: 共享资料写入共用配置行锁防止跨账号重名；仅在资料写入吞吐成为瓶颈时细分。
+        await configuration(c,actor,true);const prior=await lookup(c);
         if (prior) return {outcome:'committed',result:prior};
-        if (!allowed) failure('MAINTENANCE_REQUIRED',403);
         const preview=await prepare(c,kind,body,true), {before,after,changed}=preview;
         if (body.id && changed && kind !== 'company' && body.impactToken !== preview.impactToken) failure('CATALOG_IMPACT_CHANGED',409,{projects:preview.projects,customers:preview.customers});
         let id=body.id, savedVersion=before?.version ?? '1';

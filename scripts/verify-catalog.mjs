@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { createHash,randomUUID } from 'node:crypto';
 import { writeFile,readFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { resolve,dirname } from 'node:path';
@@ -38,7 +38,7 @@ function client(){let cookie='',csrf='',account;return {
 };}
 async function waitFor(predicate,label){const end=Date.now()+10000;while(Date.now()<end){if(errors.length)throw errors[0];if(await predicate())return;await new Promise(resolve=>setTimeout(resolve,20));}throw Error('未出现预期页面状态：'+label);}
 async function page(user,session={},name='data-manage',realtime=false,query='',faults={}){
-  const console=new VirtualConsole();console.on('jsdomError',error=>errors.push(error));
+  const console=new VirtualConsole();console.on('jsdomError',error=>{if(name==='project-new' && /Not implemented: navigation/.test(error.message))return;errors.push(error);});
   const dom=new JSDOM(await readFile('src/web/'+name+'.html','utf8'),{url:origin+'/'+name+'.html'+query,runScripts:'outside-only',virtualConsole:console});views.push(dom);const w=dom.window;
   Object.assign(w,{TextEncoder,TextDecoder,structuredClone,AbortSignal,AbortController});w.BroadcastChannel=class{postMessage(){}};w.confirm=()=>true;
   w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};w.HTMLDialogElement.prototype.close=function(){this.open=false;};
@@ -54,17 +54,19 @@ async function page(user,session={},name='data-manage',realtime=false,query='',f
       if(dom.failIdentityRead){dom.failIdentityRead=false;return new Response(JSON.stringify({code:'DATABASE_UNAVAILABLE',outcome:'not_committed'}),{status:503,headers:{'Content-Type':'application/json'}});}
       const gate=dom.identityGate,response=await user.fetch(path,options);if(gate){dom.identityHeld=true;await gate;dom.identityHeld=false;}return response;
     }
-    if(dom.failRuleRead && path==='/api/settings/check-rule' && !options?.method){dom.failRuleRead=false;throw Error('模拟规则读取失败');}if(dom.failSummaryRead && path==='/api/project-summary'){dom.failSummaryRead=false;throw Error('模拟正式回读暂时失败');}const response=await user.fetch(path,options);if(dom.dropAck && (path.startsWith('/api/catalog/') && path.endsWith('/save') || options?.method==='PATCH' || path==='/api/settings/check-rule' && options?.method==='POST')){dom.dropAck=false;await response.arrayBuffer();throw Error('模拟保存回应丢失');}return response;};
+    if(dom.failSummaryRead && path==='/api/project-summary'){dom.failSummaryRead=false;throw Error('模拟正式回读暂时失败');}const response=await user.fetch(path,options);
+    if(name==='project-new' && path==='/api/projects' && options?.method==='POST' && response.ok){dom.created=await response.clone().json();projects.push(dom.created.result.projectId);}
+    if(dom.dropAck && (path.startsWith('/api/catalog/') && path.endsWith('/save') || options?.method==='PATCH')){dom.dropAck=false;await response.arrayBuffer();throw Error('模拟保存回应丢失');}return response;};
   const context=dom.getInternalVMContext(),modules=new Map();
   function load(path){if(path.endsWith('.css'))return {};path=resolve(path.endsWith('.ts')?path:path+'.ts');if(modules.has(path))return modules.get(path).exports;const module={exports:{}};modules.set(path,module);const code=ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2023,module:ts.ModuleKind.CommonJS}}).outputText;vm.runInContext('(function(require,exports,module){'+code+'\n})',context,{filename:path})(name=>load(resolve(dirname(path),name)),module.exports,module);return module.exports;}
-  w.scrollTo=()=>{};dom.load=load;if(faults.moduleOnly)load('src/web/shared/api.ts').setAccount((await user.api('/api/auth/me')).account);else load('src/web/'+name+'.ts');const $=selector=>w.document.querySelector(selector);
+  w.scrollTo=()=>{};dom.load=load;if(faults.moduleOnly)load('src/web/shared/api.ts').setAccount((await user.api('/api/auth/me')).account);else load('src/web/'+(name==='project-detail'?'detail':name)+'.ts');const $=selector=>w.document.querySelector(selector);
   dom.$=$;dom.input=(selector,value)=>{const input=$(selector);assert(input,selector);input.value=value;input.dispatchEvent(new w.Event('input',{bubbles:true}));};
-  if(!faults.moduleOnly)await waitFor(()=>name==='data-manage'?$('#catalog-tabs button') && !$('#catalog-reload').disabled:name==='settings'?$('#reload') && !$('#reload').disabled:$('#summary-date').textContent.startsWith('列表读取日期：') && $('#summary-table tbody tr'),'页面就绪');return dom;
+  if(!faults.moduleOnly)await waitFor(()=>name==='data-manage'?$('#catalog-tabs button') && !$('#catalog-reload').disabled:['project-new','project-detail'].includes(name)?$('#edit-chipIds-source') && !$('#edit-chipIds-source').disabled && (!$('#options-retry') || $('#options-retry').hidden):$('#summary-date').textContent.startsWith('列表读取日期：') && $('#summary-table tbody tr'),'页面就绪');return dom;
 }
 const command=(id,expectedVersion,changes)=>({id,expectedVersion,changes,idempotencyKey:randomUUID()});
 let a,b;
 const read=async(kind,id)=>(await a.api('/api/catalog/'+kind)).items.find(item=>item.id===id);
-const preview=async(kind,body)=>{const p=await a.api('/api/catalog/'+kind+'/preview','POST',body);return {...body,impactToken:p.impactToken};};
+const preview=async(kind,body,user=a)=>{const p=await user.api('/api/catalog/'+kind+'/preview','POST',body);return {...body,impactToken:p.impactToken};};
 const save=(kind,body,expected=200)=>a.api('/api/catalog/'+kind+'/save','POST',body,expected);
 async function make(kind,fields){const result=await save(kind,command(null,'0',fields));created.push([kind,result.result.id]);return result.result.id;}
 try{
@@ -75,8 +77,26 @@ try{
   if(original)await c.execute('UPDATE system_configuration SET maintenance_user_id=? WHERE id=1',[users[0].id]);
   else await c.execute("INSERT INTO system_configuration (id,maintenance_user_id,full_name,short_name,manager_text,name_prefix,version,updated_by,updated_at) VALUES (1,?,'','','','',1,?,UTC_TIMESTAMP(3))",[users[0].id,users[0].id]);
   await start();a=client();b=client();await a.login(0);await b.login(1);
-  assert.equal((await b.api('/api/catalog/chips')).canMaintain,false);
-  await b.api('/api/catalog/chips/save','POST',command(null,'0',{name:prefix}),403);
+  assert.equal((await b.api('/api/catalog/chips')).canMaintain,true);
+  assert.equal(Number((await c.query('SELECT COUNT(*) n FROM project_responsibilities WHERE user_id=?',[users[1].id]))[0][0].n),0);
+  const initialOptions=await b.api('/api/project-options');assert.match(initialOptions.businessDate,/^\d{4}-\d{2}-\d{2}$/);
+  const unassignedCreate=await page(b,{},'project-new');assert.equal(unassignedCreate.$('#edit-filingDate').max,initialOptions.businessDate);assert.equal(unassignedCreate.requests.some(request=>request.path==='/api/settings/check-rule'),false);
+  checks.push('DEC132/133：尚未负责项目的业务账号可打开新建候选，立案日期上限来自project-options业务日，未请求退役检查设置');
+  const businessChip=await b.api('/api/catalog/chips/save','POST',command(null,'0',{name:prefix+' 业务账号资料'}));created.push(['chips',businessChip.result.id]);
+  for(const changes of [{manufacturer:'业务账号修正'},{enabled:false},{enabled:true}]){
+    const current=await read('chips',businessChip.result.id),body=await preview('chips',command(current.id,current.version,changes),b);
+    await b.api('/api/catalog/chips/save','POST',body);
+    const fresh=await read('chips',current.id);for(const [key,value] of Object.entries(changes))assert.equal(fresh[key],value);
+  }
+  assert.equal(Number((await c.query("SELECT COUNT(*) n FROM audit_log WHERE actor_id=? AND action='catalog.chips.save' AND entity_id=?",[users[1].id,businessChip.result.id]))[0][0].n),4);
+  const blocked=command(null,'0',{name:prefix+' 无效身份不得新增'});
+  await c.execute('UPDATE users SET enabled=0 WHERE id=?',[users[1].id]);
+  await b.api('/api/catalog/chips',undefined,undefined,401);await b.api('/api/catalog/chips/preview','POST',blocked,401);await b.api('/api/catalog/chips/save','POST',blocked,401);
+  await c.execute('UPDATE users SET enabled=1 WHERE id=?',[users[1].id]);await b.login(1);
+  await c.execute('UPDATE users SET must_change_password=1 WHERE id=?',[users[1].id]);await b.api('/api/catalog/chips/save','POST',blocked,403);
+  await c.execute('UPDATE users SET must_change_password=0 WHERE id=?',[users[1].id]);await b.login(1);
+  assert.equal(Number((await c.query('SELECT COUNT(*) n FROM chips WHERE name=?',[blocked.changes.name]))[0][0].n),0);
+  checks.push('DEC132：没有负责项目的有效业务账号新增、编辑、停用及启用资料，新GET和审计记录实际操作者；停用账号与待改密账号不能写入');
   const tag=await make('tags',{name:prefix+' 标签'});
   const customer=await make('customers',{name:prefix+' 客户',contact:'王工\n电话：仅合成',background:'测试背景',tagIds:[tag]});
   const chip=await make('chips',{name:prefix+' 芯片',originalModel:'MODEL-A',manufacturer:'合成厂商',firmwareVersion:'FW1'});
@@ -85,10 +105,11 @@ try{
   assert.deepEqual((await read('customers',customer)).tagIds,[tag]);assert.equal((await read('apps',appId)).appVersion,'2.1.0');
   await save('chips',command(null,'0',{name:prefix+' 芯片'}),409);await save('chips',command(null,'0',{name:' '}),422);
   await save('chips',command(null,'0',{name:'错误',unknown:true}),400);await save('customers',command(null,'0',{name:'错误',tagIds:['18446744073709551615']}),422);
-  checks.push('PRD9.18：八类实际字段读取、七类新增与稳定ID、客户标签/APP业务版本/芯片元资料持久化；业务账号拒绝、名称歧义/非法字段/缺失引用拒绝');
+  checks.push('PRD9.18：八类实际字段读取、七类新增与稳定ID、客户标签/APP业务版本/芯片元资料持久化；业务账号开放、名称歧义/非法字段/缺失引用拒绝');
 
   const made=await b.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+' 项目',customerId:customer,chipIds:[chip],appId,productLineId:product,groupId:group,people:[{id:engineer,role:'hardware_owner'}]}});
   const id=made.result.projectId;projects.push(id);const path='/api/projects/'+id;
+  await a.api(path,'PATCH',{expectedVersion:'1',idempotencyKey:randomUUID(),scope:'status',changes:{statusDesc:'资料维护不授予项目编辑权限'}},403);
   let input=command(chip,'1',{name:prefix+' 芯片改名',firmwareVersion:'FW2'});
   const impact=await a.api('/api/catalog/chips/preview','POST',input);assert.deepEqual(impact.projects.map(p=>p.projectId),[id]);
   await save('chips',input,409);input={...input,impactToken:impact.impactToken};
@@ -129,8 +150,11 @@ try{
   const company=await read('company','1');await save('company',command('1',company.version,{fullName:prefix+' 合成企业',shortName:'合成',managerText:'测试负责人',namePrefix:'GD'}));
   assert.equal((await read('company','1')).fullName,prefix+' 合成企业');assert.equal((await b.api(path)).project.version,'9');
   await save('company',command('1',company.version,{fullName:'过期覆盖'}),409);
-  await b.api('/api/catalog/company/save','POST',command('1',company.version,{fullName:'越权'}),403);
-  checks.push('PRD9.18：企业信息独立版本与维护权限，保存不虚构项目业务变更');
+  await b.api('/api/catalog/company/save','POST',command('1',company.version,{fullName:'过期覆盖'}),409);
+  const freshCompany=await read('company','1');await b.api('/api/catalog/company/save','POST',command('1',freshCompany.version,{managerText:'业务账号维护企业信息'}));
+  assert.equal((await read('company','1')).managerText,'业务账号维护企业信息');assert.equal((await b.api(path)).project.version,'9');
+  assert.equal(String((await c.query('SELECT updated_by FROM system_configuration WHERE id=1'))[0][0].updated_by),users[1].id);
+  checks.push('PRD9.18：企业信息独立版本，维护账号和业务账号均可保存；旧版本拒绝且保存不虚构项目业务变更');
   pending=await preview('chips',command(chip,'5',{originalModel:'MODEL-B'}));
   const added=await b.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+' 新引用',chipIds:[chip],customerId:customer}});projects.push(added.result.projectId);
   await save('chips',pending,409);assert.equal((await read('chips',chip)).originalModel,'MODEL-A');
@@ -140,10 +164,14 @@ try{
   assert.equal((await b.api('/api/projects/'+added.result.projectId)).project.version,'2');
   const next=await preview('chips',command(chip,'6',{originalModel:'MODEL-C'}));
   const competing={...next,idempotencyKey:randomUUID()};
-  const outcomes=await Promise.all([save('chips',next,[200,409]),save('chips',competing,[200,409])]);
+  const outcomes=await Promise.all([save('chips',next,[200,409]),b.api('/api/catalog/chips/save','POST',competing,[200,409])]);
   assert.equal(outcomes.filter(value=>value.result?.savedVersion==='7').length,1);assert.equal(outcomes.filter(value=>value.code==='CATALOG_VERSION_CONFLICT').length,1);
   checks.push('PRD9.18：预览后新增引用拒绝旧影响清单；并发同一操作只提交一次、另一操作旧资料版本拒绝，两个引用项目各推进一次');
-  const ui=await page(a);ui.$('[data-kind="chips"]').click();
+  const duplicateName=prefix+' 并发重名',duplicates=await Promise.all([save('chips',command(null,'0',{name:duplicateName}),[200,409]),b.api('/api/catalog/chips/save','POST',command(null,'0',{name:duplicateName}),[200,409])]);
+  for(const value of duplicates)if(value.result)created.push(['chips',value.result.id]);
+  assert.equal(duplicates.filter(value=>value.result).length,1);assert.equal(duplicates.filter(value=>value.code==='CATALOG_NAME_CONFLICT').length,1);
+  checks.push('DEC132：跨账号同版本竞争只允许一次保存；跨账号并发同名新增只保留一条资料，不自动合并');
+  const ui=await page(b);ui.$('[data-kind="chips"]').click();
   await waitFor(()=>ui.$('[data-kind="chips"]').getAttribute('aria-current')==='true' && !ui.$('#catalog-reload').disabled,'芯片分类');
   ui.$('#catalog-new').click();ui.input('#catalog-name',prefix+' 页面芯片');ui.input('#catalog-originalModel','UI-MODEL');ui.input('#catalog-manufacturer','UI厂商');ui.input('#catalog-firmwareVersion','UI-FW');ui.$('#catalog-save').click();
   await waitFor(()=>ui.$('#catalog-detail').textContent.includes('UI-FW') && ui.$('#catalog-edit') && !ui.$('#catalog-edit').disabled,'页面新增并回读');
@@ -156,15 +184,15 @@ try{
   ui.dropAck=true;ui.$('#catalog-apply').click();
   await waitFor(()=>ui.$('#catalog-confirm') && !ui.$('#catalog-confirm').disabled,'保存回应未知保留原操作');
   const session=Object.fromEntries(Array.from({length:ui.window.sessionStorage.length},(_,i)=>ui.window.sessionStorage.key(i)).map(key=>[key,ui.window.sessionStorage.getItem(key)]));
-  const recoveredPage=await page(a,session);
+  const recoveredPage=await page(b,session);
   await waitFor(()=>recoveredPage.$('#catalog-edit') && !recoveredPage.$('#catalog-edit').disabled && !recoveredPage.$('#catalog-confirm'),'重新打开核对原结果');
   assert.match(recoveredPage.$('#catalog-detail').textContent,/页面改名/);assert.equal((await b.api('/api/projects/'+uiProject.result.projectId)).project.version,'2');
   recoveredPage.$('#catalog-edit').click();recoveredPage.input('#catalog-name',prefix+' 芯片改名');recoveredPage.$('#catalog-save').click();
   await waitFor(()=>recoveredPage.$('#catalog-message').textContent.includes('重复'),'名称冲突反馈');assert.equal(recoveredPage.$('#catalog-name').value,prefix+' 芯片改名');
   recoveredPage.$('#catalog-cancel').click();assert.match(recoveredPage.$('#catalog-detail').textContent,/页面改名/);
-  const readonly=await page(b);assert.equal(readonly.$('#catalog-new').hidden,true);assert.equal(readonly.$('#catalog-edit'),null);
+  const businessView=await page(b);await waitFor(()=>businessView.$('#catalog-edit') && !businessView.$('#catalog-edit').disabled,'业务账号资料编辑入口');assert.equal(businessView.$('#catalog-new').hidden,false);
   assert.equal(errors.length,0);
-  checks.push('PRD9.18页面→真实HTTP/MySQL：原位新增完整芯片、项目引用、名称前后同表预览、保存回应丢失后新页面核对、冲突输入保留与取消、普通账号只读；未替代浏览器视觉验收');
+  checks.push('PRD9.18页面→真实HTTP/MySQL：业务账号原位新增完整芯片、项目引用、名称前后同表预览、保存回应丢失后新页面核对、冲突输入保留与取消；不展示引用名单，未替代浏览器视觉验收');
   const uiPath='/api/projects/'+uiProject.result.projectId;
   await b.api(uiPath,'PATCH',{expectedVersion:'2',idempotencyKey:randomUUID(),scope:'status',changes:{statusDesc:'已保存 @张工，@王工\n@张工 确认 "样机", <检查>'}});
   await b.api(uiPath,'PATCH',{expectedVersion:'3',idempotencyKey:randomUUID(),scope:'summaryNote',changes:{summaryNote:'状态简要备注\n含,逗号与"引号"'}});
@@ -340,19 +368,19 @@ try{
   assert.equal(exporting.$(exportRow+' textarea').value,'未保存的输出验证备注');
   assert.equal((await b.api(livePath)).project.version,beforeExport.project.version);
   exporting.$('#reset-order').click();assert.deepEqual(rowIds(),initialRows);
-  const rules=await page(a,{},'settings',false,'',{failRuleRead:true});assert.match(rules.$('#message').textContent,/读取/);assert.equal(rules.$('#weekday'),null);rules.$('#reload').click();await waitFor(()=>rules.$('#weekday'),'首次读取失败后重试');
-  const initialRule=await a.api('/api/settings/check-rule'),chosen=initialRule.rule?.deadlineWeekday===1?7:1;
-  rules.input('#weekday',String(chosen));rules.$('#weekday').dispatchEvent(new rules.window.Event('change',{bubbles:true}));
-  await save('company',command('1',initialRule.configVersion,{shortName:'设置竞态合成'}));
-  rules.$('#rule-form').dispatchEvent(new rules.window.Event('submit',{bubbles:true,cancelable:true}));await waitFor(()=>rules.$('#message').textContent.includes('版本') && !rules.$('#reload')?.disabled,'旧配置拒绝');assert.equal(Number(rules.$('#weekday').value),chosen);assert.equal((await a.api('/api/settings/check-rule')).rule?.version,initialRule.rule?.version);
-  rules.$('#reload').click();await waitFor(()=>!rules.$('#reload').disabled,'重新读取配置');assert.equal(Number(rules.$('#weekday').value),chosen);
-  rules.dropAck=true;rules.$('#rule-form').dispatchEvent(new rules.window.Event('submit',{bubbles:true,cancelable:true}));await waitFor(()=>rules.$('#confirm') && !rules.$('#confirm').disabled,'规则丢回应待确认');
-  const ruleSession=Object.fromEntries(Object.keys(rules.window.sessionStorage).map(key=>[key,rules.window.sessionStorage.getItem(key)]));
-  const restoredRule=await page(a,ruleSession,'settings',false,'',{failRuleRead:true});assert.equal(restoredRule.$('#weekday'),null);restoredRule.$('#reload').click();await waitFor(()=>restoredRule.$('#weekday') && !restoredRule.$('#confirm') && !restoredRule.$('#reload').disabled,'重开读取失败后确认原规则');
-  assert.equal((await a.api('/api/settings/check-rule')).rule.deadlineWeekday,chosen);const ruleCount=Number((await c.query('SELECT COUNT(*) n FROM check_rule_revisions WHERE saved_by=?',[users[0].id]))[0][0].n);assert.equal(ruleCount,1);
-  restoredRule.$('#rule-form').dispatchEvent(new restoredRule.window.Event('submit',{bubbles:true,cancelable:true}));await waitFor(()=>restoredRule.$('#message').textContent.includes('无变化'),'同星期不新增规则');assert.equal(Number((await c.query('SELECT COUNT(*) n FROM check_rule_revisions WHERE saved_by=?',[users[0].id]))[0][0].n),1);
-  const readonlyRule=await page(b,{},'settings');assert.equal(readonlyRule.$('#weekday'),null);assert.match(readonlyRule.$('#settings').textContent,/维护账号/);
-  checks.push('PRD9.19：规则页首次读取失败可重试；配置竞态拒绝且重读保留所选星期；真实提交丢回应后重开再次读失败仍能核对原结果，SQL仅一条规则；同星期无变化、普通账号只读');
+  const retired=await a.api('/api/settings/check-rule');assert.equal(retired.retired,true);assert.equal(retired.code,'CHECK_RULE_RETIRED');assert.match(retired.businessDate,/^\d{4}-\d{2}-\d{2}$/);assert.equal(retired.rule,undefined);
+  const legacyRule={action:'modifyCheckRule',deadlineWeekday:5,expectedVersion:(await read('company','1')).version,previewWeek:'2026-10-12',idempotencyKey:randomUUID()};
+  const legacyResult={operationId:legacyRule.idempotencyKey,savedVersion:legacyRule.expectedVersion,changed:true,ruleVersion:'1',deadlineWeekday:5,effectiveWeek:legacyRule.previewWeek};
+  const legacyHash=createHash('sha256').update(JSON.stringify([legacyRule.action,legacyRule.deadlineWeekday,legacyRule.expectedVersion,legacyRule.previewWeek])).digest();
+  await c.execute('INSERT INTO command_receipts (actor_id,command_scope,idempotency_key,request_hash,response_code,response_json,committed_at) VALUES (?,?,?,?,200,?,UTC_TIMESTAMP(3))',[users[0].id,`user:${users[0].id}:settings:check-rule`,legacyRule.idempotencyKey,legacyHash,JSON.stringify(legacyResult)]);
+  const obsoleteRules=[{...legacyRule,action:'initializeCheckRule',idempotencyKey:randomUUID()},{...legacyRule,idempotencyKey:randomUUID()}];
+  const ruleCount=Number((await c.query('SELECT COUNT(*) n FROM check_rule_revisions'))[0][0].n),configBeforeRetired=await read('company','1');
+  for(const body of obsoleteRules){assert.equal((await a.api('/api/settings/check-rule','POST',body,410)).code,'CHECK_RULE_RETIRED');assert.equal((await b.api('/api/settings/check-rule','POST',body,410)).code,'CHECK_RULE_RETIRED');assert.equal((await a.api('/api/settings/check-rule/results/query','POST',body)).outcome,'not_found');}
+  assert.deepEqual((await a.api('/api/settings/check-rule/results/query','POST',legacyRule)).result,legacyResult);assert.deepEqual((await a.api('/api/settings/check-rule','POST',legacyRule)).result,legacyResult);
+  await a.api('/api/settings/check-rule/results/query','POST',{...legacyRule,deadlineWeekday:1},409);
+  assert.deepEqual(await read('company','1'),configBeforeRetired);assert.equal(Number((await c.query('SELECT COUNT(*) n FROM check_rule_revisions'))[0][0].n),ruleCount);
+  assert.equal(ui.$('a[href="/settings.html"]'),null);assert(ui.$('a[href="/login.html?change=1"]'));
+  checks.push('DEC133：资料页移除检查设置入口且保留我的账号；未初始化规则不阻塞资料及项目；旧规则新增/修改返回410且不写修订，历史回执仍可核对和重放，同键不同内容拒绝');
   checks.push('PRD9.20：无目录API明确说明浏览器下载；画布不可用明确失败并保留选择和备注，正式项目版本不变');
   checks.push('PRD9.20：真实页面拖动行列、全选多项目并生成可读CSV，顺序与字段一致且逐项目完整，重置顺序恢复；未保存备注及正式版本保持');
   const probe=await page(b,{},'data-manage',true,'',{moduleOnly:true}),resources=[],states=[];let reconnects=0,identityChanges=0;
@@ -369,8 +397,9 @@ try{
   assert.deepEqual(isolatedResult.result.affectedProjects,[]);assert(!events.some(event=>event.event==='project' && event.data.operationId===isolated.idempotencyKey));
   assert.equal((await b.api('/api/catalog/chips')).items.find(item=>item.id===isolatedResult.result.id).manufacturer,isolated.changes.manufacturer);
   assert.equal((await c.query('SELECT manufacturer FROM chips WHERE id=?',[isolatedResult.result.id]))[0][0].manufacturer,isolated.changes.manufacturer);
-  const invalid=command(null,'0',{name:' '}),denied=command(null,'0',{name:prefix+' 越权不得新增'}),rolledBack=command(null,'0',{name:prefix+' 回滚不得新增'});
-  await save('chips',invalid,422);await b.api('/api/catalog/chips/save','POST',denied,403);
+  const invalid=command(null,'0',{name:' '}),denied=command(null,'0',{name:prefix+' 失效会话不得新增'}),rolledBack=command(null,'0',{name:prefix+' 回滚不得新增'});
+  const expired=client();await expired.login(1);await expired.api('/api/auth/logout','POST',{});
+  await save('chips',invalid,422);await expired.api('/api/catalog/chips/save','POST',denied,401);
   fault='INSERT INTO command_receipts';await save('chips',rolledBack,503);fault='';
   await new Promise(resolve=>setTimeout(resolve,100));
   for(const input of [invalid,denied,rolledBack])assert.equal(resourceEvents(input.idempotencyKey).length,0,'失败的资料操作不发资源通知');
@@ -383,7 +412,7 @@ try{
   assert.equal((await read('chips',isolatedResult.result.id)).version,'1');
   const noChange=await preview('chips',command(isolatedResult.result.id,'1',{name:isolated.changes.name}));assert.equal((await save('chips',noChange)).result.changed,false);
   await new Promise(resolve=>setTimeout(resolve,100));assert.equal(resourceEvents(noChange.idempotencyKey).length,0,'无变化保存不发资源更新');
-  checks.push('资源通知：无引用芯片提交→另一真实SSE只获类别/操作号→另账号新GET与SQL可读；422/403/事务回滚及无变化均不发资源更新；原回执与重放保持单条资料、审计和回执');
+  checks.push('资源通知：无引用芯片提交→另一真实SSE只获类别/操作号→另账号新GET与SQL可读；422/401/事务回滚及无变化均不发资源更新；原回执与重放保持单条资料、审计和回执');
 
   const companyBefore=await read('company','1'),companyCommand=command('1',companyBefore.version,{fullName:prefix+' 资源通知企业'}),companyResult=await save('company',companyCommand);
   await waitFor(()=>resourceEvents(companyCommand.idempotencyKey).length,'企业资料资源通知');
@@ -391,24 +420,11 @@ try{
   assert.equal((await b.api('/api/project-summary')).company.fullName,companyCommand.changes.fullName);
   assert.equal((await c.query('SELECT full_name FROM system_configuration WHERE id=1'))[0][0].full_name,companyCommand.changes.fullName);
   assert.equal((await read('company','1')).version,companyResult.result.savedVersion);
-  const nextRule=await a.api('/api/settings/check-rule'),ruleCommand={action:'modifyCheckRule',deadlineWeekday:nextRule.rule.deadlineWeekday===1?7:1,expectedVersion:nextRule.configVersion,previewWeek:nextRule.weekStart,idempotencyKey:randomUUID()};
-  const ruleResult=await a.api('/api/settings/check-rule','POST',ruleCommand);
-  await waitFor(()=>resourceEvents(ruleCommand.idempotencyKey).length,'检查规则资源通知');
-  assert.deepEqual(resourceEvents(ruleCommand.idempotencyKey)[0].data,{resource:'check-rule',version:ruleResult.result.ruleVersion,operationId:ruleCommand.idempotencyKey});
-  assert.equal((await b.api('/api/settings/check-rule')).rule.deadlineWeekday,ruleCommand.deadlineWeekday);
-  assert.equal((await c.query('SELECT deadline_weekday FROM check_rule_revisions WHERE version=?',[ruleResult.result.ruleVersion]))[0][0].deadline_weekday,ruleCommand.deadlineWeekday);
-  const rulesPersisted=Number((await c.query('SELECT COUNT(*) n FROM check_rule_revisions WHERE saved_by=?',[users[0].id]))[0][0].n);
-  assert.deepEqual((await a.api('/api/settings/check-rule/results/query','POST',ruleCommand)).result,ruleResult.result);
-  assert.deepEqual((await a.api('/api/settings/check-rule','POST',ruleCommand)).result,ruleResult.result);
-  assert.equal(Number((await c.query('SELECT COUNT(*) n FROM check_rule_revisions WHERE saved_by=?',[users[0].id]))[0][0].n),rulesPersisted);
-  const staleRule={...ruleCommand,deadlineWeekday:chosen,idempotencyKey:randomUUID()};await a.api('/api/settings/check-rule','POST',staleRule,409);
-  const freshRule=await a.api('/api/settings/check-rule'),unchangedRule={...ruleCommand,expectedVersion:freshRule.configVersion,idempotencyKey:randomUUID()};
-  assert.equal((await a.api('/api/settings/check-rule','POST',unchangedRule)).result.changed,false);
-  await new Promise(resolve=>setTimeout(resolve,100));assert.equal(resourceEvents(staleRule.idempotencyKey).length,0);assert.equal(resourceEvents(unchangedRule.idempotencyKey).length,0);
-  assert.deepEqual(await projectVersions(),unchangedVersions,'公共无引用资料、企业和规则保存不虚构项目版本');
+  await new Promise(resolve=>setTimeout(resolve,100));for(const body of [...obsoleteRules,legacyRule])assert.equal(resourceEvents(body.idempotencyKey).length,0,'退役设置及历史回执恢复不发资源通知');
+  assert.deepEqual(await projectVersions(),unchangedVersions,'公共无引用资料、企业保存和退役规则入口不虚构项目版本');
   const payloads=events.filter(event=>event.event==='resource').map(event=>event.data);assert(!JSON.stringify(payloads).includes(prefix));assert(!JSON.stringify(payloads).includes(isolated.changes.manufacturer));
-  checks.push('资源通知：企业及检查规则提交→另一会话真实SSE→新GET/独立SQL一致；规则原回执/重放不新增修订；旧版拒绝和无变化不发更新；所有项目版本保持，通知不携带公共资料正文');
-  await waitFor(()=>resources.some(event=>event.operationId===ruleCommand.idempotencyKey),'检查规则经共享模块消费');
+  checks.push('资源通知：企业保存→另一会话真实SSE→新GET/独立SQL一致；退役规则与历史回执恢复不发更新；所有项目版本保持，通知不携带公共资料正文');
+  await waitFor(()=>resources.some(event=>event.operationId===companyCommand.idempotencyKey),'企业资料经共享模块消费');
   const oldProbeStream=probe.streams.find(stream=>!stream.closed),hide=()=>probe.window.dispatchEvent(new probe.window.PageTransitionEvent('pagehide',{persisted:true})),show=()=>probe.window.dispatchEvent(new probe.window.PageTransitionEvent('pageshow',{persisted:true}));
   hide();assert(probe.streams.every(stream=>stream.closed));let releaseIdentity;
   probe.identityGate=new Promise(resolve=>releaseIdentity=resolve);show();
@@ -422,7 +438,7 @@ try{
   oldProbeStream.onerror?.();show();show();await new Promise(resolve=>setTimeout(resolve,100));
   assert.equal(resources.length,resourceCount);assert.equal(states.length,stateCount);assert.equal(identityChanges,0);assert.equal(reconnects,2);assert.equal(probe.streams.filter(stream=>!stream.closed).length,1);
   subscription.close();hide();show();await new Promise(resolve=>setTimeout(resolve,50));assert(probe.streams.every(stream=>stream.closed));assert.equal(reconnects,2,'主动终止的通知实例不能被缓存返回重新开启');
-  checks.push('共享通知真实HTTP/SSE与受控DOM：第六回调消费资料/规则；缓存返回先核验身份，恢复期间再离开隔离迟到身份结果；临时503重试不冻结身份；旧流迟到资源/身份/重连事件不生效；重复返回仅单连接，主动关闭不复活');
+  checks.push('共享通知真实HTTP/SSE与受控DOM：第六回调消费资料；缓存返回先核验身份，恢复期间再离开隔离迟到身份结果；临时503重试不冻结身份；旧流迟到资源/身份/重连事件不生效；重复返回仅单连接，主动关闭不复活');
   const candidateTag=await make('tags',{name:prefix+' 编辑中新停用标签'}),candidateCustomer=await make('customers',{name:prefix+' 编辑标签客户',contact:'',background:'',tagIds:[]});
   const tagView=await page(a,{},'data-manage',true);
   await waitFor(()=>tagView.events.some(event=>event.event==='connected') && tagView.$(`[data-id="${candidateCustomer}"]`) && !tagView.$('#catalog-reload').disabled,'客户标签页面及实时通知就绪');
@@ -436,6 +452,21 @@ try{
   assert.equal((await read('customers',candidateCustomer)).background,'其他账号停用标签时保留客户输入');assert.equal((await read('tags',candidateTag)).enabled,false);
   const {connection:tagRead}=await connectDatabase('test_app');try{assert.equal((await tagRead.query('SELECT background FROM customers WHERE id=?',[candidateCustomer]))[0][0].background,'其他账号停用标签时保留客户输入');assert.equal(Number((await tagRead.query('SELECT COUNT(*) n FROM customer_tags WHERE customer_id=? AND tag_id=?',[candidateCustomer,candidateTag]))[0][0].n),0);}finally{await tagRead.end();}
   checks.push('PRD9.18：编辑客户时新选标签被停用，真实SSE保留输入并允许取消该勾选，取消后禁止重选；其余修改一次保存后新GET/独立SQL一致，未写入停用标签关联');
+  const candidateProject=await b.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+' 打开中项目',chipIds:[businessChip.result.id]}});projects.push(candidateProject.result.projectId);
+  const openDetail=await page(b,{},'project-detail',true,'?id='+candidateProject.result.projectId),openCreate=await page(a,{},'project-new',true);
+  await waitFor(()=>[openDetail,openCreate].every(view=>view.events.some(event=>event.event==='connected')),'已打开项目及新建表单的真实SSE');
+  openDetail.input('#edit-name',prefix+' 保留详情输入');openCreate.input('#edit-name',prefix+' 保留新建输入');
+  const candidateInput=command(null,'0',{name:prefix+' 实时新芯片'}),candidate=await b.api('/api/catalog/chips/save','POST',candidateInput);created.push(['chips',candidate.result.id]);
+  await waitFor(()=>[openDetail,openCreate].every(view=>view.$(`#edit-chipIds-source option[value="${candidate.result.id}"]`)),'新资料进入两张已打开表单');
+  assert.equal(openDetail.$('#edit-name').value,prefix+' 保留详情输入');assert.equal(openCreate.$('#edit-name').value,prefix+' 保留新建输入');
+  assert.deepEqual([...openDetail.$('#edit-chipIds-source').selectedOptions].map(option=>option.value),[businessChip.result.id]);
+  for(const view of [openDetail,openCreate]){view.input('#edit-chipIds',candidateInput.changes.name);view.$(`#edit-chipIds-choices [data-reference-value="${candidate.result.id}"]`).click();}
+  openDetail.$('[data-save-scope="basic"]').click();
+  await waitFor(async()=>{const value=await b.api('/api/projects/'+candidateProject.result.projectId);return value.project.name===prefix+' 保留详情输入' && value.project.chips.some(item=>item.id===candidate.result.id);},'打开详情选择新资料并保存后新请求回读');
+  openCreate.$('#create').dispatchEvent(new openCreate.window.Event('submit',{bubbles:true,cancelable:true}));await waitFor(()=>openCreate.created?.outcome==='committed','新建表单保存实时新增候选');
+  const newDetail=await a.api('/api/projects/'+openCreate.created.result.projectId);assert.equal(newDetail.project.name,prefix+' 保留新建输入');assert.deepEqual(newDetail.project.chips.map(item=>item.id),[candidate.result.id]);
+  const {connection:candidateRead}=await connectDatabase('test_app');try{for(const projectId of [candidateProject.result.projectId,openCreate.created.result.projectId])assert.equal(Number((await candidateRead.query('SELECT COUNT(*) n FROM project_chips WHERE project_id=? AND chip_id=?',[projectId,candidate.result.id]))[0][0].n),1);}finally{await candidateRead.end();}
+  checks.push('DEC132：业务账号新增芯片→真实SSE刷新已打开详情/新建候选并保留原输入和已有选择→实际选择保存→新GET及独立SQL回读正式项目关联');
   await writeFile('test-results/catalog.json',JSON.stringify({status:'passed',checks,browserTested:false},null,2));console.log(JSON.stringify({status:'passed',checks:checks.length,evidence:'test-results/catalog.json'}));
 }catch(error){console.error(error);throw error;}finally{
   fault='';for(const stream of streams)stream.controller.abort();await Promise.allSettled(streams.map(stream=>stream.done));for(const dom of views){for(const stream of dom.streams ?? [])stream.close();dom.window.close();}if(app)await app.close();

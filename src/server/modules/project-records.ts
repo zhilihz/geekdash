@@ -26,6 +26,7 @@ export function validateRiskOps(value: unknown): RiskOperation[] {
   }
   const operations = value.map((item, index) => {
     if (!object(item)) failure('INVALID_RISK_OPERATIONS', 400);
+    if (item.op === 'correct' && !Object.hasOwn(item, 'reason')) item = { ...item, reason: '' };
     const keys = item.op === 'add' ? ['op', 'tempId', 'content', 'level'] : item.op === 'correct' ? ['op', 'id', 'changes', 'reason'] : item.op === 'resolve' ? ['op', 'id', 'resolution'] : item.op === 'undoResolve' ? ['op', 'id', 'reason'] : item.op === 'delete' ? ['op', 'id'] : [];
     if (!keys.length || keys.length !== Object.keys(item).length || keys.some(key => !Object.hasOwn(item, key))) failure('INVALID_RISK_OPERATIONS', 400);
     if (item.op === 'add') {
@@ -74,7 +75,6 @@ export async function riskCandidate(connection: PoolConnection, id: string, oper
     const before = structuredClone(row);
     if (operation.op === 'correct') {
       if (Object.hasOwn(operation.changes, 'resolution') && !row.resolved) failure('RISK_RESOLUTION_REQUIRES_RESOLVED', 422, { fields: { ['riskOps.' + index]: '预警中的风险不能更正解除说明，请选择明确解除' } });
-      if (operation.changes.level !== undefined && operation.changes.level !== row.level && !operation.reason.trim()) failure('INVALID_PROJECT_FIELDS', 422, { fields: { ['riskOps.' + index + '.reason']: '修改风险等级需要说明原因' } });
       Object.assign(row, operation.changes);
     } else if (operation.op === 'resolve') {
       if (row.resolved) failure('RISK_ALREADY_RESOLVED', 422);
@@ -119,6 +119,7 @@ export function validateChangeOps(value: unknown): ChangeOperation[] {
   };
   const operations = value.map((item, index) => {
     if (!object(item)) failure('INVALID_CHANGE_OPERATIONS', 400);
+    if (item.op === 'correct' && !Object.hasOwn(item, 'correctionReason')) item = { ...item, correctionReason: '' };
     const keys = item.op === 'add' ? ['op', 'tempId', ...changeFieldKeys] : item.op === 'correct' ? ['op', 'id', 'changes', 'correctionReason'] : [];
     if (!keys.length || keys.length !== Object.keys(item).length || keys.some(key => !Object.hasOwn(item, key))) failure('INVALID_CHANGE_OPERATIONS', 400);
     if (item.op === 'add') {
@@ -157,7 +158,7 @@ export async function changeCandidate(connection: PoolConnection, id: string, op
       candidates.push(row); targets.set(row.id, row); events.push({ op: 'add', id: row.id, before: null, after: structuredClone(row), correctionReason: '' });
     } else {
       const row = targets.get(operation.id); if (!row) failure('CHANGE_NOT_FOUND', 404);
-      if (['source', 'decision'].some(key => Object.hasOwn(operation.changes, key) && operation.changes[key as keyof ChangeFields] !== row[key as keyof ChangeFields]) && !operation.correctionReason.trim()) failure('INVALID_PROJECT_FIELDS', 422, { fields: { correctionReason: '修改来源或接受/拒绝决定需要说明原因' } });
+      if (Object.hasOwn(operation.changes, 'decision') && !(operation.changes.reason ?? row.reason).trim()) failure('INVALID_PROJECT_FIELDS', 422, { fields: { reason: '请填写接受或拒绝的决定理由' } });
       const before = structuredClone(row); Object.assign(row, operation.changes);
       if (JSON.stringify(before) !== JSON.stringify(row)) events.push({ op: 'correct', id: row.id, before, after: structuredClone(row), correctionReason: operation.correctionReason });
     }
@@ -206,6 +207,7 @@ export function validateNodeOps(value: unknown): NodeOperation[] {
   };
   const result = value.map((item, index) => {
     if (!object(item)) failure('INVALID_NODE_OPERATIONS', 400);
+    if ((item.op === 'correct' || item.op === 'link') && !Object.hasOwn(item, 'reason')) item = { ...item, reason: '' };
     const keys = item.op === 'add' ? ['op', 'tempId', 'kind', 'fields'] : item.op === 'correct' ? ['op', 'id', 'changes', 'reason'] : item.op === 'complete' ? ['op', 'id', 'completedOn', ...Object.hasOwn(item, 'reason') ? ['reason'] : []] : item.op === 'uncomplete' ? ['op', 'id', 'reason', 'affectedIds'] : item.op === 'move' ? ['op', 'id', 'x', 'y'] : item.op === 'link' ? ['op', 'from', 'to', 'replaceEdges', 'affectedIds', 'reason'] : item.op === 'unlink' ? ['op', 'from', 'to'] : item.op === 'delete' ? ['op', 'id', 'removeEdges'] : item.op === 'restore' ? ['op', 'id', 'reason'] : [];
     if (!keys.length || keys.length !== Object.keys(item).length || keys.some(key => !Object.hasOwn(item, key))) failure('INVALID_NODE_OPERATIONS', 400);
     if (item.op === 'add') {
@@ -298,8 +300,6 @@ export async function nodeCandidate(connection: PoolConnection, id: string, oper
     }
     const row = target(operation.id); touch(row.id, operation);
     if (operation.op === 'correct') {
-      const previous = target(operation.id);
-      if (['stage', 'targetDate'].some(key => Object.hasOwn(operation.changes, key) && operation.changes[key as keyof NodeFields] !== previous[key as keyof NodeFields]) && !operation.reason.trim()) failure('NODE_CORRECTION_REASON_REQUIRED', 422);
       if (row.kind === 'customer' && (Object.hasOwn(operation.changes, 'stage') || Object.hasOwn(operation.changes, 'output')) || row.kind === 'project' && Object.hasOwn(operation.changes, 'note')) failure('INVALID_NODE_OPERATIONS', 400);
       Object.assign(row, operation.changes);
     } else if (operation.op === 'move') {
@@ -307,7 +307,6 @@ export async function nodeCandidate(connection: PoolConnection, id: string, oper
       row.x = operation.x; row.y = operation.y;
     } else if (operation.op === 'complete') {
       if (operation.completedOn > businessToday(new Date(timestamp))) failure('INVALID_PROJECT_FIELDS', 422, { fields: { nodeOps: '节点实际完成日不能在未来' } });
-      if (row.completedOn && row.completedOn !== operation.completedOn && !operation.reason?.trim()) failure('NODE_CORRECTION_REASON_REQUIRED', 422);
       row.completedOn = operation.completedOn; graphIds.add(row.id);
     } else {
       if (!row.completedOn) failure('NODE_NOT_COMPLETED', 422);

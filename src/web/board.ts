@@ -118,9 +118,9 @@ async function load(active = true) {
     filters(data.options, data.optionLabels);
     hasResult = true;
     businessDate = data.businessDate;
-    const stats = [['total', '当前项目'], ['high', '高优先级'], ['yellow', '黄灯'], ['red', '红灯'], ['checkPending', '本周待检查']];
+    const stats = [['total', '当前项目'], ['high', '高优先级'], ['yellow', '黄灯'], ['red', '红灯'], ['todayUnchecked', '今日未检查']];
     const stat=([key,title]:string[])=>`<button class="stat quick-stat" data-quick="${key}" data-title="${title}"><span class="stat-label">${title}</span><b>${data.stats[key]}</b></button>`;
-    element('extra-stats').innerHTML = [['green','绿灯'],['overdue','已超期'],['due','今日到期'],['unset','计划未定'],['checkOverdue','检查逾期'],['checkUpdated','检查后更新']].map(stat).join('');
+    element('extra-stats').innerHTML = [['green','绿灯'],['overdue','已超期'],['due','今日到期'],['unset','计划未定'],['checkUpdated','检查后更新']].map(stat).join('');
     element('stats-bar').innerHTML = stats.map(stat).join('');
     renderProjects(); charts(data.dashboard);
     const selected = selectedFilters();

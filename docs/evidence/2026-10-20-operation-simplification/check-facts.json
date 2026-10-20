@@ -1,0 +1,124 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-20T02:17:28.673Z",
+  "checks": [
+    "复用此前同库同校验和0004升级证据；本轮0005结构/FK/重复迁移及旧事实保留复验",
+    "旧带周字段回执原样恢复/重投不重复写；旧历史字段保留但不重新计算按时或截止",
+    "结论/备注直接保存追加更正审计，原检查人时间版本周规则和原备注不改写",
+    "无需规则的新检查写NULL来源且不改业务正文；SQL、新详情、列表和简要消费同一今日事实",
+    "旧项目版本、非负责人及伪造操作者均拒绝，检查/正文/版本/历史/回执不写入",
+    "跨年周日最后毫秒及周一00:00均可检查，旧周参数不再阻拦；跨日只变今日标记，最近检查仍可读",
+    "检查事务中途失败全回滚；COMMIT丢响应后重启查原回执与重投不增加检查/历史"
+  ],
+  "requestCount": 22,
+  "requests": [
+    {
+      "path": "/api/auth/login",
+      "status": 200
+    },
+    {
+      "path": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "path": "/api/auth/login",
+      "status": 200
+    },
+    {
+      "path": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "path": "/api/projects/9007199254760414/action-results/query",
+      "status": 200
+    },
+    {
+      "path": "/api/projects/9007199254760414/actions",
+      "status": 200
+    },
+    {
+      "path": "/api/projects/9007199254760414/checks",
+      "status": 200
+    },
+    {
+      "path": "/api/projects/9007199254760414/actions",
+      "status": 200
+    },
+    {
+      "path": "/api/projects/9007199254760414/checks",
+      "status": 200
+    },
+    {
+      "path": "/api/projects/9007199254760414",
+      "status": 200
+    },
+    {
+      "path": "/api/projects/9007199254760414/actions",
+      "status": 200
+    },
+    {
+      "path": "/api/projects/9007199254760414",
+      "status": 200
+    },
+    {
+      "path": "/api/projects?view=all&pageSize=100",
+      "status": 200
+    },
+    {
+      "path": "/api/project-summary",
+      "status": 200
+    },
+    {
+      "path": "/api/projects/9007199254760414/actions",
+      "status": 409
+    },
+    {
+      "path": "/api/projects/9007199254760414/actions",
+      "status": 403
+    },
+    {
+      "path": "/api/projects/9007199254760414/actions",
+      "status": 400
+    },
+    {
+      "path": "/api/projects/9007199254760414/actions",
+      "status": 503
+    },
+    {
+      "path": "/api/projects/9007199254760414/actions",
+      "status": 503
+    },
+    {
+      "path": "/api/projects/9007199254760414/action-results/query",
+      "status": 200
+    },
+    {
+      "path": "/api/projects/9007199254760414/actions",
+      "status": 200
+    },
+    {
+      "path": "/api/health/live",
+      "status": 200
+    }
+  ],
+  "build": {
+    "revision": "66b3b21c782723d6ca45d00d4627618d7bf8069c",
+    "dirty": true,
+    "builtAt": "2026-10-20T02:14:55.231Z",
+    "stage": "project-list",
+    "schemaVersion": "0005-check-facts"
+  },
+  "isolatedTestDatabase": true,
+  "migration": {
+    "status": "passed",
+    "checkedAt": "2026-10-20T02:17:25.5931033Z",
+    "serverUuid": "017e6895-c927-11f1-9c73-46ad6b6ac97c",
+    "from": "0004-project-compatibility",
+    "to": "0005-check-facts",
+    "checksum": "1b70d74c3ff84fdcc8f5587e2ab2007d20801e33b8e9f8720894a43458e40fb8",
+    "sourceLog": "test-results/check-facts-20261020.log",
+    "sourceLogSha256": "8512c523b38212b6c957faa0d398ff9d96bb99a04b7d39a121f2d5142d423f79",
+    "note": "首次真实升级完成，原4表逐值比较及nullable断言已通过，随后第84行COUNT字符串与数字类型断言失败。此记录明确续验来源，不宣称重新升级。外键/重复迁移/结构仍待续验。",
+    "completedAt": "2026-10-20T02:17:27.535Z"
+  }
+}

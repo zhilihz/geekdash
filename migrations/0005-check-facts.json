@@ -1,0 +1,13 @@
+{
+  "version": "0005-check-facts",
+  "steps": [
+    {
+      "table": "project_checks",
+      "sql": "ALTER TABLE project_checks MODIFY COLUMN week_start date NULL DEFAULT NULL, MODIFY COLUMN rule_version bigint unsigned NULL DEFAULT NULL",
+      "columns": [
+        {"name":"week_start","type":"date","nullable":true,"default":null,"autoIncrement":false,"charset":null,"collation":null},
+        {"name":"rule_version","type":"bigint unsigned","nullable":true,"default":null,"autoIncrement":false,"charset":null,"collation":null}
+      ]
+    }
+  ]
+}
