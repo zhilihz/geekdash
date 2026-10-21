@@ -1,0 +1,59 @@
+{
+  "before": {
+    "projectVersion": "19",
+    "items": [
+      {
+        "projectId": "9007199254760602",
+        "id": "56",
+        "actorId": "28",
+        "actorName": "p04_ui_0",
+        "checkedAt": "2026-10-21T03:48:21.804000Z",
+        "weekStart": null,
+        "conclusion": "checked",
+        "note": "",
+        "ruleVersion": null,
+        "resultVersion": "19",
+        "observedVersion": "18",
+        "original": {
+          "conclusion": "checked",
+          "note": ""
+        },
+        "correction": null
+      }
+    ],
+    "nextCursor": null,
+    "pageSize": 20,
+    "businessDate": "2026-10-21"
+  },
+  "after": {
+    "projectVersion": "20",
+    "items": [
+      {
+        "projectId": "9007199254760602",
+        "id": "56",
+        "actorId": "28",
+        "actorName": "p04_ui_0",
+        "checkedAt": "2026-10-21T03:48:21.804000Z",
+        "weekStart": null,
+        "conclusion": "checked",
+        "note": "补充检查记录：已核对芯片接口",
+        "ruleVersion": null,
+        "resultVersion": "19",
+        "observedVersion": "18",
+        "original": {
+          "conclusion": "checked",
+          "note": ""
+        },
+        "correction": {
+          "id": "6839",
+          "actorName": "p04_ui_0",
+          "createdAt": "2026-10-21T03:49:18.750000Z",
+          "reason": ""
+        }
+      }
+    ],
+    "nextCursor": null,
+    "pageSize": 20,
+    "businessDate": "2026-10-21"
+  }
+}

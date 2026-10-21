@@ -1,0 +1,36 @@
+{
+  "before": "22",
+  "text": "保存后将如何联动\n撤销误完成：S1 需求立项\nS1 需求立项：已完成 → 进行中。\n因为 S1 需求立项 保存后为进行中、尚未完成，后续 S2 项目预启动 不能继续推进：待开始 → 未解锁。\n已完成阶段随之减少，项目进度：5% → 0%。",
+  "cancelVersion": "22",
+  "changedText": "保存后将如何联动\n撤销误完成：S1 需求立项\nS1 需求立项：已完成 → 待开始。\n因为 S1 需求立项 保存后为待开始、尚未完成，后续 S2 项目预启动 不能继续推进：待开始 → 未解锁。\n已完成阶段随之减少，项目进度：5% → 0%。",
+  "after": {
+    "version": "23",
+    "stages": [
+      {
+        "id": "4427",
+        "code": "S1",
+        "state": "ready",
+        "plannedDays": 6,
+        "note": "验收：本阶段由接口与样机两节点组成",
+        "startedOn": null,
+        "completedOn": null,
+        "expectedEndOn": "2026-10-27",
+        "nodeCount": "2",
+        "undatedNodeCount": "0"
+      },
+      {
+        "id": "4428",
+        "code": "S2",
+        "state": "locked",
+        "plannedDays": null,
+        "note": "",
+        "startedOn": null,
+        "completedOn": null,
+        "expectedEndOn": null,
+        "nodeCount": "0",
+        "undatedNodeCount": "0"
+      }
+    ],
+    "progress": "0"
+  }
+}

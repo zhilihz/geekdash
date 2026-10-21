@@ -1,0 +1,27 @@
+{
+  "sourceBase": "8ca31d4fe19d55e8e67bc0884aa1c263622f4511",
+  "build": {
+    "revision": "8ca31d4fe19d55e8e67bc0884aa1c263622f4511",
+    "dirty": true,
+    "builtAt": "2026-10-21T04:05:20.012Z",
+    "stage": "project-list",
+    "schemaVersion": "0005-check-facts"
+  },
+  "sourceSha256": {
+    "src/web/detail.ts": "4bbcfe1b194a9fac1a7381801def5ff1252baa52f563e04d047a37750f1372f1",
+    "src/web/project-new.ts": "425184946c1748560250e89adc4f5fe3f98bad9232427693476f3c3ed1047b30",
+    "src/web/settings.html": "8320af4cbbe1ecfc3e808b6eea29a3ea8f701c3f4c4dedf47b69dbdeb600a431",
+    "src/web/settings.ts": "f305548fef5c5440bf7be23653b8f76f7a566cf86c6fd0ac6a8aed5ef1603574",
+    "src/web/shared/api.ts": "35c55b9c45dcca08ec1420e5e40a52a70312b1ae8b89334a48be33fe88b1b01b",
+    "src/web/shared/board-page.css": "da69d4c0636346a9c302fd05de311a1e0a483ee223dbaeee1da9863838480053",
+    "src/web/shared/board.css": "5ce60cca3863de6852037c7d43343c71a4f4053f28cbb04584099ab3a2ff9983",
+    "src/web/shared/detail.css": "c31a8c488c6685cbbb3a89c362cdeab97dbb7937558d734f0fc2aaf338e9d23e",
+    "src/web/shared/personal-state.ts": "d44983872cfd8a192eab80af89bc35511a7586c39d194beb5be63332cf838a49",
+    "src/web/shared/project-checks.css": "42294c31d7a64e69311405264c54d71b6f2597ddcb043b57b7d14c8a5e915fc7",
+    "src/web/shared/read.css": "2584119059b6b8a298859c889eb4356cca40e0c0c6399e9ed06f82d56bb454a2",
+    "src/web/shared/summary-output.ts": "f64297ba8dfdd5aed73d29d55c880a5364e2db570de83da9a9e6c8bcdbf85948"
+  },
+  "typecheck": "passed 2026-10-21; server and web",
+  "review": "read-only review; hidden label regression fixed and native display:none verified",
+  "pendingRelease": true
+}

@@ -1,0 +1,18 @@
+{
+  "status": "passed",
+  "checks": [
+    "状态说明历史读取失败显示独立重试；重试与继续读取更早记录取回22次真实整段说明且倒序无重复，编辑器未保存文字不变、正式说明仍第22次",
+    "更新历史首20条→较早页失败保留已有记录→重试读全23个真实版本，顺序与独立SQL一致且不重不漏；切回基本信息再回历史保留已加载范围和结束状态",
+    "仅合成旧来源项目无可信审计：状态历史和更新历史分别显示准确空态，不虚构操作者/时间/内容，无下一页；新GET与SQL确认读取无写入"
+  ],
+  "requests": 53,
+  "realBrowserLayout": false,
+  "realHttp": true,
+  "isolatedMysql": true,
+  "syntheticLegacyHistory": true,
+  "cleanupVerified": {
+    "syntheticProjectsRemaining": 0,
+    "syntheticActorsRemaining": 0,
+    "independentSqlRead": true
+  }
+}

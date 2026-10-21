@@ -1,0 +1,51 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-21T04:20:27.779Z",
+  "scope": "P04 专有输入和缺候选引用显示补验",
+  "checks": [
+    {
+      "row": "9.4-补2",
+      "case": "无匹配及工程师集合为空",
+      "result": "菜单隐藏，原 @ 文字保留；回车/方向键未误选或替换，不新增人员。DOM 不模拟浏览器默认换行。"
+    },
+    {
+      "row": "9.4-补2",
+      "case": "组合输入及结束后的明确键盘选择",
+      "result": "compositionstart 到 compositionend 期间回车不选名；isComposing 键也不选名；结束后方向键+回车仅插入选中姓名与空格，候选集合保持。"
+    },
+    {
+      "row": "9.18-4",
+      "case": "旧引用不在候选集合中",
+      "result": "实际详情 selectReference→referenceSelect→mountReferencePickers 保留单选旧名称、多选稳定 ID 和旧工程师姓名，均显示停用/不可新增；搜索和取消后旧 ID/输入保持，不伪装为空选择。"
+    },
+    {
+      "row": "9.18-4",
+      "case": "新选来源从候选中消失",
+      "result": "不属于正式旧引用的新选 ID 仍可识别并保留，选项禁用；没有降级成可新增的有效资料。"
+    }
+  ],
+  "sourceSha256": {
+    "src/web/shared/status-mentions.ts": "cba874c77311009e08b5b1f1ef0b343f37c036ebc39e1e78aff992d198b29047",
+    "src/web/shared/api.ts": "35c55b9c45dcca08ec1420e5e40a52a70312b1ae8b89334a48be33fe88b1b01b",
+    "src/web/shared/project-form.ts": "3eaa623aab300899f51f44b44b3b967fff6cb8b302b3506fc35614a960428858",
+    "src/web/shared/reference-picker.ts": "072d316ea2dffc6d6f2e4fc082a5517908ce578decbdd9ec38bc43a9fc253a44",
+    "src/web/detail.ts": "4bbcfe1b194a9fac1a7381801def5ff1252baa52f563e04d047a37750f1372f1"
+  },
+  "execution": "实际产品 TypeScript 经 TypeScript 转译后在 JSDOM 执行；selectReference、referenceSelect、esc 为从实际源码 AST 提取的原函数，未复制实现。",
+  "runtime": {
+    "node": "v24.19.0",
+    "typescript": "5.9.3",
+    "jsdom": "27.0.1",
+    "dependencies": "使用仓库忽略目录已有 ui04-comparison-tools/typescript 与 ui-dom-tools/jsdom；未安装或变更依赖。"
+  },
+  "script": "test-results/p04-mention-reference-dom.mjs",
+  "scriptSha256": "e6e23c79189481720610cc25532cacbc23be9a80c4b2483a7984039d8fac875f",
+  "databaseAccess": false,
+  "networkAccess": false,
+  "testModifiedProductSource": false,
+  "nativeBrowserAcceptance": false,
+  "limitations": [
+    "未操作系统真实中文输入法；覆盖实际模块 composition 事件及 keydown.isComposing 分支。",
+    "缺候选场景为合成正式快照与候选集合；只验证真实页面显示和输入保护，既有持久化/新GET证据沿原1054链。"
+  ]
+}

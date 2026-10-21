@@ -1,0 +1,1658 @@
+{
+  "frames": [
+    {
+      "id": "144:3499",
+      "name": "W01 项目看板 · 卡片",
+      "texts": [
+        {
+          "id": "I144:3507;2:108",
+          "text": "状态简要",
+          "parent": "144:3507"
+        },
+        {
+          "id": "144:3564",
+          "text": "最新状态",
+          "parent": "144:3552"
+        },
+        {
+          "id": "144:3582",
+          "text": "最新状态",
+          "parent": "144:3570"
+        },
+        {
+          "id": "144:3600",
+          "text": "最新状态",
+          "parent": "144:3588"
+        },
+        {
+          "id": "144:3619",
+          "text": "最新状态",
+          "parent": "144:3607"
+        },
+        {
+          "id": "144:3637",
+          "text": "最新状态",
+          "parent": "144:3625"
+        },
+        {
+          "id": "144:3655",
+          "text": "最新状态",
+          "parent": "144:3643"
+        }
+      ]
+    },
+    {
+      "id": "144:3668",
+      "name": "W03 基本信息 · 默认可编辑",
+      "texts": [
+        {
+          "id": "I144:3676;2:108",
+          "text": "状态简要",
+          "parent": "144:3676"
+        },
+        {
+          "id": "I144:3705;2:108",
+          "text": "风险与变更",
+          "parent": "144:3705"
+        },
+        {
+          "id": "I500:5576;2:120",
+          "text": "项目状态",
+          "parent": "500:5576"
+        },
+        {
+          "id": "162:4358",
+          "text": "最新状态说明",
+          "parent": "162:4357"
+        },
+        {
+          "id": "I162:4359;2:108",
+          "text": "保存状态说明",
+          "parent": "162:4359"
+        }
+      ]
+    },
+    {
+      "id": "144:3783",
+      "name": "W04 基本信息 · 修改未保存",
+      "texts": [
+        {
+          "id": "I144:3791;2:108",
+          "text": "状态简要",
+          "parent": "144:3791"
+        },
+        {
+          "id": "I144:3820;2:108",
+          "text": "风险与变更",
+          "parent": "144:3820"
+        },
+        {
+          "id": "I162:4374;2:120",
+          "text": "项目状态",
+          "parent": "162:4374"
+        },
+        {
+          "id": "162:4449",
+          "text": "最新状态说明",
+          "parent": "162:4448"
+        },
+        {
+          "id": "I162:4450;2:108",
+          "text": "保存状态说明",
+          "parent": "162:4450"
+        }
+      ]
+    },
+    {
+      "id": "144:3919",
+      "name": "W05 项目分工 · 本人加入负责",
+      "texts": [
+        {
+          "id": "I144:3927;2:108",
+          "text": "状态简要",
+          "parent": "144:3927"
+        },
+        {
+          "id": "I144:3956;2:108",
+          "text": "风险与变更",
+          "parent": "144:3956"
+        },
+        {
+          "id": "162:4465",
+          "text": "项目状态",
+          "parent": "162:4464"
+        },
+        {
+          "id": "162:4527",
+          "text": "最新状态说明",
+          "parent": "162:4526"
+        }
+      ]
+    },
+    {
+      "id": "146:3642",
+      "name": "W02 项目看板 · 驾驶舱",
+      "texts": [
+        {
+          "id": "I146:3650;2:108",
+          "text": "状态简要",
+          "parent": "146:3650"
+        },
+        {
+          "id": "146:3746",
+          "text": "最新状态",
+          "parent": "146:3745"
+        },
+        {
+          "id": "I146:3747;2:108",
+          "text": "打开状态简要",
+          "parent": "146:3747"
+        },
+        {
+          "id": "146:3768",
+          "text": "量产测试中，计划周五提交验证报告。",
+          "parent": "146:3767"
+        }
+      ]
+    },
+    {
+      "id": "146:3771",
+      "name": "W06 最新状态说明 · 持续可编辑",
+      "texts": [
+        {
+          "id": "I146:3779;2:108",
+          "text": "状态简要",
+          "parent": "146:3779"
+        },
+        {
+          "id": "I146:3808;2:108",
+          "text": "风险与变更",
+          "parent": "146:3808"
+        },
+        {
+          "id": "I279:4777;2:120",
+          "text": "项目状态",
+          "parent": "279:4777"
+        },
+        {
+          "id": "162:4602",
+          "text": "最新状态说明",
+          "parent": "162:4601"
+        },
+        {
+          "id": "I162:4603;2:108",
+          "text": "保存状态说明",
+          "parent": "162:4603"
+        }
+      ]
+    },
+    {
+      "id": "146:3860",
+      "name": "W07 项目阶段 · 七阶段卡片",
+      "texts": [
+        {
+          "id": "I146:3868;2:108",
+          "text": "状态简要",
+          "parent": "146:3868"
+        },
+        {
+          "id": "I146:3897;2:108",
+          "text": "风险与变更",
+          "parent": "146:3897"
+        },
+        {
+          "id": "206:4589",
+          "text": "硬件：方案与成本评估。  固件：平台与技术风险评估。\n业务：确认客户需求、报价及合同边界。",
+          "parent": "146:3902"
+        },
+        {
+          "id": "206:4591",
+          "text": "硬件：验证 Demo 与器件。  固件：SDK、协议及低功耗预研。\n业务：同步进度、确认方案，提前沟通风险。",
+          "parent": "146:3935"
+        }
+      ]
+    },
+    {
+      "id": "146:4011",
+      "name": "W08 项目节点 · 原位维护",
+      "texts": [
+        {
+          "id": "I146:4019;2:108",
+          "text": "状态简要",
+          "parent": "146:4019"
+        },
+        {
+          "id": "I146:4048;2:108",
+          "text": "风险与变更",
+          "parent": "146:4048"
+        }
+      ]
+    },
+    {
+      "id": "146:4119",
+      "name": "W09 项目 Flow · 阶段泳道",
+      "texts": [
+        {
+          "id": "I146:4127;2:108",
+          "text": "状态简要",
+          "parent": "146:4127"
+        },
+        {
+          "id": "I146:4156;2:108",
+          "text": "风险与变更",
+          "parent": "146:4156"
+        },
+        {
+          "id": "146:4219",
+          "text": "截止 10-18",
+          "parent": "146:4217"
+        }
+      ]
+    },
+    {
+      "id": "149:3793",
+      "name": "W10 客户节点 · 交付与确认",
+      "texts": [
+        {
+          "id": "I149:3801;2:108",
+          "text": "状态简要",
+          "parent": "149:3801"
+        },
+        {
+          "id": "I149:3830;2:108",
+          "text": "风险与变更",
+          "parent": "149:3830"
+        },
+        {
+          "id": "149:3850",
+          "text": "客户截止",
+          "parent": "149:3849"
+        },
+        {
+          "id": "149:3870",
+          "text": "客户截止",
+          "parent": "149:3869"
+        }
+      ]
+    },
+    {
+      "id": "149:3906",
+      "name": "W11 风险与需求变更 · 查看",
+      "texts": [
+        {
+          "id": "I149:3914;2:108",
+          "text": "状态简要",
+          "parent": "149:3914"
+        },
+        {
+          "id": "I149:3943;2:114",
+          "text": "风险与变更",
+          "parent": "149:3943"
+        },
+        {
+          "id": "166:4276",
+          "text": "风险预警",
+          "parent": "166:4275"
+        },
+        {
+          "id": "I166:4277;2:108",
+          "text": "＋ 新增风险",
+          "parent": "166:4277"
+        },
+        {
+          "id": "166:4287",
+          "text": "当前风险",
+          "parent": "166:4286"
+        },
+        {
+          "id": "I405:4886;2:108",
+          "text": "解除风险",
+          "parent": "405:4886"
+        },
+        {
+          "id": "I405:4984;2:108",
+          "text": "解除风险",
+          "parent": "405:4984"
+        },
+        {
+          "id": "I170:4412;2:108",
+          "text": "查看已解除风险",
+          "parent": "170:4412"
+        }
+      ]
+    },
+    {
+      "id": "149:3986",
+      "name": "W12 风险与需求变更 · 原位编辑",
+      "texts": [
+        {
+          "id": "I149:3994;2:108",
+          "text": "状态简要",
+          "parent": "149:3994"
+        },
+        {
+          "id": "I149:4023;2:114",
+          "text": "风险与变更",
+          "parent": "149:4023"
+        },
+        {
+          "id": "166:4335",
+          "text": "风险预警",
+          "parent": "166:4334"
+        },
+        {
+          "id": "I166:4336;2:108",
+          "text": "＋ 新增风险",
+          "parent": "166:4336"
+        },
+        {
+          "id": "285:4899",
+          "text": "当前风险",
+          "parent": "285:4898"
+        },
+        {
+          "id": "I405:4881;2:108",
+          "text": "解除风险",
+          "parent": "405:4881"
+        },
+        {
+          "id": "I405:4979;2:108",
+          "text": "解除风险",
+          "parent": "405:4979"
+        },
+        {
+          "id": "I170:4414;2:108",
+          "text": "查看已解除风险",
+          "parent": "170:4414"
+        }
+      ]
+    },
+    {
+      "id": "149:4081",
+      "name": "W13 更新历史 · 只看实际变化",
+      "texts": [
+        {
+          "id": "I149:4089;2:108",
+          "text": "状态简要",
+          "parent": "149:4089"
+        },
+        {
+          "id": "I149:4118;2:108",
+          "text": "风险与变更",
+          "parent": "149:4118"
+        },
+        {
+          "id": "I149:4129;2:108",
+          "text": "风险与需求",
+          "parent": "149:4129"
+        },
+        {
+          "id": "149:4163",
+          "text": "原因：原决定选择错误。",
+          "parent": "149:4159"
+        }
+      ]
+    },
+    {
+      "id": "149:4200",
+      "name": "W14 新建项目 · 同一套资料结构",
+      "texts": [
+        {
+          "id": "I149:4208;2:108",
+          "text": "状态简要",
+          "parent": "149:4208"
+        },
+        {
+          "id": "167:4353",
+          "text": "＋ 添加项目标签",
+          "parent": "249:4576"
+        },
+        {
+          "id": "I167:4362;2:120",
+          "text": "项目状态",
+          "parent": "167:4362"
+        },
+        {
+          "id": "167:4438",
+          "text": "最新状态说明",
+          "parent": "167:4437"
+        }
+      ]
+    },
+    {
+      "id": "151:3978",
+      "name": "W15 项目状态简要 · 统一导出清单",
+      "texts": [
+        {
+          "id": "365:5687",
+          "text": "项目状态简要",
+          "parent": "365:5683"
+        },
+        {
+          "id": "365:5692",
+          "text": "项目状态纪要",
+          "parent": "365:5691"
+        },
+        {
+          "id": "365:5743",
+          "text": "项目状态：",
+          "parent": "365:5742"
+        },
+        {
+          "id": "I365:5782;2:108",
+          "text": "◉ 项目最新状态",
+          "parent": "365:5782"
+        },
+        {
+          "id": "365:5826",
+          "text": "项目最新状态",
+          "parent": "365:5825"
+        },
+        {
+          "id": "365:5932",
+          "text": "下周提供原理样机，等待测试排期。",
+          "parent": "365:5931"
+        }
+      ]
+    },
+    {
+      "id": "151:4079",
+      "name": "W16 历史入口 · 已合并项目状态简要",
+      "texts": [
+        {
+          "id": "381:5392",
+          "text": "芯片清单已合并到项目状态简要",
+          "parent": "151:4082"
+        },
+        {
+          "id": "I381:5394;2:108",
+          "text": "打开项目状态简要",
+          "parent": "381:5394"
+        }
+      ]
+    },
+    {
+      "id": "151:4158",
+      "name": "W17 基础资料 · 分类管理",
+      "texts": [
+        {
+          "id": "I151:4166;2:108",
+          "text": "状态简要",
+          "parent": "151:4166"
+        },
+        {
+          "id": "I151:4186;2:108",
+          "text": "项目标签",
+          "parent": "151:4186"
+        },
+        {
+          "id": "369:5162",
+          "text": "客户标签",
+          "parent": "369:5161"
+        },
+        {
+          "id": "369:5175",
+          "text": "客户标签仅用于客户分类。联系人可包含职位和电话。",
+          "parent": "151:4238"
+        }
+      ]
+    },
+    {
+      "id": "151:4261",
+      "name": "W18 系统设置 · 个人与公共分开",
+      "texts": [
+        {
+          "id": "I151:4269;2:108",
+          "text": "状态简要",
+          "parent": "151:4269"
+        },
+        {
+          "id": "I151:4301;2:120",
+          "text": "首页最新状态区",
+          "parent": "151:4301"
+        },
+        {
+          "id": "I151:4312;2:120",
+          "text": "每周检查截止",
+          "parent": "151:4312"
+        },
+        {
+          "id": "151:4316",
+          "text": "截止日全天可检查，次日才算逾期。保存后立即应用本周及以后。",
+          "parent": "151:4308"
+        }
+      ]
+    },
+    {
+      "id": "151:4339",
+      "name": "W19 导入批次 · 集中处理",
+      "texts": [
+        {
+          "id": "I151:4347;2:108",
+          "text": "状态简要",
+          "parent": "151:4347"
+        },
+        {
+          "id": "151:4378",
+          "text": "状态",
+          "parent": "151:4377"
+        }
+      ]
+    },
+    {
+      "id": "153:4088",
+      "name": "W20 导入批次 · 卡片审查",
+      "texts": [
+        {
+          "id": "I153:4096;2:108",
+          "text": "状态简要",
+          "parent": "153:4096"
+        },
+        {
+          "id": "153:4161",
+          "text": "最新状态",
+          "parent": "153:4160"
+        }
+      ]
+    },
+    {
+      "id": "153:4175",
+      "name": "W21 备份与恢复 · 运行维护",
+      "texts": [
+        {
+          "id": "I153:4183;2:108",
+          "text": "状态简要",
+          "parent": "153:4183"
+        }
+      ]
+    },
+    {
+      "id": "153:4241",
+      "name": "W22 登录 · 回到工作",
+      "texts": []
+    },
+    {
+      "id": "153:4265",
+      "name": "W23 首次登录 · 修改临时密码",
+      "texts": []
+    },
+    {
+      "id": "153:4287",
+      "name": "W24 我的账号 · 本人信息",
+      "texts": [
+        {
+          "id": "I153:4295;2:108",
+          "text": "状态简要",
+          "parent": "153:4295"
+        }
+      ]
+    },
+    {
+      "id": "153:4340",
+      "name": "W25 账号与邀请码 · 维护后台",
+      "texts": [
+        {
+          "id": "I153:4348;2:108",
+          "text": "状态简要",
+          "parent": "153:4348"
+        },
+        {
+          "id": "153:4372",
+          "text": "状态",
+          "parent": "153:4371"
+        },
+        {
+          "id": "153:4411",
+          "text": "状态",
+          "parent": "153:4410"
+        }
+      ]
+    },
+    {
+      "id": "155:4158",
+      "name": "W26 保存反馈 · 保留当前信息",
+      "texts": [
+        {
+          "id": "I155:4165;2:108",
+          "text": "状态简要",
+          "parent": "155:4165"
+        },
+        {
+          "id": "I155:4182;2:108",
+          "text": "风险与变更",
+          "parent": "155:4182"
+        },
+        {
+          "id": "I500:5818;2:120",
+          "text": "项目状态",
+          "parent": "500:5818"
+        },
+        {
+          "id": "162:4677",
+          "text": "最新状态说明",
+          "parent": "162:4676"
+        },
+        {
+          "id": "I162:4678;2:108",
+          "text": "保存状态说明",
+          "parent": "162:4678"
+        }
+      ]
+    },
+    {
+      "id": "155:4259",
+      "name": "W27 单个项目检查 · 只读卡片",
+      "texts": [
+        {
+          "id": "I176:4407;2:108",
+          "text": "状态简要",
+          "parent": "176:4407"
+        },
+        {
+          "id": "176:4423",
+          "text": "项目状态 / 当前阶段",
+          "parent": "176:4422"
+        },
+        {
+          "id": "176:4439",
+          "text": "最新状态说明",
+          "parent": "176:4438"
+        }
+      ]
+    },
+    {
+      "id": "155:4336",
+      "name": "W28 阶段操作 · 卡片内完成",
+      "texts": [
+        {
+          "id": "I155:4344;2:108",
+          "text": "状态简要",
+          "parent": "155:4344"
+        },
+        {
+          "id": "I155:4373;2:108",
+          "text": "风险与变更",
+          "parent": "155:4373"
+        }
+      ]
+    },
+    {
+      "id": "155:4407",
+      "name": "W29 版本冲突 · 保留当前输入",
+      "texts": [
+        {
+          "id": "I155:4415;2:108",
+          "text": "状态简要",
+          "parent": "155:4415"
+        },
+        {
+          "id": "300:5496",
+          "text": "李四、王五正在编辑",
+          "parent": "155:4428"
+        },
+        {
+          "id": "I155:4444;2:108",
+          "text": "风险与变更",
+          "parent": "155:4444"
+        },
+        {
+          "id": "I300:5309;2:120",
+          "text": "项目状态",
+          "parent": "300:5309"
+        },
+        {
+          "id": "300:5485",
+          "text": "最新状态说明",
+          "parent": "300:5484"
+        },
+        {
+          "id": "I300:5486;2:108",
+          "text": "保存状态说明",
+          "parent": "300:5486"
+        }
+      ]
+    },
+    {
+      "id": "155:4470",
+      "name": "W30 邀请码注册 · 正式密码",
+      "texts": []
+    },
+    {
+      "id": "155:4508",
+      "name": "W31 筛选无结果 · 保留条件",
+      "texts": [
+        {
+          "id": "I155:4516;2:108",
+          "text": "状态简要",
+          "parent": "155:4516"
+        }
+      ]
+    },
+    {
+      "id": "156:4279",
+      "name": "W00 全站结构图 · 从这里开始",
+      "texts": [
+        {
+          "id": "I156:4293;2:108",
+          "text": "W15 项目状态简要",
+          "parent": "156:4293"
+        },
+        {
+          "id": "I156:4307;2:108",
+          "text": "W06 最新状态说明",
+          "parent": "156:4307"
+        },
+        {
+          "id": "I156:4319;2:108",
+          "text": "W11 风险与变更",
+          "parent": "156:4319"
+        },
+        {
+          "id": "I156:4321;2:108",
+          "text": "W12 风险与变更 · 编辑",
+          "parent": "156:4321"
+        },
+        {
+          "id": "156:4359",
+          "text": "关键交互状态",
+          "parent": "156:4358"
+        },
+        {
+          "id": "156:4375",
+          "text": "• 基本信息与分工共用一个“修改 / 保存”按钮切换；详情的最新状态始终可填写。\n• 新建与详情沿用同一布局；新建入口位于首页项目列表区域。\n• 检查页仅查看，每卡只有通过检查和进入修正；保存修正不等于检查。\n• 风险误录可删除，可撤销未保存删除，保存后保留历史。\n• 未结案不重复展示实际结案状态，已结案展示真实日期。\n• 项目经理账号映射、合并保存事务及节点计划联动仍须实施核实。\n• 今日检查标记不改变每周截止判定，@人员不自动分工或通知。",
+          "parent": "156:4372"
+        },
+        {
+          "id": "168:4451",
+          "text": "检查与信息纠错",
+          "parent": "168:4450"
+        },
+        {
+          "id": "I168:4460;2:108",
+          "text": "W32 风险删除待保存",
+          "parent": "168:4460"
+        }
+      ]
+    },
+    {
+      "id": "166:4421",
+      "name": "W32 风险删除 · 待保存",
+      "texts": [
+        {
+          "id": "I166:4429;2:108",
+          "text": "状态简要",
+          "parent": "166:4429"
+        },
+        {
+          "id": "I166:4456;2:114",
+          "text": "风险与变更",
+          "parent": "166:4456"
+        },
+        {
+          "id": "166:4462",
+          "text": "风险预警",
+          "parent": "166:4461"
+        },
+        {
+          "id": "I166:4463;2:108",
+          "text": "＋ 新增风险",
+          "parent": "166:4463"
+        },
+        {
+          "id": "166:4473",
+          "text": "当前风险",
+          "parent": "166:4472"
+        },
+        {
+          "id": "166:4484",
+          "text": "高风险 · 张三 · 10 月 14 日 09:20",
+          "parent": "166:4483"
+        },
+        {
+          "id": "I166:4485;2:108",
+          "text": "解除风险",
+          "parent": "166:4485"
+        },
+        {
+          "id": "166:4488",
+          "text": "误录风险“功耗测试未达标”待删除。",
+          "parent": "166:4487"
+        }
+      ]
+    },
+    {
+      "id": "166:4516",
+      "name": "W33 风险删除 · 已保存",
+      "texts": [
+        {
+          "id": "I166:4524;2:108",
+          "text": "状态简要",
+          "parent": "166:4524"
+        },
+        {
+          "id": "I166:4551;2:114",
+          "text": "风险与变更",
+          "parent": "166:4551"
+        },
+        {
+          "id": "166:4561",
+          "text": "风险预警",
+          "parent": "166:4560"
+        },
+        {
+          "id": "I166:4562;2:108",
+          "text": "＋ 新增风险",
+          "parent": "166:4562"
+        },
+        {
+          "id": "166:4572",
+          "text": "当前风险",
+          "parent": "166:4571"
+        },
+        {
+          "id": "166:4583",
+          "text": "高风险 · 张三 · 10 月 14 日 09:20",
+          "parent": "166:4582"
+        },
+        {
+          "id": "I166:4584;2:108",
+          "text": "解除风险",
+          "parent": "166:4584"
+        },
+        {
+          "id": "176:4396",
+          "text": "✓ 已保存，误录风险已删除",
+          "parent": "176:4395"
+        }
+      ]
+    },
+    {
+      "id": "167:4446",
+      "name": "W34 项目检查 · 待检查项目",
+      "texts": [
+        {
+          "id": "I167:4454;2:108",
+          "text": "状态简要",
+          "parent": "167:4454"
+        },
+        {
+          "id": "478:4721",
+          "text": "进行中 · EVT 集成验证 · 高优先级 · 绿色\n标签：智能家居、样机验证",
+          "parent": "167:4468"
+        },
+        {
+          "id": "478:4752",
+          "text": "参与人员：陈工、周工",
+          "parent": "167:4468"
+        },
+        {
+          "id": "167:4491",
+          "text": "最新状态说明",
+          "parent": "167:4490"
+        },
+        {
+          "id": "478:4770",
+          "text": "风险（1） · 预警中　展开 / 收起",
+          "parent": "478:4769"
+        },
+        {
+          "id": "478:4789",
+          "text": "进行中 · EVT 集成验证 · 高优先级 · 绿色\n标签：智能家居、样机验证",
+          "parent": "167:4500"
+        },
+        {
+          "id": "478:4820",
+          "text": "参与人员：陈工、周工",
+          "parent": "167:4500"
+        },
+        {
+          "id": "167:4523",
+          "text": "最新状态说明",
+          "parent": "167:4522"
+        },
+        {
+          "id": "478:4838",
+          "text": "风险（1） · 预警中　展开 / 收起",
+          "parent": "478:4837"
+        },
+        {
+          "id": "478:4857",
+          "text": "进行中 · EVT 集成验证 · 高优先级 · 绿色\n标签：智能家居、样机验证",
+          "parent": "167:4532"
+        },
+        {
+          "id": "478:4888",
+          "text": "参与人员：陈工、周工",
+          "parent": "167:4532"
+        },
+        {
+          "id": "167:4555",
+          "text": "最新状态说明",
+          "parent": "167:4554"
+        },
+        {
+          "id": "478:4906",
+          "text": "风险（1） · 预警中　展开 / 收起",
+          "parent": "478:4905"
+        }
+      ]
+    },
+    {
+      "id": "167:4563",
+      "name": "W35 项目检查 · 通过后继续",
+      "texts": [
+        {
+          "id": "I167:4571;2:108",
+          "text": "状态简要",
+          "parent": "167:4571"
+        },
+        {
+          "id": "167:4596",
+          "text": "项目状态 / 当前阶段",
+          "parent": "167:4595"
+        },
+        {
+          "id": "167:4612",
+          "text": "最新状态说明",
+          "parent": "167:4611"
+        },
+        {
+          "id": "167:4628",
+          "text": "项目状态 / 当前阶段",
+          "parent": "167:4627"
+        },
+        {
+          "id": "167:4644",
+          "text": "最新状态说明",
+          "parent": "167:4643"
+        }
+      ]
+    },
+    {
+      "id": "167:4652",
+      "name": "W36 从检查进入修正 · 返回继续检查",
+      "texts": [
+        {
+          "id": "I167:4659;2:108",
+          "text": "状态简要",
+          "parent": "167:4659"
+        },
+        {
+          "id": "I167:4676;2:108",
+          "text": "风险与变更",
+          "parent": "167:4676"
+        },
+        {
+          "id": "I231:4611;2:120",
+          "text": "项目状态",
+          "parent": "231:4611"
+        },
+        {
+          "id": "167:4719",
+          "text": "最新状态说明",
+          "parent": "167:4718"
+        },
+        {
+          "id": "I167:4720;2:108",
+          "text": "保存状态说明",
+          "parent": "167:4720"
+        }
+      ]
+    }
+  ],
+  "palette": [
+    {
+      "id": "VariableID:2:6",
+      "name": "bg",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:7"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:8"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:9"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:10"
+        }
+      }
+    },
+    {
+      "id": "VariableID:2:11",
+      "name": "bg-soft",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:12"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:13"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:14"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:15"
+        }
+      }
+    },
+    {
+      "id": "VariableID:2:16",
+      "name": "card",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:17"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:13"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:18"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:19"
+        }
+      }
+    },
+    {
+      "id": "VariableID:2:20",
+      "name": "card-hover",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:21"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:22"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:23"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:24"
+        }
+      }
+    },
+    {
+      "id": "VariableID:2:25",
+      "name": "border",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:26"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:27"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:28"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:29"
+        }
+      }
+    },
+    {
+      "id": "VariableID:2:30",
+      "name": "border-soft",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:31"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:32"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:33"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:34"
+        }
+      }
+    },
+    {
+      "id": "VariableID:2:35",
+      "name": "text",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:36"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:37"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:38"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:39"
+        }
+      }
+    },
+    {
+      "id": "VariableID:2:40",
+      "name": "text-dim",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:41"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:42"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:43"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:44"
+        }
+      }
+    },
+    {
+      "id": "VariableID:2:45",
+      "name": "text-faint",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:46"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:47"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:48"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:49"
+        }
+      }
+    },
+    {
+      "id": "VariableID:2:50",
+      "name": "accent",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:51"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:52"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:53"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:54"
+        }
+      }
+    },
+    {
+      "id": "VariableID:2:55",
+      "name": "accent-dim",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:56"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:56"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:57"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:58"
+        }
+      }
+    },
+    {
+      "id": "VariableID:2:59",
+      "name": "p-high",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:60"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:61"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:62"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:63"
+        }
+      }
+    },
+    {
+      "id": "VariableID:2:64",
+      "name": "p-mid",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:65"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:66"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:67"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:68"
+        }
+      }
+    },
+    {
+      "id": "VariableID:2:69",
+      "name": "p-low",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:70"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:71"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:72"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:73"
+        }
+      }
+    },
+    {
+      "id": "VariableID:2:74",
+      "name": "s-proposal",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:75"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:76"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:77"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:78"
+        }
+      }
+    },
+    {
+      "id": "VariableID:2:79",
+      "name": "s-active",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:51"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:52"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:53"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:54"
+        }
+      }
+    },
+    {
+      "id": "VariableID:2:80",
+      "name": "s-closed",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:81"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:82"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:83"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:84"
+        }
+      }
+    },
+    {
+      "id": "VariableID:2:85",
+      "name": "s-hold",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:41"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:47"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:48"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:86"
+        }
+      }
+    },
+    {
+      "id": "VariableID:2:87",
+      "name": "white",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:13"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:13"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:13"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:2:13"
+        }
+      }
+    },
+    {
+      "id": "VariableID:41:1536",
+      "name": "标签/accent/fill",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1537"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1538"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1539"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1540"
+        }
+      }
+    },
+    {
+      "id": "VariableID:41:1541",
+      "name": "标签/accent/border",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1542"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1543"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1544"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1545"
+        }
+      }
+    },
+    {
+      "id": "VariableID:41:1546",
+      "name": "标签/high/fill",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1547"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1548"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1549"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1550"
+        }
+      }
+    },
+    {
+      "id": "VariableID:41:1551",
+      "name": "标签/high/border",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1552"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1553"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1554"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1555"
+        }
+      }
+    },
+    {
+      "id": "VariableID:41:1556",
+      "name": "标签/mid/fill",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1557"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1558"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1559"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1560"
+        }
+      }
+    },
+    {
+      "id": "VariableID:41:1561",
+      "name": "标签/mid/border",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1562"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1563"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1564"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1565"
+        }
+      }
+    },
+    {
+      "id": "VariableID:41:1566",
+      "name": "标签/low/fill",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1567"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1568"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1569"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1570"
+        }
+      }
+    },
+    {
+      "id": "VariableID:41:1571",
+      "name": "标签/low/border",
+      "values": {
+        "2:1": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1572"
+        },
+        "2:2": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1573"
+        },
+        "2:3": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1574"
+        },
+        "2:4": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:41:1575"
+        }
+      }
+    }
+  ],
+  "card": [
+    {
+      "id": "144:3553",
+      "name": "智能门锁主控板 A1",
+      "type": "TEXT",
+      "width": 402.3251953125,
+      "height": 26
+    },
+    {
+      "id": "144:3554",
+      "name": "演示客户 / 智能家居 芯片：STM32H7、BLE 模组",
+      "type": "TEXT",
+      "width": 402.3251953125,
+      "height": 44
+    },
+    {
+      "id": "144:3555",
+      "name": "资料行",
+      "type": "FRAME",
+      "width": 402.3251953125,
+      "height": 46
+    },
+    {
+      "id": "196:4463",
+      "name": "阶段进度",
+      "type": "FRAME",
+      "width": 402.3251953125,
+      "height": 29
+    },
+    {
+      "id": "144:3563",
+      "name": "项目经理：张三 硬件：李四 软件：王五",
+      "type": "TEXT",
+      "width": 402.3251953125,
+      "height": 44
+    },
+    {
+      "id": "144:3564",
+      "name": "最新状态",
+      "type": "TEXT",
+      "width": 402.3251953125,
+      "height": 19
+    },
+    {
+      "id": "144:3565",
+      "name": "样机联调完成，等待客户确认功耗测试结果。",
+      "type": "TEXT",
+      "width": 402.3251953125,
+      "height": 22
+    },
+    {
+      "id": "144:3566",
+      "name": "检查与进入",
+      "type": "FRAME",
+      "width": 402.3251953125,
+      "height": 32
+    }
+  ],
+  "cardReaction": []
+}

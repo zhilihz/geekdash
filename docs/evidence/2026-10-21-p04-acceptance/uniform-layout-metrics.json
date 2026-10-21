@@ -1,0 +1,86 @@
+[
+  {
+    "page": "board",
+    "theme": "warm",
+    "font": "\"Noto Sans SC\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", \"PingFang SC\", sans-serif",
+    "width": 1440,
+    "scrollWidth": 1430
+  },
+  {
+    "page": "board",
+    "theme": "warm",
+    "font": "\"Noto Sans SC\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", \"PingFang SC\", sans-serif",
+    "width": 390,
+    "scrollWidth": 380
+  },
+  {
+    "page": "checks",
+    "theme": "warm",
+    "font": "\"Noto Sans SC\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", \"PingFang SC\", sans-serif",
+    "width": 1440,
+    "scrollWidth": 1430
+  },
+  {
+    "page": "checks",
+    "theme": "warm",
+    "font": "\"Noto Sans SC\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", \"PingFang SC\", sans-serif",
+    "width": 390,
+    "scrollWidth": 380
+  },
+  {
+    "page": "new",
+    "theme": "warm",
+    "font": "\"Noto Sans SC\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", \"PingFang SC\", sans-serif",
+    "width": 1440,
+    "scrollWidth": 1430
+  },
+  {
+    "page": "new",
+    "theme": "warm",
+    "font": "\"Noto Sans SC\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", \"PingFang SC\", sans-serif",
+    "width": 390,
+    "scrollWidth": 380
+  },
+  {
+    "page": "catalog",
+    "theme": "warm",
+    "font": "\"Noto Sans SC\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", \"PingFang SC\", sans-serif",
+    "width": 1440,
+    "scrollWidth": 1430
+  },
+  {
+    "page": "catalog",
+    "theme": "warm",
+    "font": "\"Noto Sans SC\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", \"PingFang SC\", sans-serif",
+    "width": 390,
+    "scrollWidth": 380
+  },
+  {
+    "page": "summary",
+    "theme": "warm",
+    "font": "\"Noto Sans SC\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", \"PingFang SC\", sans-serif",
+    "width": 1440,
+    "scrollWidth": 1430
+  },
+  {
+    "page": "summary",
+    "theme": "warm",
+    "font": "\"Noto Sans SC\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", \"PingFang SC\", sans-serif",
+    "width": 390,
+    "scrollWidth": 380
+  },
+  {
+    "page": "settings",
+    "theme": "warm",
+    "font": "\"Noto Sans SC\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", \"PingFang SC\", sans-serif",
+    "width": 1440,
+    "scrollWidth": 1440
+  },
+  {
+    "page": "settings",
+    "theme": "warm",
+    "font": "\"Noto Sans SC\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", \"PingFang SC\", sans-serif",
+    "width": 390,
+    "scrollWidth": 390
+  }
+]

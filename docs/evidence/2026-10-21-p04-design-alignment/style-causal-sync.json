@@ -1,0 +1,37 @@
+{
+  "fileKey": "leQy2Be9GaTXPvZeooQuIF",
+  "buttonComponents": [
+    {
+      "id": "2:105",
+      "height": 40,
+      "width": 69
+    },
+    {
+      "id": "2:107",
+      "height": 36,
+      "width": 82
+    },
+    {
+      "id": "2:109",
+      "height": 36,
+      "width": 82
+    }
+  ],
+  "buttonFontSize": 13,
+  "buttonLineHeight": 20,
+  "buttonRadius": 6,
+  "changedCausalNodes": [
+    "330:4856",
+    "337:4860",
+    "330:4898",
+    "400:4860",
+    "400:5019",
+    "400:5178"
+  ],
+  "causalPreviewVerified": true,
+  "previewVariablesRestored": [
+    "VariableID:330:4831",
+    "VariableID:400:4800"
+  ],
+  "scope": "现有组件与既有节点影响提示原位更新，无新建页面；实际产品验证另见验收报告"
+}

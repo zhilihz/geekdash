@@ -74,8 +74,6 @@
 html, body {
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-               "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
   font-size: 14px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -91,16 +89,6 @@ html, body {
 .project-nav a { color:var(--text-dim); text-decoration:none; font-size:13px; }
 .project-nav a:hover { color:var(--text); }
 .project-nav .project-brand { color:var(--text); font-size:20px; font-weight:700; }
-.back-btn, .project-detail-page .head-btn {
-  background: transparent;
-  color: var(--text-dim);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 14px;
-  font-size: 13px;
-  cursor: pointer;
-}
-.back-btn:hover, .project-detail-page .head-btn:hover { color: var(--text); background: var(--card-hover); }
 .project-detail-page .head-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-left: auto; }
 .topbar .crumb { color: var(--text-faint); font-size: 13px; }
 
@@ -125,7 +113,7 @@ html, body {
   white-space: nowrap;
 }
 .theme-switch button:hover { color: var(--text); }
-.theme-switch button.active { background: #8250df; color: #fff; font-weight: 600; }
+.theme-switch button.active { background: var(--accent-dim); color: #fff; font-weight: 600; }
 
 /* ==========================================================================
    顶部固定区（滚动时保持不动）+ 日期专区
@@ -341,28 +329,7 @@ html, body {
   resize: vertical;
 }
 .choice-note:focus { border-color: var(--accent); }
-.choice-actions { display: flex; gap: 8px; margin-top: 8px; }
-.choice-actions .choice-confirm {
-  background: var(--accent-dim);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 6px 18px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.choice-actions .choice-confirm:hover { background: var(--accent); }
-.choice-actions .choice-cancel {
-  background: transparent;
-  color: var(--text-dim);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px 14px;
-  font-size: 13px;
-  cursor: pointer;
-}
-.choice-actions .choice-cancel:hover { color: var(--text); background: var(--card-hover); }
+.choice-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
 .stage-done-tag { margin-top: 8px; font-size: 12.5px; color: #3fb950; font-weight: 600; }
 .stage-note-view { margin-top: 4px; font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
 .stage-locked { margin-top: 8px; font-size: 12.5px; color: var(--text-faint); }
@@ -422,7 +389,7 @@ html, body {
 .action-dialog h2, .action-dialog h3:first-child { font-size: 22px; margin-bottom: 12px; }
 .action-dialog .stage-card, .action-dialog .risk-item, .action-dialog .node-form, .action-dialog .chg-form { border: 0; background: transparent; padding: 0; margin: 0; }
 .action-dialog label { display: block; color: var(--text-dim); font-size: 13px; margin: 12px 0 6px; }
-.action-dialog input:not([type="checkbox"]), .action-dialog select, .action-dialog textarea { width: 100%; background: var(--bg-soft); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px; font: inherit; }
+.action-dialog input:not([type="checkbox"]):not([type="radio"]), .action-dialog select, .action-dialog textarea { width: 100%; background: var(--bg-soft); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; font: inherit; }
 .action-dialog textarea { min-height: 76px; resize: vertical; }
 .action-dialog [id$="-preview"] { white-space: pre-wrap; margin: 16px 0; }
 .action-dialog #action-message:empty, .action-dialog #action-recovery[hidden], .action-dialog #action-reload[hidden] { display: none; }
@@ -611,14 +578,15 @@ html, body {
 .risk-resolve-btn {
   margin-top: 8px;
   background: transparent;
-  color: #f85149;
-  border: 1px solid #f85149;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 4px 14px;
-  font-size: 12.5px;
+  padding: 5px 12px;
+  font-size: 13px;
   cursor: pointer;
 }
-.risk-resolve-btn:hover { background: rgba(248, 81, 73, 0.12); }
+.risk-resolve-btn:hover { background: var(--card-hover); color: var(--text); }
+.risk-resolve-btn[data-risk="delete"] { color: var(--p-high); border-color: var(--p-high); }
 .risk-add-btn {
   background: transparent;
   color: var(--accent);
@@ -668,8 +636,8 @@ html, body {
 .risk-actions .risk-cancel:hover, .risk-actions .risk-resolve-cancel:hover { color: var(--text); background: var(--card-hover); }
 
 /* 风险等级 */
-.risk-form-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
-.risk-row-label { font-size: 12.5px; color: var(--text-dim); flex: 0 0 auto; }
+.risk-form-row { display: grid; gap: 8px; margin-top: 20px; }
+.risk-row-label { font-size: 13px; color: var(--text-dim); }
 .risk-level-select { display: inline-flex; gap: 6px; }
 .rlv-btn {
   background: transparent;
@@ -801,15 +769,17 @@ html, body {
 .chg-time { margin-left: auto; font-size: 12px; color: var(--text-faint); white-space: nowrap; }
 .chg-content { margin-top: 6px; font-size: 13.5px; color: var(--text); }
 .chg-reason { margin-top: 4px; font-size: 12.5px; color: var(--text-dim); }
-.chg-form { margin-top: 10px; }
-.chg-form-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-.chg-row-label { font-size: 12.5px; color: var(--text-dim); flex: 0 0 auto; }
+.chg-form { margin-top: 20px; }
+.chg-form-row { display: grid; gap: 8px; margin-bottom: 20px; }
+.chg-row-label { font-size: 13px; color: var(--text-dim); }
+.chg-form-row > div { display: flex; flex-wrap: wrap; gap: 24px; }
 .chg-form select {
+  width: min(100%, 280px);
   background: var(--bg);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 5px 10px;
+  padding: 10px 12px;
   font-size: 13px;
   outline: none;
 }
@@ -930,27 +900,6 @@ html, body {
   padding: 16px 24px;
   border-top: 1px solid var(--border);
 }
-.save-btn {
-  background: var(--accent-dim);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 9px 22px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.save-btn:hover { background: var(--accent); }
-.del-btn {
-  background: transparent;
-  color: #f85149;
-  border: 1px solid rgba(248,81,73,0.45);
-  border-radius: 6px;
-  padding: 9px 18px;
-  font-size: 14px;
-  cursor: pointer;
-}
-.del-btn:hover { background: rgba(248,81,73,0.12); border-color: #f85149; }
 .save-hint { color: var(--text-faint); font-size: 12px; margin-left: auto; }
 
 .pri-tag, .st-tag {
@@ -1050,21 +999,17 @@ html, body {
 .nodes-wrap { display: flex; flex-direction: column; gap: 12px; }
 .nodes-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .nodes-hint { font-size: 12.5px; color: var(--text-dim); }
-.node-add-btn {
-  background: var(--accent-dim); color: #fff; border: none; border-radius: 8px;
-  padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
-}
-.node-add-btn:hover { background: var(--accent); }
 .node-form {
   border: 1px solid var(--border); border-left: 3px solid var(--accent);
   border-radius: 10px; padding: 14px 16px; background: var(--bg-soft);
 }
-.node-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.node-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 24px; }
+.node-form-grid > .field:first-child, .node-form-grid > .field:has(textarea) { grid-column: 1 / -1; }
 .node-form-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
-.node-form-grid .field label { font-size: 12px; color: var(--text-dim); display: block; margin-bottom: 4px; }
-.node-form-grid input, .node-form-grid select, .node-form textarea {
+.node-form-grid .field label { font-size: 13px; color: var(--text-dim); display: block; margin-bottom: 8px; }
+.node-form-grid input:not([type="checkbox"]):not([type="radio"]), .node-form-grid select, .node-form textarea {
   width: 100%; background: var(--bg); color: var(--text);
-  border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; font-size: 13px; outline: none;
+  border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; font-size: 14px; outline: none;
 }
 .node-form-grid input:focus, .node-form-grid select:focus, .node-form textarea:focus { border-color: var(--accent); }
 .node-form textarea { min-height: 60px; resize: vertical; line-height: 1.5; }
@@ -1145,6 +1090,7 @@ html, body {
 
   .detail-body { padding: 16px; }
   .field-grid { grid-template-columns: 1fr; gap: 14px; }
+  .node-form-grid { grid-template-columns: 1fr; }
 
   .detail-foot { flex-wrap: wrap; padding: 14px 16px; }
   .detail-foot .save-hint { margin-left: 0; width: 100%; }

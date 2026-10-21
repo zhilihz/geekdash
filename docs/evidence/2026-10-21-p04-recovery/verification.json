@@ -1,0 +1,80 @@
+{
+  "database": "isolated geekdash_test, schema 0005",
+  "serverUuid": "017e6895-c927-11f1-9c73-46ad6b6ac97c",
+  "testMode": "real TypeScript + HTTP + MySQL; controlled DOM storage/transport faults",
+  "sourceState": "working-tree",
+  "realBrowserLayout": false,
+  "osProcessKillTested": false,
+  "typecheck": "passed",
+  "workspace": "codex/p04-flow-convergence",
+  "sourceHashes": [
+    {
+      "file": "src/web/shared/personal-state.ts",
+      "sha256": "51659070e83e580d6664447ee119acdad0e8a34752c813b05180daa1efd8457b"
+    },
+    {
+      "file": "src/web/shared/api.ts",
+      "sha256": "35c55b9c45dcca08ec1420e5e40a52a70312b1ae8b89334a48be33fe88b1b01b"
+    },
+    {
+      "file": "src/web/detail.ts",
+      "sha256": "625f5c8d6a04f41e8d6dd388985bbd8f190fe0418aab12d408d49aa92ade284a"
+    },
+    {
+      "file": "src/web/project-new.ts",
+      "sha256": "425184946c1748560250e89adc4f5fe3f98bad9232427693476f3c3ed1047b30"
+    },
+    {
+      "file": "scripts/verify-scoped-ui.mjs",
+      "sha256": "516960ca5b8ba1a17a8aa7ad74408fbdbd6e9bfdaec767ceece84b148b159395"
+    }
+  ],
+  "baseline": "8ca31d4",
+  "checkedAt": "2026-10-21T03:05:25.4115311Z",
+  "nodeFieldVerification": "3 groups, 30 real HTTP requests; passed",
+  "additionalChecks": {
+    "checkedAt": "2026-10-21T03:17:14.7812407Z",
+    "notificationLayout": "single queue CSS applied; native visual validation owned by root",
+    "sourceHashes": [
+      {
+        "file": "scripts/verify-scoped-ui.mjs",
+        "sha256": "12645c07c692f6a6d02aa2d8de3170cb575a5e224e1f4dcd3c01b999ea5eb9f7"
+      },
+      {
+        "file": "scripts/verify-project-checks-ui.mjs",
+        "sha256": "093faea743786fbb65d209e5439a0a2df927549d5b5db9aeff79121ef000b260"
+      }
+    ],
+    "checkList": "3 groups, 25 real HTTP requests; passed",
+    "catalog": "2 groups, 23 real HTTP requests; passed"
+  },
+  "nodeFollowups": {
+    "sourceHash": "479f52d61be37820ae95043ee403d1ea167c8fb31e3c6318ece1970554df2220",
+    "result": "3 groups, 56 real HTTP requests; passed",
+    "diffReview": "storage fallback, draft-only 413 mapping, node field feedback: no concrete new regression found",
+    "mode": "--node-followups",
+    "checkedAt": "2026-10-21T03:24:33.8556741Z",
+    "productChanges": "none in this follow-up"
+  },
+  "impactChain": {
+    "checkedAt": "2026-10-21T03:46:08.0182902Z",
+    "mode": "--impact-chain",
+    "result": "3 groups, 57 real HTTP requests; passed",
+    "typecheck": "passed",
+    "draftButton": "detail .topbar DOM placement passed; native layout owned by root",
+    "sourceHashes": [
+      {
+        "file": "src/web/detail.ts",
+        "sha256": "09234cfd96ce27fe9e75d2d7425b3520149770d8c0eeb98051632f6fba85ec64"
+      },
+      {
+        "file": "src/web/shared/personal-state.ts",
+        "sha256": "0383d1d380976c12d4494dabc86c575b8e96a356460abbbc497c4eb66d776f7e"
+      },
+      {
+        "file": "scripts/verify-scoped-ui.mjs",
+        "sha256": "71feb1b00460f5ed75c9223b7799616dc1e4bd774caf53b571d6fa99cf120038"
+      }
+    ]
+  }
+}

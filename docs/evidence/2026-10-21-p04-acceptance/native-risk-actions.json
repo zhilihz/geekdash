@@ -1,0 +1,88 @@
+[
+  {
+    "step": "create",
+    "version": "15",
+    "risk": {
+      "id": "113",
+      "content": "原生风险验收20261021：芯片接口尚待复核",
+      "level": "mid",
+      "resolved": 0,
+      "resolution": "",
+      "deletedAt": null,
+      "resolvedAt": null,
+      "actorId": "28",
+      "createdAt": "2026-10-21T03:47:14.284000Z",
+      "sourceKey": null,
+      "sortOrder": 0,
+      "createdByName": "p04_ui_0",
+      "resolvedByName": null
+    }
+  },
+  {
+    "step": "resolve",
+    "version": "16",
+    "risk": {
+      "id": "113",
+      "content": "原生风险验收20261021：芯片接口尚待复核",
+      "level": "mid",
+      "resolved": 1,
+      "resolution": "复核后确认接口可正常工作",
+      "deletedAt": null,
+      "resolvedAt": "2026-10-21T03:47:14.531000Z",
+      "actorId": "28",
+      "createdAt": "2026-10-21T03:47:14.284000Z",
+      "sourceKey": null,
+      "sortOrder": 0,
+      "createdByName": "p04_ui_0",
+      "resolvedByName": "p04_ui_0"
+    }
+  },
+  {
+    "step": "undo-cancel",
+    "version": "16",
+    "resolved": 1
+  },
+  {
+    "step": "undo-save",
+    "version": "17",
+    "risk": {
+      "id": "113",
+      "content": "原生风险验收20261021：芯片接口尚待复核",
+      "level": "mid",
+      "resolved": 0,
+      "resolution": "",
+      "deletedAt": null,
+      "resolvedAt": null,
+      "actorId": "28",
+      "createdAt": "2026-10-21T03:47:14.284000Z",
+      "sourceKey": null,
+      "sortOrder": 0,
+      "createdByName": "p04_ui_0",
+      "resolvedByName": null
+    }
+  },
+  {
+    "step": "delete-cancel",
+    "version": "17",
+    "risk": {
+      "id": "113",
+      "content": "原生风险验收20261021：芯片接口尚待复核",
+      "level": "mid",
+      "resolved": 0,
+      "resolution": "",
+      "deletedAt": null,
+      "resolvedAt": null,
+      "actorId": "28",
+      "createdAt": "2026-10-21T03:47:14.284000Z",
+      "sourceKey": null,
+      "sortOrder": 0,
+      "createdByName": "p04_ui_0",
+      "resolvedByName": null
+    }
+  },
+  {
+    "step": "delete-save",
+    "version": "18",
+    "riskPresent": false
+  }
+]

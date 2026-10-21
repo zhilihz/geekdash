@@ -1,0 +1,786 @@
+{
+  "mutatedNodeIds": [
+    "512:5104",
+    "I512:5104;2:118",
+    "512:5128",
+    "I512:5128;2:118",
+    "512:5152",
+    "I512:5152;2:118",
+    "512:5178",
+    "I512:5178;2:118",
+    "512:5202",
+    "I512:5202;2:118",
+    "512:5211",
+    "I512:5211;2:118",
+    "512:5220",
+    "I512:5220;2:118",
+    "512:5229",
+    "I512:5229;2:118",
+    "512:5238",
+    "I512:5238;2:118",
+    "512:5247",
+    "I512:5247;2:118",
+    "512:5256",
+    "I512:5256;2:118",
+    "512:5278",
+    "I512:5278;2:118",
+    "512:5302",
+    "I512:5302;2:118",
+    "512:5311",
+    "I512:5311;2:118",
+    "512:5335",
+    "I512:5335;2:118",
+    "512:5344",
+    "I512:5344;2:118",
+    "512:5353",
+    "I512:5353;2:118"
+  ],
+  "frames": [
+    {
+      "id": "144:3499",
+      "key": "W01",
+      "name": "W01 项目看板 · 卡片",
+      "applicable": true,
+      "width": 1440,
+      "height": 2030,
+      "visibleTextCount": 124,
+      "descendantCount": 439,
+      "typeCounts": {
+        "FRAME": 142,
+        "TEXT": 169,
+        "INSTANCE": 109,
+        "RECTANGLE": 19
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "144:3668",
+      "key": "W03",
+      "name": "W03 基本信息 · 默认可编辑",
+      "applicable": true,
+      "width": 1440,
+      "height": 1736,
+      "visibleTextCount": 89,
+      "descendantCount": 243,
+      "typeCounts": {
+        "FRAME": 59,
+        "TEXT": 103,
+        "INSTANCE": 81
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "144:3783",
+      "key": "W04",
+      "name": "W04 基本信息 · 修改未保存",
+      "applicable": true,
+      "width": 1440,
+      "height": 1736,
+      "visibleTextCount": 89,
+      "descendantCount": 410,
+      "typeCounts": {
+        "FRAME": 118,
+        "TEXT": 198,
+        "INSTANCE": 94
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "144:3919",
+      "key": "W05",
+      "name": "W05 项目分工 · 本人加入负责",
+      "applicable": true,
+      "width": 1440,
+      "height": 1388,
+      "visibleTextCount": 65,
+      "descendantCount": 146,
+      "typeCounts": {
+        "FRAME": 49,
+        "TEXT": 70,
+        "INSTANCE": 27
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "146:3642",
+      "key": "W02",
+      "name": "W02 项目看板 · 驾驶舱",
+      "applicable": true,
+      "width": 1440,
+      "height": 1433,
+      "visibleTextCount": 70,
+      "descendantCount": 274,
+      "typeCounts": {
+        "FRAME": 110,
+        "TEXT": 83,
+        "INSTANCE": 80,
+        "RECTANGLE": 1
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "146:3771",
+      "key": "W06",
+      "name": "W06 最新状态说明 · 持续可编辑",
+      "applicable": true,
+      "width": 1440,
+      "height": 1736,
+      "visibleTextCount": 89,
+      "descendantCount": 208,
+      "typeCounts": {
+        "FRAME": 51,
+        "TEXT": 91,
+        "INSTANCE": 66
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "146:3860",
+      "key": "W07",
+      "name": "W07 项目阶段 · 七阶段卡片",
+      "applicable": true,
+      "width": 1440,
+      "height": 1872,
+      "visibleTextCount": 107,
+      "descendantCount": 245,
+      "typeCounts": {
+        "FRAME": 66,
+        "TEXT": 111,
+        "INSTANCE": 61,
+        "RECTANGLE": 7
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "146:4011",
+      "key": "W08",
+      "name": "W08 项目节点 · 原位维护",
+      "applicable": true,
+      "width": 1440,
+      "height": 1235,
+      "visibleTextCount": 52,
+      "descendantCount": 207,
+      "typeCounts": {
+        "FRAME": 55,
+        "TEXT": 93,
+        "INSTANCE": 59
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "146:4119",
+      "key": "W09",
+      "name": "W09 项目 Flow · 阶段泳道",
+      "applicable": true,
+      "width": 1440,
+      "height": 921,
+      "visibleTextCount": 68,
+      "descendantCount": 234,
+      "typeCounts": {
+        "FRAME": 67,
+        "TEXT": 109,
+        "INSTANCE": 51,
+        "VECTOR": 7
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "149:3793",
+      "key": "W10",
+      "name": "W10 客户节点 · 交付与确认",
+      "applicable": true,
+      "width": 1440,
+      "height": 980,
+      "visibleTextCount": 43,
+      "descendantCount": 233,
+      "typeCounts": {
+        "FRAME": 73,
+        "TEXT": 63,
+        "INSTANCE": 97
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "149:3906",
+      "key": "W11",
+      "name": "W11 风险与需求变更 · 查看",
+      "applicable": true,
+      "width": 1440,
+      "height": 1285,
+      "visibleTextCount": 57,
+      "descendantCount": 156,
+      "typeCounts": {
+        "FRAME": 41,
+        "TEXT": 76,
+        "INSTANCE": 39
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "149:3986",
+      "key": "W12",
+      "name": "W12 风险与需求变更 · 原位编辑",
+      "applicable": true,
+      "width": 1440,
+      "height": 1366,
+      "visibleTextCount": 57,
+      "descendantCount": 439,
+      "typeCounts": {
+        "FRAME": 146,
+        "TEXT": 151,
+        "INSTANCE": 142
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "149:4081",
+      "key": "W13",
+      "name": "W13 更新历史 · 只看实际变化",
+      "applicable": true,
+      "width": 1440,
+      "height": 992,
+      "visibleTextCount": 30,
+      "descendantCount": 517,
+      "typeCounts": {
+        "FRAME": 207,
+        "TEXT": 260,
+        "INSTANCE": 50
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "149:4200",
+      "key": "W14",
+      "name": "W14 新建项目 · 同一套资料结构",
+      "applicable": true,
+      "width": 1440,
+      "height": 1503,
+      "visibleTextCount": 70,
+      "descendantCount": 253,
+      "typeCounts": {
+        "FRAME": 81,
+        "TEXT": 123,
+        "INSTANCE": 47,
+        "RECTANGLE": 2
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "151:3978",
+      "key": "W15",
+      "name": "W15 项目状态简要 · 统一导出清单",
+      "applicable": true,
+      "width": 1440,
+      "height": 1381,
+      "visibleTextCount": 169,
+      "descendantCount": 969,
+      "typeCounts": {
+        "FRAME": 342,
+        "INSTANCE": 189,
+        "TEXT": 438
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "151:4079",
+      "key": "W16",
+      "name": "W16 历史入口 · 已合并项目状态简要",
+      "applicable": false,
+      "width": 1440,
+      "height": 800,
+      "visibleTextCount": 3,
+      "descendantCount": 5,
+      "typeCounts": {
+        "FRAME": 1,
+        "TEXT": 3,
+        "INSTANCE": 1
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "151:4158",
+      "key": "W17",
+      "name": "W17 基础资料 · 分类管理",
+      "applicable": true,
+      "width": 1440,
+      "height": 731,
+      "visibleTextCount": 33,
+      "descendantCount": 100,
+      "typeCounts": {
+        "FRAME": 26,
+        "TEXT": 41,
+        "INSTANCE": 33
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "151:4261",
+      "key": "W18",
+      "name": "W18 旧设置入口 · 检查截止已取消",
+      "applicable": true,
+      "width": 1440,
+      "height": 365,
+      "visibleTextCount": 10,
+      "descendantCount": 89,
+      "typeCounts": {
+        "FRAME": 23,
+        "TEXT": 20,
+        "INSTANCE": 46
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "151:4339",
+      "key": "W19",
+      "name": "W19 导入批次 · 集中处理",
+      "applicable": false,
+      "width": 1440,
+      "height": 454,
+      "visibleTextCount": 29,
+      "descendantCount": 66,
+      "typeCounts": {
+        "FRAME": 27,
+        "TEXT": 29,
+        "INSTANCE": 10
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "153:4088",
+      "key": "W20",
+      "name": "W20 导入批次 · 卡片审查",
+      "applicable": false,
+      "width": 1440,
+      "height": 919,
+      "visibleTextCount": 36,
+      "descendantCount": 82,
+      "typeCounts": {
+        "FRAME": 32,
+        "TEXT": 36,
+        "INSTANCE": 14
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "153:4175",
+      "key": "W21",
+      "name": "W21 备份与恢复 · 运行维护",
+      "applicable": false,
+      "width": 1440,
+      "height": 679,
+      "visibleTextCount": 26,
+      "descendantCount": 61,
+      "typeCounts": {
+        "FRAME": 25,
+        "TEXT": 26,
+        "INSTANCE": 10
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "153:4241",
+      "key": "W22",
+      "name": "W22 登录 · 回到工作",
+      "applicable": true,
+      "width": 1440,
+      "height": 900,
+      "visibleTextCount": 8,
+      "descendantCount": 20,
+      "typeCounts": {
+        "FRAME": 8,
+        "TEXT": 8,
+        "INSTANCE": 4
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "153:4265",
+      "key": "W23",
+      "name": "W23 首次登录 · 修改临时密码",
+      "applicable": true,
+      "width": 1440,
+      "height": 900,
+      "visibleTextCount": 8,
+      "descendantCount": 19,
+      "typeCounts": {
+        "FRAME": 8,
+        "TEXT": 8,
+        "INSTANCE": 3
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "153:4287",
+      "key": "W24",
+      "name": "W24 我的账号 · 本人信息",
+      "applicable": true,
+      "width": 1440,
+      "height": 814,
+      "visibleTextCount": 20,
+      "descendantCount": 48,
+      "typeCounts": {
+        "FRAME": 18,
+        "TEXT": 20,
+        "INSTANCE": 10
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "153:4340",
+      "key": "W25",
+      "name": "W25 账号与邀请码 · 维护后台",
+      "applicable": false,
+      "width": 1440,
+      "height": 903,
+      "visibleTextCount": 38,
+      "descendantCount": 88,
+      "typeCounts": {
+        "FRAME": 41,
+        "TEXT": 38,
+        "INSTANCE": 9
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "155:4158",
+      "key": "W26",
+      "name": "W26 保存反馈 · 保留当前信息",
+      "applicable": true,
+      "width": 1440,
+      "height": 1736,
+      "visibleTextCount": 89,
+      "descendantCount": 243,
+      "typeCounts": {
+        "FRAME": 59,
+        "TEXT": 103,
+        "INSTANCE": 81
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "155:4259",
+      "key": "W27",
+      "name": "W27 单个项目检查 · 只读卡片",
+      "applicable": true,
+      "width": 1440,
+      "height": 623,
+      "visibleTextCount": 26,
+      "descendantCount": 50,
+      "typeCounts": {
+        "FRAME": 16,
+        "TEXT": 26,
+        "INSTANCE": 8
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "155:4336",
+      "key": "W28",
+      "name": "W28 阶段操作 · 卡片内完成",
+      "applicable": true,
+      "width": 1440,
+      "height": 857,
+      "visibleTextCount": 34,
+      "descendantCount": 85,
+      "typeCounts": {
+        "FRAME": 23,
+        "TEXT": 36,
+        "INSTANCE": 26
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "155:4407",
+      "key": "W29",
+      "name": "W29 版本冲突 · 保留当前输入",
+      "applicable": true,
+      "width": 1440,
+      "height": 1646,
+      "visibleTextCount": 90,
+      "descendantCount": 345,
+      "typeCounts": {
+        "FRAME": 101,
+        "TEXT": 180,
+        "INSTANCE": 64
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "155:4470",
+      "key": "W30",
+      "name": "W30 邀请码注册 · 正式密码",
+      "applicable": false,
+      "width": 1440,
+      "height": 900,
+      "visibleTextCount": 14,
+      "descendantCount": 35,
+      "typeCounts": {
+        "FRAME": 14,
+        "TEXT": 14,
+        "INSTANCE": 7
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "155:4508",
+      "key": "W31",
+      "name": "W31 筛选无结果 · 保留条件",
+      "applicable": true,
+      "width": 1440,
+      "height": 570,
+      "visibleTextCount": 22,
+      "descendantCount": 157,
+      "typeCounts": {
+        "FRAME": 43,
+        "TEXT": 35,
+        "INSTANCE": 78,
+        "RECTANGLE": 1
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "156:4279",
+      "key": "W00",
+      "name": "W00 全站结构图 · 从这里开始",
+      "applicable": false,
+      "width": 1440,
+      "height": 1760,
+      "visibleTextCount": 47,
+      "descendantCount": 110,
+      "typeCounts": {
+        "TEXT": 47,
+        "FRAME": 27,
+        "INSTANCE": 36
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "166:4421",
+      "key": "W32",
+      "name": "W32 风险删除 · 待保存",
+      "applicable": true,
+      "width": 1440,
+      "height": 1202,
+      "visibleTextCount": 49,
+      "descendantCount": 114,
+      "typeCounts": {
+        "FRAME": 32,
+        "TEXT": 51,
+        "INSTANCE": 31
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "166:4516",
+      "key": "W33",
+      "name": "W33 风险删除 · 已保存",
+      "applicable": true,
+      "width": 1440,
+      "height": 1090,
+      "visibleTextCount": 49,
+      "descendantCount": 112,
+      "typeCounts": {
+        "FRAME": 30,
+        "TEXT": 51,
+        "INSTANCE": 31
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "167:4446",
+      "key": "W34",
+      "name": "W34 项目检查 · 待检查项目",
+      "applicable": true,
+      "width": 1440,
+      "height": 2793,
+      "visibleTextCount": 143,
+      "descendantCount": 280,
+      "typeCounts": {
+        "FRAME": 101,
+        "TEXT": 166,
+        "INSTANCE": 13
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "167:4563",
+      "key": "W35",
+      "name": "W35 项目检查 · 通过后继续",
+      "applicable": true,
+      "width": 1440,
+      "height": 967,
+      "visibleTextCount": 46,
+      "descendantCount": 86,
+      "typeCounts": {
+        "FRAME": 29,
+        "TEXT": 46,
+        "INSTANCE": 11
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    },
+    {
+      "id": "167:4652",
+      "key": "W36",
+      "name": "W36 从检查进入修正 · 返回继续检查",
+      "applicable": true,
+      "width": 1440,
+      "height": 1736,
+      "visibleTextCount": 89,
+      "descendantCount": 208,
+      "typeCounts": {
+        "FRAME": 51,
+        "TEXT": 91,
+        "INSTANCE": 66
+      },
+      "fonts": [
+        "Noto Sans SC"
+      ],
+      "images": [],
+      "visibleRetiredTerms": []
+    }
+  ]
+}

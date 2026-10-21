@@ -15,6 +15,11 @@ const { JSDOM, CookieJar, VirtualConsole } = await import(process.env.GEEKDASH_D
 const users = [], projects = [], references = [], views = [], errors = [], checks = [];
 const actionsMode = process.argv.includes('--actions'); let ownConfig = false;
 const referencesMode = process.argv.includes('--references');
+const recoveryMode = process.argv.includes('--recovery');
+const nodeErrorsMode = process.argv.includes('--node-errors');
+const catalogStatesMode = process.argv.includes('--catalog-states');
+const nodeFollowupsMode = process.argv.includes('--node-followups');
+const impactChainMode = process.argv.includes('--impact-chain');
 const prefix = 'detail_ui_' + randomUUID().slice(0, 8), password = '页面整链测试 长短语 password 2026';
 const authOrigin = 'http://localhost';
 const html = await readFile(process.env.GEEKDASH_DETAIL_HTML ?? 'src/web/project-detail.html', 'utf8');
@@ -55,12 +60,13 @@ async function page(user, projectId, holdCatalog = false, options={}) {
   const virtualConsole = new VirtualConsole(), navigationAttempts=[]; virtualConsole.on('jsdomError', error => { if(options.create && /navigation/i.test(error.message))navigationAttempts.push(error.message);else reject(error); });
   const dom = new JSDOM(options.create?await readFile('src/web/project-new.html','utf8'):options.board?await readFile('src/web/index.html','utf8'):html, { url: origin + (options.create?'/project-new.html':options.board?'/'+(options.query ?? ''):'/project-detail.html?id=' + projectId+(options.returnTo?'&returnTo='+encodeURIComponent(options.returnTo):'')), cookieJar: user.jar, runScripts: 'outside-only', virtualConsole });
   views.push(dom); const w = dom.window;
-  dom.projectReads = [];dom.draftWrites=[];dom.preferenceWrites=[];dom.createWrites=[];dom.actionWrites=[];dom.navigationAttempts=navigationAttempts;
+  dom.projectReads = [];dom.draftWrites=[];dom.preferenceWrites=[];dom.createWrites=[];dom.actionWrites=[];dom.saveWrites=[];dom.previews=[];dom.navigationAttempts=navigationAttempts;dom.requestsRunning=0;
   Object.assign(w, { TextEncoder, TextDecoder, structuredClone, AbortSignal, AbortController, __GEEKDASH_STAGES__: stages });
   dom.confirmPrompts=[];w.performance.getEntriesByType=()=>[];w.confirm=text=>{dom.confirmPrompts.push(text);return true;};
   w.scrollTo=()=>{};
   for(const [key,value] of Object.entries(options.local ?? {}))w.localStorage.setItem(key,value);
   for(const [key,value] of Object.entries(options.session ?? {}))w.sessionStorage.setItem(key,value);
+  for(const name of options.blockStorage ?? [])Object.defineProperty(w,name,{get(){throw new w.DOMException('Storage disabled','SecurityError');}});
   w.BroadcastChannel = class { postMessage() {} };
   dom.streams=[];dom.events=[];
   if(options.realtime)w.EventSource=class extends w.EventTarget{
@@ -77,10 +83,17 @@ async function page(user, projectId, holdCatalog = false, options={}) {
   w.HTMLDialogElement.prototype.showModal = function() { this.open = true; this.returnValue = ''; };
   w.HTMLDialogElement.prototype.close = function(value = '') { this.returnValue = value; this.open = false; this.dispatchEvent(new w.Event('close')); };
   w.fetch = async (path, options) => {
+    dom.requestsRunning++;try{
+    if(path==='/api/project-options' && dom.catalogFailure){dom.catalogFailure=false;dom.catalogConsumed=true;throw new Error('模拟候选首次读取失败');}
+    if(dom.rejectResultQueries && path.endsWith('/save-results/query'))throw new Error('模拟原结果持续暂不可查询');
     if(dom.rejectDrafts && path==='/api/personal/drafts/save')throw new Error('模拟草稿离线');
     if(dom.rejectDraftRead && path.startsWith('/api/personal/drafts?'))throw new Error('模拟草稿读取离线');
     if(dom.failDetailRead && path==='/api/projects/'+projectId && !options?.method){dom.failDetailRead=false;return new Response(JSON.stringify({code:'DATABASE_UNAVAILABLE',outcome:'not_committed'}),{status:503,headers:{'Content-Type':'application/json'}});}
+    if(dom.corruptNodeOutput && options?.method==='PATCH'){dom.corruptNodeOutput=false;const body=JSON.parse(options.body);body.changes.nodeOps.find(op=>op.op==='add').fields.output='';options={...options,body:JSON.stringify(body)};}
+    if(options?.method==='PATCH')dom.saveWrites.push(JSON.parse(options.body));
     const response = await user.fetch(path, options);
+    if((path.endsWith('/save-preview') || path.endsWith('/actions/preview')) && response.ok)dom.previews.push({path,command:JSON.parse(options.body),result:await response.clone().json()});
+    if(path==='/api/project-options' && dom.emptyCatalog){const json=response.json.bind(response);response.json=async()=>Object.fromEntries(Object.entries(await json()).map(([key,value])=>[key,Array.isArray(value)?[]:value]));}
     if(path==='/api/projects' && options?.method==='POST'){
       const data=await response.clone().json();dom.createWrites.push({status:response.status,data});
       if(response.ok && data.result?.projectId && !projects.includes(data.result.projectId))projects.push(data.result.projectId);
@@ -94,6 +107,7 @@ async function page(user, projectId, holdCatalog = false, options={}) {
       const json = response.json.bind(response);
       response.json = async () => { const data = await json(); setTimeout(() => { dom.catalogConsumed = true; }, 0); return data; };
     }
+    if (!holdCatalog && path === '/api/project-options') {const json=response.json.bind(response);response.json=async()=>{const data=await json();setTimeout(()=>{dom.catalogConsumed=true;},0);return data;};}
     if (dom.holdSave && options?.method === 'PATCH') { dom.holdSave = false; await new Promise(resolve => { dom.releaseSave = resolve; }); }
     if (dom.dropSaveAck && options?.method === 'PATCH') { dom.dropSaveAck = false; await response.arrayBuffer(); throw new Error('模拟真实COMMIT后的确认丢失'); }
     if (path === '/api/projects/' + projectId + '/actions' && options?.method === 'POST') {
@@ -102,8 +116,10 @@ async function page(user, projectId, holdCatalog = false, options={}) {
       if(dom.dropActionAck){dom.dropActionAck=false;await response.arrayBuffer();throw new Error('模拟真实动作COMMIT后的确认丢失');}
     }
     return response;
+    }finally{dom.requestsRunning--;}
   };
   const context = dom.getInternalVMContext(), modules = new Map();
+  dom.catalogFailure=!!options.catalogFailure;dom.emptyCatalog=!!options.emptyCatalog;
   function load(path) {
     if (path.endsWith('.css')) return {};
     path = resolve(path.endsWith('.ts') ? path : path + '.ts');
@@ -115,17 +131,217 @@ async function page(user, projectId, holdCatalog = false, options={}) {
   }
   load(options.create?'src/web/project-new.ts':options.board?'src/web/board.ts':'src/web/detail.ts');
   await waitFor(() => options.create?w.document.getElementById('edit-name') && !w.document.getElementById('save').disabled:options.board?w.document.getElementById('result-count').textContent.includes('截至'):!w.document.getElementById('detail-panel').hidden && !w.document.getElementById('reload').disabled, '页面及可信身份就绪');
+  if((recoveryMode || catalogStatesMode || nodeFollowupsMode || impactChainMode) && !holdCatalog && !options.board)await waitFor(()=>dom.catalogConsumed,'恢复验收等待初始化读取完成');
   if(options.realtime)await waitFor(()=>dom.events.some(item=>item.event==='connected'),'真实SSE页面连通');
   const $ = selector => w.document.querySelector(selector);
   const input = (selector, value) => { const element = $(selector); assert(element, selector); element.value = value; element.dispatchEvent(new w.Event('input', { bubbles: true })); };
   const click = selector => { const element = $(selector); assert(element, selector); assert(!element.disabled, selector + ' 不应禁用'); element.click(); };
   const visibleClick = selector => { const element = $(selector); assert(element, selector); assert.equal(element.closest('[hidden]'), null, selector + ' 必须实际展示'); const dialog = element.closest('dialog'); if (dialog) assert(dialog.open, selector + ' 所在弹窗必须已打开'); click(selector); };
-  return { dom, w, $, input, click, visibleClick, tab: value => click(`[data-tab="${value}"]`) };
+  return { dom, w, $, input, click, visibleClick, module:load, tab: value => click(`[data-tab="${value}"]`) };
 }
 async function facts(id) {
   const { connection } = await connectDatabase('test_app');
   try { return { project: (await connection.query('SELECT name,summary_note,CAST(version AS CHAR) version FROM projects WHERE id=?', [id]))[0][0], nodes: (await connection.query('SELECT CAST(id AS CHAR) id,title,output FROM project_nodes WHERE project_id=? AND deleted_at IS NULL ORDER BY id', [id]))[0], auditCount: Number((await connection.query('SELECT COUNT(*) n FROM audit_log WHERE project_id=?', [id]))[0][0].n) }; }
   finally { await connection.end(); }
+}
+async function recoveryChecks(a,b,id){
+  const closePage=async view=>{view.w.document.dispatchEvent(new view.w.Event('geekdash-identity-changed'));await waitFor(()=>!view.dom.requestsRunning,'测试页关闭前已有读取完成');await new Promise(resolve=>setTimeout(resolve,0));view.dom.window.close();};
+  const path='/api/projects/'+id, before=await facts(id);
+  const blocked=await page(a,id,false,{blockStorage:['localStorage','sessionStorage']});
+  blocked.dom.rejectDrafts=true;blocked.input('#edit-statusDesc','本机不可用，仍留在页面的输入');
+  assert.match(blocked.$('#personal-drafts').title,/本机底稿存储不可用/);
+  blocked.click('#personal-drafts');blocked.click('[data-sync]');
+  await waitFor(()=>/本机底稿.*(未保存|不可用|无法读取)/.test(blocked.$('[data-draft-status]').textContent),'草稿及本机均失败，不能声称有副本');
+  assert(!/已留在本机|已同步|当前设备保留/.test(blocked.$('[data-draft-status]').textContent));
+  assert.equal(blocked.$('#edit-statusDesc').value,'本机不可用，仍留在页面的输入');assert.deepEqual(await facts(id),before);
+  blocked.click('[data-close]');blocked.click('.top-sticky a.back-btn');
+  await waitFor(()=>blocked.$('[data-choice="keep"]'),'离开先处理输入');blocked.click('[data-choice="keep"]');
+  await waitFor(()=>blocked.$('[data-choice="leave"]'),'本机及云端都失败时仍需明确决定');
+  assert.match(blocked.$('#editor-dialog').textContent,/本机副本也未保存/);assert.equal(blocked.$('[data-choice="leave"]').textContent,'已复制，仍然离开');blocked.click('[data-choice="cancel"]');
+  blocked.dom.rejectDrafts=false;blocked.click('#personal-drafts');blocked.click('[data-sync]');
+  await waitFor(()=>blocked.dom.draftWrites.some(row=>row.payload.values?.statusDesc==='本机不可用，仍留在页面的输入'),'存储禁用仍可云端同步');
+  const savedBlocked=blocked.dom.draftWrites.at(-1);assert.equal((await a.api('/api/personal/drafts?clientDraftId='+savedBlocked.clientDraftId)).items[0].payload.values.statusDesc,'本机不可用，仍留在页面的输入');
+  blocked.click('[data-close]');blocked.click('[data-save-scope="status"]');
+  await waitFor(()=>blocked.dom.projectReads.at(-1)?.project.statusDesc==='本机不可用，仍留在页面的输入' && !blocked.$('#reload').disabled,'存储完全禁用仍能正式保存');
+  assert.equal(BigInt((await facts(id)).project.version),BigInt(before.project.version)+1n);
+  checks.push('PRD9.1/9.15/9.16：localStorage/sessionStorage getter均拒绝时详情仍工作；本机及云同步失败不伪称有副本，保留输入/离开警示准确；云恢复后草稿新GET及正式保存SQL一致');
+
+  const newBlocked=await page(a,null,false,{create:true,blockStorage:['localStorage','sessionStorage']});newBlocked.dom.rejectDrafts=true;newBlocked.input('#edit-name',prefix+'存储禁用创建');
+  newBlocked.click('#cancel');await waitFor(()=>newBlocked.$('[data-choice="keep"]'),'新建保留');newBlocked.click('[data-choice="keep"]');await waitFor(()=>newBlocked.$('[data-choice="leave"]'),'新建未同步提示');
+  assert.match(newBlocked.$('dialog[open]').textContent,/本机副本也未保存/);newBlocked.click('[data-choice="cancel"]');
+  newBlocked.dom.rejectDrafts=false;newBlocked.$('#create').dispatchEvent(new newBlocked.w.Event('submit',{bubbles:true,cancelable:true}));
+  await waitFor(()=>newBlocked.dom.createWrites.some(write=>write.data.outcome==='committed') && newBlocked.dom.navigationAttempts.length,'成功创建不被缓存清理异常误判');
+  const newResult=newBlocked.dom.createWrites.at(-1).data.result;assert.equal((await a.api('/api/projects/'+newResult.projectId)).project.name,prefix+'存储禁用创建');assert.equal((await facts(newResult.projectId)).project.version,'1');
+  checks.push('PRD9.1/9.5/9.15：两类本机存储禁用时新建仍可输入，离开提示准确；正式创建只写一次且跳转，不被缓存清理异常阻断，新GET/SQL核对');
+
+  const made=await a.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+'关闭恢复'}}),closedId=made.result.projectId;projects.push(closedId);
+  const closing=await page(a,closedId);closing.input('#edit-statusDesc','已确认的云端输入');await waitFor(()=>closing.dom.draftWrites.length,'先有已确认云稿');
+  const cloudId=closing.dom.draftWrites.at(-1).clientDraftId;closing.dom.rejectDrafts=true;closing.input('#edit-statusDesc','最后输入尚未同步');
+  const local=Object.fromEntries(Object.entries(closing.w.localStorage));closing.dom.window.close();
+  assert.equal((await a.api('/api/personal/drafts?clientDraftId='+cloudId)).items[0].payload.values.statusDesc,'已确认的云端输入');
+  const reopened=await page(a,closedId,false,{local});reopened.dom.rejectDrafts=true;reopened.click('#personal-drafts');await waitFor(()=>reopened.$('[data-source="local"] [data-restore]'),'重开后本机未同步副本可选择');reopened.click('[data-source="local"] [data-restore]');
+  await waitFor(()=>reopened.$('#edit-statusDesc').value==='最后输入尚未同步','恢复本机最后输入');assert.equal((await a.api('/api/projects/'+closedId)).project.statusDesc,'');
+  const cloudOnly=await page(a,closedId);cloudOnly.click('#personal-drafts');await waitFor(()=>cloudOnly.$('[data-draft-list]').textContent.includes('已确认的云端输入'),'没有本机副本只能取服务器确认稿');
+  assert(!cloudOnly.$('[data-draft-list]').textContent.includes('最后输入尚未同步'));await closePage(reopened);await closePage(cloudOnly);
+  checks.push('PRD9.15：关闭页面前最后输入未同步时，云端仍只返回已确认稿；重开有本机副本可恢复最后输入，无本机副本不伪造恢复；恢复本身不写正式项目（执行模型关闭，非OS强杀）');
+
+  const conflict=await page(a,id);conflict.input('#edit-statusDesc','本页同步原稿');await waitFor(()=>conflict.dom.draftWrites.length,'修订冲突原稿');
+  const draft=conflict.dom.draftWrites.at(-1),newPayload={...draft.payload,values:{statusDesc:'其他标签更新的云稿'},submission:{scope:'status',changes:{statusDesc:'其他标签更新的云稿'}}};
+  await a.api('/api/personal/drafts/save','POST',{clientDraftId:draft.clientDraftId,projectId:id,formKind:'status',baseVersion:draft.baseVersion,expectedDraftVersion:draft.draftVersion,clientSequence:String(BigInt(draft.clientSequence)+1n),payload:newPayload});
+  conflict.input('#edit-statusDesc','冲突后本页文字不能丢');conflict.click('#personal-drafts');conflict.click('[data-sync]');await waitFor(()=>conflict.$('[data-draft-status]').textContent.includes('已有新修订'),'草稿修订冲突可理解提示');
+  assert.equal(conflict.$('#edit-statusDesc').value,'冲突后本页文字不能丢');assert.equal((await a.api('/api/personal/drafts?clientDraftId='+draft.clientDraftId)).items[0].payload.values.statusDesc,'其他标签更新的云稿');
+  const row=(await c.query('SELECT payload_json payload FROM project_drafts WHERE user_id=? AND client_draft_id=?',[users[0].id,draft.clientDraftId]))[0][0];assert.equal((typeof row.payload==='string'?JSON.parse(row.payload):row.payload).values.statusDesc,'其他标签更新的云稿');
+  await closePage(conflict);checks.push('PRD9.15：真实另一修订先保存，旧页面同步被拒绝并保留文字；新GET和SQL确认云稿不被覆盖');
+
+  const capacity=await page(b,null,false,{create:true}), blank={schemaVersion:1,instanceId:randomUUID(),values:{name:'合成容量稿'},submission:{fields:{name:'合成容量稿'}}};
+  for(let i=0;i<100;i++)await c.execute("INSERT INTO project_drafts (user_id,client_draft_id,form_kind,client_sequence,payload_json,state,created_at,updated_at) VALUES (?,?,'create',1,?,'active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))",[users[1].id,randomUUID(),JSON.stringify(blank)]);
+  capacity.input('#edit-name','容量已满仍需保护的输入');capacity.click('#personal-drafts');capacity.click('[data-sync]');await waitFor(()=>capacity.$('[data-draft-status]').textContent.includes('个人草稿已满'),'满额明确提示');
+  assert.equal(capacity.$('#edit-name').value,'容量已满仍需保护的输入');assert.equal(Number((await c.query("SELECT COUNT(*) n FROM project_drafts WHERE user_id=? AND state='active'",[users[1].id]))[0][0].n),100);
+  assert.equal((await b.api('/api/personal/drafts?projectId=new')).items.length,100);await closePage(capacity);
+  const oversized=await page(a,id);for(const length of [180000,350000]){oversized.input('#edit-statusDesc','大'.repeat(length));oversized.click('#personal-drafts');oversized.click('[data-sync]');await waitFor(()=>oversized.$('[data-draft-status]').textContent.includes('本份草稿过大'),'单稿容量及HTTP正文容量明确提示');assert.equal(oversized.$('#edit-statusDesc').value.length,length);oversized.click('[data-close]');}await closePage(oversized);
+  checks.push('PRD9.15：本人100份有效稿和超大单稿由真实服务拒绝，页面显示具体限制且不截断输入；新GET/SQL确认原稿未被清空，不增加业务数量限制');
+
+  const unknown=await page(a,id),unknownBefore=await facts(id);unknown.input('#edit-name',prefix+'持续查询故障');unknown.input('#edit-statusDesc','另一范围不应提交');unknown.dom.dropSaveAck=true;unknown.dom.rejectResultQueries=true;
+  unknown.click('[data-save-scope="basic"]');await waitFor(()=>unknown.$('#confirm') && !unknown.$('#confirm').disabled,'真实提交响应丢失');
+  for(let i=0;i<3;i++){unknown.click('#confirm');await waitFor(()=>!unknown.$('#confirm').disabled,'原结果仍无法查询');assert.equal(unknown.$('#edit-statusDesc').value,'另一范围不应提交');}
+  assert.equal(unknown.dom.saveWrites.length,1);assert.equal((await a.api(path)).project.name,prefix+'持续查询故障');assert.equal(BigInt((await facts(id)).project.version),BigInt(unknownBefore.project.version)+1n);
+  unknown.dom.rejectResultQueries=false;unknown.click('#confirm');await waitFor(()=>!unknown.$('#confirm') && !unknown.$('#reload').disabled,'原结果查询恢复');assert.equal(unknown.dom.saveWrites.length,1);assert.equal(unknown.$('#edit-statusDesc').value,'另一范围不应提交');assert.equal((await facts(id)).auditCount,unknownBefore.auditCount+1);await closePage(unknown);
+  checks.push('PRD9.1：真实COMMIT后丢回应且连续三次原结果查询失败，保持原请求和其他范围输入；恢复后确认同一回执，独立SQL/新GET仅一版一条历史');
+
+  const logoutPage=await page(a,id),actor=users[0].id,other=users[1].id;
+  for(const storage of [logoutPage.w.localStorage,logoutPage.w.sessionStorage]){storage.setItem('geekdash_draft:'+actor+':test','本人敏感输入');storage.setItem('geekdash_project_buffer:'+actor+':'+id,'本人敏感输入');storage.setItem('geekdash_draft:'+other+':test','其他账号隔离输入');}
+  await a.api('/api/auth/logout','POST',{});logoutPage.module('src/web/shared/api.ts').notifyIdentityChange(true);
+  for(const storage of [logoutPage.w.localStorage,logoutPage.w.sessionStorage]){assert.equal(storage.getItem('geekdash_draft:'+actor+':test'),null);assert.equal(storage.getItem('geekdash_project_buffer:'+actor+':'+id),null);assert.equal(storage.getItem('geekdash_draft:'+other+':test'),'其他账号隔离输入');}
+  assert.equal((await a.fetch('/api/auth/me')).status,401);assert.doesNotThrow(()=>blocked.module('src/web/shared/api.ts').notifyIdentityChange(true));
+  await a.login(0);assert((await a.api('/api/personal/drafts?projectId='+id)).items.length>0,'退出不删除服务器私人草稿');
+  checks.push('PRD9.2/9.15：真实退出撤销会话，公共身份清理删除本人本机敏感缓存且保留其他账号命名空间；存储getter禁用不抛出误导错误，重新登录仍可读本人云稿');
+}
+async function nodeErrorChecks(a,id){
+  const view=await page(a,id),before=await facts(id);view.tab('nodes');view.click('[data-node="add"]');view.input('[data-node-field="title"]','漏填成果后继续');view.click('#node-edit [type="submit"]');
+  await waitFor(()=>view.$('#node-error').textContent.includes('输出成果：请填写有效文字') && !view.$('#node-edit [type="submit"]').disabled,'预览拒绝准确说明输出成果');
+  assert.equal(view.w.document.activeElement,view.$('[data-node-field="output"]'));assert.equal(view.$('[data-node-field="output"]').getAttribute('aria-invalid'),'true');assert.equal(view.$('[data-node-field="title"]').value,'漏填成果后继续');assert.deepEqual(await facts(id),before);
+  view.input('[data-node-field="output"]','补齐原本要求的成果');assert.equal(view.$('[data-node-field="output"]').getAttribute('aria-invalid'),null);view.click('#node-edit [type="submit"]');
+  await waitFor(()=>view.dom.projectReads.at(-1)?.nodes.some(node=>node.title==='漏填成果后继续') && !view.$('#reload').disabled,'同一表单修正后保存');
+  let current=await facts(id);assert.equal(current.nodes[0].output,'补齐原本要求的成果');assert.equal(BigInt(current.project.version),BigInt(before.project.version)+1n);assert.equal(current.auditCount,before.auditCount+1);
+  checks.push('PRD9.1/9.12：项目节点漏填输出成果，真实预览拒绝后显示业务字段名并聚焦/标识原输入；其余输入及数据库保持，补填同处一次保存，新GET/SQL一致');
+
+  view.click('[data-node="add"]');view.input('[data-node-field="title"]','正式保存拒绝仍保留');view.input('[data-node-field="output"]','界面原成果');view.dom.corruptNodeOutput=true;view.click('#node-edit [type="submit"]');
+  await waitFor(()=>view.$('#node-error')?.textContent.includes('输出成果：请填写有效文字') && !view.$('#node-edit [type="submit"]').disabled,'正式写入拒绝仍定位字段');
+  assert.equal(view.$('[data-node-field="title"]').value,'正式保存拒绝仍保留');assert.equal(view.$('[data-node-field="output"]').value,'界面原成果');assert.equal(view.w.document.activeElement,view.$('[data-node-field="output"]'));assert.deepEqual(await facts(id),current);
+  view.input('[data-node-field="output"]','明确核对后保存成果');view.click('#node-edit [type="submit"]');await waitFor(()=>view.dom.projectReads.at(-1)?.nodes.some(node=>node.output==='明确核对后保存成果') && !view.$('#reload').disabled,'正式错误修正后继续');
+  const after=await facts(id);assert.equal(BigInt(after.project.version),BigInt(current.project.version)+1n);assert.equal(after.auditCount,current.auditCount+1);current=after;
+  checks.push('PRD9.1/9.12：预览通过后将线上提交包成果清空以触发真实后端拒绝；原表单值完整保留并定位成果，纠正重存后SQL仅一版/一条历史，无部分节点写入');
+
+  view.tab('custnodes');view.click('[data-node="add"]');view.input('[data-node-field="note"]','客户备注保留');view.click('#node-edit [type="submit"]');await waitFor(()=>view.$('#node-error').textContent.includes('节点名称：请填写有效文字') && !view.$('#node-edit [type="submit"]').disabled,'客户节点名称定位');
+  assert.equal(view.w.document.activeElement,view.$('[data-node-field="title"]'));assert.equal(view.$('[data-node-field="note"]').value,'客户备注保留');assert.deepEqual(await facts(id),current);
+  view.input('[data-node-field="title"]','客户确认');view.click('#node-edit [type="submit"]');await waitFor(()=>view.dom.projectReads.at(-1)?.nodes.some(node=>node.kind==='customer' && node.title==='客户确认') && !view.$('#reload').disabled,'客户节点修正同处保存');
+  assert.equal((await a.api('/api/projects/'+id)).nodes.find(node=>node.kind==='customer').note,'客户备注保留');assert.equal(BigInt((await facts(id)).project.version),BigInt(current.project.version)+1n);
+  checks.push('PRD9.1/9.12：客户节点复用同一错误定位，空名称被真实服务拒绝，备注原样保留，补名称后同处保存并新GET/SQL回读');
+}
+async function impactChainChecks(a,id){
+  const path='/api/projects/'+id,read=()=>a.api(path),action=async body=>a.api(path+'/actions','POST',{expectedVersion:(await read()).project.version,idempotencyKey:randomUUID(),...body});
+  const close=async view=>{view.w.document.dispatchEvent(new view.w.Event('geekdash-identity-changed'));await waitFor(()=>!view.dom.requestsRunning,'影响测试页面结束');await new Promise(resolve=>setTimeout(resolve,0));view.dom.window.close();};
+  const stageFacts=async()=> (await c.query("SELECT stage_code code,state,DATE_FORMAT(started_on,'%Y-%m-%d') startedOn,DATE_FORMAT(completed_on,'%Y-%m-%d') completedOn FROM project_stages WHERE project_id=? ORDER BY stage_code",[id]))[0].map(row=>({...row}));
+  await action({action:'startStage',stageCode:'S1',actualDate:'2020-01-01'});await action({action:'completeStage',stageCode:'S1',actualDate:'2020-01-02',completionNote:''});
+  const stage=await page(a,id);assert(stage.$('.topbar #personal-drafts'),'详情草稿入口位于居中顶栏');stage.tab('stages');stage.click('[data-correction="undoStageComplete"][data-stage="S1"]');await waitFor(()=>stage.$('#correction-reason'),'打开阶段撤销表单');stage.input('#correction-reason','撤销误记的完成');const before=await facts(id),beforeStages=await stageFacts();stage.click('#correction-edit [type="submit"]');
+  await waitFor(()=>stage.$('#editor-dialog .impact-chain'),'阶段服务端影响已展示');
+  let preview=stage.dom.previews.at(-1).result,chain=stage.$('#editor-dialog .impact-chain').textContent;
+  assert.equal(preview.stageChanges.find(row=>row.code==='S1').state,'active');assert.equal(preview.stageChanges.find(row=>row.code==='S2').state,'locked');assert.match(chain,/S1[\s\S]*已完成 → 进行中/);assert.match(chain,/因为 S1[\s\S]*S2[\s\S]*待开始 → 未解锁/);assert(!chain.includes('S3'),'未变化阶段不进入因果链');assert(stage.$('#editor-dialog .comparison-table'));
+  assert.deepEqual(await facts(id),before);assert.deepEqual(await stageFacts(),beforeStages);stage.click('[data-choice="cancel"]');await waitFor(()=>!stage.$('#editor-dialog').open && !stage.$('#reload').disabled,'返回修改不写');
+  stage.click('#correction-undo-start');stage.click('#correction-edit [type="submit"]');await waitFor(()=>stage.$('#editor-dialog').open && stage.$('#editor-dialog .impact-chain'),'改选后阶段重预览');
+  preview=stage.dom.previews.at(-1).result;assert.equal(preview.stageChanges.find(row=>row.code==='S1').state,'ready');assert.match(stage.$('#editor-dialog .impact-chain').textContent,/已完成 → 待开始/);stage.click('[data-choice="save"]');
+  await waitFor(()=>stage.dom.projectReads.at(-1)?.stages[0].state==='ready' && !stage.$('#reload').disabled,'阶段影响明确保存');
+  for(const change of preview.stageChanges)assert.deepEqual((await stageFacts()).find(row=>row.code===change.code),change);
+  assert.equal(BigInt((await facts(id)).project.version),BigInt(before.project.version)+1n);await close(stage);
+  checks.push('阶段因果：真实S1撤销完成预览列S1完成→进行中、因S1未完成使S2待开始→未解锁，仅两项实际变化；取消SQL不动，改选连开始一并撤销重算为待开始，确认后SQL阶段与预览一致且仅一版。');
+  const add=Object.fromEntries(['A','B','C'].map(name=>[name,randomUUID()]));
+  const saved=await a.api(path,'PATCH',{scope:'projectNodes',expectedVersion:(await read()).project.version,idempotencyKey:randomUUID(),changes:{nodeOps:[...Object.entries(add).map(([name,tempId])=>({op:'add',tempId,kind:'project',fields:{title:'因果节点'+name,stage:'S1',output:'成果'+name}})),{op:'link',from:add.A,to:add.B,replaceEdges:[],affectedIds:[],reason:''},{op:'link',from:add.B,to:add.C,replaceEdges:[],affectedIds:[],reason:''},...Object.values(add).map(key=>({op:'complete',id:key,completedOn:'2020-01-02'}))]}});
+  const {A,B,C}=Object.fromEntries(Object.entries(add).map(([name,key])=>[name,saved.result.nodeIdMap[key]]));
+  const node=await page(a,id);node.tab('nodes');node.click(`[data-node="correct"][data-node-id="${A}"]`);node.click('[data-node-form-action="uncomplete"]');await waitFor(()=>node.$('#node-reason'),'撤销节点表单');node.input('#node-reason','完成误录按依赖撤销');const nodeBefore=await read();node.click('#node-edit [type="submit"]');
+  await waitFor(()=>node.$('#node-preview .impact-chain') && !node.$('#node-accept').disabled,'节点实际影响链');preview=node.dom.previews.at(-1).result;
+  assert.deepEqual(preview.requiredUncompleteIds.sort(),[B,C].sort());chain=node.$('#node-preview .impact-chain').textContent;assert.match(chain,/因果节点A → 因果节点B/);assert.match(chain,/因果节点A → 因果节点B → 因果节点C/);assert.match(chain,/前置将未完成/);
+  const tableText=node.$('#node-preview .comparison-table').textContent;for(const name of ['因果节点A','因果节点B','因果节点C'])assert(tableText.includes(name),'每个实际影响对象以名称对应前后对照');assert.match(tableText,/未完成/);assert.deepEqual((await read()).nodes,nodeBefore.nodes);
+  node.click('#node-cancel');await waitFor(()=>!node.$('#node-edit') && !node.$('#reload').disabled,'取消节点影响');node.click(`[data-node="correct"][data-node-id="${B}"]`);node.click('[data-node-form-action="uncomplete"]');await waitFor(()=>node.$('#node-reason'),'改选撤销B');node.input('#node-reason','仅B误录');node.click('#node-edit [type="submit"]');await waitFor(()=>node.$('#node-preview .impact-chain') && !node.$('#node-accept').disabled,'新的B链');
+  preview=node.dom.previews.at(-1).result;assert.deepEqual(preview.requiredUncompleteIds,[C]);chain=node.$('#node-preview .impact-chain').textContent;assert(!chain.includes('因果节点A'));assert.match(chain,/因果节点B → 因果节点C/);node.click('#node-accept');
+  await waitFor(()=>node.dom.projectReads.at(-1)?.nodes.find(row=>row.id===B)?.completedOn===null && !node.$('#reload').disabled,'B/C完成同次撤销');
+  const nodeAfter=await read();assert.equal(nodeAfter.nodes.find(row=>row.id===A).completedOn,'2020-01-02');for(const key of [B,C])assert.equal(nodeAfter.nodes.find(row=>row.id===key).completedOn,null);assert.deepEqual(nodeAfter.stages,nodeBefore.stages);
+  const actual=(await c.query('SELECT CAST(id AS CHAR) id,completed_on completed FROM project_nodes WHERE project_id=? ORDER BY id',[id]))[0];assert(actual.find(row=>row.id===A).completed);assert.equal(actual.find(row=>row.id===B).completed,null);assert.equal(actual.find(row=>row.id===C).completed,null);assert.equal(BigInt(nodeAfter.project.version),BigInt(nodeBefore.project.version)+1n);await close(node);
+  checks.push('节点因果：真实A→B→C已完成，撤销A预览仅服务端required B/C，展示直接/间接路径及三条实际完成前后；取消无写，改选B后链仅B→C，确认新GET/SQL仅B/C撤销，A和阶段保持。');
+  await action({action:'closeProject',closureType:'normal',closedOn:(await read()).businessDate,closureNote:'未完成成果在重开后继续',remainingWorkNote:''});await action({action:'setMaintenance',enabled:true,reason:''});
+  const reopen=await page(a,id),closed=await read();reopen.input('#edit-state','proposal');reopen.$('#edit-state').dispatchEvent(new reopen.w.Event('change',{bubbles:true}));reopen.input('#edit-name',prefix+'独立改名');reopen.input('#edit-statusDesc','另区说明保留');reopen.click('[data-save-scope="basic"]');
+  await waitFor(()=>reopen.$('#editor-dialog .impact-chain'),'基本区重开复用服务器预览');preview=reopen.dom.previews.at(-1).result;
+  assert.equal(preview.beforeValues.closure.status,'closed');assert.equal(preview.afterValues.closure.status,'proposal');chain=reopen.$('#editor-dialog .impact-chain').textContent;assert.match(chain,/已结案 → 提案中/);assert.match(chain,/实际结案日/);assert.match(chain,/结案后维护：开启 → 关闭/);assert(!chain.includes('独立改名'),'独立文字不冒充重开的自动结果');assert.equal((await read()).project.version,closed.project.version);
+  reopen.click('[data-choice="save"]');await waitFor(()=>reopen.dom.projectReads.at(-1)?.project.status==='proposal' && !reopen.$('#reload').disabled,'基本区一次保存重开和独立普通输入');
+  const open=await read();assert.equal(open.project.closedOn,null);assert.equal(Number(open.project.maintenanceEnabled),0);assert.equal(open.project.name,prefix+'独立改名');assert.equal(open.project.statusDesc,'');assert.equal(reopen.$('#edit-statusDesc').value,'另区说明保留');
+  const closure=(await c.query('SELECT status,closed_on,maintenance_enabled FROM projects WHERE id=?',[id]))[0][0];assert.equal(closure.status,'proposal');assert.equal(closure.closed_on,null);assert.equal(closure.maintenance_enabled,0);await close(reopen);
+  checks.push('基本区重开因果：既有一次确认复用真实结案预览，显示状态恢复、当前结案事实归历史与维护关闭；确认前版本不变，单次基本保存后新GET/SQL一致，独立名称不伪装成联动，另区说明不夹带。');
+}
+async function nodeFollowupChecks(a,id){
+  const path='/api/projects/'+id,read=()=>a.api(path),save=async nodeOps=>a.api(path,'PATCH',{scope:'projectNodes',expectedVersion:(await read()).project.version,idempotencyKey:randomUUID(),changes:{nodeOps}});
+  const temp=Object.fromEntries(['A','B','C','D'].map(name=>[name,randomUUID()]));
+  const added=await save(Object.entries(temp).map(([name,tempId])=>({op:'add',kind:'project',tempId,fields:{title:'节点'+name,stage:'S1',output:'成果'+name,targetDate:null}})));
+  const ids=Object.fromEntries(Object.entries(temp).map(([name,key])=>[name,added.result.nodeIdMap[key]])),{A,B,C,D}=ids;
+  await save([{op:'link',from:A,to:B,replaceEdges:[],affectedIds:[],reason:''}]);
+  const view=await page(a,id);view.tab('nodes');view.click(`[data-node="correct"][data-node-id="${A}"]`);view.click('[data-node-form-action="link"]');
+  await waitFor(()=>view.$('#node-to'),'打开旧线替换');view.input('#node-to',C);view.click('#node-edit [type="submit"]');
+  await waitFor(()=>!view.$('#node-accept').hidden && !view.$('#node-accept').disabled,'旧线变更预览');
+  assert.match(view.$('#node-preview').textContent,/节点A/);assert.match(view.$('#node-preview').textContent,/节点B/);const before=await facts(id),beforeRead=await read();
+  view.input('#node-to',D);assert(view.$('#node-accept').hidden);assert.equal(view.$('#node-preview').textContent,'');assert.deepEqual(await facts(id),before);
+  view.click('#node-edit [type="submit"]');await waitFor(()=>!view.$('#node-accept').hidden && !view.$('#node-accept').disabled,'改目标后重预览');view.click('#node-accept');
+  await waitFor(()=>view.dom.projectReads.at(-1)?.nodes.find(node=>node.id===A)?.nextNodeId===D && !view.$('#reload').disabled,'明确保存新目标');
+  const linked=await read();assert.equal(linked.nodes.find(node=>node.id===B).previousNodeId,null);assert.equal(linked.nodes.find(node=>node.id===D).previousNodeId,A);assert.equal(linked.nodes.find(node=>node.id===C).previousNodeId,null);assert.equal(BigInt(linked.project.version),BigInt(beforeRead.project.version)+1n);
+  const sqlLinks=(await c.query('SELECT CAST(next_node_id AS CHAR) nextId FROM project_nodes WHERE id=?',[A]))[0];assert.equal(sqlLinks[0].nextId,D);
+  checks.push('PRD9.12-8：真实旧线A→B在页面预览影响，目标C改为D后旧预览立即失效；重预览并确认仅保存A→D，B旧前置清除、C不变，新GET/SQL只一版。');
+  view.w.document.dispatchEvent(new view.w.Event('geekdash-identity-changed'));await waitFor(()=>!view.dom.requestsRunning,'替换链页面完成');view.dom.window.close();
+  await c.execute('UPDATE project_nodes SET stage_id=NULL,target_date=NULL,source_key=? WHERE id=?',['合成未知来源节点',B]);
+  const legacy=await page(a,id);legacy.tab('nodes');legacy.click(`[data-node="correct"][data-node-id="${B}"]`);
+  assert.equal(legacy.$('[data-node-field="stage"]').value,'');assert.match(legacy.$('[data-node-field="stage"] option:checked').textContent,/原阶段未知/);assert.equal(legacy.$('[data-node-field="targetDate"]').value,'');
+  legacy.input('[data-node-field="title"]','只改名称不补造旧阶段');legacy.click('#node-edit [type="submit"]');
+  await waitFor(()=>legacy.dom.projectReads.at(-1)?.nodes.find(node=>node.id===B)?.title==='只改名称不补造旧阶段' && !legacy.$('#reload').disabled,'未知来源普通文字保存');
+  const old=(await read()).nodes.find(node=>node.id===B);assert.equal(old.stage,null);assert.equal(old.targetDate,null);assert.equal(old.sourceKey,'合成未知来源节点');
+  const unknown=(await c.query('SELECT stage_id,target_date,source_key FROM project_nodes WHERE id=?',[B]))[0][0];assert.equal(unknown.stage_id,null);assert.equal(unknown.target_date,null);assert.equal(unknown.source_key,'合成未知来源节点');
+  checks.push('PRD9.12-10：合成旧节点阶段/目标日为空，实际表单明确原阶段未知且不默认S1；只纠正名称，新GET/SQL保持未知日期、阶段与原来源，不补造业务事实。');
+  legacy.w.document.dispatchEvent(new legacy.w.Event('geekdash-identity-changed'));await waitFor(()=>!legacy.dom.requestsRunning,'旧来源页面完成');legacy.dom.window.close();
+  await save([{op:'delete',id:B,removeEdges:[]}]);await c.execute('UPDATE project_nodes SET completed_on=? WHERE id=?',['2099-01-01',B]);
+  const recovery=await page(a,id);recovery.tab('nodes');recovery.click('#deleted-refresh');await waitFor(()=>recovery.$(`[data-node="restore"][data-node-id="${B}"]`),'已删未知节点可核对');recovery.click(`[data-node="restore"][data-node-id="${B}"]`);recovery.input('#node-reason','纠正原阶段与实际日后恢复');
+  const rejected=await facts(id);recovery.click('#node-edit [type="submit"]');await waitFor(()=>recovery.$('#node-error').textContent && !recovery.$('#reload').disabled,'缺阶段恢复拒绝');
+  assert.equal(recovery.$('#node-reason').value,'纠正原阶段与实际日后恢复');assert.deepEqual(await facts(id),rejected);
+  recovery.click('[data-restore-select="stage"]');recovery.input('[data-restore-field="stage"]','S3');recovery.click('#node-edit [type="submit"]');await waitFor(()=>recovery.$('#node-error').textContent && !recovery.$('#reload').disabled,'未来实际日仍拒绝');
+  assert.equal(recovery.$('[data-restore-field="stage"]').value,'S3');assert(recovery.$('[data-restore-select="stage"]').checked);assert.deepEqual(await facts(id),rejected);
+  recovery.click('#restore-actual-select');recovery.input('#restore-actual','');recovery.click('#node-edit [type="submit"]');
+  await waitFor(()=>recovery.dom.projectReads.at(-1)?.nodes.some(node=>node.id===B) || recovery.$('#node-accept') && !recovery.$('#node-accept').hidden,'纠正后恢复预览或保存');
+  if(recovery.$('#node-accept') && !recovery.$('#node-accept').hidden)recovery.click('#node-accept');
+  await waitFor(()=>recovery.dom.projectReads.at(-1)?.nodes.some(node=>node.id===B) && !recovery.$('#reload').disabled,'纠正与恢复同次正式保存');
+  const restored=(await read()).nodes.find(node=>node.id===B);assert.equal(restored.stage,'S3');assert.equal(restored.completedOn,null);assert.equal(restored.sourceKey,'合成未知来源节点');assert.equal(restored.previousNodeId,null);assert.equal(restored.nextNodeId,null);assert.equal(BigInt((await facts(id)).project.version),BigInt(rejected.project.version)+1n);
+  recovery.click(`[data-node="correct"][data-node-id="${B}"]`);recovery.click('[data-node-form-action="link"]');await waitFor(()=>recovery.$('#node-to'),'恢复节点重新选择关系');recovery.input('#node-to',C);recovery.click('#node-edit [type="submit"]');
+  await waitFor(()=>recovery.dom.projectReads.at(-1)?.nodes.find(node=>node.id===B)?.nextNodeId===C && !recovery.$('#reload').disabled,'恢复后明确连接新节点');assert.equal((await read()).nodes.find(node=>node.id===C).previousNodeId,B);
+  assert.equal((await c.query('SELECT CAST(next_node_id AS CHAR) nextId FROM project_nodes WHERE id=?',[B]))[0][0].nextId,C);
+  checks.push('PRD9.12-15：已删除旧节点恢复依次被未知阶段和未来实际日拒绝，原原因与所选纠正保持；同表单明确纠正后原ID恢复且不接旧线，随后主动选新线，新GET/SQL接续可用。');
+  recovery.w.document.dispatchEvent(new recovery.w.Event('geekdash-identity-changed'));await waitFor(()=>!recovery.dom.requestsRunning,'恢复链页面完成');await new Promise(resolve=>setTimeout(resolve,0));recovery.dom.window.close();
+  await c.execute('UPDATE project_nodes SET previous_node_id=NULL,next_node_id=NULL WHERE project_id=?',[id]);
+}
+async function catalogStateChecks(a,id){
+  const before=await facts(id),empty=await page(a,id,false,{emptyCatalog:true});
+  const sources=[...empty.w.document.querySelectorAll('select[data-reference="true"]')].filter(source=>!source.disabled && ![...source.options].some(option=>option.value));
+  assert(sources.length>=6,'实际各类资料候选同时为空');
+  for(const source of sources){const input=empty.$('#'+source.id.replace(/-source$/,''));input.focus();assert.equal(empty.$('#'+input.id+'-choices .reference-empty').textContent,'暂无可选资料。');}
+  empty.input('#edit-name',prefix+'空候选文字可编辑');assert.equal(empty.$('#edit-name').value,prefix+'空候选文字可编辑');assert.deepEqual(await facts(id),before);
+  checks.push('PRD9.18-2：真实详情读取后在候选响应边界注入全部集合为空；各资料下拉明确暂无可选资料，普通输入仍可编辑，正式SQL与新GET保持原值。此项验证空响应消费，不把公共测试资料删除为零。');
+  empty.w.document.dispatchEvent(new empty.w.Event('geekdash-identity-changed'));await waitFor(()=>!empty.dom.requestsRunning,'空候选页面结束');empty.dom.window.close();
+  const tagIds=[];for(const suffix of ['原选择','重读后新增']){await c.execute('INSERT INTO tags (name,created_at,updated_at) VALUES (?,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))',[prefix+suffix]);const tagId=(await c.query('SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0][0].id;references.push(tagId);tagIds.push(tagId);}
+  await a.api('/api/projects/'+id,'PATCH',{scope:'basic',expectedVersion:before.project.version,idempotencyKey:randomUUID(),changes:{tagIds:[tagIds[0]]}});
+  const selected=await facts(id),failed=await page(a,id,false,{catalogFailure:true});
+  await waitFor(()=>failed.$('#message').textContent.includes('原编辑已保留'),'候选初读失败就地反馈');
+  assert(!failed.$('#options-retry').hidden);assert.equal(failed.$('#edit-tagIds-source').selectedOptions[0].value,tagIds[0]);assert(failed.$('#edit-tagIds').disabled);
+  failed.input('#edit-name',prefix+'候选重读保留名称');failed.input('#edit-statusDesc','重读不提交另一范围说明');failed.click('#options-retry');
+  await waitFor(()=>!failed.$('#edit-tagIds').disabled && failed.$('#options-retry').hidden,'候选真实重读成功');
+  assert.equal(failed.$('#edit-name').value,prefix+'候选重读保留名称');assert.equal(failed.$('#edit-statusDesc').value,'重读不提交另一范围说明');assert.equal(failed.$('#edit-tagIds-source').selectedOptions[0].value,tagIds[0]);assert.deepEqual(await facts(id),selected);
+  failed.input('#edit-tagIds',prefix+'重读后新增');failed.click('[data-reference-value="'+tagIds[1]+'"]');failed.click('[data-save-scope="basic"]');
+  await waitFor(()=>failed.dom.projectReads.at(-1)?.project.tags.length===2 && !failed.$('#reload').disabled,'重读候选选用后正式保存');
+  const fresh=await a.api('/api/projects/'+id);assert.deepEqual(fresh.project.tags.map(tag=>tag.id).sort(),tagIds.sort());assert.equal(fresh.project.statusDesc,'');assert.equal(failed.$('#edit-statusDesc').value,'重读不提交另一范围说明');
+  assert.equal(Number((await c.query('SELECT COUNT(*) n FROM project_tags WHERE project_id=?',[id]))[0][0].n),2);assert.equal(BigInt((await facts(id)).project.version),BigInt(selected.project.version)+1n);
+  checks.push('PRD9.18-2：候选首次读取失败保留正式所选ID与当前文字，明确重读恢复真实候选；重选后只保存基本区，新GET/SQL两条关联、版本仅增一，另区说明保留未提交。');
+  failed.w.document.dispatchEvent(new failed.w.Event('geekdash-identity-changed'));await waitFor(()=>!failed.dom.requestsRunning,'候选验证结束');await new Promise(resolve=>setTimeout(resolve,0));failed.dom.window.close();
 }
 try {
   for (let i=0;i<2;i++) {
@@ -136,6 +352,7 @@ try {
   const a=client(), b=client(); await a.login(0); await b.login(1);
   const created=await a.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix,summary:'项目简介',dueDate:'2030-12-31'}});
   const id=created.result.projectId,path='/api/projects/'+id; projects.push(id);
+  if(recoveryMode)await recoveryChecks(a,b,id);else if(nodeErrorsMode)await nodeErrorChecks(a,id);else if(impactChainMode)await impactChainChecks(a,id);else if(nodeFollowupsMode)await nodeFollowupChecks(a,id);else if(catalogStatesMode)await catalogStateChecks(a,id);else{
   const tagName=prefix+' 项目标签';
   await c.execute('INSERT INTO tags (name,created_at,updated_at) VALUES (?,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))',[tagName]);
   const tagId=(await c.query('SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0][0].id; references.push(tagId);
@@ -613,12 +830,14 @@ try {
   rebaseReader.click('.draft-recovery [data-continue]');await waitFor(()=>rebaseReader.$('#edit-statusDesc').value==='基本区保存后仍需恢复的状态说明','新页面从提升基线后的云稿恢复');assert.deepEqual(await facts(rebaseId),rebaseFacts);
   rebaseReader.click('#personal-drafts');await waitFor(()=>rebaseReader.$(`[data-draft-id="${oldDraftId}"] [data-restore]`),'旧版本稿仍在个人草稿列表');assert(rebaseReader.$(`[data-draft-id="${oldDraftId}"] [data-restore]`).disabled);
   checks.push('PRD9.15：本人基本区保存后其他区输入不提交、不丢失；无需新输入或手动重试即自动提升原云稿基线并由SQL确认，新页直接恢复唯一当前稿，旧稿仍仅复制');
-  await writeFile('test-results/scoped-ui.json',JSON.stringify({status:'passed',checks,requests:requestCount,realBrowserLayout:false},null,2));
-  console.log(JSON.stringify({status:'passed',checks:checks.length,evidence:'test-results/scoped-ui.json'}));
+  }
+  const evidence=recoveryMode?'test-results/scoped-ui-recovery.json':nodeErrorsMode?'test-results/scoped-ui-node-errors.json':impactChainMode?'test-results/scoped-ui-impact-chain.json':nodeFollowupsMode?'test-results/scoped-ui-node-followups.json':catalogStatesMode?'test-results/scoped-ui-catalog-states.json':'test-results/scoped-ui.json';
+  await writeFile(evidence,JSON.stringify({status:'passed',checkedAt:new Date().toISOString(),checks,requests:requestCount,realBrowserLayout:false},null,2));
+  console.log(JSON.stringify({status:'passed',checks:checks.length,evidence}));
 } catch (error) { console.error(error); throw error; } finally {
   for(const view of views){for(const stream of view.streams ?? [])stream.close();view.window.close();}if(app)await app.close();
   if(users.length)for(const table of ['project_drafts','user_preferences'])await c.query(`DELETE FROM ${table} WHERE user_id IN (?)`,[users.map(u=>u.id)]);
-  if(projects.length){for(const table of ['audit_log','project_checks','schedule_changes','project_changes','project_risks','project_nodes','project_stages','project_people','project_chips','project_tags','project_responsibilities'])await c.query(`DELETE FROM ${table} WHERE project_id IN (?)`,[projects]);await c.query('DELETE FROM projects WHERE id IN (?)',[projects]);}
+  if(projects.length){await c.query('UPDATE project_nodes SET previous_node_id=NULL,next_node_id=NULL WHERE project_id IN (?)',[projects]);for(const table of ['audit_log','project_checks','schedule_changes','project_changes','project_risks','project_nodes','project_stages','project_people','project_chips','project_tags','project_responsibilities'])await c.query(`DELETE FROM ${table} WHERE project_id IN (?)`,[projects]);await c.query('DELETE FROM projects WHERE id IN (?)',[projects]);}
   if(references.length)await c.query('DELETE FROM tags WHERE id IN (?)',[references]);
   if(users.length){const ids=users.map(u=>u.id);for(const table of ['command_receipts','audit_log'])await c.query(`DELETE FROM ${table} WHERE actor_id IN (?)`,[ids]);await c.query('DELETE FROM sessions WHERE user_id IN (?)',[ids]);await c.query('DELETE FROM users WHERE id IN (?)',[ids]);}
   await c.end();process.off('unhandledRejection',reject);

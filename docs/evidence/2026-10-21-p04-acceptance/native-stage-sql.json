@@ -1,0 +1,97 @@
+{
+  "status": "passed",
+  "at": "2026-10-21T03:28:55.348Z",
+  "projectId": "9007199254760602",
+  "version": "14",
+  "stages": [
+    {
+      "code": "S1",
+      "state": "active",
+      "plannedDays": 6,
+      "note": "验收：本阶段由接口与样机两节点组成",
+      "startedOn": null,
+      "completedOn": null
+    },
+    {
+      "code": "S2",
+      "state": "locked",
+      "plannedDays": null,
+      "note": "",
+      "startedOn": null,
+      "completedOn": null
+    },
+    {
+      "code": "S3",
+      "state": "locked",
+      "plannedDays": null,
+      "note": "",
+      "startedOn": null,
+      "completedOn": null
+    },
+    {
+      "code": "S4",
+      "state": "locked",
+      "plannedDays": null,
+      "note": "",
+      "startedOn": null,
+      "completedOn": null
+    },
+    {
+      "code": "S5",
+      "state": "locked",
+      "plannedDays": null,
+      "note": "",
+      "startedOn": null,
+      "completedOn": null
+    },
+    {
+      "code": "S6",
+      "state": "locked",
+      "plannedDays": null,
+      "note": "",
+      "startedOn": null,
+      "completedOn": null
+    },
+    {
+      "code": "S7",
+      "state": "locked",
+      "plannedDays": null,
+      "note": "",
+      "startedOn": null,
+      "completedOn": null
+    }
+  ],
+  "audits": [
+    {
+      "action": "project.ordinary.save",
+      "versionBefore": "9",
+      "versionAfter": "10"
+    },
+    {
+      "action": "project.stage.start",
+      "versionBefore": "10",
+      "versionAfter": "11"
+    },
+    {
+      "action": "project.stage.complete",
+      "versionBefore": "11",
+      "versionAfter": "12"
+    },
+    {
+      "action": "project.stage.undoStageComplete",
+      "versionBefore": "12",
+      "versionAfter": "13"
+    },
+    {
+      "action": "project.stage.correctStageFacts",
+      "versionBefore": "13",
+      "versionAfter": "14"
+    }
+  ],
+  "checks": [
+    "工期评述新请求及独立SQL一致",
+    "撤销完成取消不写入，确认后S1进行中/S2未解锁",
+    "明确清空误填开始日不改变阶段状态",
+    "其他阶段日期不变"
+  ]
+}

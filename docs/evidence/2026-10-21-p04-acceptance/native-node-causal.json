@@ -1,0 +1,44 @@
+{
+  "before": "26",
+  "text": "保存后将如何联动\n纠正为未完成：A 接口确认\nA 接口确认的实际完成：2026-10-21 → 未完成。\n依赖路径 A 接口确认 → B 样机验证：B 样机验证 的前置将未完成，因此它的实际完成也需撤销（2026-10-21 → 未完成）。\n修改事项\t修改前\t修改后\n项目节点 #452\t实际完成日期：2026-10-21\t实际完成日期：未完成\n修改原因：原生因果验收：A完成误记\n项目节点 #453\t实际完成日期：2026-10-21\t实际完成日期：未完成",
+  "cancelVersion": "26",
+  "after": {
+    "version": "27",
+    "nodes": [
+      {
+        "id": "452",
+        "kind": "project",
+        "stage": "S1",
+        "title": "A 接口确认",
+        "targetDate": "2026-10-25",
+        "completedOn": null,
+        "output": "接口文档",
+        "note": "",
+        "previousNodeId": null,
+        "nextNodeId": "453",
+        "x": null,
+        "y": null,
+        "sourceKey": null,
+        "sortOrder": 0,
+        "deletedAt": null
+      },
+      {
+        "id": "453",
+        "kind": "project",
+        "stage": "S1",
+        "title": "B 样机验证",
+        "targetDate": "2026-10-27",
+        "completedOn": null,
+        "output": "样机联调记录",
+        "note": "",
+        "previousNodeId": "452",
+        "nextNodeId": null,
+        "x": null,
+        "y": null,
+        "sourceKey": null,
+        "sortOrder": 1,
+        "deletedAt": null
+      }
+    ]
+  }
+}

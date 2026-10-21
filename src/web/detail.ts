@@ -191,7 +191,7 @@ async function openRisk(op: RiskOperation['op'], target?: string) {
   const data = draft.op === 'correct' ? { ...row!, ...draft.changes } : draft;
   const editable = draft.op === 'add' || draft.op === 'correct';
   let preview: RiskPreview | undefined;
-  element('risk-form').innerHTML = `<form data-inline="true" id="risk-edit" class="risk-item"><h3>${esc(riskNames[draft.op])}</h3>${draft.op === 'delete' ? `<p>删除误录风险：${esc(row!.content)}</p><p>保存后从当前风险中移除，原记录与更新历史保留。</p>` : ''}${draft.op === 'undoResolve' ? '<p>撤销误解除后恢复为预警中，原解除记录保留。</p>' : ''}${editable ? `<label for="risk-content">风险内容</label><textarea id="risk-content" class="risk-note" required>${esc('content' in data ? data.content : '')}</textarea><div class="risk-form-row"><span class="risk-row-label">风险等级</span><div class="risk-level-select">${['high','mid','low'].map(level => `<button type="button" class="rlv-btn ${'level' in data && data.level === level ? 'active' : ''}" data-risk-level="${level}">${label(level)}</button>`).join('')}</div></div>` : ''}${draft.op === 'resolve' || draft.op === 'correct' && row?.resolved ? `<label for="risk-resolution">解除说明</label><textarea id="risk-resolution" required>${esc('resolution' in data ? data.resolution : '')}</textarea>` : ''}${'reason' in draft ? `<div id="risk-reason-wrap"><label for="risk-reason">变更原因</label><textarea id="risk-reason">${esc(draft.reason)}</textarea></div>` : ''}<p id="risk-error" class="field-error" role="alert"></p><div id="risk-preview"></div><button type="submit" class="save-btn" id="risk-submit">保存</button><button type="button" class="save-btn" id="risk-accept" hidden>确认并保存</button><button type="button" class="back-btn" id="risk-cancel">取消</button></form>`;
+  element('risk-form').innerHTML = `<form data-inline="true" id="risk-edit" class="risk-item"><h3>${esc(riskNames[draft.op])}</h3>${draft.op === 'delete' ? `<p>删除误录风险：${esc(row!.content)}</p><p>保存后从当前风险中移除，原记录与更新历史保留。</p>` : ''}${draft.op === 'undoResolve' ? '<p>撤销误解除后恢复为预警中，原解除记录保留。</p>' : ''}${editable ? `<label for="risk-content">风险内容</label><textarea id="risk-content" class="risk-note" required>${esc('content' in data ? data.content : '')}</textarea><div class="risk-form-row"><span class="risk-row-label">风险等级</span><div class="risk-level-select">${['high','mid','low'].map(level => `<button type="button" class="rlv-btn rlv-${esc(label(level))} ${'level' in data && data.level === level ? 'active' : ''}" data-risk-level="${level}">${label(level)}</button>`).join('')}</div></div>` : ''}${draft.op === 'resolve' || draft.op === 'correct' && row?.resolved ? `<label for="risk-resolution">解除说明</label><textarea id="risk-resolution" required>${esc('resolution' in data ? data.resolution : '')}</textarea>` : ''}${'reason' in draft ? `<div id="risk-reason-wrap"><label for="risk-reason">变更原因</label><textarea id="risk-reason">${esc(draft.reason)}</textarea></div>` : ''}<p id="risk-error" class="field-error" role="alert"></p><div id="risk-preview"></div><div class="edit-actions"><button type="submit" class="save-btn" id="risk-submit">保存</button><button type="button" class="save-btn" id="risk-accept" hidden>确认并保存</button><button type="button" class="back-btn" id="risk-cancel">取消</button></div></form>`;
   const form = element('risk-edit') as HTMLFormElement;
   const impact = () => draft.op === 'undoResolve';
   const sync = () => {
@@ -270,7 +270,7 @@ async function openChange(op: ChangeOperation['op'], target?: string) {
     + field('content', `<textarea id="chg-content" class="chg-content-input">${esc(data.content ?? '')}</textarea>`)
     + field('decision', `<div>${['accept', 'reject'].map(value => `<label class="chg-radio"><input type="radio" name="chg-decision" value="${value}" ${data.decision === value ? 'checked' : ''}>${value === 'accept' ? '接受' : '拒绝'}</label>`).join('')}</div>`)
     + field('reason', `<textarea id="chg-reason" class="chg-reason-input">${esc(data.reason ?? '')}</textarea>`)
-    + `<p id="change-error" role="alert" class="field-error"></p><button type="submit" id="change-submit" class="save-btn">保存需求变更</button><button type="button" id="change-cancel" class="back-btn">取消</button></form>`;
+    + `<p id="change-error" role="alert" class="field-error"></p><div class="edit-actions"><button type="submit" id="change-submit" class="save-btn">保存需求变更</button><button type="button" id="change-cancel" class="back-btn">取消</button></div></form>`;
   const form = element('change-edit') as HTMLFormElement;
   const save = () => saveNew('change', 'tempId' in draft ? draft.tempId : draft.id, { changeOps: [structuredClone(draft)] });
   const capture = () => {
@@ -315,6 +315,14 @@ function nodeCopy(includeDeleted = false) {
   return includeDeleted ? rows : rows.filter(row => !row.deletedAt);
 }
 const nodeLabels: Record<NodeOperation['op'], string> = { add: '新增节点', correct: '纠正节点信息', complete: '填写实际完成日', uncomplete: '纠正为未完成', move: '移动节点', link: '连接节点', unlink: '解除连线', delete: '删除节点', restore: '恢复误删节点' };
+const nodeFieldNames:Record<string,string>={title:'节点名称',stage:'所属阶段',targetDate:'目标完成日期',output:'输出成果',note:'客户节点备注',completedOn:'实际完成日期',reason:'原因',x:'横向位置',y:'纵向位置'};
+function nodeErrorText(errors:Record<string,string>={}){return Object.entries(errors).map(([path,message])=>{const key=path.match(/^nodeOps\.\d+\.(\w+)$/)?.[1];return key && nodeFieldNames[key]?nodeFieldNames[key]+'：'+message:message;}).join('；');}
+function focusNodeError(errors:Record<string,string>={}){
+  for(const path of Object.keys(errors)){const key=path.match(/^nodeOps\.\d+\.(\w+)$/)?.[1];if(!key || !nodeFieldNames[key])continue;
+    const field=document.querySelector<HTMLElement>(`#node-edit [data-node-field="${key}"],#node-edit [data-restore-field="${key}"],#node-edit #node-${key==='completedOn'?'completed':key}`);
+    if(field){field.setAttribute('aria-invalid','true');field.setAttribute('aria-describedby','node-error');field.focus();break;}
+  }
+}
 function deletedNodePanel(kind: string) {
   const items = nodeCopy(true).filter(row => row.kind === kind && row.deletedAt), editable = snapshot!.capabilities.editText;
   const pending = (values?.nodeOps ?? []).filter(op => op.op === 'delete' || op.op === 'restore');
@@ -375,7 +383,7 @@ async function openNode(op: NodeOperation['op'], target?: string, move?: { x: nu
   if (!nodeDraft) nodeDraft = op === 'add' ? { op, tempId: crypto.randomUUID(), kind, fields: { title: '', targetDate: null, ...kind === 'project' ? { stage: 'S1', output: '' } : { note: '' } } } : op === 'correct' ? { op, id: target!, changes: {}, reason: '' } : op === 'complete' ? { op, id: target!, completedOn: row?.completedOn ?? snapshot.businessDate, reason: '' } : op === 'uncomplete' ? { op, id: target!, reason: '', affectedIds: [] } : op === 'move' ? { op, id: target!, ...move! } : op === 'link' ? { op, from: target!, to: '', replaceEdges: [], affectedIds: [], reason: '' } : op === 'delete' ? { op, id: target!, removeEdges: [] } : op === 'restore' ? { op, id: target!, reason: '' } : { op, from: target!, to: row!.nextNodeId! };
   tab = kind === 'customer' ? 'custnodes' : tab === 'flow' ? 'flow' : 'nodes'; persist(); render(); const draft = nodeDraft; let preview: NodePreview | undefined;
   const data = draft.op === 'add' ? draft.fields : draft.op === 'correct' ? { ...row, ...draft.changes } : {};
-  const fieldNames = { title: '节点名称', stage: '所属阶段', targetDate: '目标完成日期', output: '输出成果', note: '客户节点备注' };
+  const fieldNames = nodeFieldNames;
   const restoredChanges = nodeRestoreExtras.find(item => item.op === 'correct');
   const restoreFields = draft.op === 'restore' ? (kind === 'project' ? ['title', 'stage', 'targetDate', 'output'] : ['title', 'targetDate', 'note']).map(key => {
     const selected = restoredChanges?.op === 'correct' && Object.hasOwn(restoredChanges.changes, key), value = selected && restoredChanges?.op === 'correct' ? restoredChanges.changes[key as keyof NodeFields] : row?.[key as keyof NodeFields];
@@ -384,7 +392,7 @@ async function openNode(op: NodeOperation['op'], target?: string, move?: { x: nu
   }).join('') + (() => { const op = nodeRestoreExtras.find(item => item.op === 'complete' || item.op === 'uncomplete'); return `<label><input type="checkbox" id="restore-actual-select"${op ? ' checked' : ''}>恢复时明确纠正实际完成日（留空表示未完成）<input id="restore-actual" type="date" max="${esc(snapshot.businessDate)}" value="${esc(op?.op === 'complete' ? op.completedOn : op ? '' : row?.completedOn ?? '')}"></label>`; })() : '';
 
   const fields = draft.op === 'add' || draft.op === 'correct' ? (kind === 'project' ? ['title', 'stage', 'targetDate', 'output'] : ['title', 'targetDate', 'note']).map(key => `<div class="field"><label>${fieldNames[key as keyof typeof fieldNames]}</label>${key === 'stage' ? `<select data-node-field="${key}"><option value="">原阶段未知，请核对</option>${__GEEKDASH_STAGES__.map(stage => `<option value="S${stage.id}"${data.stage === 'S' + stage.id ? ' selected' : ''}>S${stage.id} ${esc(stage.name)}</option>`).join('')}</select>` : key === 'output' || key === 'note' ? `<textarea data-node-field="${key}">${esc(data[key as keyof NodeFields] ?? '')}</textarea>` : `<input data-node-field="${key}" type="${key === 'targetDate' ? 'date' : 'text'}" value="${esc(data[key as keyof NodeFields] ?? '')}">`}</div>`).join('') : draft.op === 'complete' ? `<label>实际完成日期<input id="node-completed" type="date" max="${esc(snapshot.businessDate)}" value="${esc(draft.completedOn)}"></label>` : draft.op === 'link' ? `<label>下一节点<select id="node-to"><option value="">请选择</option>${rows.filter(node => node.kind === 'project' && node.id !== draft.from).map(node => `<option value="${esc(node.id)}"${node.id === draft.to ? ' selected' : ''}>${esc(node.title)}</option>`).join('')}</select></label>` : draft.op === 'move' ? `<p>位置：${draft.x}, ${draft.y}</p>` : `<p>${esc(row?.title ?? target)}：${draft.op === 'uncomplete' ? '实际完成日期将清空' : '解除当前下一连线'}</p>`;
-  element('pane').innerHTML = `<form data-inline="true" id="node-edit" class="node-form"><h3>${esc(nodeLabels[draft.op])}</h3><div class="node-form-grid">${draft.op === 'delete' ? `<p>删除“${esc(row?.title ?? target)}”，历史信息保留，可恢复误删。</p>` : draft.op === 'restore' ? `<p>恢复“${esc(row?.title ?? target)}”。原信息保留，旧连线不会自动接回。</p>${restoreFields}` : fields}</div>${'reason' in draft ? `<label>${draft.op === 'restore' ? '恢复原因' : '撤销完成原因'}<textarea id="node-reason">${esc(draft.reason ?? '')}</textarea></label>` : ''}<p id="node-error" class="field-error" role="alert"></p><div id="node-preview"></div><button type="submit" class="save-btn">保存节点</button><button type="button" id="node-accept" class="save-btn" hidden disabled>确认并保存</button><button type="button" id="node-cancel" class="back-btn">取消</button>${draft.op === 'correct' && row && /^[1-9][0-9]*$/.test(row.id) ? '<button type="button" id="node-delete-selected" class="node-del">删除这个节点</button>' : ''}</form>`;
+  element('pane').innerHTML = `<form data-inline="true" id="node-edit" class="node-form"><h3>${esc(nodeLabels[draft.op])}</h3><div class="node-form-grid">${draft.op === 'delete' ? `<p>删除“${esc(row?.title ?? target)}”，历史信息保留，可恢复误删。</p>` : draft.op === 'restore' ? `<p>恢复“${esc(row?.title ?? target)}”。原信息保留，旧连线不会自动接回。</p>${restoreFields}` : fields}</div>${'reason' in draft ? `<label>${draft.op === 'restore' ? '恢复原因' : '撤销完成原因'}<textarea id="node-reason">${esc(draft.reason ?? '')}</textarea></label>` : ''}<p id="node-error" class="field-error" role="alert"></p><div id="node-preview"></div><div class="edit-actions"><button type="submit" class="save-btn">保存节点</button><button type="button" id="node-accept" class="save-btn" hidden disabled>确认并保存</button><button type="button" id="node-cancel" class="back-btn">取消</button>${draft.op === 'correct' && row && /^[1-9][0-9]*$/.test(row.id) ? '<button type="button" id="node-delete-selected" class="node-del">删除这个节点</button>' : ''}</div></form>`;
   const form = element('node-edit') as HTMLFormElement, local = (key: string) => form.querySelector<HTMLElement>('#' + key)!;
   const targetId = 'tempId' in draft ? draft.tempId : 'id' in draft ? draft.id : undefined;
   const ownOps = () => [draft, ...draft.op === 'restore' ? nodeRestoreExtras : []];
@@ -403,6 +411,7 @@ async function openNode(op: NodeOperation['op'], target?: string, move?: { x: nu
     related.querySelectorAll<HTMLButtonElement>('[data-node-form-action]').forEach(button => button.onclick = () => { void openNode(button.dataset.nodeFormAction as NodeOperation['op'], row.id); });
   }
   const capture = (event?: Event) => {
+    if(event?.target instanceof HTMLElement){event.target.removeAttribute('aria-invalid');event.target.removeAttribute('aria-describedby');}
     const reasonOnly = event?.target === form.querySelector('#node-reason');
     if (draft.op === 'add' || draft.op === 'correct') {
       const fields: Partial<NodeFields> = {};
@@ -441,7 +450,7 @@ async function openNode(op: NodeOperation['op'], target?: string, move?: { x: nu
     event.preventDefault(); capture();
     if (draft.op === 'correct' && !Object.keys(draft.changes).length) { local('node-preview').textContent = '没有实际变化。'; local('node-error').textContent = ''; controls(); return; }
     if (needsReason() && !('reason' in draft && draft.reason?.trim())) { local('node-error').textContent = '请填写本次原因。'; local('node-reason').focus(); return; }
-    let saveDirectly = false;
+    let saveDirectly = false, errors:Record<string,string>|undefined;
     inFlight = true; controls();
     try {
       preview = await send<NodePreview>('/api/projects/' + id + '/save-preview', 'POST', { expectedVersion: editBaseVersion, idempotencyKey: crypto.randomUUID(), scope: kind === 'customer' ? 'customerNode' : 'projectNodes', ...(kind === 'customer' ? { target: targetId } : {}), changes: { nodeOps: operations() } });
@@ -449,12 +458,12 @@ async function openNode(op: NodeOperation['op'], target?: string, move?: { x: nu
       impact = preview.requiredUncompleteIds.filter(key => !(values!.nodeOps ?? []).some(op => 'affectedIds' in op && op.affectedIds.includes(key)));
       const affected = preview.nodeEvents.filter(event => event.before && (event.before.completedOn && !event.after.completedOn || event.before.previousNodeId && event.before.previousNodeId !== event.after.previousNodeId || event.before.nextNodeId && event.before.nextNodeId !== event.after.nextNodeId));
       if (affected.length || impact.length) {
-        local('node-preview').innerHTML = recordComparisons('node', affected) + (impact.length ? `<p>同时撤销以下节点的完成记录：${esc(impact.map(key => rows.find(row => row.id === key)?.title ?? key).join('、'))}。</p>` : '');
+        local('node-preview').innerHTML = nodeImpactPreview(preview, operations());
         local('node-accept').dataset.preview = 'true'; local('node-accept').hidden = false; submitButton.hidden = true; updateIntent();
       } else saveDirectly = true;
       local('node-error').textContent = '';
-    } catch (error) { const failure = error as SaveError; if (failure.code === 'PROJECT_VERSION_CONFLICT') stale = true; if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'PASSWORD_CHANGE_REQUIRED'].includes(failure.code)) authFrozen = true; local('node-error').textContent = failure.message + ' ' + Object.values(failure.fields ?? {}).join('；'); }
-    finally { inFlight = false; controls(); }
+    } catch (error) { const failure = error as SaveError; if (failure.code === 'PROJECT_VERSION_CONFLICT') stale = true; if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'PASSWORD_CHANGE_REQUIRED'].includes(failure.code)) authFrozen = true; errors=failure.fields;local('node-error').textContent = failure.message + ' ' + nodeErrorText(errors); }
+    finally { inFlight = false; controls();focusNodeError(errors); }
     if (saveDirectly && preview && !stale && !authFrozen) await saveNew(kind === 'customer' ? 'customerNode' : 'projectNodes', kind === 'customer' ? targetId : undefined, { nodeOps: structuredClone(operations()) });
   };
   local('node-accept').onclick = async () => {
@@ -588,7 +597,7 @@ async function openClosure(action: ClosureCommand['action'], initialType: 'norma
       const result = await send<ClosurePreview>(`/api/projects/${id}/actions/preview`, 'POST', draft);
       if (exact !== JSON.stringify(draft)) { element('closure-error').textContent = '输入已变化，请重新预览。'; return; }
       preview = result;
-      element('closure-preview').innerHTML = `<h3>保存影响</h3>${groupedComparison(actionLabels[action], Object.entries({ status: '总体状态', ...closureTitles, maintenanceEnabled: '维护标识' }).map(([key, field]) => ({ field, before: key === 'maintenanceEnabled' ? Number(result.beforeValues.closure[key]) ? '开启' : '关闭' : showValue(key, result.beforeValues.closure[key]), after: key === 'maintenanceEnabled' ? Number(result.afterValues.closure[key]) ? '开启' : '关闭' : showValue(key, result.afterValues.closure[key]) })).concat([{ field: '有效阶段进度', before: result.progress + '%', after: result.progress + '%' }, { field: '日期结果', before: result.beforeDeadline.label, after: result.afterDeadline.label }, { field: '检查记录', before: result.beforeCheck.label, after: result.afterCheck.label }]))}<h3>当前遗留</h3><p>阶段：${esc(result.remaining.stages.map(item => label(item.code) + '：' + label(item.state)).join(' / ') || '无')}；节点：${esc(result.remaining.nodes.map(item => item.title).join(' / ') || '无')}；风险：${esc(result.remaining.risks.map(item => item.content).join(' / ') || '无')}。</p><p>${result.changed ? '明确保存后生效。' : '内容一致，不新增版本或修改历史。'}</p>`;
+      element('closure-preview').innerHTML = `<h3>保存影响</h3>${closureImpactChain(result,action)}${groupedComparison(actionLabels[action], Object.entries({ status: '总体状态', ...closureTitles, maintenanceEnabled: '维护标识' }).map(([key, field]) => ({ field, before: key === 'maintenanceEnabled' ? Number(result.beforeValues.closure[key]) ? '开启' : '关闭' : showValue(key, result.beforeValues.closure[key]), after: key === 'maintenanceEnabled' ? Number(result.afterValues.closure[key]) ? '开启' : '关闭' : showValue(key, result.afterValues.closure[key]) })).concat([{ field: '有效阶段进度', before: result.progress + '%', after: result.progress + '%' }, { field: '日期结果', before: result.beforeDeadline.label, after: result.afterDeadline.label }, { field: '检查记录', before: result.beforeCheck.label, after: result.afterCheck.label }]))}<h3>当前遗留</h3><p>阶段：${esc(result.remaining.stages.map(item => label(item.code) + '：' + label(item.state)).join(' / ') || '无')}；节点：${esc(result.remaining.nodes.map(item => item.title).join(' / ') || '无')}；风险：${esc(result.remaining.risks.map(item => item.content).join(' / ') || '无')}。</p><p>${result.changed ? '明确保存后生效。' : '内容一致，不新增版本或修改历史。'}</p>`;
       element('closure-error').textContent = ''; (element('closure-save') as HTMLButtonElement).disabled = false;
     } catch (error) {
       const failure = error as SaveError;
@@ -742,7 +751,7 @@ async function openCorrection(action: CorrectionCommand['action'], code?: string
           const before = result.beforeStages.find(item => item.code === fact.code);
           return (['state', 'startedOn', 'completedOn'] as const).filter(key => before?.[key] !== fact[key]).map(key => ({ field: `${label(fact.code)} · ${{state:'状态',startedOn:'实际开始',completedOn:'实际完成'}[key]}`, before: key === 'state' ? label(before?.[key]) : before?.[key] ?? '未知', after: key === 'state' ? label(fact[key]) : fact[key] ?? '未知' }));
         });
-        if (await choose('请确认这次操作影响的阶段。', [['save','确认保存'],['cancel','返回修改']], groupedComparison(actionLabels[draft.action], rows)) !== 'save') return;
+        if (await choose('请确认这次操作影响的阶段。', [['save','确认保存'],['cancel','返回修改']], stageImpactChain(result, draft) + groupedComparison(actionLabels[draft.action], rows)) !== 'save') return;
         if (exact !== JSON.stringify(draft) || stale || authFrozen) return;
       } catch (error) {
         const failure = error as SaveError;
@@ -1090,7 +1099,7 @@ function choose(text: string, options: [string, string][], extra = ''): Promise<
   const dialog = element('editor-dialog') as HTMLDialogElement;
   if (dialog.open) return Promise.resolve('cancel');
   closeNotice();
-  dialog.innerHTML = `<p>${esc(text)}</p>${extra}<div class="edit-actions">${options.map(([value, title]) => `<button class="back-btn" data-choice="${value}">${title}</button>`).join('')}</div>`;
+  dialog.innerHTML = `<p>${esc(text)}</p>${extra}<div class="edit-actions">${options.map(([value, title]) => `<button class="${value === 'save' ? 'save-btn' : 'back-btn'}" data-choice="${value}">${title}</button>`).join('')}</div>`;
   return new Promise(resolve => {
     dialog.oncancel = event => { event.preventDefault(); dialog.close('cancel'); };
     dialog.onclose = () => resolve(dialog.returnValue);
@@ -1251,7 +1260,13 @@ async function saveNew(scope: SaveScope = 'basic', target?: string, explicit?: P
   if (!Object.keys(patch).length && !intent) { note('本区没有未保存的修改。'); return; }
   if(intent && snapshot.project.status==='closed' && intent.state!=='closed') {
     const exact = JSON.stringify({ patch, intent });
-    if(await choose('重新打开后退出本次结案，原结案记录保留。', [['save','确认保存'],['cancel','返回修改']]) !== 'save') return;
+    inFlight=true;controls();
+    try{
+      const result=await send<ClosurePreview>(`/api/projects/${id}/actions/preview`,'POST',{action:'reopenProject',expectedVersion:editBaseVersion,idempotencyKey:crypto.randomUUID(),closureAuditId:snapshot.currentClosure?.auditId ?? null,reason:intent.reason});
+      if(result.projectId!==id || result.expectedVersion!==editBaseVersion)throw new SaveError('RESPONSE_UNKNOWN','unknown');
+      if(await choose('重新打开后退出本次结案，原结案记录保留。', [['save','确认保存'],['cancel','返回修改']],closureImpactChain(result,'reopenProject')) !== 'save') return;
+    }catch(error){const failure=error as SaveError;if(failure.code==='PROJECT_VERSION_CONFLICT')stale=true;note(failure.message,true);return;}
+    finally{inFlight=false;controls();}
     if(stale || authFrozen || exact !== JSON.stringify({patch:explicit ?? scopeChanges(baseline(),values,scope,target),intent:basicDraft})) { note('输入或项目已有变化，请重新核对后保存。',true); return; }
   }
   const submission={scope,...target?{target}:{},changes:patch,...intent?{basicIntent:intent}:{}};
@@ -1312,7 +1327,7 @@ async function execute(confirm: boolean) {
       if (failure.code === 'PROJECT_VERSION_CONFLICT' || failure.code === 'SAVE_PROTOCOL_CHANGED') stale = true;
       if (failure.outcome === 'not_committed' && failure.code !== 'OPERATION_KEY_REUSED') pending = undefined;
       note(failure.message, true);
-      formError = failure.message + ' ' + Object.values(failure.fields ?? {}).join('；');
+      formError = failure.message + ' ' + nodeErrorText(failure.fields);
       if (failure.fields) fieldErrors(failure.fields, original.scope);
     }
     persist();
@@ -1321,7 +1336,7 @@ async function execute(confirm: boolean) {
     if (!committed && !pending && !stale && !authFrozen) {
       if (original.scope === 'risk' && riskDraft) { await openRisk(riskDraft.op, 'id' in riskDraft ? riskDraft.id : undefined); const target = document.getElementById('risk-error'); if (target) target.textContent = formError; }
       if (original.scope === 'change' && changeDraft) { await openChange(changeDraft.op, 'id' in changeDraft ? changeDraft.id : undefined); const target = document.getElementById('change-error'); if (target) target.textContent = formError; }
-      if ((original.scope === 'customerNode' || original.scope === 'projectNodes') && nodeDraft) { await openNode(nodeDraft.op, 'id' in nodeDraft ? nodeDraft.id : undefined); const target = document.getElementById('node-error'); if (target) target.textContent = formError; }
+      if ((original.scope === 'customerNode' || original.scope === 'projectNodes') && nodeDraft) { await openNode(nodeDraft.op, 'id' in nodeDraft ? nodeDraft.id : undefined); const target = document.getElementById('node-error'); if (target) target.textContent = formError;focusNodeError(validationErrors); }
     }
   }
 }
@@ -1406,6 +1421,63 @@ function groupedRows(title: string, items: Entry[]): Entry[] {
   return changed.length ? [{ field: title, before: changed.map(row => `${row.field}：${row.before}`).join('\n'), after: changed.map(row => `${row.field}：${row.after}`).join('\n') }] : [];
 }
 function groupedComparison(title: string, items: Entry[]) { return comparison(groupedRows(title, items)); }
+function impactChain(items: { cause: string; effects: string[] }[]) {
+  const changed=items.filter(item=>item.effects.length);
+  return changed.length?`<section class="impact-chain" aria-label="保存后的联动"><h4>保存后将如何联动</h4><ol>${changed.map(item=>`<li><strong>${esc(item.cause)}</strong><ul>${item.effects.map(effect=>`<li>${esc(effect)}</li>`).join('')}</ul></li>`).join('')}</ol></section>`:'';
+}
+function stageImpactChain(result:CorrectionPreview, command:CorrectionCommand) {
+  if(command.action==='correctStageFacts')return '';
+  const target=result.stageChanges.find(stage=>stage.code===command.stageCode), before=result.beforeStages.find(stage=>stage.code===command.stageCode);
+  if(!target || !before)return '';
+  const name=(code:unknown)=>String(code)+' '+label(code), effects=[`${name(target.code)}：${label(before.state)} → ${label(target.state)}。`];
+  for(const next of result.stageChanges.filter(stage=>stage.code!==target.code)){
+    const old=result.beforeStages.find(stage=>stage.code===next.code);
+    if(old?.state!==next.state)effects.push(`因为 ${name(target.code)} 保存后为${label(target.state)}、尚未完成，后续 ${name(next.code)} 不能继续推进：${label(old?.state)} → ${label(next.state)}。`);
+  }
+  if(result.progressBefore!==result.progressAfter)effects.push(`已完成阶段随之减少，项目进度：${result.progressBefore}% → ${result.progressAfter}%。`);
+  return impactChain([{cause:`${actionLabels[command.action]}：${name(target.code)}`,effects}]);
+}
+function nodeImpactPreview(result:NodePreview, operations:NodeOperation[]) {
+  const next=new Map(result.nodes.map(node=>[node.id,node])), before=new Map(nodeCopy(true).map(node=>[node.id,node]));
+  for(const event of result.nodeEvents)if(event.before)before.set(event.id,event.before);
+  const name=(key:string|null)=>key?(next.get(key)?.title || before.get(key)?.title || key):'无';
+  const events=result.nodeEvents.map(event=>({...event,after:result.requiredUncompleteIds.includes(event.id)?{...event.after,completedOn:null}:event.after}));
+  for(const key of result.requiredUncompleteIds)if(!events.some(event=>event.id===key)){
+    const old=before.get(key),row=next.get(key);if(old && row)events.push({id:key,before:old,after:{...row,completedOn:null},operations:[],reason:''});
+  }
+  const graph=operations.filter(op=>['uncomplete','link','unlink','delete','restore'].includes(op.op));
+  const root=(op:NodeOperation)=>'from' in op?op.from:'id' in op?op.id:'tempId' in op?op.tempId:'';
+  const owners=new Map<string,{ops:NodeOperation[];cause:string;effects:string[]}>();
+  for(const op of graph){
+    const cause=`${nodeLabels[op.op]}：${name(root(op))}${'to' in op?' → '+name(op.to):''}`,item=owners.get(root(op));
+    if(item){item.ops.push(op);item.cause+='；'+cause;}else owners.set(root(op),{ops:[op],cause,effects:[]});
+  }
+  const items=[...owners.values()];
+  for(const item of items){
+    for(const event of result.nodeEvents.filter(event=>event.operations.some(op=>item.ops.some(request=>op.op===request.op && root(op)===root(request) && (!('to' in op) || 'to' in request && op.to===request.to))))){
+      if(!event.before)continue;
+      const old=event.before,after=event.after;
+      if(old.completedOn!==after.completedOn && !result.requiredUncompleteIds.includes(event.id))item.effects.push(`${name(event.id)}的实际完成：${old.completedOn ?? '未完成'} → ${after.completedOn ?? '未完成'}。`);
+      if(!!old.deletedAt!==!!after.deletedAt)item.effects.push(`${name(event.id)}：${old.deletedAt?'已删除':'有效'} → ${after.deletedAt?'已删除':'有效'}。`);
+      for(const key of ['previousNodeId','nextNodeId'] as const)if(old[key]!==after[key])item.effects.push(`本次${item.ops.some(op=>op.op==='delete')?'删除解除原连线':'连线调整'}使 ${name(event.id)} 的${key==='previousNodeId'?'前置':'后续'}：${name(old[key])} → ${name(after[key])}。`);
+    }
+  }
+  for(const key of result.requiredUncompleteIds){
+    const path=[key],seen=new Set(path);let current=next.get(key)?.previousNodeId;
+    while(current && !seen.has(current)){path.unshift(current);seen.add(current);if(owners.has(current))break;current=next.get(current)?.previousNodeId;}
+    const item=owners.get(path[0]);
+    if(item && before.get(key)?.completedOn)item.effects.push(`依赖路径 ${path.map(name).join(' → ')}：${name(key)} 的前置将未完成，因此它的实际完成也需撤销（${before.get(key)!.completedOn} → 未完成）。`);
+  }
+  return impactChain(items)+recordComparisons('node',events);
+}
+function closureImpactChain(result:ClosurePreview, action:ClosureCommand['action']) {
+  if(!['reopenProject','closeProject'].includes(action))return '';
+  const before=result.beforeValues.closure,after=result.afterValues.closure,effects:string[]=[];
+  if(before.status!==after.status)effects.push(`项目状态：${label(before.status)} → ${label(after.status)}。`);
+  for(const [key,title] of Object.entries(closureTitles))if(before[key]!==after[key])effects.push(action==='reopenProject'?`退出当前结案后，${title}不再作为当前结案事实；原值保留在历史（${showValue(key,before[key])} → ${showValue(key,after[key])}）。`:`本次结案将记录${title}：${showValue(key,before[key])} → ${showValue(key,after[key])}。`);
+  if(Number(before.maintenanceEnabled)!==Number(after.maintenanceEnabled))effects.push(`随本次状态变更，结案后维护：${Number(before.maintenanceEnabled)?'开启':'关闭'} → ${Number(after.maintenanceEnabled)?'开启':'关闭'}。`);
+  return impactChain([{cause:actionLabels[action],effects}]);
+}
 function recordRows(kind: 'risk' | 'change' | 'node', before: unknown, after: unknown): Entry[] {
   const old = (before ?? {}) as Record<string, unknown>, next = (after ?? {}) as Record<string, unknown>;
   const fields: Record<string, string> = kind === 'risk' ? { content: '风险内容', level: '风险等级', resolved: '风险状态', resolution: '解除说明', deletedAt: '记录状态' }
@@ -1422,7 +1494,8 @@ function recordRows(kind: 'risk' | 'change' | 'node', before: unknown, after: un
   const changes = Object.entries(fields).filter(([key]) => kind !== 'node' || (customer ? !['stage', 'output', 'previousNodeId', 'nextNodeId', 'x', 'y'].includes(key) : key !== 'note'))
     .filter(([key]) => !(empty(old[key]) && empty(next[key])) && display(key, old[key]) !== display(key, next[key]))
     .map(([key, field]) => ({ field, before: display(key, old[key]), after: display(key, next[key]) }));
-  const target = next.id ?? old.id, title = (kind === 'change' ? '需求变更' : kind === 'risk' ? '风险' : customer ? '客户节点' : '项目节点') + (/^[1-9][0-9]*$/.test(String(target)) ? ' #' + target : '');
+  const target = next.id ?? old.id, name = kind === 'node' ? next.title || old.title : undefined;
+  const title = (kind === 'change' ? '需求变更' : kind === 'risk' ? '风险' : customer ? '客户节点' : '项目节点') + (name ? '：' + name : /^[1-9][0-9]*$/.test(String(target)) ? ' #' + target : '');
   const result = groupedRows(title, changes);
   if (result.length && before == null) result[0].before = '（无记录）';
   if (result.length && after == null) result[0].after = '（记录移除）';
@@ -1465,7 +1538,7 @@ function render() {
     + (audit?.items.length ? auditHistory(audit.items) : audit ? '<p>暂无服务器修改历史。</p>' : '')
     + `</div><p class="read-message">${esc(auditMessage)}</p><button class="back-btn" id="audit-refresh">重新读取历史</button>${audit?.nextCursor ? '<button class="back-btn" id="audit-more">读取更早记录</button>' : ''}`
     + (snapshot.history.length ? '<details class="secondary-section"><summary>本地原有记录</summary><div class="history">' + snapshot.history.slice().reverse().map(item => `<div class="h-item"><span class="h-dot" aria-hidden="true"></span><div class="h-date">${esc(item.date)}</div><div class="h-text">${esc(item.text)}</div></div>`).join('') + '</div></details>' : '');
-  else if (tab === 'risk') content = signalEditor() + riskPanel() + changePanel();
+  else if (tab === 'risk') content = signalEditor() + '<section class="record-section">' + riskPanel() + '<div id="risk-form"></div></section><section class="record-section">' + changePanel() + '<div id="change-form"></div></section>';
   if (planDraft && !stagePending) recovery += `<p>${esc(actionLabels[planDraft.action])}</p><button class="back-btn" id="plan-restore">恢复计划/日期表单</button><button class="back-btn" id="plan-discard">放弃该副本</button>${planDraft.action === 'reschedulePlan' ? '<button class="back-btn" id="plan-as-note">作为补充说明重新预览</button>' : ''}`;
   if (tab === 'history' && snapshot.lifecycleNotes.length) {
     content += '<details class="secondary-section" id="lifecycle-history"><summary>暂缓与恢复说明 · 查看或纠正</summary>'
@@ -1479,7 +1552,7 @@ function render() {
   if (nodeDraft) recovery += '<p>节点编辑</p><button class="back-btn" id="node-restore">恢复节点表单</button>';
   if (changeDraft) recovery += '<p>需求变更编辑</p><button class="back-btn" id="change-restore">恢复需求变更表单</button>';
   if (riskDraft) recovery += '<p>风险编辑</p><button class="back-btn" id="risk-restore">恢复风险表单</button>';
-  content += '<div id="change-form"></div><div id="risk-form"></div><div id="plan-form"></div><div id="lifecycle-form"></div><div id="closure-form"></div><div id="check-form"></div>';
+  content += '<div id="plan-form"></div><div id="lifecycle-form"></div><div id="closure-form"></div><div id="check-form"></div>';
   element('project-menu').hidden = true;
   element('project-actions').innerHTML = '';
   refreshCheckButton();
@@ -1594,7 +1667,10 @@ document.querySelectorAll<HTMLAnchorElement>('.project-nav a, .top-sticky a').fo
   event.preventDefault(); persist();
   const choice = await choose(pending || stagePending ? '原保存结果尚未确认，离开会保留原操作恢复信息。' : '项目尚未保存，如何离开当前页面？', [['cancel', '继续编辑'], ['keep', '保留草稿并离开'], ...(!pending && !stagePending ? [['discard', '放弃编辑并离开'] as [string, string]] : [])]);
   if (choice === 'cancel') return;
-  if(choice==='keep' && !await personalDrafts?.sync() && await choose('草稿未全部同步，当前设备保留了副本。仍要离开吗？',[['cancel','留在这里'],['leave','保留本机副本并离开']])!=='leave')return;
+  if(choice==='keep' && !await personalDrafts?.sync()){
+    const localProtected=!storageFailed || personalDrafts?.hasLocalCopy();
+    if(await choose(localProtected?'草稿未全部同步，当前设备保留了副本。仍要离开吗？':'草稿未同步，本机副本也未保存；离开可能丢失输入，请先复制内容。仍要离开吗？',[['cancel','留在这里'],['leave',localProtected?'保留本机副本并离开':'已复制，仍然离开']])!=='leave')return;
+  }
   if (choice === 'discard') { if(!await discardPersonal())return;candidate = undefined; stageDraft = undefined; correctionDraft = undefined; planDraft = undefined; lifecycleDraft = undefined; closureDraft = undefined; checkDraft = undefined; persistStage(); try { sessionStorage.removeItem(bufferKey); } catch { storageFailed = true; } }
   leaving = true;
   location.href = link.href;
@@ -1616,7 +1692,8 @@ void requireIdentity().then(async () => {
   personalDrafts=new PersonalDrafts(id,()=>({version:editBaseVersion,editable:!!snapshot?.capabilities.editText && !authFrozen && !stale}),restorePersonalDraft);
   bufferKey = `geekdash_project_buffer:${account!.id}:${id}`;
   // 匿名副本不归属任一账号；只提示保留供核对，不自动作为实名编辑恢复。
-  if (sessionStorage.getItem(`geekdash_trial_text_v1:${id}`)) note('发现旧试用副本，请保留原标签页内容供核对；新编辑按当前账号隔离。');
+  try { if (sessionStorage.getItem(`geekdash_trial_text_v1:${id}`)) note('发现旧试用副本，请保留原标签页内容供核对；新编辑按当前账号隔离。'); }
+  catch { storageFailed=true;note('本机恢复存储不可用，请确认草稿同步或复制未保存内容。',true); }
   try { responsibilityPending = JSON.parse(sessionStorage.getItem(responsibilityKey()) ?? 'null') ?? undefined; } catch { note('责任变更恢复信息损坏，请先核对当前负责人。', true); }
   try {
     const saved = JSON.parse(sessionStorage.getItem(stageKey()) ?? 'null');

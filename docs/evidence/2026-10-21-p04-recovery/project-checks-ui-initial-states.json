@@ -1,0 +1,37 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-21T03:16:12.689Z",
+  "checks": [
+    "PRD9.13-4：检查初始列表请求失败明确报错，无伪空集合、无通过入口；重读真实完整卡片成功，原筛选/返回范围保留，新SQL确认未写检查。",
+    "PRD9.13-2：真实筛选先得到已查0条；唯一未查项目通过后未查0条，专属空文案/分页/返回范围正确；已查新请求看到原项目，SQL一条检查和审计，无重复写。",
+    "PRD9.13-4：在真实读取响应边界移除inspection模拟不完整快照，卡片明确重读且拒绝通过；真实重读恢复完整内容，检查事实不变。"
+  ],
+  "requestCount": 25,
+  "build": {
+    "revision": "8ca31d4fe19d55e8e67bc0884aa1c263622f4511",
+    "dirty": true,
+    "builtAt": "2026-10-21T02:49:49.646Z",
+    "stage": "project-list",
+    "schemaVersion": "0005-check-facts"
+  },
+  "sourceHashes": {
+    "src/web/project-checks.html": "a2505c233a0209f3d67b94389dfbed343b53265f01bde3d18e33d196bc1fd8a4",
+    "src/web/project-checks.ts": "9a35a5a9ecdb4989f749ef2f0ecf7e9f6224dc7858808d51cd9f62b26ee66b7d",
+    "src/web/project-detail.html": "c63645fcc317bbb48a1bd66543a24cfc77c5ca020bae5d3bd259f1ab44d1804c",
+    "src/web/detail.ts": "625f5c8d6a04f41e8d6dd388985bbd8f190fe0418aab12d408d49aa92ade284a",
+    "src/web/shared/api.ts": "35c55b9c45dcca08ec1420e5e40a52a70312b1ae8b89334a48be33fe88b1b01b",
+    "src/web/shared/reference-picker.ts": "072d316ea2dffc6d6f2e4fc082a5517908ce578decbdd9ec38bc43a9fc253a44",
+    "/workspace/src/web/project-checks.ts": "9a35a5a9ecdb4989f749ef2f0ecf7e9f6224dc7858808d51cd9f62b26ee66b7d",
+    "/workspace/src/web/shared/inspection.ts": "9ae8f02abc84d3a91445cf3571925fdf3326a231e648af96ec5aaf40f7b5e8ee",
+    "/workspace/src/web/shared/api.ts": "35c55b9c45dcca08ec1420e5e40a52a70312b1ae8b89334a48be33fe88b1b01b",
+    "/workspace/src/web/shared/auth-return.ts": "3dcbad14114ed9975b74cc2dcd1642dfcd71a354930960c12cbe4e170d4fe069",
+    "/workspace/src/web/shared/personal-state.ts": "51659070e83e580d6664447ee119acdad0e8a34752c813b05180daa1efd8457b",
+    "/workspace/src/web/shared/history.ts": "a9f1534f57f416b804ac57c7a258b4fe04fc3649ad99bc641e89bd84eafd493c",
+    "/workspace/src/web/shared/notifications.ts": "2a4f0e157d0c39485d3cced98a861e8be6f4f1792d19ce02df1665e9bc031b73"
+  },
+  "isolatedTestDatabase": true,
+  "syntheticOnly": true,
+  "domExecution": true,
+  "nativeBrowserAcceptance": false,
+  "visualAcceptance": false
+}

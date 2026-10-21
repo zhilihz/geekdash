@@ -14,6 +14,7 @@ import { hashPassword } from '../dist/server/modules/identity.js';
 const { JSDOM, CookieJar, VirtualConsole } = await import(process.env.GEEKDASH_DOM_LIBRARY ?? '../test-results/ui-dom-tools/node_modules/jsdom/lib/api.js');
 const prefix = 'checks_ui_' + randomUUID().slice(0, 8), password = '检查页面整链 password 2026';
 const users = [], projects = [], views = [], errors = [], checks = [];
+const initialStatesMode = process.argv.includes('--initial-states');
 const sourcePaths = ['src/web/project-checks.html', 'src/web/project-checks.ts', 'src/web/project-detail.html', 'src/web/detail.ts', 'src/web/shared/api.ts', 'src/web/shared/reference-picker.ts'];
 const sources = Object.fromEntries(await Promise.all(sourcePaths.map(async path => [path, await readFile(path, 'utf8')])));
 const stageSource = (await readFile('geekdashdesktop/projects-data.js', 'utf8')).match(/const STAGES = (\[[\s\S]*?\n  \]);/);
@@ -47,12 +48,12 @@ async function waitFor(predicate, message) {
   while (Date.now() < end) { if (errors.length) throw errors[0]; if (predicate()) return; await new Promise(resolve => setTimeout(resolve, 20)); }
   throw new Error('未出现预期状态：' + message);
 }
-async function page(user, path, { storage = {}, holdConfirm = false, realtime = false, restorePrompt = false } = {}) {
+async function page(user, path, { storage = {}, holdConfirm = false, realtime = false, restorePrompt = false, failInitialList = false, missingInspection = false } = {}) {
   const detail = path.startsWith('/project-detail.html'), html = sources[detail ? 'src/web/project-detail.html' : 'src/web/project-checks.html'];
   const virtualConsole = new VirtualConsole(); virtualConsole.on('jsdomError', reject);
   const dom = new JSDOM(html, { url: origin + path, cookieJar: user.jar, runScripts: 'outside-only', pretendToBeVisual: true, virtualConsole }); views.push(dom);
   const w = dom.window, reads = [], requests = [];
-  const panel = { dom, w, reads, requests, events: [], dropAck: false, releaseConfirm: undefined };
+  const panel = { dom, w, reads, requests, events: [], dropAck: false, releaseConfirm: undefined, failNextList: failInitialList, missingInspection };
   if (!detail) {
     const NativeDate = w.Date, interval = w.setInterval.bind(w);
     w.Date = class extends NativeDate { constructor(...args) { super(...(args.length ? args : [panel.now ?? NativeDate.now()])); } static now() { return panel.now ?? NativeDate.now(); } };
@@ -80,6 +81,7 @@ async function page(user, path, { storage = {}, holdConfirm = false, realtime = 
     if (panel.failNextList && url.startsWith('/api/projects?')) { panel.failNextList = false; throw new Error('模拟提交后列表读取失败'); }
     const entry = { path: url, method: options.method ?? 'GET', body: options.body ? JSON.parse(options.body) : undefined }; requests.push(entry);
     const response = await user.fetch(url, options); entry.status = response.status;
+    if(panel.missingInspection && url.startsWith('/api/projects?')){const json=response.json.bind(response);response.json=async()=>{const data=await json();for(const item of data.items)delete item.inspection;return data;};}
     if(panel.holdDetailRead && entry.method==='GET' && /^\/api\/projects\/\d+$/.test(url) && response.ok){panel.holdDetailRead=false;await new Promise(resolve=>{panel.releaseDetailRead=resolve;});}
     if (entry.method === 'GET' && url.startsWith('/api/projects') && response.ok) reads.push({ path: url, data: await response.clone().json() });
     if (holdConfirm && url.endsWith('/action-results/query')) { holdConfirm = false; await new Promise(resolve => { panel.releaseConfirm = resolve; }); }
@@ -102,7 +104,7 @@ async function page(user, path, { storage = {}, holdConfirm = false, realtime = 
   panel.$ = selector => w.document.querySelector(selector);
   panel.click = selector => { const node = panel.$(selector); assert(node, selector); assert.equal(node.closest('[hidden]'), null, selector + ' 必须可见'); assert(!node.disabled, selector + ' 不应禁用'); const dialog = node.closest('dialog'); if (dialog) assert(dialog.open); node.click(); };
   panel.input = (selector, value) => { const node = panel.$(selector); assert(node && !node.disabled, selector); node.value = value; node.dispatchEvent(new w.Event('input', { bubbles: true })); };
-  await waitFor(() => detail ? restorePrompt ? panel.$('[data-choice="restore"]') : !panel.$('#detail-panel').hidden && !panel.$('#reload').disabled : panel.$('#page-info').textContent, '实际页面初次读取');
+  await waitFor(() => detail ? restorePrompt ? panel.$('[data-choice="restore"]') : !panel.$('#detail-panel').hidden && !panel.$('#reload').disabled : failInitialList ? panel.$('#check-loading').textContent.includes('读取失败') && !panel.$('#check-reload').disabled : panel.$('#page-info').textContent, '实际页面初次读取');
   if(realtime)await waitFor(()=>panel.events.some(event=>event.event==='connected'),'实际页面SSE连接');
   return panel;
 }
@@ -130,12 +132,33 @@ try {
   const runtime = await openRuntimeDatabase('test_app'); app = await createApp(runtime, { origin: 'http://localhost', secure: false }); origin = await app.listen({ host: '127.0.0.1', port: 0 });
   const a = client(), b = client(); await a.login(0); await b.login(1);
   const ids = {};
-  for (const name of ['success', 'correct', 'conflict', 'lost', 'denied']) {
+  for (const name of initialStatesMode?['success']:['success', 'correct', 'conflict', 'lost', 'denied']) {
     const user = name === 'denied' ? b : a;
     const created = await user.api('/api/projects', 'POST', { idempotencyKey: randomUUID(), fields: { name: prefix + '_' + name, summaryNote: '独立检查页面合成项目' } });
     ids[name] = created.result.projectId; projects.push(created.result.projectId);
     await user.api('/api/projects/' + ids[name], 'PATCH', { scope: 'status', expectedVersion: created.result.savedVersion, idempotencyKey: randomUUID(), changes: { statusDesc: '资料已核对\n原说明保持只读' } });
   }
+  if(initialStatesMode){
+    const id=ids.success,path='/project-checks.html?view=all&search='+prefix,before=await facts(id);
+    const failed=await page(a,path,{failInitialList:true});
+    assert.equal(failed.$('.checks-empty'),null);assert.equal(failed.$('.check-card'),null);assert(failed.$('#next').disabled);assert.match(failed.$('#check-loading').textContent,/读取失败/);assert.deepEqual(await facts(id),before);
+    failed.click('#check-reload');await waitFor(()=>failed.$(pass(id)) && !failed.$(pass(id)).disabled && settled(failed),'首次失败后重读完整卡片');
+    assert.match(failed.$(card(id)).textContent,/资料已核对/);assert.equal(new URL(failed.$('#back').href).searchParams.get('search'),prefix);assert.deepEqual(await facts(id),before);
+    checks.push('PRD9.13-4：检查初始列表请求失败明确报错，无伪空集合、无通过入口；重读真实完整卡片成功，原筛选/返回范围保留，新SQL确认未写检查。');
+    failed.click('[data-check-today="checked"]');await waitFor(()=>settled(failed) && failed.$('.checks-empty'),'真实已查范围为空');
+    assert.equal(failed.$('.checks-empty').textContent,'当前范围今天还没有检查记录');assert.equal(lists(failed).at(-1).data.pagination.total,0);assert.equal(failed.$('[data-check-project]'),null);assert(failed.$('#next').disabled);assert(failed.$('#previous').disabled);
+    failed.click('[data-check-today="unchecked"]');await waitFor(()=>settled(failed) && failed.$(pass(id)) && !failed.$(pass(id)).disabled,'切回唯一未查项目');failed.click(pass(id));
+    await waitFor(()=>settled(failed) && failed.$('.checks-empty')?.textContent==='当前范围今天没有待检查项目','全范围已查后未查集合为空');
+    const after=await facts(id);assert.equal(after.records.length,1);assert.equal(after.audit.length,1);assert.equal(lists(failed).at(-1).data.pagination.total,0);assert.equal(failed.$('[data-check-project]'),null);assert.equal(new URL(failed.$('#back').href).searchParams.get('search'),prefix);
+    failed.click('[data-check-today="checked"]');await waitFor(()=>settled(failed) && failed.$(card(id)),'已查列表消费刚保存事实');assert(failed.$(pass(id)).disabled);assert((await a.api('/api/projects/'+id)).project.checkedToday);assert.deepEqual(await facts(id),after);
+    checks.push('PRD9.13-2：真实筛选先得到已查0条；唯一未查项目通过后未查0条，专属空文案/分页/返回范围正确；已查新请求看到原项目，SQL一条检查和审计，无重复写。');
+    const missingCreated=await a.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+'_missing',summary:'缺快照合成项目'}}),missingId=missingCreated.result.projectId;projects.push(missingId);
+    const missingBefore=await facts(missingId),missing=await page(a,path+'_missing',{missingInspection:true});
+    assert.match(missing.$(card(missingId)).textContent,/完整项目内容尚未读到，请重新读取后检查/);assert(missing.$(pass(missingId)).disabled);assert.deepEqual(await facts(missingId),missingBefore);
+    assert.equal((await a.api('/api/projects/'+missingId)).project.checkedToday,false,'用未检查项目验证缺快照时禁用');
+    missing.missingInspection=false;missing.click('#check-reload');await waitFor(()=>settled(missing) && !missing.$(card(missingId)).textContent.includes('完整项目内容尚未读到'),'缺快照重读恢复完整信息');assert(!missing.$(pass(missingId)).disabled,'完整快照恢复后同一未查项目才可检查');assert.deepEqual(await facts(missingId),missingBefore);
+    checks.push('PRD9.13-4：在真实读取响应边界移除inspection模拟不完整快照，卡片明确重读且拒绝通过；真实重读恢复完整内容，检查事实不变。');
+  }else{
   const recordPath='/api/projects/'+ids.success;
   const recordSave=async(scope,changes,target)=>{
     const detail=await a.api(recordPath);
@@ -378,9 +401,10 @@ try {
   assert.equal(refreshAfter.project.name,'页面刷新后继续保存的名称');assert.equal(refreshAfter.project.statusDesc,'人工进展原文\n等待客户确认；不由系统拼接。');assert.equal(refreshRecovered.$('#edit-statusDesc').value,'页面刷新后保留的人工说明');assert.deepEqual(refreshAfterFacts.records,refreshFacts.records);assert.deepEqual(refreshAfterFacts.audit,refreshFacts.audit);assert.deepEqual(refreshAfterFacts.receipts,refreshFacts.receipts);
   checks.push('详情检查刷新恢复：两区未保存→真实COMMIT丢响应→销毁页面并恢复同一sessionStorage→自动查询原回执→明确恢复两区输入；按本人已确认检查版本继续保存且不夹带另一区，检查事实/审计/回执仅一条；另验证回读暂扣期间不能二次检查');
 
+  }
   const build = (await a.api('/api/health/live')).build;
   const result = { status: 'passed', checkedAt: new Date().toISOString(), checks, requestCount, build, sourceHashes: Object.fromEntries(Object.entries(sources).map(([name, value]) => [name, createHash('sha256').update(value).digest('hex')])), isolatedTestDatabase: true, syntheticOnly: true, domExecution: true, nativeBrowserAcceptance: false, visualAcceptance: false };
-  await mkdir('test-results', { recursive: true }); await writeFile('test-results/project-checks-ui-check.json', JSON.stringify(result, null, 2) + '\n');
+  await mkdir('test-results', { recursive: true }); await writeFile(initialStatesMode?'test-results/project-checks-ui-initial-states.json':'test-results/project-checks-ui-check.json', JSON.stringify(result, null, 2) + '\n');
   console.log(JSON.stringify({ status: result.status, groups: checks.length, requestCount }));
 } finally {
   for (const view of views) {for(const stream of view.streams ?? [])stream.close();view.window.close();} if (app) await app.close();

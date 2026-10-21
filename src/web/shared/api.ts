@@ -140,7 +140,7 @@ document.addEventListener('click', event => {
 function clearLocalAccountState(){
   if(!account)return;
   const prefixes=['geekdash_quick:','geekdash_summary:','geekdash_catalog:','geekdash_draft:','geekdash_page:','geekdash_create:','geekdash_project_buffer:','geekdash_stage_action:','geekdash_responsibility:','geekdash_preference:','geekdash_check:','geekdash_board_return:'].map(prefix=>prefix+account!.id);
-  for(const storage of [localStorage,sessionStorage])try{for(const key of Object.keys(storage))if(prefixes.some(prefix=>key===prefix || key.startsWith(prefix+':')))storage.removeItem(key);}catch{/* 清理失败不重新发送旧账号数据；页面身份仍被冻结。 */}
+  for(const name of ['localStorage','sessionStorage'] as const)try{const storage=window[name];for(const key of Object.keys(storage))if(prefixes.some(prefix=>key===prefix || key.startsWith(prefix+':')))storage.removeItem(key);}catch{/* 清理失败不重新发送旧账号数据；页面身份仍被冻结。 */}
 }
 function headers(active: boolean) {
   if (contextChanged) { identityRecovery(); throw new SaveError('AUTH_CONTEXT_CHANGED', 'not_committed'); }
@@ -180,7 +180,7 @@ export async function send<T>(path: string, method: 'PATCH' | 'POST', body: unkn
   let data;
   try { data = await response.json(); } catch { throw new SaveError('RESPONSE_UNKNOWN', 'unknown'); }
   if (contextChanged) throw new SaveError('AUTH_CONTEXT_CHANGED', 'unknown');
-  if (!response.ok) { if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'PASSWORD_CHANGE_REQUIRED', 'CSRF_INVALID'].includes(data.code)) identityRecovery(); throw new SaveError(data.code, data.outcome ?? 'unknown', data.fields); }
+  if (!response.ok) { if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'PASSWORD_CHANGE_REQUIRED', 'CSRF_INVALID'].includes(data.code)) identityRecovery(); const code=response.status===413 && path==='/api/personal/drafts/save'?'DRAFT_TOO_LARGE':data.code;throw new SaveError(code, data.outcome ?? 'unknown', data.fields); }
   return data as T;
 }
 export async function get<T>(path: string, signal?: AbortSignal, active = true): Promise<T> {

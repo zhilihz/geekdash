@@ -4,15 +4,15 @@
 .board-brand { color: var(--text); font-size: 24px; font-weight: 700; text-decoration: none; }
 .board-page .current-page { font-size: 13px; }
 .board-page .head-actions { margin-left: auto; }
-.board-page .head-btn, .board-page .view-switch button { font-size: 13px; padding: 9px 13px; text-decoration: none; }
+.board-header .head-btn { white-space: nowrap; }
+.board-page .view-switch button { font-size: 13px; padding: 7px 13px; }
 .board-page .theme-switch button.active { background: var(--accent-dim); }
 .board-page .date-zone { margin: 10px 0; font-size: 12px; }
 .board-page h2 { font-size: 18px; margin: 0; }
 .board-check-entry { display: flex; align-items: center; justify-content: space-between; gap: 20px; background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: 12px; padding: 18px 22px; margin: 12px 0 16px; }
 .board-page .board-check-entry h2 { font-size: 16px; }
 .board-check-entry p { margin: 6px 0 0; color: var(--text-dim); font-size: 14px; }
-.board-primary { display: inline-flex; align-items: center; justify-content: center; padding: 10px 20px; border: 1px solid var(--accent-dim); border-radius: 6px; background: var(--accent-dim); color: #fff; font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; }
-.board-primary:hover { filter: brightness(1.1); }
+.board-primary { white-space: nowrap; }
 .board-primary[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
 .board-views { display: flex; align-items: flex-end; gap: 24px; margin: 20px 0; }
 .board-view-group { min-width: 0; }

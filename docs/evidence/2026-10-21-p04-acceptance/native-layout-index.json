@@ -1,0 +1,302 @@
+[
+  {
+    "name": "summary-warm",
+    "url": "http://127.0.0.1:41865/project-status-summary.html",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "detail-basic-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "detail-stages-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "detail-nodes-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "detail-flow-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "detail-custnodes-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "detail-risk-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "detail-history-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "detail-info-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "detail-stages-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "detail-nodes-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "detail-flow-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "detail-custnodes-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "detail-risk-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "detail-history-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "detail-info-light",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "light",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "detail-risk-dark",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "dark",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "board-warm",
+    "url": "http://127.0.0.1:41865/?view=active&page=1",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "checks-warm",
+    "url": "http://127.0.0.1:41865/project-checks.html?view=all&checkToday=unchecked&page=1",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "new-warm",
+    "url": "http://127.0.0.1:41865/project-new.html",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "catalog-warm",
+    "url": "http://127.0.0.1:41865/data-manage.html",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "settings-warm",
+    "url": "http://127.0.0.1:41865/settings.html",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "uniform-risk-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "uniform-info-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "uniform-stages-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "uniform-nodes-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "uniform-flow-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "uniform-custnodes-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "uniform-risk-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  },
+  {
+    "name": "uniform-history-warm",
+    "url": "http://127.0.0.1:41865/project-detail.html?id=9007199254760602",
+    "theme": "warm",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    }
+  }
+]

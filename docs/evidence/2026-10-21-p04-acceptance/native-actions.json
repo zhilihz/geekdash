@@ -1,0 +1,38 @@
+{
+  "build": {
+    "revision": "364c63fe16ac286e6f16df6b38b3d60ebab6200e",
+    "dirty": false,
+    "builtAt": "2026-10-20T10:01:39.638Z",
+    "stage": "project-list",
+    "schemaVersion": "0005-check-facts"
+  },
+  "projects": [
+    "9007199254760601",
+    "9007199254760602"
+  ],
+  "steps": [
+    {
+      "action": "create_long_description_from_form",
+      "id": "9007199254760601",
+      "lines": 75
+    },
+    {
+      "action": "create_second_project_from_form",
+      "id": "9007199254760602"
+    },
+    {
+      "action": "filter_and_select_export",
+      "selected": 2
+    },
+    {
+      "action": "native_click_pdf",
+      "popup": "91DDC824ADC0E403148173A564CCF9E7"
+    },
+    {
+      "action": "capture_native_pdf",
+      "bytes": 111426,
+      "pages": 6,
+      "knownIssue": "first_page_has_title_only"
+    }
+  ]
+}

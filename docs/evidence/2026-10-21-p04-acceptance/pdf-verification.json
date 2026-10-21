@@ -1,0 +1,19 @@
+{
+  "pages": 5,
+  "all75ParagraphsOnceAndInOrder": true,
+  "bodyStartsOnFirstPage": true,
+  "all11HeadersOnEveryPage": true,
+  "secondProjectCompleteAndAfterFirst": true,
+  "pageSizePoints": [
+    1191.12,
+    841.91998
+  ],
+  "renderedPagesVisuallyReviewed": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "source": "实际产品打印按钮生成的窗口，由同一 Edge 的 Page.printToPDF 取得原生渲染文件；系统另存为对话框未验证。"
+}

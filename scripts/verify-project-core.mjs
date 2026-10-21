@@ -135,6 +135,13 @@ try {
   assert.equal((await b.api('/api/projects/' + resolvedCreate.result.projectId)).readOnly, false);
   checks.push('选择经理创建COMMIT丢响应：重启后原回执确认、重放不重复、已保存责任仍可使用');
   const make = creation();
+  for (const extra of [{ status: 'closed' }, { stages: [{ code: 'S1', state: 'completed' }] }, { closedOn: '2026-10-20' }, { startDate: '2026-10-20' }]) {
+    const rejected = creation(); Object.assign(rejected.fields, extra);
+    assert.equal((await a.api('/api/projects', 'POST', rejected, 400)).code, 'INVALID_COMMAND');
+    assert.equal((await c.query("SELECT COUNT(*) n FROM projects WHERE source_namespace='geekdash-manual-v1' AND source_key=?", [users[0].id + ':' + rejected.idempotencyKey]))[0][0].n, '0');
+    assert.equal((await c.query('SELECT COUNT(*) n FROM command_receipts WHERE actor_id=? AND idempotency_key=?', [users[0].id, rejected.idempotencyKey]))[0][0].n, '0');
+  }
+  checks.push('新建夹带已结案状态、已完成阶段、实际启动或结案日期均拒绝，无项目及回执；修正后沿正常创建');
   const created = await a.api('/api/projects', 'POST', make); const id = created.result.projectId; projects.push(id);
   assert.deepEqual((await a.api('/api/projects', 'POST', make)).result, created.result);
   await a.api('/api/projects', 'POST', { ...make, fields: { ...make.fields, name: '换内容' } }, 409);

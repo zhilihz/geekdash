@@ -1,0 +1,166 @@
+{
+  "status": "passed",
+  "at": "2026-10-21T03:55:19.459Z",
+  "readOnly": true,
+  "projectId": "9007199254760602",
+  "project": {
+    "version": "27",
+    "status": "proposal"
+  },
+  "stages": [
+    {
+      "code": "S1",
+      "state": "ready",
+      "startedOn": null,
+      "completedOn": null
+    },
+    {
+      "code": "S2",
+      "state": "locked",
+      "startedOn": null,
+      "completedOn": null
+    },
+    {
+      "code": "S3",
+      "state": "locked",
+      "startedOn": null,
+      "completedOn": null
+    },
+    {
+      "code": "S4",
+      "state": "locked",
+      "startedOn": null,
+      "completedOn": null
+    },
+    {
+      "code": "S5",
+      "state": "locked",
+      "startedOn": null,
+      "completedOn": null
+    },
+    {
+      "code": "S6",
+      "state": "locked",
+      "startedOn": null,
+      "completedOn": null
+    },
+    {
+      "code": "S7",
+      "state": "locked",
+      "startedOn": null,
+      "completedOn": null
+    }
+  ],
+  "nodes": [
+    {
+      "id": "452",
+      "title": "A 接口确认",
+      "completedOn": null,
+      "previousNodeId": null,
+      "nextNodeId": "453"
+    },
+    {
+      "id": "453",
+      "title": "B 样机验证",
+      "completedOn": null,
+      "previousNodeId": "452",
+      "nextNodeId": null
+    }
+  ],
+  "risks": [
+    {
+      "id": "113",
+      "content": "原生风险验收20261021：芯片接口尚待复核",
+      "resolved": 0,
+      "deleted": "1"
+    }
+  ],
+  "checks": [
+    {
+      "id": "56",
+      "actorId": "28",
+      "checkedAt": "2026-10-21T03:48:21.804000Z",
+      "conclusion": "checked",
+      "note": ""
+    }
+  ],
+  "audits": [
+    {
+      "action": "project.risk.add",
+      "versionBefore": "14",
+      "versionAfter": "15"
+    },
+    {
+      "action": "project.risk.resolve",
+      "versionBefore": "15",
+      "versionAfter": "16"
+    },
+    {
+      "action": "project.risk.undoResolve",
+      "versionBefore": "16",
+      "versionAfter": "17"
+    },
+    {
+      "action": "project.risk.delete",
+      "versionBefore": "17",
+      "versionAfter": "18"
+    },
+    {
+      "action": "project.check.save",
+      "versionBefore": "18",
+      "versionAfter": "19"
+    },
+    {
+      "action": "project.check.correct",
+      "versionBefore": "19",
+      "versionAfter": "20"
+    },
+    {
+      "action": "project.stage.correctStageFacts",
+      "versionBefore": "20",
+      "versionAfter": "21"
+    },
+    {
+      "action": "project.stage.complete",
+      "versionBefore": "21",
+      "versionAfter": "22"
+    },
+    {
+      "action": "project.stage.undoStageComplete",
+      "versionBefore": "22",
+      "versionAfter": "23"
+    },
+    {
+      "action": "project.node.save",
+      "versionBefore": "23",
+      "versionAfter": "24"
+    },
+    {
+      "action": "project.node.save",
+      "versionBefore": "23",
+      "versionAfter": "24"
+    },
+    {
+      "action": "project.node.save",
+      "versionBefore": "24",
+      "versionAfter": "25"
+    },
+    {
+      "action": "project.node.save",
+      "versionBefore": "25",
+      "versionAfter": "26"
+    },
+    {
+      "action": "project.node.save",
+      "versionBefore": "26",
+      "versionAfter": "27"
+    },
+    {
+      "action": "project.node.save",
+      "versionBefore": "26",
+      "versionAfter": "27"
+    }
+  ],
+  "checksPreserved": true,
+  "correctionCount": 1
+}

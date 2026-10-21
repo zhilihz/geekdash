@@ -1,0 +1,19 @@
+
+const p=await figma.getNodeByIdAsync('142:3499');await figma.setCurrentPageAsync(p);const created=[],changed=new Set();const mark=n=>{changed.add(n.id);return n};const born=n=>{created.push(n.id);if('findAll'in n)created.push(...n.findAll(()=>true).map(x=>x.id));return n};
+const fs=p.children.filter(n=>n.type==='FRAME');const fonts=new Map();for(const f of fs)for(const t of f.findAllWithCriteria({types:['TEXT']}))for(const s of t.getStyledTextSegments(['fontName']))fonts.set(JSON.stringify(s.fontName),s.fontName);for(const font of fonts.values())await figma.loadFontAsync(font);
+function hide(n){n.setBoundVariable('visible',null);n.visible=false;mark(n);}
+for(const f of fs.filter(n=>/^(W03|W04|W05|W06|W14|W26|W29|W36)/.test(n.name))){
+const basic=f.findAllWithCriteria({types:['FRAME']}).find(n=>/基本信息.*分工/.test(n.name));if(!basic)continue;const summary=basic.findAllWithCriteria({types:['INSTANCE']}).find(n=>n.name==='输入 / 项目简介');if(summary){const old=summary.parent;const first=basic.children.findIndex(n=>n.name==='项目名称与状态');basic.insertChild(first+1,summary);summary.layoutSizingHorizontal='FILL';mark(summary);mark(old);mark(basic);}
+for(const n of basic.findAllWithCriteria({types:['INSTANCE']}).filter(n=>n.name==='输入 / 详细说明')){const old=n.parent;hide(old);}
+for(const n of basic.children.filter(n=>n.type==='TEXT'&&(n.name==='详细说明'||n.characters==='完成主控、蓝牙和电机驱动集成；支持客户现有手机端协议。')))hide(n);
+const tags=basic.children.find(n=>n.name.startsWith('项目标签 ·'));const dates=basic.children.findIndex(n=>n.name==='关键项目日期');if(tags&&dates>=0){basic.insertChild(dates,tags);mark(tags);}
+const body=f.children.find(n=>n.name==='页面内容');if(body){f.resize(f.width,body.height);mark(f);}
+}
+const board=await figma.getNodeByIdAsync('144:3499');for(const progress of board.findAllWithCriteria({types:['FRAME']}).filter(n=>n.name==='阶段进度')){for(const c of progress.children){c.layoutSizingHorizontal='FILL';mark(c);if(c.name==='进度轨道'){const fill=c.children[0];fill.resize(c.width*0.6,4);mark(fill);}}}
+const oldSearch=await figma.getNodeByIdAsync('513:5220');const parent=oldSearch.parent;const idx=parent.children.indexOf(oldSearch);const source=await figma.getNodeByIdAsync('2:119');const search=born(source.createInstance());parent.insertChild(idx,search);search.name='搜索项目';search.setProperties({'标题#2:7':'搜索项目','值#2:8':'项目名称 / 客户 / 芯片 / 人员'});search.layoutSizingHorizontal='FILL';hide(oldSearch);mark(parent);
+const filters=await figma.getNodeByIdAsync('365:5725');const order=['客户筛选','产品线筛选','ODM 工厂筛选','配套 APP筛选','项目状态筛选','优先级筛选','信号灯筛选','项目阶段筛选','进度筛选','核心芯片筛选','项目标签筛选','分组筛选','分工人员筛选','状态提及人员筛选','计划结果筛选'];for(const name of order){const row=filters.children.find(n=>n.name===name);if(!row)continue;filters.appendChild(row);mark(row);const label=row.children.find(n=>n.type==='TEXT');if(label){label.textAutoResize='HEIGHT';label.resize(120,22);label.layoutSizingHorizontal='FIXED';mark(label);}}
+const summaryFrame=await figma.getNodeByIdAsync('151:3978');for(const t of summaryFrame.findAllWithCriteria({types:['TEXT']}).filter(t=>t.parent.name.startsWith('负责人 /')&&/^@/.test(t.characters))){t.setBoundVariable('characters',null);t.characters=t.characters.replace(/@/g,'');mark(t);}
+for(const [id,value] of [['149:4136','● 客户：演示客户 A → B；预计结案：10月28日 → 11月5日'],['149:4162','● 需求变更：修正接受 / 拒绝的决定'],['149:4182','● PEVT 技术预研已完成']]){const n=await figma.getNodeByIdAsync(id);n.setBoundVariable('characters',null);n.characters=value;n.textAutoResize='HEIGHT';mark(n);}
+const tools=await figma.getNodeByIdAsync('513:5233');tools.primaryAxisAlignItems='MIN';tools.counterAxisAlignItems='CENTER';tools.layoutSizingHorizontal='FILL';mark(tools);
+for(const f of fs){const body=f.children.find(n=>n.name==='页面内容');if(body&&(['144:3499','151:3978','149:4081'].includes(f.id))){f.resize(f.width,body.height);mark(f);}}
+return {createdNodeIds:created,mutatedNodeIds:[...changed],scope:'仅修复截图发现的进度数值裁切、提及人员换行、搜索控件歧义和既有简介/旧备注位置'};

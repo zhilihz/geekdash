@@ -1,0 +1,68 @@
+{
+  "projectId": "9007199254760602",
+  "preview": "请确认这次操作影响的阶段。\n\n修改事项\t修改前\t修改后\n撤销误完成\t需求立项 · 状态：已完成\n需求立项 · 实际完成：2026-10-21\n项目预启动 · 状态：待开始\t需求立项 · 状态：进行中\n需求立项 · 实际完成：未知\n项目预启动 · 状态：未解锁\n确认保存\n返回修改",
+  "beforeConfirm": {
+    "version": "12",
+    "stage": {
+      "id": "4427",
+      "code": "S1",
+      "state": "completed",
+      "plannedDays": 6,
+      "note": "验收：本阶段由接口与样机两节点组成",
+      "startedOn": "2026-10-21",
+      "completedOn": "2026-10-21",
+      "expectedEndOn": "2026-10-27",
+      "nodeCount": "2",
+      "undatedNodeCount": "0"
+    }
+  },
+  "afterConfirm": {
+    "version": "13",
+    "stage": {
+      "id": "4427",
+      "code": "S1",
+      "state": "active",
+      "plannedDays": 6,
+      "note": "验收：本阶段由接口与样机两节点组成",
+      "startedOn": "2026-10-21",
+      "completedOn": null,
+      "expectedEndOn": "2026-10-27",
+      "nodeCount": "2",
+      "undatedNodeCount": "0"
+    },
+    "secondStage": {
+      "id": "4428",
+      "code": "S2",
+      "state": "locked",
+      "plannedDays": null,
+      "note": "",
+      "startedOn": null,
+      "completedOn": null,
+      "expectedEndOn": null,
+      "nodeCount": "0",
+      "undatedNodeCount": "0"
+    }
+  },
+  "actions": [
+    "保存工期6天和评述",
+    "开始S1",
+    "完成S1",
+    "预览撤销影响并返回修改",
+    "再次明确保存撤销误完成，保留原开始日"
+  ],
+  "clearDate": {
+    "version": "14",
+    "stage": {
+      "id": "4427",
+      "code": "S1",
+      "state": "active",
+      "plannedDays": 6,
+      "note": "验收：本阶段由接口与样机两节点组成",
+      "startedOn": null,
+      "completedOn": null,
+      "expectedEndOn": "2026-10-27",
+      "nodeCount": "2",
+      "undatedNodeCount": "0"
+    }
+  }
+}

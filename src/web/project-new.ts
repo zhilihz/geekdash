@@ -17,13 +17,14 @@ document.addEventListener('geekdash-preference-status',event=>{message.textConte
 type Fields = Partial<EditValues> & { filingDate?: string | null; dueDate?: string | null; managerIds?:string[] };
 type Command = { idempotencyKey: string; fields: Fields; draft?: DraftRef };
 let personalDrafts: PersonalDrafts | undefined;
-let pending: Command | undefined, busy = false, identityChanged = false, leaving = false;
+let pending: Command | undefined, busy = false, identityChanged = false, leaving = false, storageFailed = false;
 let catalog: Catalog | undefined, businessDate = '', errors: Record<string, string> = {};
 let catalogLoading=false,catalogRefreshPending=false;
 let managerIds:string[]=[];
 const value: EditValues = { name: '', summary: '', marketExpectation: '', detailNote: '', summaryNote: '', statusDesc: '', chipstatNote: '', signalNote: '', signal: 'green', priority: 'mid', customerId: null, odmCustomerId: null, productLineId: null, appId: null, groupId: null, chipIds: [], tagIds: [], people: [] };
 const draft: BasicIntent = { filingDate: '', startDate: '', dueDate: '', closedOn: '', proposalDate: '', originalDueDate: '', state: 'proposal', planKind: 'reschedule', reason: '', measures: '', closureType: 'normal', closureNote: '', remainingWorkNote: '', maintenance: false };
 const key = () => `geekdash_create:${account!.id}`;
+function savedInput(){try{return sessionStorage.getItem(key());}catch{storageFailed=true;message.textContent='本页恢复存储不可用，请确认草稿同步或复制未保存内容。';return null;}}
 function fields(): Fields { return { ...Object.fromEntries(scopeFields.basic.map(key => [key, structuredClone(value[key])])), statusDesc: value.statusDesc, filingDate: draft.filingDate || null, dueDate: draft.dueDate || null, managerIds:[...managerIds] }; }
 const emptyFields=JSON.stringify(fields());
 const hasInput=()=>JSON.stringify(fields())!==emptyFields;
@@ -46,15 +47,18 @@ async function leave(destination='/'){
       try{await personalDrafts?.discardAll();sessionStorage.removeItem(key());}catch(error){message.textContent='尚未完成丢弃，输入已保留。'+(error as Error).message;return;}
     }else{
       remember();const synced=await personalDrafts?.sync();
-      if(!synced && await choose('草稿尚未全部同步，当前设备保留了副本。仍要离开吗？',[['cancel','留在这里'],['leave','保留本机副本并离开']])!=='leave')return;
+      if(!synced){
+        const localProtected=!storageFailed || personalDrafts?.hasLocalCopy();
+        if(await choose(localProtected?'草稿尚未全部同步，当前设备保留了副本。仍要离开吗？':'草稿未同步，本机副本也未保存；离开可能丢失输入，请先复制内容。仍要离开吗？',[['cancel','留在这里'],['leave',localProtected?'保留本机副本并离开':'已复制，仍然离开']])!=='leave')return;
+      }
     }
   }
   leaving=true;location.href=destination;
 }
 function remember() {
   if (!account || identityChanged) return;
-  try { sessionStorage.setItem(key(), JSON.stringify({ fields: fields(), pending })); }
-  catch { message.textContent = '本页恢复存储不可用，请保留页面直到保存完成。'; }
+  try { sessionStorage.setItem(key(), JSON.stringify({ fields: fields(), pending }));storageFailed=false; }
+  catch { storageFailed=true;message.textContent = '本页恢复存储不可用，请保留页面直到保存完成。'; }
   if(!pending)personalDrafts?.capture('create',undefined,null,{values:fields(),submission:{fields:fields()}});
 }
 function controls() {
@@ -92,7 +96,7 @@ async function execute(confirm: boolean) {
   if (!pending || busy || identityChanged) return; busy = true; controls();
   try {
     const result = await send<{ outcome: string; result?: { projectId: string;operationId:string;savedVersion:string;draft?:DraftRef&{instanceId:string;state:string} } }>(confirm ? '/api/projects/create-results/query' : '/api/projects', 'POST', pending, !confirm);
-    if (result.outcome === 'committed') { await personalDrafts?.advance(result.result!,{kind:'create'});sessionStorage.removeItem(key()); pending = undefined; leaving = true; location.replace('/project-detail.html?id=' + result.result!.projectId); }
+    if (result.outcome === 'committed') { await personalDrafts?.advance(result.result!,{kind:'create'});try{sessionStorage.removeItem(key());}catch{} pending = undefined; leaving = true; location.replace('/project-detail.html?id=' + result.result!.projectId); }
     else message.textContent = '暂未查到原创建结果；可重试原创建，不要另建重复项目。';
   } catch (error) {
     message.textContent = error instanceof SaveError && error.fields ? Object.values(error.fields).join('；') : (error as Error).message;
@@ -130,7 +134,7 @@ void requireIdentity().then(async () => {
     const restored=row.payload.values;if(!restored)return false;
     restoreFields(restored);render();remember();message.textContent='底稿已恢复，点击保存才会创建正式项目。';return true;
   });
-  const saved = sessionStorage.getItem(key());
+  const saved = savedInput();
   let candidate:Fields|undefined;
   if (saved) try { const stored = JSON.parse(saved); pending = stored.idempotencyKey ? stored : stored.pending; const restored = stored.fields; if (restored && typeof restored === 'object') { if(pending)restoreFields(restored);else candidate=restored; } }
   catch { message.textContent = '本页旧稿无法读取，请核对后重新填写。'; }
@@ -138,8 +142,8 @@ void requireIdentity().then(async () => {
   await loadCatalog(); if (pending) void execute(true);
   if(!hasInput() && !pending)void personalDrafts.offer(candidate?{
     text:'本标签页：'+(readableFields(candidate,{managerIds:'项目经理'}).slice(0,140) || '有未保存的新建项目信息'),
-    restore:()=>{if(pending || busy || identityChanged || hasInput() || sessionStorage.getItem(key())!==saved)return false;restoreFields(candidate!);render();remember();message.textContent='底稿已恢复，点击保存才会创建正式项目。';return true;},
-    discard:()=>{if(!pending && !busy && !identityChanged && !hasInput() && sessionStorage.getItem(key())===saved)sessionStorage.removeItem(key());},
+    restore:()=>{if(pending || busy || identityChanged || hasInput() || savedInput()!==saved)return false;restoreFields(candidate!);render();remember();message.textContent='底稿已恢复，点击保存才会创建正式项目。';return true;},
+    discard:()=>{if(!pending && !busy && !identityChanged && !hasInput() && savedInput()===saved)sessionStorage.removeItem(key());},
   }:undefined);
   new ProjectNotifications(()=>{},()=>{void loadCatalog();},text=>{if(text)message.textContent=text;},undefined,undefined,event=>{if(event.resource==='catalog')void loadCatalog();});
 }).catch(error => { message.textContent = (error as Error).message; document.getElementById('login')!.hidden = false; controls(); });

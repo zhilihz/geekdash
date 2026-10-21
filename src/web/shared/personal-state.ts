@@ -5,7 +5,7 @@ export type DraftRef = { clientDraftId: string; draftVersion: string };
 export type DraftData = { values?: Record<string, unknown>; intent?: Record<string, unknown>; record?: Record<string, unknown>; command?: Record<string, unknown>; submission?: Record<string, unknown> };
 export type PersonalDraft = DraftRef & { projectId: string | null; formKind: SaveScope | 'create' | 'action'; baseVersion: string | null; clientSequence: string; state: string; updatedAt: string; payload: DraftData & { schemaVersion: 1; instanceId: string; target?: string } };
 type Write = Omit<PersonalDraft,'draftVersion'|'state'|'updatedAt'> & { expectedDraftVersion: string; rebaseOperationId?: string };
-type Slot = { desired: Write; confirmed?: PersonalDraft; pending?: Write; firstAt: number; timer?: ReturnType<typeof setTimeout>; running?: Promise<void>; blocked?: boolean };
+type Slot = { desired: Write; confirmed?: PersonalDraft; pending?: Write; firstAt: number; timer?: ReturnType<typeof setTimeout>; running?: Promise<void>; blocked?: boolean; localStored?: boolean };
 const ordered = (value:unknown):unknown => Array.isArray(value)?value.map(ordered):value && typeof value==='object'?Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b)).map(([key,item])=>[key,ordered(item)])):value;
 const equal = (a: unknown,b: unknown) => JSON.stringify(ordered(a)) === JSON.stringify(ordered(b));
 const names: Record<string,string> = {basic:'基本信息与分工',status:'最新状态说明',tags:'项目标签',signal:'灯色与说明',stage:'阶段工期与评述',risk:'风险',change:'需求变更',customerNode:'客户节点',projectNodes:'项目节点与Flow',create:'新建项目',action:'项目动作',summaryNote:'状态简要备注',chipstatNote:'芯片备注'};
@@ -104,7 +104,7 @@ export class PersonalDrafts {
     } catch { /* 写入失败时仍使用本页独立实例。 */ }
     this.instanceId=instance;
     this.button=document.createElement('button');this.button.className='back-btn';this.button.type='button';this.button.id='personal-drafts';this.button.textContent='个人草稿';
-    if(options.button!==false)(document.querySelector('.head-actions') ?? document.body).append(this.button);
+    if(options.button!==false)(document.querySelector('.head-actions') ?? document.querySelector('.topbar') ?? document.body).append(this.button);
     this.dialog=document.createElement('dialog');this.dialog.className='draft-dialog';this.dialog.setAttribute('aria-label','个人草稿');document.body.append(this.dialog);
     this.button.onclick=()=>{void this.open();};
     document.addEventListener('geekdash-identity-changed',()=>{this.stopped=true;this.recovery?.remove();this.dialog.close();for(const slot of this.slots.values())clearTimeout(slot.timer);this.status='账号已变化，自动同步已停止';this.updateStatus();});
@@ -112,10 +112,12 @@ export class PersonalDrafts {
   private key(kind:string,target?:string) {return kind+':'+(target ?? '');}
   private localKey(id:string) {return `geekdash_draft:${this.actor}:${id}`;}
   private store(slot:Slot) {
-    if(this.stopped)return;
-    try {localStorage.setItem(this.localKey(slot.desired.clientDraftId),JSON.stringify({desired:slot.desired,confirmed:slot.confirmed,pending:slot.pending,savedAt:new Date().toISOString()}));}
-    catch {this.status='本机底稿存储不可用，请复制未保存内容';this.updateStatus();}
+    if(this.stopped)return false;
+    try {localStorage.setItem(this.localKey(slot.desired.clientDraftId),JSON.stringify({desired:slot.desired,confirmed:slot.confirmed,pending:slot.pending,savedAt:new Date().toISOString()}));slot.localStored=true;}
+    catch {slot.localStored=false;}
+    return slot.localStored;
   }
+  hasLocalCopy(){return [...this.slots.values()].every(slot=>slot.localStored===true);}
   private updateStatus(){this.button.title=this.status;this.button.setAttribute('aria-label','个人草稿：'+this.status);const node=this.dialog.querySelector('[data-draft-status]');if(node)node.textContent=this.status;}
   capture(kind:PersonalDraft['formKind'],target:string|undefined,baseVersion:string|null,data:DraftData) {
     if(this.stopped || !this.context().editable)return;
@@ -126,8 +128,8 @@ export class PersonalDrafts {
     const slot:Slot=old ?? {desired:{clientDraftId:crypto.randomUUID(),projectId:this.projectId,formKind:kind,baseVersion,expectedDraftVersion:'0',clientSequence:'1',payload},firstAt:Date.now()};
     // 不用新读到的版本替换旧底稿；advance只接受本页已确认的提交依据。
     if(old && old.desired.baseVersion!==baseVersion){this.status='旧草稿基线保留，请在草稿列表核对';this.updateStatus();return;}
-    slot.desired.payload=payload;this.slots.set(key,slot);this.store(slot);
-    this.status='输入已留在本机，等待同步';this.updateStatus();
+    slot.desired.payload=payload;this.slots.set(key,slot);
+    this.status=this.store(slot)?'输入已留在本机，等待同步':'本机底稿存储不可用，输入仅在当前页；请等待同步或复制内容';this.updateStatus();
     clearTimeout(slot.timer);slot.timer=setTimeout(()=>{void this.flush(key);},Math.max(0,Math.min(1000,5000-(Date.now()-slot.firstAt))));
   }
   private async flush(key:string):Promise<void>{
@@ -148,7 +150,9 @@ export class PersonalDrafts {
         slot.blocked=['DRAFT_VERSION_CONFLICT','DRAFT_TERMINAL','DRAFT_BASE_CHANGED','PROJECT_READ_ONLY','AUTH_REQUIRED','AUTH_CONTEXT_CHANGED','PASSWORD_CHANGE_REQUIRED','CSRF_INVALID'].includes(code);
         // 明确拒绝可用新输入重新同步，未知结果必须先重放同一序号。
         if(error instanceof SaveError && error.outcome==='not_committed' && !slot.blocked)slot.pending=undefined;
-        this.status=messages[code] ?? '草稿未同步，仅保留在当前设备；可重试、复制或导出';this.store(slot);
+        const localStored=this.store(slot);
+        this.status=messages[code] ?? (localStored?'草稿未同步，仅保留在当前设备；可重试、复制或导出':'草稿未同步，本机底稿也未保存；请保留页面并复制内容');
+        if(!localStored && messages[code])this.status+=' 本机底稿也未保存，请保留页面并复制内容。';
       }finally{slot.running=undefined;this.updateStatus();}
     })();
     await slot.running;
@@ -193,16 +197,21 @@ export class PersonalDrafts {
     const entry=[...this.slots].find(([,slot])=>slot.desired.clientDraftId===row.clientDraftId),slot=entry?.[1];
     if(slot){clearTimeout(slot.timer);if(slot.running)await slot.running;}
     const localKey=this.localKey(row.clientDraftId);
-    const local=JSON.parse(localStorage.getItem(localKey) ?? 'null');
+    let local:{desired?:Write}|null,localUnavailable=false;
+    try{local=JSON.parse(localStorage.getItem(localKey) ?? 'null');}
+    catch{localUnavailable=true;local=slot?{desired:slot.desired}:null;}
     if(row.state==='local'){
+      if(localUnavailable)throw new Error('本机存储暂不可用，无法确认已丢弃本机副本；请保留当前输入，恢复存储后重试。');
       if(local && !equal(local.desired?.payload,row.payload))throw new Error('本机副本已有新输入，请重新查看再决定丢弃。');
-      if(entry)this.slots.delete(entry[0]);localStorage.removeItem(localKey);return;
+      try{localStorage.removeItem(localKey);}catch{throw new Error('本机存储暂不可用，无法确认已丢弃本机副本；请保留当前输入，恢复存储后重试。');}
+      if(entry)this.slots.delete(entry[0]);return;
     }
     await send('/api/personal/drafts/discard','POST',{clientDraftId:row.clientDraftId,draftVersion:row.draftVersion});
     if(local && !equal(local.desired?.payload,row.payload)){
       // 仅丢弃选中的云稿；尚未同步的不同本机输入继续以新编号保护。
-      if(slot){const next:Slot={desired:{...slot.desired,clientDraftId:crypto.randomUUID(),expectedDraftVersion:'0',clientSequence:'1'},firstAt:Date.now()};delete next.desired.rebaseOperationId;this.slots.set(entry![0],next);this.store(next);if(localStorage.getItem(this.localKey(next.desired.clientDraftId)))localStorage.removeItem(localKey);}
-    }else{if(entry)this.slots.delete(entry[0]);localStorage.removeItem(localKey);}
+      if(slot){const next:Slot={desired:{...slot.desired,clientDraftId:crypto.randomUUID(),expectedDraftVersion:'0',clientSequence:'1'},firstAt:Date.now()};delete next.desired.rebaseOperationId;this.slots.set(entry![0],next);if(this.store(next))try{localStorage.removeItem(localKey);}catch{localUnavailable=true;}else localUnavailable=true;}
+    }else{if(entry)this.slots.delete(entry[0]);try{localStorage.removeItem(localKey);}catch{localUnavailable=true;}}
+    if(localUnavailable)return '服务器草稿已丢弃；本机存储暂不可用，无法确认本机副本是否清除。';
   }
   private async available(){
     let rows:PersonalDraft[]=[], cloudUnavailable=false;
@@ -234,7 +243,7 @@ export class PersonalDrafts {
     box.innerHTML=`<strong>${usable?'有未保存的'+(local?'输入':esc(names[row!.formKind])):'有个人草稿可查看'}</strong><p>${usable?esc((local?.text ?? draftText(row!)).slice(0,140)):'可查看内容；旧版本的输入仅供复制核对。'}</p><div class="entry-actions"><button type="button" class="back-btn" data-continue>${usable?'继续编辑':'查看草稿'}</button>${usable?'<button type="button" class="back-btn" data-discard>丢弃</button>':''}<button type="button" class="back-btn" data-later>稍后</button></div>`;
     box.querySelector<HTMLButtonElement>('[data-continue]')!.onclick=()=>{void(async()=>{try{if(local && usable){if(!this.stopped && this.context().editable && await local.restore())box.remove();else box.querySelector('p')!.textContent='页面内容已变化，请从个人草稿核对保留的输入。';}else await (usable?this.continueDraft(row!):this.open());}catch(error){box.querySelector('p')!.textContent=(error as Error).message;}})();};
     box.querySelector<HTMLButtonElement>('[data-later]')!.onclick=()=>box.remove();
-    const discard=box.querySelector<HTMLButtonElement>('[data-discard]');if(discard)discard.onclick=()=>{void(async()=>{try{if(local)await local.discard();else await this.discardListed(row!);box.remove();}catch(error){box.querySelector('p')!.textContent=(error as Error).message;}})();};
+    const discard=box.querySelector<HTMLButtonElement>('[data-discard]');if(discard)discard.onclick=()=>{void(async()=>{try{const warning=local?await local.discard():await this.discardListed(row!);if(warning){box.querySelector('strong')!.textContent='服务器草稿已丢弃';box.querySelector('p')!.textContent=warning;box.querySelector('[data-continue]')?.remove();discard.remove();box.querySelector('[data-later]')!.textContent='关闭';}else box.remove();}catch(error){box.querySelector('p')!.textContent=(error as Error).message;}})();};
     document.body.append(box);
   }
   async open(){
@@ -256,7 +265,7 @@ export class PersonalDrafts {
       const content=JSON.stringify(row.payload,null,2);
       box.querySelector<HTMLButtonElement>('[data-copy]')!.onclick=()=>{void(async()=>{try{await navigator.clipboard.writeText(preview);}catch{const pre=box.querySelector<HTMLElement>('[data-copy-fallback]')!;pre.hidden=false;pre.textContent=preview;}})();};
       box.querySelector<HTMLButtonElement>('[data-export]')!.onclick=()=>{const url=URL.createObjectURL(new Blob([content],{type:'application/json'})),link=document.createElement('a');link.href=url;link.download='GeekDash-个人草稿.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
-      box.querySelector<HTMLButtonElement>('[data-discard]')!.onclick=()=>{void(async()=>{if(!confirm('仅丢弃所选草稿？当前表单输入和正式项目信息保持。'))return;try{await this.discardListed(row);await this.open();}catch(error){this.status=(error as Error).message;this.updateStatus();}})();};
+      box.querySelector<HTMLButtonElement>('[data-discard]')!.onclick=()=>{void(async()=>{if(!confirm('仅丢弃所选草稿？当前表单输入和正式项目信息保持。'))return;try{const warning=await this.discardListed(row);await this.open();if(warning){this.status=warning;this.updateStatus();}}catch(error){this.status=(error as Error).message;this.updateStatus();}})();};
       list.append(box);
     });
   }

@@ -1,0 +1,23 @@
+{
+  "build": {
+    "revision": "8ca31d4fe19d55e8e67bc0884aa1c263622f4511",
+    "dirty": true,
+    "builtAt": "2026-10-21T04:05:20.012Z",
+    "stage": "project-list",
+    "schemaVersion": "0005-check-facts"
+  },
+  "hiddenReason": {
+    "hidden": true,
+    "display": "none"
+  },
+  "saveButton": {
+    "height": 40,
+    "color": "rgb(194, 112, 29)",
+    "font": "\"Noto Sans SC\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", \"PingFang SC\", sans-serif"
+  },
+  "narrow": {
+    "overflow": false,
+    "dialogWidth": 348
+  },
+  "nativeCloseContinuedAfterActivatingOwnedTab": true
+}
