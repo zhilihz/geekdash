@@ -1,0 +1,133 @@
+{
+  "status": "passed",
+  "source": "native Edge page; preview and cancel only",
+  "revision": "fe4320fc8fe6caba06a1195ab27aade657ad271f",
+  "projectId": "20",
+  "text": "请确认这次操作影响的阶段。\n\n保存后将如何联动\n撤销误完成：S1 需求立项\nS1 需求立项：已完成 → 进行中。\n因为 S1 需求立项 保存后为进行中、尚未完成，后续 S2 项目预启动 不能继续推进：待开始 → 未解锁。\n已完成阶段随之减少，项目进度：5% → 0%。\n修改事项\t修改前\t修改后\n撤销误完成\t需求立项 · 状态：已完成\n需求立项 · 实际完成：2026-10-13\n项目预启动 · 状态：待开始\t需求立项 · 状态：进行中\n需求立项 · 实际完成：未知\n项目预启动 · 状态：未解锁\n确认保存\n返回修改",
+  "before": {
+    "version": "14",
+    "stages": [
+      {
+        "code": "S1",
+        "state": "completed",
+        "startedOn": "2026-10-13",
+        "completedOn": "2026-10-13"
+      },
+      {
+        "code": "S2",
+        "state": "ready",
+        "startedOn": null,
+        "completedOn": null
+      },
+      {
+        "code": "S3",
+        "state": "locked",
+        "startedOn": null,
+        "completedOn": null
+      },
+      {
+        "code": "S4",
+        "state": "locked",
+        "startedOn": null,
+        "completedOn": null
+      },
+      {
+        "code": "S5",
+        "state": "locked",
+        "startedOn": null,
+        "completedOn": null
+      },
+      {
+        "code": "S6",
+        "state": "locked",
+        "startedOn": null,
+        "completedOn": null
+      },
+      {
+        "code": "S7",
+        "state": "locked",
+        "startedOn": null,
+        "completedOn": null
+      }
+    ],
+    "auditIds": [
+      "253",
+      "252",
+      "251",
+      "250",
+      "249",
+      "248",
+      "247",
+      "246",
+      "245",
+      "244",
+      "243",
+      "242",
+      "241",
+      "240"
+    ]
+  },
+  "after": {
+    "version": "14",
+    "stages": [
+      {
+        "code": "S1",
+        "state": "completed",
+        "startedOn": "2026-10-13",
+        "completedOn": "2026-10-13"
+      },
+      {
+        "code": "S2",
+        "state": "ready",
+        "startedOn": null,
+        "completedOn": null
+      },
+      {
+        "code": "S3",
+        "state": "locked",
+        "startedOn": null,
+        "completedOn": null
+      },
+      {
+        "code": "S4",
+        "state": "locked",
+        "startedOn": null,
+        "completedOn": null
+      },
+      {
+        "code": "S5",
+        "state": "locked",
+        "startedOn": null,
+        "completedOn": null
+      },
+      {
+        "code": "S6",
+        "state": "locked",
+        "startedOn": null,
+        "completedOn": null
+      },
+      {
+        "code": "S7",
+        "state": "locked",
+        "startedOn": null,
+        "completedOn": null
+      }
+    ],
+    "auditIds": [
+      "253",
+      "252",
+      "251",
+      "250",
+      "249",
+      "248",
+      "247",
+      "246",
+      "245",
+      "244",
+      "243",
+      "242",
+      "241",
+      "240"
+    ]
+  }
+}

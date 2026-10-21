@@ -1,0 +1,73 @@
+{
+  "status": "passed",
+  "revision": "fe4320fc8fe6caba06a1195ab27aade657ad271f",
+  "checkedAt": "2026-10-21T04:30:34.910031+00:00",
+  "nativeBrowserAcceptance": false,
+  "build": {
+    "revision": "fe4320fc8fe6caba06a1195ab27aade657ad271f",
+    "dirty": false,
+    "builtAt": "2026-10-21T04:23:55.096Z",
+    "stage": "project-list",
+    "schemaVersion": "0005-check-facts"
+  },
+  "projectId": "29",
+  "creatorId": "1",
+  "editorId": "2",
+  "project": {
+    "id": "29",
+    "name": "P04完整收口合成验收 fe4320fc8fe6",
+    "version": "2",
+    "summary": "仅用于部署验证，不含真实客户数据。",
+    "statusDesc": "样机接口已核对，客户已约定周五确认外观；下一步由结构同事整理样机照片。",
+    "status": "proposal",
+    "createdBy": "1"
+  },
+  "managerIds": [
+    "1",
+    "2"
+  ],
+  "reads": [
+    {
+      "actorId": "1",
+      "projectVersion": "2",
+      "auditCount": 2,
+      "statusHistoryCount": 1,
+      "boardConsumesStatus": true
+    },
+    {
+      "actorId": "2",
+      "projectVersion": "2",
+      "auditCount": 2,
+      "statusHistoryCount": 1,
+      "boardConsumesStatus": true
+    }
+  ],
+  "auditCount": 2,
+  "operationIds": [
+    "e230f2ee-5832-4cb1-b62a-fc3564ef04d5",
+    "5c9be8f2-6feb-407f-b386-9e6516524296"
+  ],
+  "sseEvent": {
+    "projectId": "29",
+    "version": "2",
+    "operationId": "5c9be8f2-6feb-407f-b386-9e6516524296"
+  },
+  "sseTransport": "Edge EventSource over HTTPS",
+  "replayed": {
+    "create": false,
+    "status": false
+  },
+  "databaseVerification": "separate_independent_sql_pending",
+  "checks": [
+    "one_synthetic_project",
+    "create_selected_second_manager_and_auto_creator",
+    "other_manager_saves_human_status",
+    "https_sse_matches_operation_and_version",
+    "both_managers_fresh_detail_history_board",
+    "each_actor_original_receipt_exact",
+    "no_catalog_or_other_project_writes"
+  ],
+  "ownSessionsLoggedOut": true,
+  "existingEdgeSessionPreserved": true,
+  "finishedAt": "2026-10-21T04:31:29.890535+00:00"
+}

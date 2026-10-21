@@ -1,0 +1,12 @@
+{
+  "ownLocalSessionLoggedOut": true,
+  "ownBrowserContextClosed": true,
+  "ownPublicPageClosed": true,
+  "userOriginalTabsAndPublicSessionPreserved": true,
+  "ownPublicSmokeSessionLoggedOut": true,
+  "previewCleanup": {
+    "ownPreviewDraftsDiscarded": 0,
+    "otherDraftsTouched": false
+  },
+  "realDataImported": false
+}

@@ -1,0 +1,31 @@
+{
+  "stage": "P04",
+  "status": "passed",
+  "revision": "fe4320fc8fe6caba06a1195ab27aade657ad271f",
+  "sourceTree": "62ab61a4c093685baa5436297f94f6db11ec8d4e",
+  "blockingGaps": [],
+  "evidence": [
+    "docs/testing/reports/2026-10-17-p04-acceptance-matrix.md",
+    "docs/testing/reports/2026-10-21-p04-closeout.md",
+    "docs/testing/reports/2026-10-21-p04-design-alignment.md",
+    "docs/testing/reports/2026-10-21-p04-auth-recovery.md",
+    "docs/evidence/2026-10-21-p04-acceptance/final-source.json",
+    "docs/evidence/2026-10-21-p04-acceptance/native-final-sql.json",
+    "docs/evidence/2026-10-21-p04-acceptance/pdf-verification.json",
+    "docs/evidence/2026-10-21-p04-acceptance/scoped-ui-final.json",
+    "docs/evidence/2026-10-21-p04-acceptance/impact-chain-final.json",
+    "docs/evidence/2026-10-21-p04-acceptance/mention-reference-dom.json"
+  ],
+  "unexecutedExternalBoundaries": [
+    "Windows system save dialog",
+    "OS forced termination",
+    "native system IME",
+    "browser navigation failure after accepted redirect"
+  ],
+  "subsequentScope": [
+    "invitation and full account administration",
+    "real backup import",
+    "long-term operations",
+    "performance qualification"
+  ]
+}

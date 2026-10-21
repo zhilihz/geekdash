@@ -1,0 +1,40 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-21T04:32:29.327862+00:00",
+  "revision": "fe4320fc8fe6caba06a1195ab27aade657ad271f",
+  "project": {
+    "id": "29",
+    "name": "P04完整收口合成验收 fe4320fc8fe6",
+    "status": "proposal",
+    "summary": "仅用于部署验证，不含真实客户数据。",
+    "version": "2",
+    "createdBy": "1",
+    "statusDesc": "样机接口已核对，客户已约定周五确认外观；下一步由结构同事整理样机照片。",
+    "statusUpdatedAt": "2026-10-21T04:31:01.590000Z"
+  },
+  "creatorId": "1",
+  "editorId": "2",
+  "managerIds": [
+    "1",
+    "2"
+  ],
+  "auditCount": 2,
+  "statusAuditActorId": "2",
+  "receiptCount": 2,
+  "operationIds": [
+    "e230f2ee-5832-4cb1-b62a-fc3564ef04d5",
+    "5c9be8f2-6feb-407f-b386-9e6516524296"
+  ],
+  "independentSQL": true,
+  "charset": "utf8mb4",
+  "nativeBrowserAcceptance": false,
+  "checks": [
+    "same_one_synthetic_project",
+    "two_enabled_manager_relations",
+    "creator_and_status_writer_are_different",
+    "exact_human_status_and_version",
+    "one_matching_status_history",
+    "exact_actor_scoped_receipts",
+    "sse_operation_version_matches_SQL"
+  ]
+}
