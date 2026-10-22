@@ -1,0 +1,64 @@
+{
+  "status": "passed",
+  "revision": "13255f37ca8937584c709466fee5036739ab0203",
+  "checkedAt": "2026-10-22T09:42:20.061257+00:00",
+  "nativeBrowserAcceptance": false,
+  "realBusinessMigration": false,
+  "build": {
+    "revision": "13255f37ca8937584c709466fee5036739ab0203",
+    "dirty": false,
+    "builtAt": "2026-10-22T09:23:39.557Z",
+    "stage": "P05-imports",
+    "schemaVersion": "0006-imports"
+  },
+  "projectId": "30",
+  "actorId": "2",
+  "project": {
+    "id": "30",
+    "version": "1",
+    "dataKind": "business",
+    "name": "P05公网合成测试 13255f37ca89 已核对",
+    "status": "proposal",
+    "summary": "部署验收合成项目，不含真实业务或客户数据，保留作验收证据。",
+    "statusDesc": "合成测试：样机接口已核对，下一步整理验证记录。",
+    "detailNote": "本条仅用于验证导入到正式项目的连接。",
+    "summaryNote": "合成简要备注",
+    "chipstatNote": "合成芯片备注",
+    "createdBy": "2"
+  },
+  "sourceNamespace": "local-36d1d46a-ecf4-45ce-ac96-3a03941f5da0",
+  "batchId": "1",
+  "itemId": "1",
+  "adoptionId": "1",
+  "fileSha256": "39327211005c3a3ec39a0a06d64cfc95467bcf6ff8551c0facb184e2656b8134",
+  "fileBytes": 773,
+  "sseEvent": {
+    "projectId": "30",
+    "version": "1",
+    "operationId": "0d533458-d73a-451e-925b-f67eded485f2"
+  },
+  "adoptionReplayed": false,
+  "uploadDidNotCreateProject": true,
+  "auditCount": 1,
+  "actualDataKind": "business",
+  "syntheticMarkers": [
+    "项目名称以P05公网合成测试开头",
+    "简介注明无真实业务或客户数据"
+  ],
+  "databaseVerification": "independent_sql_pending",
+  "fixtureRetained": true,
+  "sharedCatalogWrites": 0,
+  "checks": [
+    "HTTPS_login",
+    "source_and_original_file",
+    "one_atomic_adoption_with_correction",
+    "exact_original_results",
+    "detail_board_summary_and_source_histories",
+    "HTTPS_SSE_original_operation_and_version",
+    "no_online_check_created_from_local_marker"
+  ],
+  "sseTransport": "independent HTTPS cookie jar stream",
+  "sseConfirmation": "matches the original operation and version; result queries may republish the same event",
+  "ownSessionsLoggedOut": true,
+  "finishedAt": "2026-10-22T09:43:33.774481+00:00"
+}

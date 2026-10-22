@@ -1,0 +1,44 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-22T09:38:51.545183+00:00",
+  "revision": "13255f37ca8937584c709466fee5036739ab0203",
+  "build": {
+    "revision": "13255f37ca8937584c709466fee5036739ab0203",
+    "dirty": false,
+    "builtAt": "2026-10-22T09:23:39.557Z",
+    "stage": "P05-imports",
+    "schemaVersion": "0006-imports"
+  },
+  "imageId": "sha256:e3c12aeab16752c674beee82df1c2d420147a67d3e69d2fef4a8afd1a5ead140",
+  "mysqlId": "73bbcc0a1bdee606eac91a7971ae70cf6ceb023a9e8ec17ea55c47c5708d9ad1",
+  "mysqlStartedAt": "2026-10-15T07:49:02.710263277Z",
+  "databases": {
+    "geekdash_dev": {
+      "tableCount": 37,
+      "migrationCount": 6,
+      "targetSchema": "0006-imports",
+      "fullManifestVerified": true,
+      "old34TablesPreservedAtInstall": true
+    },
+    "geekdash_test": {
+      "tableCount": 37,
+      "migrationCount": 6,
+      "targetSchema": "0006-imports",
+      "fullManifestVerified": true,
+      "old34TablesPreservedAtInstall": true
+    }
+  },
+  "backupHashesVerified": true,
+  "backupPaths": {
+    "sql": "/var/backups/geekdash/pre-p05-13255f37ca89.sql.gz",
+    "files": "/var/backups/geekdash/pre-p05-13255f37ca89-config-imports.tar.gz"
+  },
+  "importsStorageVerified": true,
+  "nginxUploadLimit": "32m",
+  "deploymentFactsPath": "/opt/geekdash/incoming/13255f37ca8937584c709466fee5036739ab0203/p05-release-deployment-facts.json",
+  "deploymentFactsSha256": "5b5af2b0edfce0ea01bec243d67975817baa822c3eb6987987e3095e4c1272dd",
+  "otherContainersPreservedAtInstall": 119,
+  "verificationScope": "deployment_runtime_full_schema_backups_and_storage_only",
+  "publicBusinessReadback": "pending_separate_test",
+  "recovery": "verified same 0006 build with import writes disabled; never 0005 or automatic database restore"
+}

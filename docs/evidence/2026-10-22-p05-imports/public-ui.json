@@ -1,0 +1,47 @@
+{
+  "scope": "公网独立 Edge 标签，只读页面核查",
+  "revision": "13255f37ca8937584c709466fee5036739ab0203",
+  "build": "2026-10-22T09:23:39.557Z",
+  "schemaVersion": "0006-imports",
+  "status": "partial_tool_limited",
+  "businessWrites": 0,
+  "authenticationChanges": 0,
+  "session": {
+    "existingAccountId": "1",
+    "existingAccountName": "business01",
+    "authMeStatus": 200,
+    "mustChangePassword": false,
+    "loginOrLogoutPerformed": false
+  },
+  "verified": [
+    {
+      "page": "https://geekdash.zhiluan.cool/imports.html",
+      "result": "导入入口实际渲染，暖色主题保留，导航和读取本地备份区域完整可见。截图取于合成批次创建之前。",
+      "visibleContent": ["导入项目", "选择本地备份，系统核对后导入；有冲突的内容再处理。", "读取本地备份", "已有导入批次"],
+      "screenshot": "public-import-entry.png",
+      "visualReview": "已打开实际截图，标题、来源选择、来源名称、文件入口及主按钮没有重叠。"
+    },
+    {
+      "page": "https://geekdash.zhiluan.cool/imports.html?id=1",
+      "result": "浏览器 targets 回读确认独立页已导航至此地址；未能读取本批次最终 DOM 内容。"
+    }
+  ],
+  "notVerifiedInPublicBrowser": [
+    "批次 1 的已采用结果卡片",
+    "项目 30 的详情页渲染",
+    "首页项目 30 卡片渲染",
+    "项目状态简要中项目 30 行渲染"
+  ],
+  "toolBoundary": {
+    "observed": "导航和短 DOM eval 出现超时；浏览器 targets 仍即时返回当前地址。截图调用曾超时，但实际文件随后落盘，已单独打开核实。",
+    "handling": "未重复业务提交、未重置账号、未修改用户页面；停止继续工具排查。",
+    "interpretation": "此结果不能证明服务器故障，也不能替代未完成的四页公网页面验收。"
+  },
+  "separateEvidence": {
+    "publicBusiness": "public-business.json",
+    "publicSql": "public-sql.json",
+    "publicResources": "public-resources.json",
+    "localActualUi": "ui-convergence.json",
+    "note": "上述 API、SQL、资源匹配及本地真实页面证据各自独立，不计作本次公网四页视觉通过。"
+  }
+}

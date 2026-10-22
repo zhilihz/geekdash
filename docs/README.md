@@ -4,11 +4,11 @@
 
 ## 本轮阅读入口
 
-当前由已交付P04接续到[P05完整实施设计1.3](implementation/execution-plan.md#13-p05完整实施设计2026-10-22)。DEC-141已确认剩余[两个施工阶段及账号归属](implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)，DEC-148确认P05五个内部步骤及工程方向，DEC-149补齐结果边界；当前字段、同页状态设计与逐结果验证映射已形成；DEC-150已授权P05实施并部署测试站供用户验收，当前正在施工。先看[当前结论](status/current-system-truth.md#1-一句话结论)、[交接](handoff/handoff.md)和[P05准备核查](testing/reports/2026-10-21-p05-readiness.md)；导入结果及会议后置查[PRD9.21](product/PRD.md#921-p05导入与会议的逐行为结果)，准确规则归SPEC-008/009。模块与存储分别查架构4.2、ERD5.13。
+P05导入已按DEC-151收敛并部署测试站：正常内容一次导入，仅冲突与错误原卡处理，无对应项目默认新增、可改为已有。[当前结论](status/current-system-truth.md#1-一句话结论)、[交接](handoff/handoff.md)是接手入口；用户操作及结果查[PRD9.21](product/PRD.md#921-p05导入与会议的逐行为结果)，规则归SPEC-009，模块与存储归架构4.2、ERD5.13，工程步骤归[P05计划1.3](implementation/execution-plan.md#13-p05完整实施设计2026-10-22)。会议、真实业务迁入与实际使用切换未纳入本次交付。
 
-当前交付记录：[P04整体收口报告](testing/reports/2026-10-21-p04-closeout.md)与[部署记录](operations/deployments/2026-10-21-p04-closeout.md)。P05规划不改变该运行版本。此前[首页层级](operations/deployments/2026-10-20-card-hierarchy.md)、[1054修正](operations/deployments/2026-10-20-local-1054.md)、[原任务返回与草稿接续](operations/deployments/2026-10-20-work-recovery.md)等保留各自历史时点。
+当前交付记录：[P05实施与验证](testing/reports/2026-10-22-p05-imports.md#9-固定发布与公网结果2026-10-22)、[部署与恢复](operations/deployments/2026-10-22-p05-imports.md)。产品13255f3、0006已合并推送main并在新加坡运行。此前[P04收口](testing/reports/2026-10-21-p04-closeout.md)、[首页层级](operations/deployments/2026-10-20-card-hierarchy.md)、[1054修正](operations/deployments/2026-10-20-local-1054.md)保留历史时点，不代表现行版本。
 
-2026-10-22设计成果：[P05设计包与核查范围](testing/reports/2026-10-22-p05-design-preparation.md)。含Figma主布局、编辑、因果、结果及恢复状态；当次设计与产品实现分开记录。随后实施的实际测试与未完成项查[P05实施报告](testing/reports/2026-10-22-p05-imports.md)，尚未推送或部署。
+2026-10-22设计来源：[P05设计包与核查范围](testing/reports/2026-10-22-p05-design-preparation.md)。其后用户确认简化导入，实际交付沿DEC-151；设计画面与产品运行分别取证，不能把较早设计中的表单数量作为现行操作要求。
 
 2026-10-16整链方案已按DEC-127收口：检查信息补全归[P04-09](implementation/execution-plan.md#p04-09-保留阶段动作与检查的原业务闭环)，跨页面消费归P04-15；布局只查[PRD](product/PRD.md#检查信息完整性已确认dec-127)，读取及修正返回只查SPEC-005，执行范围/共同实现方法只查计划1.2。Q-031已解决；设计与实际实现状态查系统真相及阶段报告，不据早期缺口描述重复施工。
 
