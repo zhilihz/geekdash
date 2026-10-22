@@ -10,7 +10,7 @@ import { ProjectNotifications, editorBadges } from './shared/notifications';
 import { refreshProjectOptions } from './shared/project-options';
 import { attachStatusMentions } from './shared/status-mentions';
 import { statusHtml } from './shared/status-text';
-import type { SaveScope } from './shared/api';
+import type { SaveScope, SourceHistoryPage } from './shared/api';
 import { get, send, SaveError, esc, label, projectTags, setupTheme, requireIdentity, account, loginUrl, stageMessages, actionLabels, dateTitles, isPlanCommand, isLifecycleCommand, isClosureCommand, isCheckCommand, type ChangeOperation, type ChangeRecord, type ChangePreview, type ChangeFields, type NodeOperation, type NodeRecord, type NodePreview, type NodeFields, type RiskOperation, type RiskRecord, type RiskPreview, type CheckCommand, type CheckPreview, type CheckPage, closureTitles, type ClosureCommand, type ClosurePreview, type LifecycleCommand, type LifecyclePreview, type PlanCommand, type PlanPreview, type ScheduleRecord, type CorrectionCommand, type CorrectionPreview, type StageCommand, type StartCommand, type ProjectCommand, type Detail, type Entry, type EditValues, type Catalog, type SaveRequest, type SaveResult, type AuditPage } from './shared/api';
 
 const element = (id: string) => document.getElementById(id)!;
@@ -242,11 +242,12 @@ function changeCopy(): ChangeRecord[] {
 }
 function businessTime(value: string | null | undefined) {
   if (!value) return '时间未记录';
+  if (!/(?:Z|[+-]\d\d:\d\d)$/.test(value)) return value;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(date);
 }
-function recordSource(id: string, name: string | null, time: string) {
-  return `<p class="risk-meta">${esc(name ?? '原记录人未知')} · ${esc(businessTime(time))}</p><details class="record-source"><summary>记录来源</summary><p>记录 #${esc(id)}；原时间 ${esc(time)}（UTC）</p></details>`;
+function recordSource(id: string, name: string | null, time: string | null) {
+  return `<p class="risk-meta">${esc(name ?? '原记录人未知')} · ${esc(businessTime(time))}</p><details class="record-source"><summary>记录来源</summary><p>记录 #${esc(id)}；原时间 ${esc(time || '未知')}</p></details>`;
 }
 function changePanel() {
   const editable = snapshot!.capabilities.editText;
@@ -640,7 +641,7 @@ async function openLifecycle(action: LifecycleCommand['action'], auditId?: strin
   persistStage(); controls(); element('lifecycle-note').focus();
 }
 function scheduleHistory(record: ScheduleRecord) {
-  return `<article class="audit-entry"><h3>${record.kind === 'reschedule' ? '调整计划' : '补充说明'} #${esc(record.id)}${record.voided ? '（误录已撤销）' : ''}</h3><p>${esc(record.oldDate ?? '未定')} → ${esc(record.newDate ?? '未定')} · 原操作人ID ${esc(record.actorId ?? '未知')} · ${esc(record.createdAt)}（UTC）</p><p>有效原因：${esc(record.reason)}<br>有效措施：${esc(record.measures)}</p><details><summary>原记录及纠错来源</summary><p>原日期：${esc(record.original.oldDate ?? '未定')} → ${esc(record.original.newDate ?? '未定')}<br>原原因：${esc(record.original.reason)}<br>原措施：${esc(record.original.measures)}</p>${record.corrections.map(item => `<p>${esc(item.actorDisplayName)} · ${esc(item.createdAt)} · ${esc(item.reason)}</p>`).join('') || '<p>没有更正记录。</p>'}</details>${snapshot!.capabilities.editText ? `<button class="back-btn" data-plan="correctScheduleRecord" data-record="${esc(record.id)}">纠正这条记录</button>${!record.voided ? `<button class="back-btn" data-plan="voidScheduleRecord" data-record="${esc(record.id)}">撤销误录记录</button>` : ''}` : ''}</article>`;
+  return `<article class="audit-entry"><h3>${record.kind === 'reschedule' ? '调整计划' : '补充说明'} #${esc(record.id)}${record.voided ? '（误录已撤销）' : ''}</h3><p>${esc(record.oldDate ?? '未定')} → ${esc(record.newDate ?? '未定')} · 原操作人ID ${esc(record.actorId ?? '未知')} · ${esc(businessTime(record.createdAt))}</p><p>有效原因：${esc(record.reason)}<br>有效措施：${esc(record.measures)}</p><details><summary>原记录及纠错来源</summary><p>原日期：${esc(record.original.oldDate ?? '未定')} → ${esc(record.original.newDate ?? '未定')}<br>原原因：${esc(record.original.reason)}<br>原措施：${esc(record.original.measures)}</p>${record.corrections.map(item => `<p>${esc(item.actorDisplayName)} · ${esc(item.createdAt)} · ${esc(item.reason)}</p>`).join('') || '<p>没有更正记录。</p>'}</details>${snapshot!.capabilities.editText ? `<button class="back-btn" data-plan="correctScheduleRecord" data-record="${esc(record.id)}">纠正这条记录</button>${!record.voided ? `<button class="back-btn" data-plan="voidScheduleRecord" data-record="${esc(record.id)}">撤销误录记录</button>` : ''}` : ''}</article>`;
 }
 async function openPlan(action: PlanCommand['action'], recordId?: string) {
   if (!await prepareAction(action, recordId) || !snapshot?.capabilities.editText) return;
@@ -1294,7 +1295,7 @@ async function readAfterOwnSave(version: string, request?: SaveRequest, result?:
   values = carryInputs(oldBase, input, baseline(), request);
   if (request?.scope === validationScope) { validationErrors = {}; validationScope = undefined; }
   if (request?.scope === 'basic' || !hadBasicInput) basicDraft = basicIntent(current);
-  audit = undefined; auditGeneration++; auditMessage = '';
+  audit = undefined; auditGeneration++; auditMessage = ''; clearSourceHistory();
   deletedNodes = undefined; deletedGeneration++; deletedLoading = false;
   if(result)await personalDrafts?.advance(result,{kind:request?.scope ?? 'action',target:request?.target});
   persist();
@@ -1377,9 +1378,44 @@ async function loadAudit(more = false) {
 function renderStatusHistory() {
   const box = document.getElementById('status-history-content');
   if (!box || !statusHistoryOpen) return;
-  box.innerHTML = (audit ? statusDescriptionHistory(audit.items) : '') + `<p class="read-message">${esc(auditMessage)}</p>${!audit || auditMessage ? '<button class="back-btn" data-status-history-load>读取历史</button>' : ''}${audit?.nextCursor ? '<button class="back-btn" data-status-history-more>读取更早记录</button>' : ''}`;
+  box.innerHTML = (audit ? statusDescriptionHistory(audit.items) : '') + sourceHistoryPanel('status_description') + `<p class="read-message">${esc(auditMessage)}</p>${!audit || auditMessage ? '<button class="back-btn" data-status-history-load>读取历史</button>' : ''}${audit?.nextCursor ? '<button class="back-btn" data-status-history-more>读取更早记录</button>' : ''}`;
   box.querySelector<HTMLButtonElement>('[data-status-history-load]')?.addEventListener('click', () => { void loadAudit(); });
   box.querySelector<HTMLButtonElement>('[data-status-history-more]')?.addEventListener('click', () => { void loadAudit(true); });
+  bindSourceHistory(box);
+}
+
+const sourceHistoryViews: Partial<Record<SourceHistoryPage['kind'], SourceHistoryPage>> = {};
+const sourceHistoryMessages: Partial<Record<SourceHistoryPage['kind'], string>> = {};
+const sourceHistorySelection: Partial<Record<SourceHistoryPage['kind'], string>> = {};
+const sourceHistoryRequests: Partial<Record<SourceHistoryPage['kind'], { token: object; adoption?: string; more: boolean }>> = {};
+function clearSourceHistory() {
+  for (const kind of ['mixed', 'status_description'] as const) { delete sourceHistoryViews[kind]; delete sourceHistoryMessages[kind]; delete sourceHistorySelection[kind]; delete sourceHistoryRequests[kind]; }
+}
+function localMarkTime(value: unknown) { return typeof value === 'number' && Number.isFinite(value) && !Number.isNaN(new Date(value).getTime()) ? historyTime(new Date(value).toISOString()) : value == null || value === '' ? '未知' : String(value); }
+function sourceHistoryPanel(kind: SourceHistoryPage['kind']) {
+  const page = sourceHistoryViews[kind] ?? snapshot?.sourceHistories?.[kind];
+  const marks = kind === 'mixed' ? snapshot?.localCheckMarks ?? [] : [];
+  if (!page?.sources.length && !page?.versions.length && !marks.length) return '';
+  return `<section class="secondary-section" data-source-history="${kind}"><h3>${kind === 'mixed' ? '本地原有记录' : '本地状态说明历史'}</h3>${page?.versions.length ? `<label>来源版本 <select data-source-version="${kind}"><option value="">当前已采用版本</option>${page.versions.map(version => `<option value="${esc(version.id)}" ${sourceHistorySelection[kind] === version.id ? 'selected' : ''}>${esc(version.sourceName)} · ${esc(version.adoptedAt ? historyTime(version.adoptedAt) + '采用' : '原始版本')} · ${version.count}条</option>`).join('')}</select></label>` : ''}${page?.sources.map(source => `<h4>${esc(source.sourceName)}</h4><div class="history">${source.entries.map(entry => `<div class="h-item"><span class="h-dot" aria-hidden="true"></span><div class="h-date">${esc(entry.date || '原时间未知')}</div><div class="h-text">${esc(entry.text || '（空正文）')}</div></div>`).join('') || '<p>该来源已明确采用空历史。</p>'}</div>`).join('') ?? ''}${marks.map(mark => `<p>本地最后标记时间：${esc(localMarkTime(mark.value))} · ${esc(mark.sourceName)}。原操作人未知；此标记可能来自本地打开详情，不代表线上检查。</p>`).join('')}<p class="read-message">${esc(sourceHistoryMessages[kind] ?? '')}</p>${page?.nextCursor ? `<button class="back-btn" data-source-more="${kind}">读取更早来源版本</button>` : ''}${sourceHistoryMessages[kind] ? `<button class="back-btn" data-source-retry="${kind}">重新读取来源历史</button>` : ''}</section>`;
+}
+function bindSourceHistory(container: ParentNode) {
+  container.querySelectorAll<HTMLSelectElement>('[data-source-version]').forEach(select => select.onchange = () => { void loadSourceHistory(select.dataset.sourceVersion as SourceHistoryPage['kind'], select.value); });
+  container.querySelectorAll<HTMLButtonElement>('[data-source-more]').forEach(button => button.onclick = () => { void loadSourceHistory(button.dataset.sourceMore as SourceHistoryPage['kind'], undefined, true); });
+  container.querySelectorAll<HTMLButtonElement>('[data-source-retry]').forEach(button => button.onclick = () => { const kind = button.dataset.sourceRetry as SourceHistoryPage['kind'], prior = sourceHistoryRequests[kind]; void loadSourceHistory(kind, prior?.adoption, prior?.more); });
+}
+async function loadSourceHistory(kind: SourceHistoryPage['kind'], adoption?: string, more = false) {
+  const entered = snapshot, current = sourceHistoryViews[kind] ?? snapshot?.sourceHistories?.[kind];
+  const token = {}; sourceHistoryRequests[kind] = { token, adoption, more };
+  try {
+    const query = new URLSearchParams({ kind }); if (adoption) query.set('adoption', adoption); if (more && current?.nextCursor) query.set('before', current.nextCursor);
+    const page = await get<SourceHistoryPage>('/api/projects/' + id + '/source-history?' + query);
+    if (snapshot !== entered || sourceHistoryRequests[kind]?.token !== token) return;
+    if (page.projectVersion !== entered?.project.version) { stale = true; note('项目已被他人更新，请重新进入项目。未保存文字已保留供复制。', true); controls(); return; }
+    sourceHistoryViews[kind] = more && current ? { ...current, versions: [...current.versions, ...page.versions.filter(version => !current.versions.some(prior => prior.id === version.id))], nextCursor: page.nextCursor } : current ? { ...page, versions: current.versions, nextCursor: current.nextCursor } : page;
+    if (!more) sourceHistorySelection[kind] = adoption ?? '';
+    sourceHistoryMessages[kind] = '';
+  } catch (error) { if (snapshot === entered && sourceHistoryRequests[kind]?.token === token) sourceHistoryMessages[kind] = (error as Error).message + ' 已显示的记录保留，可重试。'; }
+  if (snapshot === entered && sourceHistoryRequests[kind]?.token === token) { if (kind === 'mixed') refreshReadView(); else renderStatusHistory(); }
 }
 element('action-close').onclick = dismissAction;
 element('action-copy').onclick = () => { void copyText(); };
@@ -1537,7 +1573,7 @@ function render() {
   else if (tab === 'history') content = '<h2>更新历史</h2><div class="audit-history">'
     + (audit?.items.length ? auditHistory(audit.items) : audit ? '<p>暂无服务器修改历史。</p>' : '')
     + `</div><p class="read-message">${esc(auditMessage)}</p><button class="back-btn" id="audit-refresh">重新读取历史</button>${audit?.nextCursor ? '<button class="back-btn" id="audit-more">读取更早记录</button>' : ''}`
-    + (snapshot.history.length ? '<details class="secondary-section"><summary>本地原有记录</summary><div class="history">' + snapshot.history.slice().reverse().map(item => `<div class="h-item"><span class="h-dot" aria-hidden="true"></span><div class="h-date">${esc(item.date)}</div><div class="h-text">${esc(item.text)}</div></div>`).join('') + '</div></details>' : '');
+    + sourceHistoryPanel('mixed');
   else if (tab === 'risk') content = signalEditor() + '<section class="record-section">' + riskPanel() + '<div id="risk-form"></div></section><section class="record-section">' + changePanel() + '<div id="change-form"></div></section>';
   if (planDraft && !stagePending) recovery += `<p>${esc(actionLabels[planDraft.action])}</p><button class="back-btn" id="plan-restore">恢复计划/日期表单</button><button class="back-btn" id="plan-discard">放弃该副本</button>${planDraft.action === 'reschedulePlan' ? '<button class="back-btn" id="plan-as-note">作为补充说明重新预览</button>' : ''}`;
   if (tab === 'history' && snapshot.lifecycleNotes.length) {
@@ -1601,6 +1637,7 @@ function render() {
   if (statusHistory) { statusHistory.ontoggle = () => { statusHistoryOpen = statusHistory.open; if (statusHistoryOpen && !audit && !auditMessage) void loadAudit(); else renderStatusHistory(); }; renderStatusHistory(); }
   const refresh = document.getElementById('audit-refresh'); if (refresh) refresh.onclick = () => { void loadAudit(); };
   const more = document.getElementById('audit-more'); if (more) more.onclick = () => { void loadAudit(true); };
+  bindSourceHistory(document);
   for(const name of ['stage-discard','correction-discard','plan-discard','lifecycle-discard','closure-discard','check-discard']){
     const button=document.getElementById(name),discard=button?.onclick;
     if(button && discard)button.onclick=async event=>{if(await discardPersonal('action'))discard.call(button,event);};
@@ -1620,7 +1657,7 @@ async function load(initial = false) {
     if (current !== generation) return;
     snapshot = data;
     values = baseline(); basicDraft = basicIntent(data); riskDraft = undefined; nodeDraft = undefined; changeDraft = undefined; nodeRestoreExtras = []; editBaseVersion = data.project.version; observedVersion = data.project.version; stale = false; validationErrors = {};
-    audit = undefined; auditMessage = ''; auditGeneration++; checks = undefined; checksMessage = ''; checksGeneration++;
+    audit = undefined; auditMessage = ''; auditGeneration++; clearSourceHistory(); checks = undefined; checksMessage = ''; checksGeneration++;
     deletedNodes = undefined; deletedMessage = ''; deletedGeneration++; deletedLoading = false; restoredSources.clear();
     element('detail-panel').hidden = false;
     render();

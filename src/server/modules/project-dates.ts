@@ -15,7 +15,10 @@ export const deadlineKinds = ['upcoming', 'due', 'overdue', 'unset', 'closed_on_
 export type DeadlineKind = typeof deadlineKinds[number];
 export type DateFacts = { status: string; dueDate: string | null; closedOn: string | null; closureDueDate: string | null; closureType: string | null; closurePlanKnown?: boolean | number | string };
 export type Deadline = { kind: DeadlineKind; asOfDate: string; days: number | null; label: string };
-export const closurePlanKnownExpression = "(p.created_by IS NOT NULL AND p.source_import_item_id IS NULL OR EXISTS (SELECT 1 FROM audit_log ac WHERE ac.project_id=p.id AND ac.action='project.close'))";
+export const closurePlanKnownExpression = `COALESCE((SELECT JSON_UNQUOTE(JSON_EXTRACT(ia.adopted_json,'$.effectiveClosure.planKnown'))='true' FROM import_adoptions ia
+  WHERE ia.target_kind='project' AND ia.target_id=p.id AND JSON_CONTAINS_PATH(ia.adopted_json,'one','$.effectiveClosure')
+  AND ia.version_after>COALESCE((SELECT MAX(ac.version_after) FROM audit_log ac WHERE ac.project_id=p.id AND ac.action='project.close'),0)
+  ORDER BY ia.id DESC LIMIT 1),(p.created_by IS NOT NULL AND p.source_import_item_id IS NULL OR EXISTS (SELECT 1 FROM audit_log ac WHERE ac.project_id=p.id AND ac.action='project.close')))`;
 export const dayDifference = (from: string, to: string) => (Date.parse(to) - Date.parse(from)) / 86400000;
 export function deadlineResult(project: DateFacts, today: string): Deadline {
   if (project.status === 'closed') {

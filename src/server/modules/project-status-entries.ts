@@ -27,8 +27,8 @@ function matchLines(previous: StatusEntry[], text: string, changedAt = ''): Stat
 }
 
 // 1054 同文行按出现次序匹配；日期仅来自真实状态变更，不把整段最后更新时间当作每行时间。
-export function projectStatusEntries(text: string, changes: StatusChange[]): StatusEntry[] {
-  let entries: StatusEntry[] = [];
+export function projectStatusEntries(text: string, changes: StatusChange[], baseline: StatusEntry[] = []): StatusEntry[] {
+  let entries: StatusEntry[] = baseline;
   for (const change of changes) {
     if (change.action === 'project.create') {
       entries = matchLines([], change.afterText, change.createdAt);

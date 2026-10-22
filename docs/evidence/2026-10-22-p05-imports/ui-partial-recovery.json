@@ -1,0 +1,38 @@
+{
+  "observedBeforeQuery": "本次保存结果待确认。输入和原操作已保留，前次成功结果保持。",
+  "repeatAdoptPosts": 0,
+  "theme": "warm",
+  "requests": [
+    {
+      "url": "/api/imports/84/items/122/adopt",
+      "key": "054a4bd5-288f-4a7d-813a-5d2e71580104",
+      "selected": [
+        "fields.name"
+      ],
+      "status": 200
+    },
+    {
+      "url": "/api/imports/84/items/122/results/query",
+      "key": "054a4bd5-288f-4a7d-813a-5d2e71580104",
+      "selected": [
+        "fields.name"
+      ],
+      "status": 200
+    }
+  ],
+  "observedAfterQuery": {
+    "unchanged": 1,
+    "total": 2,
+    "notAdoptedFields": [
+      "fields.statusDesc"
+    ],
+    "adoptedFields": [
+      "fields.name"
+    ],
+    "pending": 0,
+    "feedback": "已采用1项，本次未采用1项。",
+    "processed": 1
+  },
+  "method": "真实保存成功后一次性丢弃浏览器响应，再点击原卡核对原保存结果",
+  "scope": "仅合成项目17/18与待审批次84"
+}

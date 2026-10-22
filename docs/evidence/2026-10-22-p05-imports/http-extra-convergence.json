@@ -1,0 +1,26 @@
+{
+  "status": "passed",
+  "verifiedAt": "2026-10-22T08:21:54.929Z",
+  "build": {
+    "revision": "1584f516cd5591576d7d902e0cd14ea85093ae9c",
+    "dirty": true,
+    "builtAt": "2026-10-22T08:16:23.536Z",
+    "stage": "P05-imports",
+    "schemaVersion": "0006-imports"
+  },
+  "serverUuid": "7381e37c-cdcc-11f1-90fe-a6b5330159ea",
+  "prefix": "p05_extra_30ae3d43",
+  "requests": 62,
+  "checks": [
+    "企业四字段沿单例独立采用，新账号读取与SQL一致；项目随后失败不撤销资料；原键查询/重放只一份采用，维护身份不改变；测试后正常API还原展示字段",
+    "芯片A/B→A/C及硬件角色整组替换；未选标签/参与人及缺失软件/本地PM保持；第二轮标签明确清空、参与人A/B→B/C；基础资料与账号负责人不删除不转移，详情/简要新读可消费",
+    "接管和采用实际并发：接管成功，基于旧资格/批次的采用拒绝且无采用残留；重新读取后保存一次，上传者保持、新经理负责",
+    "接管真实COMMIT后丢回复显示未知；原键查询和重放得到同一结果，批次仅增一版、审计一条、未自动采用项目"
+  ],
+  "projectIds": [
+    "35",
+    "36"
+  ],
+  "raceRejection": "IMPORT_BATCH_VERSION_CONFLICT",
+  "companyRestored": true
+}

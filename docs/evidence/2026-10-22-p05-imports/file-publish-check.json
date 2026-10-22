@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-22T04:10:48.287Z",
+  "checks": [
+    "8轮同账号同操作键不同内容并发：仅一份成功且最终文件等于成功摘要",
+    "同键同内容6次并发全部回读同一完整文件",
+    "非法格式无最终文件，临时文件全部移除"
+  ],
+  "scope": "实际Docker文件系统与编译后的receiveFile，无数据库写入；临时导出仅追加至外置验证产物",
+  "importsSha256": "2f00d86ea38c83d3a28b11d9f04e4307dce06a07e5c3f8110edc9ac52f95050e",
+  "verificationScript": "D:/geekwon/geekdash-data/p05-migration-probe-20261022/runtime/scripts/probe-import-files.mjs",
+  "serverTypeCheck": "tsc -p tsconfig.server.json --noEmit：通过"
+}

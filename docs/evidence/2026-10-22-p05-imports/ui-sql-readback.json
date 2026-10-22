@@ -1,0 +1,43 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-22T06:35:14.707Z",
+  "source": "独立MySQL连接，只读核对实际页面操作；校验原隔离实例UUID",
+  "databaseUuid": "7381e37c-cdcc-11f1-90fe-a6b5330159ea",
+  "projects": [
+    {
+      "id": "17",
+      "version": "4",
+      "name": "P05 页面验收 · 智能门锁（后续名称）",
+      "statusDesc": "已导入线上，项目经理已核对资料，等待样机安排。"
+    },
+    {
+      "id": "18",
+      "version": "1",
+      "name": "导入验收 · 无资料项目",
+      "statusDesc": "等待立案讨论"
+    }
+  ],
+  "responsibilities": [
+    {
+      "projectId": "17",
+      "userId": "8"
+    },
+    {
+      "projectId": "18",
+      "userId": "8"
+    }
+  ],
+  "checks": [
+    {
+      "projectId": "17",
+      "count": "1"
+    }
+  ],
+  "assertions": [
+    "项目17部分采用名称后版本4，未选状态说明仍为原线上值",
+    "项目18仍版本1",
+    "页面保存者8是两项目实际负责人",
+    "项目17只有实际点击的一条检查；旧本地标记没有追加线上检查"
+  ],
+  "realBusinessData": false
+}

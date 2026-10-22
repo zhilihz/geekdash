@@ -13,6 +13,13 @@ services:
       PORT: "3000"
       GEEKDASH_DB_PROFILE: dev_app
       GEEKDASH_ORIGIN: https://geekdash.zhiluan.cool
+      GEEKDASH_IMPORT_DIR: /var/lib/geekdash/imports
+      GEEKDASH_IMPORT_WRITES: ${GEEKDASH_IMPORT_WRITES:-enabled}
+    volumes:
+      - type: bind
+        source: /var/lib/geekdash/imports
+        target: /var/lib/geekdash/imports
+        bind: {create_host_path: false}
     ports: ["127.0.0.1:41860:3000"]
     secrets: [dev_app]
     networks: [default, database]

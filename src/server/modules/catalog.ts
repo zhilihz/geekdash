@@ -16,13 +16,13 @@ const definitions: Record<string, { table: string; fields: Record<string, [strin
   company: { table: 'system_configuration', fields: { fullName: ['full_name',255], shortName: ['short_name',128], managerText: ['manager_text',65535], namePrefix: ['name_prefix',128] } },
 };
 type Values = Record<string, string | boolean | string[]>;
-type Command = { id: string | null; expectedVersion: string; idempotencyKey: string; changes: Values; impactToken?: string };
+export type CatalogCommand = { id: string | null; expectedVersion: string; idempotencyKey: string; changes: Values; impactToken?: string };
 const uuid = (value: unknown) => typeof value === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value);
 const digest = (value: unknown) => createHash('sha256').update(canonical(value)).digest('hex');
 const nameKey = (value: string) => value.normalize('NFKC').trim().replace(/\s+/gu,' ').toLocaleLowerCase('en-US');
 function definition(kind: string) { if (!Object.hasOwn(definitions,kind)) failure('CATALOG_KIND_NOT_FOUND',404); return definitions[kind]; }
-export function validateCatalog(kind: string, input: unknown): Command {
-  const def = definition(kind), body = input as Command;
+export function validateCatalog(kind: string, input: unknown): CatalogCommand {
+  const def = definition(kind), body = input as CatalogCommand;
   if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).some(key => !['id','expectedVersion','idempotencyKey','changes','impactToken'].includes(key))
     || !(body.id === null || validId(body.id)) || !(body.id === null ? body.expectedVersion === '0' : validId(body.expectedVersion)) || !uuid(body.idempotencyKey)
     || !body.changes || typeof body.changes !== 'object' || Array.isArray(body.changes) || !Object.keys(body.changes).length
@@ -71,7 +71,7 @@ async function references(c: PoolConnection, kind: string, id: string) {
   const customers = kind === 'tags' ? (await c.query<RowDataPacket[]>('SELECT CAST(c.id AS CHAR) id,c.name,CAST(c.version AS CHAR) version FROM customers c JOIN customer_tags r ON r.customer_id=c.id WHERE r.tag_id=? ORDER BY c.id',[id]))[0] : [];
   return {projects,customers};
 }
-async function prepare(c: PoolConnection, kind: string, body: Command, lock: boolean) {
+async function prepare(c: PoolConnection, kind: string, body: CatalogCommand, lock: boolean) {
   const def=definition(kind);
   if (lock && kind === 'tags' && body.id) {
     // 客户标签间接影响项目。先锁客户再锁标签，沿项目保存的资料表顺序阻止漏掉新引用。
@@ -104,6 +104,39 @@ async function prepare(c: PoolConnection, kind: string, body: Command, lock: boo
   return {before,after,changed,...impact,impactToken:digest([kind,body.id,body.expectedVersion,body.changes,impact])};
 }
 
+export async function saveCatalogInTransaction(c: PoolConnection, actor: Actor, kind: string, body: CatalogCommand, requestId: string, requireImpact = true) {
+  const def=definition(kind);
+  const preview=await prepare(c,kind,body,true), {before,after,changed}=preview;
+  if (requireImpact && body.id && changed && kind !== 'company' && body.impactToken !== preview.impactToken) failure('CATALOG_IMPACT_CHANGED',409,{projects:preview.projects,customers:preview.customers});
+  let id=body.id, savedVersion=before?.version ?? '1';
+  let affectedProjects: {projectId:string;version:string}[]=[];
+  const at=new Date().toISOString().slice(0,23).replace('T',' ');
+  if (changed) {
+    if (before?.version === '18446744073709551615') failure('CATALOG_VERSION_EXHAUSTED',422);
+    const keys=Object.keys(def.fields), columns=keys.map(key=>`\`${def.fields[key][0]}\``), values=keys.map(key=>after[key]);
+    if (kind !== 'company') {columns.push('enabled');values.push(!!after.enabled);}
+    if (id) {
+      savedVersion=String(BigInt(before!.version)+1n);
+      await c.execute(`UPDATE ${def.table} SET ${columns.map(column=>column+'=?').join(',')},version=version+1,updated_at=?${kind === 'company' ? ',updated_by=?' : ''} WHERE id=?`,[...values,at,...kind === 'company' ? [actor.id] : [],id]);
+    } else {
+      await c.execute(`INSERT INTO ${def.table} (${columns.join(',')},created_at,updated_at) VALUES (${columns.map(()=>'?').join(',')},?,?)`,[...values,at,at]);
+      id=(await c.query<RowDataPacket[]>('SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0][0].id;
+    }
+    if (kind === 'customers' && (!before || Object.hasOwn(body.changes,'tagIds'))) {
+      await c.execute('DELETE FROM customer_tags WHERE customer_id=?',[id]);
+      for (const [index,tag] of (after.tagIds as string[]).entries()) await c.execute('INSERT INTO customer_tags (customer_id,tag_id,sort_order) VALUES (?,?,?)',[id,tag,index]);
+    }
+    const oldValues=before ? {catalogName:before.name ?? before.fullName,...Object.fromEntries(Object.keys(body.changes).map(key=>[key,before[key]]))} : null;
+    const newValues={catalogName:after.name ?? after.fullName,...Object.fromEntries(Object.keys(body.changes).map(key=>[key,after[key]]))};
+    await c.execute("INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,version_before,version_after,before_json,after_json,request_id,created_at) VALUES (?,?,'user',?,?,?,?,?,?,?,?,?,?)",[actor.id,actor.name,`catalog.${kind}.save`,def.table,id,null,before?.version ?? null,savedVersion,JSON.stringify(oldValues),JSON.stringify(newValues),requestId,at]);
+    affectedProjects=await applyReferenceProjectChanges(c,actor,preview.projects.map(project=>({projectId:project.projectId,version:project.version})),{action:`catalog.${kind}.save`,entityType:def.table,entityId:id!,beforeValues:oldValues,afterValues:newValues,requestId,at});
+  }
+  const result={id,savedVersion,changed,operationId:body.idempotencyKey,affectedProjects};
+  return result;
+}
+
+export { rows as readCatalogInTransaction, prepare as previewCatalogInTransaction, configuration as lockCatalogConfiguration, definition as catalogDefinition };
+
 export function catalog(database: RuntimeDatabase) {
   return {
     read(actor: Actor, kind: string) { definition(kind); return database.readSnapshot(async c=>{await configuration(c,actor);return {canMaintain:true,items:await rows(c,kind)};}); },
@@ -113,12 +146,12 @@ export function catalog(database: RuntimeDatabase) {
       if (!item) failure('CATALOG_NOT_FOUND',404);
       return {canMaintain:true,item,...await references(c,kind,id)};
     }); },
-    preview(actor: Actor, kind: string, body: Command) { return database.readSnapshot(async c=>{
+    preview(actor: Actor, kind: string, body: CatalogCommand) { return database.readSnapshot(async c=>{
       await configuration(c,actor);
       return prepare(c,kind,body,false);
     }); },
-    save(actor: Actor, kind: string, body: Command, requestId: string, confirm = false) {
-      const def=definition(kind), scope=`user:${actor.id}:catalog:${kind}`, hash=Buffer.from(digest(body),'hex');
+    save(actor: Actor, kind: string, body: CatalogCommand, requestId: string, confirm = false) {
+      const scope=`user:${actor.id}:catalog:${kind}`, hash=Buffer.from(digest(body),'hex');
       const lookup=async(c: PoolConnection)=>{
         const [found]=await c.query<RowDataPacket[]>('SELECT request_hash,response_json FROM command_receipts WHERE command_scope=? AND idempotency_key=?',[scope,body.idempotencyKey]);
         if (!found.length) return null;
@@ -130,32 +163,8 @@ export function catalog(database: RuntimeDatabase) {
         // ponytail: 共享资料写入共用配置行锁防止跨账号重名；仅在资料写入吞吐成为瓶颈时细分。
         await configuration(c,actor,true);const prior=await lookup(c);
         if (prior) return {outcome:'committed',result:prior};
-        const preview=await prepare(c,kind,body,true), {before,after,changed}=preview;
-        if (body.id && changed && kind !== 'company' && body.impactToken !== preview.impactToken) failure('CATALOG_IMPACT_CHANGED',409,{projects:preview.projects,customers:preview.customers});
-        let id=body.id, savedVersion=before?.version ?? '1';
-        let affectedProjects: {projectId:string;version:string}[]=[];
+        const result=await saveCatalogInTransaction(c,actor,kind,body,requestId);
         const at=new Date().toISOString().slice(0,23).replace('T',' ');
-        if (changed) {
-          if (before?.version === '18446744073709551615') failure('CATALOG_VERSION_EXHAUSTED',422);
-          const keys=Object.keys(def.fields), columns=keys.map(key=>`\`${def.fields[key][0]}\``), values=keys.map(key=>after[key]);
-          if (kind !== 'company') {columns.push('enabled');values.push(!!after.enabled);}
-          if (id) {
-            savedVersion=String(BigInt(before!.version)+1n);
-            await c.execute(`UPDATE ${def.table} SET ${columns.map(column=>column+'=?').join(',')},version=version+1,updated_at=?${kind === 'company' ? ',updated_by=?' : ''} WHERE id=?`,[...values,at,...kind === 'company' ? [actor.id] : [],id]);
-          } else {
-            await c.execute(`INSERT INTO ${def.table} (${columns.join(',')},created_at,updated_at) VALUES (${columns.map(()=>'?').join(',')},?,?)`,[...values,at,at]);
-            id=(await c.query<RowDataPacket[]>('SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0][0].id;
-          }
-          if (kind === 'customers' && (!before || Object.hasOwn(body.changes,'tagIds'))) {
-            await c.execute('DELETE FROM customer_tags WHERE customer_id=?',[id]);
-            for (const [index,tag] of (after.tagIds as string[]).entries()) await c.execute('INSERT INTO customer_tags (customer_id,tag_id,sort_order) VALUES (?,?,?)',[id,tag,index]);
-          }
-          const oldValues=before ? {catalogName:before.name ?? before.fullName,...Object.fromEntries(Object.keys(body.changes).map(key=>[key,before[key]]))} : null;
-          const newValues={catalogName:after.name ?? after.fullName,...Object.fromEntries(Object.keys(body.changes).map(key=>[key,after[key]]))};
-          await c.execute("INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,version_before,version_after,before_json,after_json,request_id,created_at) VALUES (?,?,'user',?,?,?,?,?,?,?,?,?,?)",[actor.id,actor.name,`catalog.${kind}.save`,def.table,id,null,before?.version ?? null,savedVersion,JSON.stringify(oldValues),JSON.stringify(newValues),requestId,at]);
-          affectedProjects=await applyReferenceProjectChanges(c,actor,preview.projects.map(project=>({projectId:project.projectId,version:project.version})),{action:`catalog.${kind}.save`,entityType:def.table,entityId:id!,beforeValues:oldValues,afterValues:newValues,requestId,at});
-        }
-        const result={id,savedVersion,changed,operationId:body.idempotencyKey,affectedProjects};
         await c.execute('INSERT INTO command_receipts (actor_id,command_scope,idempotency_key,request_hash,response_code,response_json,committed_at) VALUES (?,?,?,?,200,?,?)',[actor.id,scope,body.idempotencyKey,hash,JSON.stringify(result),at]);
         return {outcome:'committed',result};
       });

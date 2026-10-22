@@ -9,6 +9,7 @@ import { lifecycleNotes } from './project-lifecycle.js';
 import { checkConditions, enrichChecks, todayCheckCondition } from './project-checks.js';
 import { companyInformation } from './public-settings.js';
 import { projectStatusEntries, projectStatusOwners, type StatusChange, type StatusEntry } from './project-status-entries.js';
+import { sourceHistory, statusSourceBaselines, localCheckMarks, recordSourceFacts, originalRecordTimes, type SourceHistoryKind } from './project-source-history.js';
 
 // V1.050 的阶段名称、完成权重和里程碑；查询不自动改变业务状态。
 export const stages = [
@@ -94,12 +95,15 @@ async function enrich(connection: PoolConnection, projects: RowDataPacket[], inc
   const tags = await rows(connection, `SELECT CAST(pt.project_id AS CHAR) projectId,CAST(t.id AS CHAR) id,t.name FROM project_tags pt JOIN tags t ON t.id=pt.tag_id WHERE pt.project_id IN (${slots}) ORDER BY pt.sort_order,t.id`, ids);
   const responsible = await rows(connection, `SELECT CAST(r.project_id AS CHAR) projectId,CAST(u.id AS CHAR) id,u.display_name name,u.enabled FROM project_responsibilities r JOIN users u ON u.id=r.user_id WHERE r.project_id IN (${slots}) ORDER BY u.id`, ids);
   const statusChanges = new Map<string, StatusChange[]>();
+  const sourceBaselines = includeStatusEntries ? await statusSourceBaselines(connection, ids) : new Map();
   if (includeStatusEntries) {
-    const audits = await rows(connection, `SELECT CAST(project_id AS CHAR) projectId,action,
+    const audits = await rows(connection, `SELECT CAST(project_id AS CHAR) projectId,CAST(version_after AS CHAR) version,action,
       CASE WHEN JSON_TYPE(JSON_EXTRACT(before_json,'$.statusDesc'))='STRING' THEN JSON_UNQUOTE(JSON_EXTRACT(before_json,'$.statusDesc')) ELSE NULL END beforeText,
       JSON_UNQUOTE(JSON_EXTRACT(after_json,'$.statusDesc')) afterText,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%s.%fZ') createdAt
-      FROM audit_log WHERE project_id IN (${slots}) AND entity_type='project' AND JSON_TYPE(JSON_EXTRACT(after_json,'$.statusDesc'))='STRING' ORDER BY audit_log.id`, ids);
+      FROM audit_log WHERE project_id IN (${slots}) AND entity_type='project' AND action<>'project.import' AND JSON_TYPE(JSON_EXTRACT(after_json,'$.statusDesc'))='STRING' ORDER BY audit_log.id`, ids);
     for (const audit of audits) {
+      const baseline = sourceBaselines.get(audit.projectId);
+      if (baseline && BigInt(audit.version) <= BigInt(baseline.version)) continue;
       const changes = statusChanges.get(audit.projectId) ?? [];
       changes.push(audit as RowDataPacket & StatusChange); statusChanges.set(audit.projectId, changes);
     }
@@ -109,7 +113,7 @@ async function enrich(connection: PoolConnection, projects: RowDataPacket[], inc
     project.people = people.filter(item => item.projectId === project.id).map(({ projectId: _projectId, ...item }) => item);
     project.tags = tags.filter(item => item.projectId === project.id).map(({ projectId: _projectId, ...item }) => item);
     project.managers = responsible.filter(item => item.projectId === project.id).map(({ projectId: _projectId, ...item }) => item);
-    if (includeStatusEntries) project.statusEntries = projectStatusEntries(project.statusDesc, statusChanges.get(project.id) ?? []);
+    if (includeStatusEntries) project.statusEntries = projectStatusEntries(project.statusDesc, statusChanges.get(project.id) ?? [], sourceBaselines.get(project.id)?.entries);
   }
   return projects;
 }
@@ -136,9 +140,13 @@ async function readDetail(connection: PoolConnection, id: string, accountId: str
         const risks = await riskRows(connection, id);
         const changes = await changeRows(connection, id);
         const delays = await scheduleRecords(connection, id);
+        const recordOrigins = await recordSourceFacts(connection, id);
+        for (const [kind, records] of [['risk', risks], ['change', changes], ['schedule', delays]] as const) for (const record of records) originalRecordTimes(record, recordOrigins.get(kind + ':' + record.id)?.values);
         const actualChanges = delays.filter(item => !item.voided && item.kind === 'reschedule' && item.oldDate && item.newDate && item.oldDate !== item.newDate);
         const planSummary = { reschedules: actualChanges.length, laterAdjustments: actualChanges.filter(item => item.newDate! > item.oldDate!).length, unknownAdjustments: delays.filter(item => !item.voided && item.kind === 'reschedule' && (!item.oldDate || !item.newDate)).length, netDays: project.originalDueDate && project.dueDate ? dayDifference(project.originalDueDate, project.dueDate) : null };
-        const history = withHistory ? await rows(connection, 'SELECT CAST(id AS CHAR) id,source_date_text date,body text FROM legacy_project_history WHERE project_id=? ORDER BY source_sequence,legacy_project_history.id', [id]) : [];
+        const sourceHistories = withHistory ? { mixed: await sourceHistory(connection, id, 'mixed'), status_description: await sourceHistory(connection, id, 'status_description') } : undefined;
+        const history = sourceHistories?.mixed.sources.flatMap(source => source.entries) ?? [];
+        const localMarks = withHistory ? await localCheckMarks(connection, id) : [];
         const responsible = await rows(connection, 'SELECT CAST(u.id AS CHAR) id,u.display_name name,u.enabled FROM project_responsibilities r JOIN users u ON u.id=r.user_id WHERE r.project_id=? ORDER BY u.id', [id]);
         const editable = accountId ? responsible.some(user => user.id === accountId && !!user.enabled) : project.dataKind === 'trial';
         const stageActions = projectStages.map(stage => ({ code: stage.code,
@@ -149,11 +157,12 @@ async function readDetail(connection: PoolConnection, id: string, accountId: str
         const lifecycleHistory = withHistory ? await lifecycleNotes(connection, id) : [];
         project.deadline = deadlineResult(project as RowDataPacket & DateFacts, businessDate);
         const startBlocked = !accountId || !editable ? 'PROJECT_READ_ONLY' : startProjectBlock(project as RowDataPacket & { status: string; startDate: string | null }, projectStages as (RowDataPacket & StageFact)[], businessDate);
-        return { currentClosure: await currentClosure(connection, id, project as RowDataPacket & { status: string; sourceImportItemId: unknown }), project, stages: projectStages, stageActions, startBlocked, lifecycleNotes: lifecycleHistory, businessDate, nodes, risks, changes, delays, planSummary, history, responsible, readOnly: !editable, capabilities: { editText: editable, editOrdinary: editable, join: !!accountId && !editable, leave: !!accountId && editable } };
+        return { currentClosure: await currentClosure(connection, id, project as RowDataPacket & { status: string; sourceImportItemId: unknown }), project, stages: projectStages, stageActions, startBlocked, lifecycleNotes: lifecycleHistory, businessDate, nodes, risks, changes, delays, planSummary, history, sourceHistories, localCheckMarks: localMarks, responsible, readOnly: !editable, capabilities: { editText: editable, editOrdinary: editable, join: !!accountId && !editable, leave: !!accountId && editable } };
 }
 
 export function projectReads(database: RuntimeDatabase, clock = () => new Date()) {
   return {
+    sourceHistory(id: string, kind: SourceHistoryKind, sourceNamespace?: string, adoptionId?: string, before?: string) { return database.readSnapshot(connection => sourceHistory(connection, id, kind, sourceNamespace, adoptionId, before)); },
     summary(accountId: string) {
       const now=clock(),today=businessToday(now);
       return database.readSnapshot(async connection=>{

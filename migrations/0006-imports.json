@@ -1,0 +1,595 @@
+{
+  "version": "0006-imports",
+  "steps": [
+    {
+      "table": "import_sources",
+      "create": {
+        "name": "import_sources",
+        "columns": [
+          {
+            "name": "source_namespace",
+            "type": "varchar(64)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_bin"
+          },
+          {
+            "name": "name",
+            "type": "varchar(128)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci"
+          },
+          {
+            "name": "created_at",
+            "type": "datetime(3)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          }
+        ],
+        "indexes": [
+          {
+            "name": "PRIMARY",
+            "unique": true,
+            "columns": [
+              "source_namespace"
+            ]
+          }
+        ],
+        "checks": [],
+        "foreignKeys": [],
+        "sql": "CREATE TABLE `import_sources` (\n  `source_namespace` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,\n  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `created_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`source_namespace`)\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+      },
+      "sql": "CREATE TABLE `import_sources` (\n  `source_namespace` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,\n  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,\n  `created_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`source_namespace`)\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "table": "import_sources",
+      "data": "seed-import-sources"
+    },
+    {
+      "table": "import_bindings",
+      "create": {
+        "name": "import_bindings",
+        "columns": [
+          {
+            "name": "id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": true,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "source_namespace",
+            "type": "varchar(64)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_bin"
+          },
+          {
+            "name": "object_kind",
+            "type": "varchar(32)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": "ascii",
+            "collation": "ascii_bin"
+          },
+          {
+            "name": "source_scope",
+            "type": "varchar(128)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": "ascii",
+            "collation": "ascii_bin"
+          },
+          {
+            "name": "source_key",
+            "type": "varchar(128)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_bin"
+          },
+          {
+            "name": "target_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "version",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": "1",
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          }
+        ],
+        "indexes": [
+          {
+            "name": "PRIMARY",
+            "unique": true,
+            "columns": [
+              "id"
+            ]
+          },
+          {
+            "name": "uk_source_kind_scope_key",
+            "unique": true,
+            "columns": [
+              "source_namespace",
+              "object_kind",
+              "source_scope",
+              "source_key"
+            ]
+          }
+        ],
+        "checks": [
+          {
+            "name": "ck_import_bindings_version",
+            "expression": "`version` >= 1"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "name": "fk_import_bindings_source_namespace",
+            "columns": [
+              "source_namespace"
+            ],
+            "parent": "import_sources",
+            "references": [
+              "source_namespace"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `import_bindings` ADD CONSTRAINT `fk_import_bindings_source_namespace` FOREIGN KEY (`source_namespace`) REFERENCES `import_sources` (`source_namespace`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          }
+        ],
+        "sql": "CREATE TABLE `import_bindings` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `source_namespace` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,\n  `object_kind` varchar(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `source_scope` varchar(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `source_key` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,\n  `target_id` bigint unsigned NOT NULL,\n  `version` bigint unsigned NOT NULL DEFAULT 1,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `uk_source_kind_scope_key` (`source_namespace`, `object_kind`, `source_scope`, `source_key`),\n  CONSTRAINT `ck_import_bindings_version` CHECK (`version` >= 1),\n  CONSTRAINT `fk_import_bindings_source_namespace` FOREIGN KEY (`source_namespace`) REFERENCES `import_sources` (`source_namespace`) ON UPDATE RESTRICT ON DELETE RESTRICT\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+      },
+      "sql": "CREATE TABLE `import_bindings` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `source_namespace` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,\n  `object_kind` varchar(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `source_scope` varchar(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `source_key` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,\n  `target_id` bigint unsigned NOT NULL,\n  `version` bigint unsigned NOT NULL DEFAULT 1,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `uk_source_kind_scope_key` (`source_namespace`, `object_kind`, `source_scope`, `source_key`),\n  CONSTRAINT `ck_import_bindings_version` CHECK (`version` >= 1),\n  CONSTRAINT `fk_import_bindings_source_namespace` FOREIGN KEY (`source_namespace`) REFERENCES `import_sources` (`source_namespace`) ON UPDATE RESTRICT ON DELETE RESTRICT\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "table": "import_adoptions",
+      "create": {
+        "name": "import_adoptions",
+        "columns": [
+          {
+            "name": "id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": true,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "item_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "source_namespace",
+            "type": "varchar(64)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_bin"
+          },
+          {
+            "name": "actor_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "review_version",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "target_kind",
+            "type": "varchar(32)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": "ascii",
+            "collation": "ascii_bin"
+          },
+          {
+            "name": "target_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "version_before",
+            "type": "bigint unsigned",
+            "nullable": true,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "version_after",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "operation_key",
+            "type": "varchar(128)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": "ascii",
+            "collation": "ascii_bin"
+          },
+          {
+            "name": "request_hash",
+            "type": "binary(32)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "adopted_json",
+            "type": "json",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "history_manifest_json",
+            "type": "json",
+            "nullable": true,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "created_at",
+            "type": "datetime(3)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          }
+        ],
+        "indexes": [
+          {
+            "name": "PRIMARY",
+            "unique": true,
+            "columns": [
+              "id"
+            ]
+          },
+          {
+            "name": "uk_item_actor_operation",
+            "unique": true,
+            "columns": [
+              "item_id",
+              "actor_id",
+              "operation_key"
+            ]
+          },
+          {
+            "name": "uk_item_review_version",
+            "unique": true,
+            "columns": [
+              "item_id",
+              "review_version"
+            ]
+          },
+          {
+            "name": "idx_item_id",
+            "unique": false,
+            "columns": [
+              "item_id",
+              "id"
+            ]
+          },
+          {
+            "name": "idx_target_source_id",
+            "unique": false,
+            "columns": [
+              "target_kind",
+              "target_id",
+              "source_namespace",
+              "id"
+            ]
+          },
+          {
+            "name": "idx_actor_id",
+            "unique": false,
+            "columns": [
+              "actor_id"
+            ]
+          },
+          {
+            "name": "idx_source_namespace",
+            "unique": false,
+            "columns": [
+              "source_namespace"
+            ]
+          }
+        ],
+        "checks": [
+          {
+            "name": "ck_import_adoptions_review_version",
+            "expression": "`review_version` >= 1"
+          },
+          {
+            "name": "ck_import_adoptions_version_after",
+            "expression": "`version_after` >= 1"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "name": "fk_import_adoptions_item_id",
+            "columns": [
+              "item_id"
+            ],
+            "parent": "import_items",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `import_adoptions` ADD CONSTRAINT `fk_import_adoptions_item_id` FOREIGN KEY (`item_id`) REFERENCES `import_items` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          },
+          {
+            "name": "fk_import_adoptions_source_namespace",
+            "columns": [
+              "source_namespace"
+            ],
+            "parent": "import_sources",
+            "references": [
+              "source_namespace"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `import_adoptions` ADD CONSTRAINT `fk_import_adoptions_source_namespace` FOREIGN KEY (`source_namespace`) REFERENCES `import_sources` (`source_namespace`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          },
+          {
+            "name": "fk_import_adoptions_actor_id",
+            "columns": [
+              "actor_id"
+            ],
+            "parent": "users",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `import_adoptions` ADD CONSTRAINT `fk_import_adoptions_actor_id` FOREIGN KEY (`actor_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          }
+        ],
+        "sql": "CREATE TABLE `import_adoptions` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `item_id` bigint unsigned NOT NULL,\n  `source_namespace` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,\n  `actor_id` bigint unsigned NOT NULL,\n  `review_version` bigint unsigned NOT NULL,\n  `target_kind` varchar(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `target_id` bigint unsigned NOT NULL,\n  `version_before` bigint unsigned NULL,\n  `version_after` bigint unsigned NOT NULL,\n  `operation_key` varchar(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `request_hash` binary(32) NOT NULL,\n  `adopted_json` json NOT NULL,\n  `history_manifest_json` json NULL,\n  `created_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `uk_item_actor_operation` (`item_id`, `actor_id`, `operation_key`),\n  UNIQUE KEY `uk_item_review_version` (`item_id`, `review_version`),\n  KEY `idx_item_id` (`item_id`, `id`),\n  KEY `idx_target_source_id` (`target_kind`, `target_id`, `source_namespace`, `id`),\n  KEY `idx_actor_id` (`actor_id`),\n  KEY `idx_source_namespace` (`source_namespace`),\n  CONSTRAINT `ck_import_adoptions_review_version` CHECK (`review_version` >= 1),\n  CONSTRAINT `ck_import_adoptions_version_after` CHECK (`version_after` >= 1),\n  CONSTRAINT `fk_import_adoptions_item_id` FOREIGN KEY (`item_id`) REFERENCES `import_items` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,\n  CONSTRAINT `fk_import_adoptions_source_namespace` FOREIGN KEY (`source_namespace`) REFERENCES `import_sources` (`source_namespace`) ON UPDATE RESTRICT ON DELETE RESTRICT,\n  CONSTRAINT `fk_import_adoptions_actor_id` FOREIGN KEY (`actor_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+      },
+      "sql": "CREATE TABLE `import_adoptions` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `item_id` bigint unsigned NOT NULL,\n  `source_namespace` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NOT NULL,\n  `actor_id` bigint unsigned NOT NULL,\n  `review_version` bigint unsigned NOT NULL,\n  `target_kind` varchar(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `target_id` bigint unsigned NOT NULL,\n  `version_before` bigint unsigned NULL,\n  `version_after` bigint unsigned NOT NULL,\n  `operation_key` varchar(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `request_hash` binary(32) NOT NULL,\n  `adopted_json` json NOT NULL,\n  `history_manifest_json` json NULL,\n  `created_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `uk_item_actor_operation` (`item_id`, `actor_id`, `operation_key`),\n  UNIQUE KEY `uk_item_review_version` (`item_id`, `review_version`),\n  KEY `idx_item_id` (`item_id`, `id`),\n  KEY `idx_target_source_id` (`target_kind`, `target_id`, `source_namespace`, `id`),\n  KEY `idx_actor_id` (`actor_id`),\n  KEY `idx_source_namespace` (`source_namespace`),\n  CONSTRAINT `ck_import_adoptions_review_version` CHECK (`review_version` >= 1),\n  CONSTRAINT `ck_import_adoptions_version_after` CHECK (`version_after` >= 1),\n  CONSTRAINT `fk_import_adoptions_item_id` FOREIGN KEY (`item_id`) REFERENCES `import_items` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,\n  CONSTRAINT `fk_import_adoptions_source_namespace` FOREIGN KEY (`source_namespace`) REFERENCES `import_sources` (`source_namespace`) ON UPDATE RESTRICT ON DELETE RESTRICT,\n  CONSTRAINT `fk_import_adoptions_actor_id` FOREIGN KEY (`actor_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "table": "import_batches",
+      "indexes": [
+        {
+          "name": "idx_source_namespace",
+          "unique": false,
+          "columns": [
+            "source_namespace"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_import_batches_source_namespace",
+          "columns": [
+            "source_namespace"
+          ],
+          "parent": "import_sources",
+          "references": [
+            "source_namespace"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `import_batches` ADD CONSTRAINT `fk_import_batches_source_namespace` FOREIGN KEY (`source_namespace`) REFERENCES `import_sources` (`source_namespace`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "ALTER TABLE import_batches ADD KEY `idx_source_namespace` (`source_namespace`), ADD CONSTRAINT `fk_import_batches_source_namespace` FOREIGN KEY (`source_namespace`) REFERENCES `import_sources` (`source_namespace`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+    },
+    {
+      "table": "legacy_project_history",
+      "columns": [
+        {
+          "name": "source_adoption_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "history_kind",
+          "type": "varchar(32)",
+          "nullable": false,
+          "default": "mixed",
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        },
+        {
+          "name": "legacy_source_namespace",
+          "type": "varchar(64)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_bin"
+        }
+      ],
+      "sql": "ALTER TABLE legacy_project_history ADD COLUMN `source_adoption_id` bigint unsigned NULL, ADD COLUMN `history_kind` varchar(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'mixed', ADD COLUMN `legacy_source_namespace` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL"
+    },
+    {
+      "table": "legacy_project_history",
+      "data": "freeze-legacy-history-source"
+    },
+    {
+      "table": "legacy_project_history",
+      "dropIndexes": [
+        "uk_source_import_item_id_source_sequence"
+      ],
+      "indexes": [
+        {
+          "name": "idx_source_import_item_id",
+          "unique": false,
+          "columns": [
+            "source_import_item_id"
+          ]
+        },
+        {
+          "name": "uk_adoption_kind_sequence",
+          "unique": true,
+          "columns": [
+            "source_adoption_id",
+            "history_kind",
+            "source_sequence"
+          ]
+        },
+        {
+          "name": "idx_legacy_source_namespace",
+          "unique": false,
+          "columns": [
+            "legacy_source_namespace"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_legacy_history_source",
+          "expression": "(`source_adoption_id` IS NULL) <> (`legacy_source_namespace` IS NULL)"
+        },
+        {
+          "name": "ck_legacy_history_kind",
+          "expression": "`history_kind` IN ('mixed','status_description')"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_legacy_project_history_source_adoption_id",
+          "columns": [
+            "source_adoption_id"
+          ],
+          "parent": "import_adoptions",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `legacy_project_history` ADD CONSTRAINT `fk_legacy_project_history_source_adoption_id` FOREIGN KEY (`source_adoption_id`) REFERENCES `import_adoptions` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        },
+        {
+          "name": "fk_legacy_project_history_legacy_source_namespace",
+          "columns": [
+            "legacy_source_namespace"
+          ],
+          "parent": "import_sources",
+          "references": [
+            "source_namespace"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE `legacy_project_history` ADD CONSTRAINT `fk_legacy_project_history_legacy_source_namespace` FOREIGN KEY (`legacy_source_namespace`) REFERENCES `import_sources` (`source_namespace`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ],
+      "sql": "ALTER TABLE legacy_project_history ADD KEY `idx_source_import_item_id` (`source_import_item_id`), ADD UNIQUE KEY `uk_adoption_kind_sequence` (`source_adoption_id`, `history_kind`, `source_sequence`), ADD KEY `idx_legacy_source_namespace` (`legacy_source_namespace`), ADD CONSTRAINT `fk_legacy_project_history_source_adoption_id` FOREIGN KEY (`source_adoption_id`) REFERENCES `import_adoptions` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT, ADD CONSTRAINT `fk_legacy_project_history_legacy_source_namespace` FOREIGN KEY (`legacy_source_namespace`) REFERENCES `import_sources` (`source_namespace`) ON UPDATE RESTRICT ON DELETE RESTRICT, ADD CONSTRAINT `ck_legacy_history_source` CHECK ((`source_adoption_id` IS NULL) <> (`legacy_source_namespace` IS NULL)), ADD CONSTRAINT `ck_legacy_history_kind` CHECK (`history_kind` IN ('mixed','status_description')), DROP INDEX uk_source_import_item_id_source_sequence"
+    },
+    {
+      "table": "project_risks",
+      "columns": [
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "sql": "ALTER TABLE `project_risks` MODIFY COLUMN `created_at` datetime(3) NULL DEFAULT NULL"
+    },
+    {
+      "table": "project_changes",
+      "columns": [
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "sql": "ALTER TABLE `project_changes` MODIFY COLUMN `created_at` datetime(3) NULL DEFAULT NULL"
+    },
+    {
+      "table": "schedule_changes",
+      "columns": [
+        {
+          "name": "created_at",
+          "type": "datetime(3)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "sql": "ALTER TABLE `schedule_changes` MODIFY COLUMN `created_at` datetime(3) NULL DEFAULT NULL"
+    }
+  ]
+}

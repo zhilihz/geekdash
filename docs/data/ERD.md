@@ -463,7 +463,7 @@ erDiagram
 | project_responsibilities | `project_id:I`、`user_id:I`、`joined_at:T` | 联合 PK(project_id,user_id)；IDX(user_id,project_id)。 | 项目修改授权；DEC-117目标中同时作为分工里的项目经理账号来源，仍不赋予系统维护权限。与旧业务PM姓名区别，退出历史由审计承接，不复制另一份经理授权表；新入口尚未实施。 |
 | project_stages | `id:I`、`project_id:I`、`stage_code:V2`、`state:V16`、`planned_days:S?`、`note:X`、`started_on:D?`、`completed_on:D?`、`expected_end_on:D?` | PK(id)；UK(project_id,stage_code)，UK(project_id,id) 支持节点的同项目复合外键；七阶段完整性/前置状态在项目事务校验。 | 七阶段的独立状态、工期与实际日期；查询按 project_id 一次取七行，不把状态存在页面偏好中。 |
 | project_nodes | `id:I`、`project_id:I`、`kind:V16`、`stage_id:I?`、`title:V255`、`target_date:D?`、`completed_on:D?`、`output:X`、`note:X`、`previous_node_id:I?`、`next_node_id:I?`、`x:DEC?`、`y:DEC?`、`sort_order:N`、`source_key:V128?` | PK(id)；UK(project_id,id)；IDX(project_id,kind,sort_order,id)。阶段、前后节点分别用(project_id,引用ID)复合 FK；来源 ID 非正式 PK。 | 此行是0001/0002既有列；合并两种节点，保留不同业务字段和布局，节点恢复新增列只定义于5.8，不另建连线/子节点实体。 |
-| project_people | `project_id:I`、`engineer_id:I`、`role:V32`、`sort_order:N` | 联合 PK(project_id,engineer_id,role)；IDX(engineer_id,project_id)。现有pm/hardware_owner/software_owner每角色最多一人，participant可多行；此为既有表达，不能用pm单人约束限制目标中的多个账号经理。 | 业务人员角色与排序，不授予登录权限。旧pm数据保留来源、不按姓名自动授权；DEC-117目标经理账号取project_responsibilities，切换兼容须在实施时处理，不据本行改写已有数据。 |
+| project_people | `project_id:I`、`engineer_id:I`、`role:V32`、`sort_order:N` | 联合 PK(project_id,engineer_id,role)；IDX(engineer_id,project_id)。既有DDL没有(project_id,role)单人唯一约束；旧本地pm/hwOwner/swOwner为单姓名，当前线上硬件/软件/参与人员使用多选，不能将旧字段形状当作线上人数限制。 | 业务人员角色与排序，不授予登录权限。旧pm数据保留来源、不按姓名自动授权；DEC-117目标经理账号取project_responsibilities，切换兼容须在实施时处理，不据本行改写已有数据。 |
 | customers | `id:I`、`name:V255`、`contact:X`、`background:X`、`enabled:B`、`version:R`、`created_at:T`、`updated_at:T` | PK(id)；IDX(enabled,name,id)；名称不设未经确认的唯一约束，不按归一化名称自动合并。 | 客户背景/联系方式与 ODM 引用；不是账号或标签。 |
 | engineers | `id:I`、`name:V255`、`role:V64`、`enabled:B`、`version:R`、`created_at:T`、`updated_at:T` | PK(id)；IDX(enabled,name,id)；名称不设未经确认的唯一约束，不按归一化名称自动合并。 | 业务工程师与登录账号不是同一集合，不能并入 users。 |
 | product_lines | `id:I`、`name:V255`、`enabled:B`、`version:R`、`created_at:T`、`updated_at:T` | PK(id)；IDX(enabled,name,id)；名称不设未经确认的唯一约束，不按归一化名称自动合并。 | 产品线与 APP/分组具有不同选择与引用语义。 |
@@ -794,7 +794,7 @@ erDiagram
 | import_items.expected_project_version | 审查时正式版本；批量逐项拒绝旧版覆盖 |
 | import_items.review_version | 待审卡片 CAS 修订；原值修正并发保护 |
 | import_items.source_payload_json | 不可变解析原值；与原文件逐项对账 |
-| import_items.corrected_payload_json | 待审修正副本；明确保存仍未写正式项目 |
+| import_items.corrected_payload_json | 候选修正副本；独立review只存候选，adopt可直接携带修正并与正式项目同次提交 |
 | import_items.validation_json | 本修订预检问题及依据；不冒充正式审核通过 |
 | import_items.corrected_by | 可信修正人；权限与追溯 |
 | import_items.corrected_at | 修正保存时刻；恢复及核对 |
@@ -865,7 +865,7 @@ erDiagram
 2. 开始短事务，按稳定顺序锁定需要校验的账号/批次及项目聚合根；项目统一 expectedVersion 约束。负责范围变化、子记录与检查共用同一根版本，不能只锁某个子表。
 3. 写入本次明确变更、必要子记录与根版本、审计及 command_receipts；对应草稿修订终态按 SPEC-007 同事务处理。任一步失败整体回滚。
 4. 提交后通知 SSE，返回实际结果；响应丢失用原幂等键确认，不换键重新新建。普通详情快照读取使用短一致性事务，不持锁等待用户。
-5. 导入按项目短事务部分成功，待审项结果与正式写入同事务；批次状态从已提交项派生。无有效来源绑定时仅给候选目标，不能按名称自动覆盖。
+5. 导入按项目短事务部分成功，条目结果与正式写入同事务；批次状态从已提交项派生。无项目对应时默认拟新增，可明确改对应已有；未知共享资料仍须明确选择，不能按名称自动覆盖。
 6. 空账号停用、最后负责人退出、批次接管等竞态按 SPEC 做真实两用户测试。锁顺序按账号 ID、批次 ID、项目 ID 的固定次序组织；死锁回滚只允许有界同键重试，不吞掉失败后显示成功。
 
 ### 5.3 查询与索引按实际链路收敛
@@ -1069,3 +1069,140 @@ DEC-132/133取消共享资料的维护账号专属限制，并退出周检查规
 | `system_configuration.maintenance_user_id`、资料审计 | 不增表或列；维护账号字段仍用于账号和系统维护；共享资料写入人复用既有审计及`updated_by` | 有效启用账号均可维护共享资料，不新增资料负责人、成员或权限表；项目自身修改资格不随资料授权改变 |
 
 0005只改变两列的可空性和默认值，不增删表、列、外键或索引；0001～0004保持原始迁移内容。升级保留旧检查事实，新增检查的时间、操作人及观察版本继续使用既有字段。实际结构计数、含数据升级和新旧检查回读须由对应测试证据确认，不能据迁移文件存在宣称通过。回退需同时核对旧构建的结构校验及非空字段假设，按运维流程选用兼容应用或隔离恢复方案，不把DDL变化描述为事务自动回滚。
+
+### 5.13 P05来源对应及多次采用的增量结构
+
+DEC-151的三方核对复用`import_adoptions.adopted_json`，不增加表或迁移步骤。受限属性`comparisonBase`按实际已采用或明确保留线上的事项键保存`{source,saved}`：分别为当时来源值和正式保存后值，键缺失表示没有可靠基准，不能等同明确空值；`keepOnline`记录本次明确保留线上内容的事项键。父绑定ID/版本及`comparisonRecords`内子记录绑定ID/版本/目标共同限定基准范围，改绑不能复用旧目标基准。待审对应选择在`validation_json.choiceBinding`保留选择时绑定依据，后续绑定改变须重新核对，不能由旧卡默认绑回。旧采用记录仅从不可变来源及已冻结采用事实恢复能够证明的值。准确判定规则归SPEC-009，旧记录缺少依据时不补造共同基准。
+
+业务契约只归SPEC-009/DEC-142～149，DEC-148确认逻辑来源、当前对应、每次成功采用三类持久记录的结构方向。以下字段和约束对应`0006-imports`，在0005的34表上增加三表。迁移与结构实测证据见[P05实施报告](../testing/reports/2026-10-22-p05-imports.md)；本文不维护部署进度，也不将结构验证视为索引性能实测。对应施工计划归执行计划1.3，事务取锁归架构4.2，验收归TEST-009/028/032。
+
+**原结构不足之处。**同一`import_item`可以继续选择并再次采用，单个可变`result_json`无法保留每轮实际选择；仅保存`review_version`不能恢复后来被改写的`corrected_payload_json`。`projects`的一组来源只描述原创建来源，不能承担多来源及可纠正的当前对应；批次映射也不能成为所有批次的当前权威。旧历史按item/序号唯一，不能区分同卡多次采用的历史版本。
+
+| 已确认的实体方向 | 施工字段组与用途 | 约束与读取方向 |
+|---|---|---|
+| `import_sources`（新增） | `source_namespace:V64`稳定逻辑来源，沿用现有字段类型与`utf8mb4_0900_bin`精确比较；`name:V128`用户命名；`created_at:T`登记时间 | PK(source_namespace)；不再平行引入数字source_id。来源不由文件名、上传人或本机目录决定；名称不加唯一约束。当前没有来源改名/删除能力，不提前加无消费者的version；批次改选来源使用批次原version |
+| `import_bindings`（新增） | `id:I`、`source_namespace:V64`、`object_kind:V32`、`source_scope:V128`、`source_key:V128`、`target_id:I`、`version:R`；只保存当前对象对应 | FK(source_namespace)；UK(source_namespace,object_kind,source_scope,source_key)，各键精确比较且scope非NULL。顶层项目/资料scope为空串，子记录使用`project:<父binding.id>:<父binding.version>`。version只在目标改绑时推进，同一对应再次采用或目标自身修改均不推进；固定类别白名单，目标存在/项目归属在同事务校验，多态target_id不伪造跨多表FK |
+| `import_adoptions`（新增） | `id:I`、`item_id:I`、`source_namespace:V64`、`actor_id:I`、`review_version:R`、`target_kind:V32`、`target_id:I`、`version_before:I?`、`version_after:I`、`operation_key:V128`、`request_hash:H`、`adopted_json:J`、`history_manifest_json:J?`、`created_at:T` | 一次成功采用一行且不可修改；FK(item_id/source_namespace/actor_id)；UK(item_id,actor_id,operation_key)及UK(item_id,review_version)，分别防原操作重复及不同操作/账号对同一候选重复采用。IDX(item_id,id)、IDX(target_kind,target_id,source_namespace,id)。冻结实际来源，不能通过可修改批次反查；新增目标before为空、after为1，已有目标记录实际前后版本。保存选择/采用值、必要意图及对应依据，不复制未变化的全项目，不依赖可清理回执作为唯一业务历史 |
+
+`adopted_json`限定已确认业务事项，保存实际采用内容及当时对应/版本；不能成为任意表写入入口。`history_manifest_json`明确哪些历史种类在本轮被采用及其完整内容摘要/条数，字段不存在表示未采用，明确空历史表示已采用零条；不能仅据明细零行猜测。历史完整正文只归关联明细，不再同时复制到adopted_json、审计和回执；回执引用采用ID及结果，审计记录本次实际业务变化。已绑定且全部内容及可见来源事实一致时只读显示无需处理，不新增adoption/audit或推进review_version；有其他实际采用内容或明确改对应的成功轮次仍保留来源事实，同内容历史仅合并展示、不删版本内重复。默认读取依据最近成功明确采用的类别，不能按摘要、上传时间或旧记录日期判定。
+
+旧说明逐行`{text,date}`和本地`lastCheckAt`的采用值冻结在adopted_json的受限来源字段，之后的待审纠正不追改旧结果；不另建行时间表，也不把可变corrected_payload_json作为已采用事实。成功采用在同事务推进卡片review_version；原键重试先返回其既有结果，不因卡片已推进而误报旧版冲突。继续选择使用新修订，不解除UK(item_id,review_version)。
+
+**精确类型与索引用途。**`I`为`BIGINT UNSIGNED`，新表id自增；`R`同型、非空且值至少1，binding.version初值1，adoption.review_version必须显式写所消费卡片版本；`T`为`DATETIME(3)`；`H`为`BINARY(32)`；`J`为MySQL JSON。三个新表除标注`?`外均非空，JSON使用原生值而非双重序列化文本。来源及source_key使用`utf8mb4_0900_bin`；object_kind/target_kind/source_scope/operation_key使用`ascii_bin`，其余名称沿现库字符集。operation_key复用现UUID操作键格式；source_scope只由服务端构造，不接受用户任意范围。所有FK使用现有RESTRICT策略。
+
+- bindings的类别限定为现有项目、七类基础资料及项目节点/客户节点/风险/需求变更/计划记录；企业信息固定对应`system_configuration.id=1`，采用记录的target_kind可为company，不建立虚构的企业来源ID或binding。节点类别和所属项目共同限定对应，阶段按项目内S1～S7唯一键定位，不新增阶段binding。
+- bindings的唯一键承担来源对象定位及并发创建冲突；不增加目标唯一键，因为不同来源可明确指向同一正式对象。缺失、零值、重复来源键不建永久binding，只冻结本次明确的条目对应。父项目改绑产生新的子scope，旧scope保留追溯；目标项目普通保存不推进binding.version。
+- adoptions的`IDX(item_id,id)`用于原卡历次结果；`IDX(target_kind,target_id,source_namespace,id)`用于正式对象按来源读取版本；另设`IDX(actor_id)`、`IDX(source_namespace)`支持两个FK。item_id的FK复用已有前缀索引；bindings来源FK复用其唯一键前缀；batches新增`IDX(source_namespace)`支持来源FK。request_hash不唯一，不用内容相同否定不同的明确采用事实。
+- `adopted_json`的受限内容包括所选业务组和值、目标子记录ID、本次意图、绑定id/版本、批次版本、实际变化摘要，以及采用的来源说明行时间、旧标记、原时间文字和有效结案依据。`history_manifest_json`仅以mixed/status_description为键，值含完整版本摘要及条数；摘要对规范化JSON键顺序后的种类、日期/正文、原条目顺序及全部重复次数计算，缺键与零条严格区分。恢复所需的正式ID、版本与采用计数从这些冻结值生成，不能读取已改写的卡片来补原结果。
+
+| 复用/调整对象 | 施工改动 | 避免重复权威 |
+|---|---|---|
+| `import_batches` | 现source_namespace增加来源FK；原文件、处理资格与version沿用，mapping_json仅保留本批显示/解析上下文 | source_hash现为普通索引，无文件唯一约束，同文件明确另开批次不需改键。当前跨批对应只归bindings；采用来源不随批次改选变化 |
+| `import_items` | 复用source_payload_json、corrected_payload_json、review_version、validation_json、status、result_json；保留UK(batch_id,item_kind,source_sequence) | pending/committed保存确定处理事实，committed不禁止再次采用。第二轮失败/未知不覆盖前次成功状态或adoption，本轮输入/原键及反馈沿本人状态恢复；result_json保存最新确定成功引用。已有可靠对应且全等价的未采用卡由当前比较结果排除待办，不能直接用status计数或自动写committed。现target_project_id有项目FK，只放项目；资料目标及预期版本存受校验候选上下文，成功冻结到adoption，不能将资料ID塞进项目列 |
+| `legacy_project_history` | 新增`source_adoption_id:I?`（FK采用记录）、`history_kind:V32`、`legacy_source_namespace:V64?`（FK来源，仅无adoption存量使用）；沿用source_date_text、body、source_sequence存日期/正文/原序。UK(source_import_item_id,source_sequence)改为UK(source_adoption_id,history_kind,source_sequence)，另设IDX(legacy_source_namespace)支持兼容来源FK；CHECK两类来源引用恰有一个非空，history_kind只许mixed/status_description | 旧行按mixed承接，迁移冻结其原batch来源，避免后续批次改选连带改旧来源；不伪造adoption。新路径必须有adoption且兼容列为空，来源只读adoption。每种历史默认读最近明确采用者；显式空版本有版本头；不另造payload_json，不删内部重复 |
+| `audit_log`与`command_receipts` | 复用改绑/资料/项目审计及提交确认；成功结果指向adoption。实际回执PK为(command_scope,idempotency_key)，导入scope含账号与item | 不另建映射历史表或失败事件表；原键先查回执/永久adoption并比较hash，再校验候选版本；回执清理后仍能恢复原成功结果 |
+| 项目/关系/资料表 | 复用现有日期可空列、业务关联与资料版本；当前有效结案来源由采用事实及后续审计辨认 | projects仍有UK(source_namespace,source_key)，旧列只保留原创建来源；新路径由source_import_item_id及adoption留来源、bindings维护当前对应，不重复占用旧来源对，避免改绑后另建冲突。不新增第二套项目或人员表 |
+| 旧子记录时间 | `project_risks.created_at`、`project_changes.created_at`、`schedule_changes.created_at`由非空DATETIME(3)调整为可空，其他属性保持；actor_id、resolved_at及日期列原本可空 | 1054三类createdAt可缺失。正常线上新增仍写真实保存时间，旧历史未知保留NULL；原文字随采用保留，不能用入库时刻或采用者补造旧发生时间/操作者。现有存量时间不回改 |
+
+旧子记录时间的使用者是`project-records.ts`的riskRows/changeRows和`project-plans.ts`的scheduleRecords，其类型与前端格式化一并接受NULL；日期未知显示未知，可靠原文字作为来源时间展示，不把无时区文字补成UTC。`projects/catalog/import_batches`的created_at仍表示服务器登记，audit/adoption/receipt仍表示本次真实操作，不作可空改造。项目/阶段/节点的实际日继续使用DATE；risk.resolved_at未知不补造；旧历史source_date_text保留原文字。
+
+```mermaid
+erDiagram
+  import_sources {
+    varchar source_namespace PK
+    varchar name
+    datetime created_at
+  }
+  import_batches {
+    bigint id PK
+    varchar source_namespace FK
+    bigint created_by FK
+    bigint current_handler_id FK
+    bigint version
+  }
+  import_items {
+    bigint id PK
+    bigint batch_id FK,UK
+    bigint target_project_id FK
+    bigint expected_project_version
+    bigint review_version
+    varchar item_kind UK "与batch_id及source_sequence组成唯一键"
+    int source_sequence UK
+  }
+  import_bindings {
+    bigint id PK
+    varchar source_namespace FK,UK
+    varchar object_kind UK
+    varchar source_scope UK
+    varchar source_key UK
+    bigint target_id "由类别限定，非多表FK"
+    bigint version
+  }
+  import_adoptions {
+    bigint id PK
+    bigint item_id FK,UK
+    varchar source_namespace FK
+    bigint actor_id FK,UK
+    bigint review_version UK "与item_id唯一"
+    varchar operation_key UK "与item_id及actor_id唯一"
+    varchar target_kind
+    bigint target_id
+    bigint version_before
+    bigint version_after
+    binary request_hash
+    json adopted_json
+    json history_manifest_json
+    datetime created_at
+  }
+  legacy_project_history {
+    bigint id PK
+    bigint project_id FK
+    bigint source_import_item_id FK
+    bigint source_adoption_id FK,UK "旧行可空"
+    varchar legacy_source_namespace FK "仅存量原来源，新行为空"
+    varchar history_kind UK
+    int source_sequence UK
+    text source_date_text
+    text body
+  }
+  projects {
+    bigint id PK
+    bigint source_import_item_id FK
+  }
+  users {
+    bigint id PK
+  }
+  import_sources ||--o{ import_batches : "当前选用来源"
+  import_sources ||--o{ import_bindings : "当前对应"
+  import_batches ||--o{ import_items : "原卡片"
+  import_items ||--o{ import_adoptions : "历次成功采用"
+  import_sources ||--o{ import_adoptions : "采用时来源"
+  import_adoptions o|--o{ legacy_project_history : "完整历史明细"
+  import_sources o|--o{ legacy_project_history : "无采用ID的存量原来源"
+  users ||--o{ import_adoptions : "实际采用者"
+  users ||--o{ import_batches : "上传及当前处理"
+  projects o|--o{ import_items : "候选或正式目标"
+  projects ||--o{ legacy_project_history : "项目来源记录"
+  import_items ||--o{ legacy_project_history : "原卡片"
+  import_items o|--o{ projects : "原创建来源"
+```
+
+该图表达已确认的增量实体方向，不替代前文全部项目实体关系，也不表示表已创建。存量旧历史允许没有采用ID；新写约束须由迁移和业务共同确保。
+
+**取舍理由。**不采用一个来源整份映射JSON作为当前权威：修改一个芯片会与无关项目争用同一行，也难以给来源对象设置独立唯一约束。采用一条对应一行，只校验本次实际使用的对应；它们仍归一个导入深模块，不按表拆服务。相比只覆盖卡片结果，独立成功采用行能区分原操作重试与原卡新选择，并保留当时来源及历史内容；这是三类实体分别存在的理由。
+
+#### 5.13.1 新增量与存量兼容次序
+
+新增`0006-imports`（实际迁移文件名），不改0001～0005及其校验和。`infrastructure/schema.ts`按本次需要扩展有明确对象定义的create/alter、删除指定索引、数据补齐步骤。每个结构步骤保存可比较的前后manifest；只接受准确前态或准确后态，不用IF NOT EXISTS掩盖异构表，不引入任意迁移脚本执行平台。实际结构验证范围查P05测试报告，不据本节目标推断线上已升级。
+
+| 顺序 | 确切变化及恢复依据 |
+|---|---|
+| 1 | 创建sources，按现import_batches的不同source_namespace补来源；同一namespace一行，显示名称先保留原namespace，created_at取其最早批次登记时间。只补缺行，不改已有来源、不按名称合并；仅projects中的manual/trial来源不自动变成导入库 |
+| 2 | 创建bindings、adoptions及其明确FK/索引；不为存量伪造采用人、review_version或成功adoption，也不从旧名称/序号自动回填当前binding。原来源记录仍可读，后续按已有明确对应规则建立binding |
+| 3 | 对账每个批次均有来源后增加import_batches来源FK；保留source_hash普通索引、原文件及batch/item全部数据。该补齐步骤可重做，失败不登记0006完成 |
+| 4 | legacy历史先增加两个可空来源列和非空history_kind（存量默认mixed），按原item→batch冻结legacy_source_namespace并逐行对账，再补两类来源FK、索引及恰有一个来源的CHECK；同一个ALTER中替换旧唯一键。每个子步骤有前后manifest。旧NULL-adoption行保留原索引可读，后续改batch来源不改它；新应用写非空adoption且legacy_source_namespace为空 |
+| 5 | 三类旧子记录created_at改可空；核对原行数、ID和非空时间逐值保持。检查全部目标结构/FK/索引、来源覆盖和历史完整性后才登记0006校验和 |
+
+DDL可能已生效而版本尚未登记；续跑逐步骤识别前后态，数据补齐独立校验。遇额外列、孤儿或未知中间结构停止并报告具体差异，不删除数据猜修复。新建库走原foundation后顺序升级；旧库保留所有来源原值/未知事实。迁移期间沿运维流程暂停本应用写入；完整数据与受控原文件都在备份范围。
+
+旧0005应用会因严格schemaVersion/结构校验拒绝0006，不能声称只回退fe4320f即可运行。发布前准备并验证理解0006结构与已导入事实、可暂关闭导入写入口的兼容应用恢复产物；只回退应用不回灌旧备份、不删除采用表。新建/含数据升级、每步骤中断续跑、旧历史读取、未知时间及后续正常新增、恢复产物启动均归TEST-032；实际结果查P05实施报告，不能据设计推断运行结果。

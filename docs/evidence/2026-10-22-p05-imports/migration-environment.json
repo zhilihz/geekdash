@@ -1,0 +1,65 @@
+{
+  "checkedAt": "2026-10-22T03:57:50.3944180+00:00",
+  "scope": "仅本项目专用独立MySQL；全部业务行均为合成验证资料，未触碰既有P04/开发/服务器库",
+  "network": "geekdash-p05-migration-probe-20261022",
+  "container": "geekdash-p05-migration-probe-20261022-mysql",
+  "serverUuid": "7381e37c-cdcc-11f1-90fe-a6b5330159ea",
+  "mysqlImage": "mysql:8.4@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb",
+  "nodeImage": "node:24-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20",
+  "mysqlData": "D:/geekwon/geekdash-data/p05-migration-probe-20261022/mysql-run03",
+  "runtime": "D:/geekwon/geekdash-data/p05-migration-probe-20261022/runtime",
+  "credentials": "D:/geekwon/geekdash-data/p05-migration-probe-20261022/secrets",
+  "appProfile": "test_app",
+  "appSecretMount": "/run/secrets/test_app",
+  "migratorProfile": "test_migrator",
+  "migratorSecretMount": "/run/secrets/test_migrator",
+  "networkAlias": "mysql",
+  "publishedPorts": [],
+  "files": [
+    {
+      "sha256": "08e1941425e3f57b5586b0c01f7b124f24074cd9c064b413109ca8345b837811",
+      "path": "migrations/0006-imports.json"
+    },
+    {
+      "sha256": "8e0d1934dca7d8565ed73d9b52af87d74864004cb582edb68db59f7bd9eb420e",
+      "path": "src/server/infrastructure/schema.ts"
+    },
+    {
+      "sha256": "76b9443ec86f2d6a1782a784f3bb68c99f5f4eaeb04177dd5dbfb2ce5756bf80",
+      "path": "src/server/modules/import-source.ts"
+    },
+    {
+      "sha256": "04ea926ab507f779c36375667d0ffabbbd2d08ad935cbe0445e823051baba436",
+      "path": "scripts/verify-import-source.mjs"
+    },
+    {
+      "sha256": "d9520e0ac30b5dcfacf7baf6c4739521d8b389fc9400f0fc9ae436dc410ee909",
+      "path": "scripts/verify-import-migration.mjs"
+    }
+  ],
+  "failedAttempts": [
+    {
+      "reason": "探针COUNT字符串严格比较修正，0005资料保留",
+      "status": "stopped",
+      "container": "geekdash-p05-migration-probe-20261022-mysql-attempt1",
+      "data": "mysql"
+    },
+    {
+      "reason": "MySQL的ISNULL规范化导致清单误报，已改成实际IS NULL表达式；中间态保留",
+      "status": "stopped",
+      "container": "geekdash-p05-migration-probe-20261022-mysql-attempt2",
+      "data": "mysql-run02"
+    }
+  ],
+  "limitations": [
+    "本证据只证明结构迁移和合成资料保持，不代表导入HTTP、项目联动或页面已验收",
+    "原始备份只通过纯解析验证，未写入数据库",
+    "本轮中断为迁移客户端进程SIGKILL；未模拟宿主掉电或MySQL数据盘故障",
+    "活动实例保留供主任务后续HTTP/SQL验收，不再为空；不可盲重跑要求空库的探针脚本"
+  ],
+  "commands": {
+    "start": "docker start geekdash-p05-migration-probe-20261022-mysql",
+    "compile": "docker run --rm --mount type=bind,src=D:/geekwon/geekdash,dst=/workspace,readonly --mount type=volume,src=geekdash-dev_node_modules,dst=/workspace/node_modules,readonly --mount type=bind,src=D:/geekwon/geekdash-data/p05-migration-probe-20261022/runtime,dst=/probe -w /workspace node:24-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 node node_modules/typescript/bin/tsc --module NodeNext --target ES2023 --lib ES2024 --strict --types node --skipLibCheck --rootDir src/server --outDir /probe/dist/server src/server/commands/database.ts src/server/modules/import-source.ts",
+    "verifyExisting": "docker run --rm --network geekdash-p05-migration-probe-20261022 --mount type=bind,src=D:/geekwon/geekdash-data/p05-migration-probe-20261022/runtime,dst=/probe,readonly --mount type=volume,src=geekdash-dev_node_modules,dst=/probe/node_modules,readonly --mount type=bind,src=D:/geekwon/geekdash-data/p05-migration-probe-20261022/secrets/test_migrator,dst=/run/secrets/test_migrator,readonly -w /probe node:24-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 node dist/server/commands/database.js verify test_migrator"
+  }
+}

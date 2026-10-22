@@ -10,6 +10,7 @@ import { registerSettings } from './routes/settings.js';
 import { registerPersonalState } from './routes/personal-state.js';
 import { registerNotifications } from './infrastructure/notifications.js';
 import { registerCatalog } from './routes/catalog.js';
+import { registerImports } from './routes/imports.js';
 
 export async function createApp(database?: RuntimeDatabase, auth?: AuthConfig) {
   const build = JSON.parse(await readFile(new URL('../build-info.json', import.meta.url), 'utf8'));
@@ -58,6 +59,7 @@ export async function createApp(database?: RuntimeDatabase, auth?: AuthConfig) {
   registerSettings(app, database, notifications);
   registerPersonalState(app, database);
   registerCatalog(app, database, notifications);
+  registerImports(app, database, notifications);
   app.get('/GeekDash.html', (_request, reply) => reply.sendFile('index.html'));
   app.get('/chip-statistics.html', (_request, reply) => reply.redirect('/project-status-summary.html'));
   return app;

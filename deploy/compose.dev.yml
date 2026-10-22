@@ -18,6 +18,9 @@ services:
     environment:
       HOST: 0.0.0.0
       PORT: "3000"
+      GEEKDASH_IMPORT_DIR: /var/lib/geekdash/imports
+    volumes:
+      - ${GEEKDASH_IMPORT_DIR:-../../geekdash-data/imports}:/var/lib/geekdash/imports
     ports:
       - "127.0.0.1:${GEEKDASH_PORT:-41860}:3000"
     init: true

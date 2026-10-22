@@ -43,8 +43,11 @@ export function validateClosure(value: unknown): ClosureCommand {
 }
 export async function currentClosure(c: PoolConnection, id: string, project: { status: string; sourceImportItemId: unknown }) {
   if (project.status !== 'closed') return null;
-  const [rows] = await c.query<RowDataPacket[]>({ sql: "SELECT CAST(id AS CHAR) auditId,actor_display_name actorDisplayName,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%s.%fZ') createdAt,after_json original FROM audit_log WHERE project_id=? AND action='project.close' ORDER BY id DESC LIMIT 1", timeout: 3000 }, [id]);
+  const [rows] = await c.query<RowDataPacket[]>({ sql: "SELECT CAST(id AS CHAR) auditId,CAST(version_after AS CHAR) version,actor_display_name actorDisplayName,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%s.%fZ') createdAt,after_json original FROM audit_log WHERE project_id=? AND action='project.close' ORDER BY id DESC LIMIT 1", timeout: 3000 }, [id]);
   const row = rows[0];
+  const [imported] = await c.query<RowDataPacket[]>({ sql: "SELECT CAST(id AS CHAR) adoptionId,CAST(item_id AS CHAR) sourceImportItemId,CAST(version_after AS CHAR) version,JSON_EXTRACT(adopted_json,'$.effectiveClosure') original FROM import_adoptions WHERE target_kind='project' AND target_id=? AND JSON_CONTAINS_PATH(adopted_json,'one','$.effectiveClosure') ORDER BY id DESC LIMIT 1", timeout: 3000 }, [id]);
+  const source = imported[0];
+  if (source && (!row || BigInt(source.version) > BigInt(row.version))) return { auditId: null, adoptionId: source.adoptionId, sourceImportItemId: source.sourceImportItemId, actorDisplayName: null, createdAt: null, original: typeof source.original === 'string' ? JSON.parse(source.original) : source.original };
   return { auditId: row?.auditId ?? null, sourceImportItemId: project.sourceImportItemId == null ? null : String(project.sourceImportItemId), actorDisplayName: row?.actorDisplayName ?? null, createdAt: row?.createdAt ?? null, original: row ? (typeof row.original === 'string' ? JSON.parse(row.original) : row.original) : null };
 }
 export async function closureCandidate(c: PoolConnection, id: string, project: LifecycleProject & ClosureFacts, facts: StageFact[], body: ClosureCommand, now: Date) {

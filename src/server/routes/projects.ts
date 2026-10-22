@@ -15,6 +15,15 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
   const core = database ? projectCore(database) : undefined;
   const checks = database ? projectChecks(database) : undefined;
   const actions = database ? projectActions(database) : undefined;
+  app.get<{ Params: { id: string }; Querystring: { kind: 'mixed' | 'status_description'; source?: string; adoption?: string; before?: string } }>('/api/projects/:id/source-history', {
+    schema: { querystring: { type: 'object', additionalProperties: false, required: ['kind'], properties: { kind: { type: 'string', enum: ['mixed', 'status_description'] }, source: { type: 'string', minLength: 1, maxLength: 64 }, adoption: { type: 'string', pattern: '^(legacy|[1-9][0-9]{0,19})$' }, before: { type: 'string', pattern: '^[1-9][0-9]{0,19}$' } } } },
+  }, (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    if (!request.actor) return reply.code(401).send({ code: 'AUTH_REQUIRED' });
+    if (!validId(request.params.id) || request.query.adoption && request.query.adoption !== 'legacy' && !validId(request.query.adoption) || request.query.before && !validId(request.query.before)) return reply.code(400).send({ code: 'INVALID_CURSOR_OR_PROJECT' });
+    if (!reads) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE' });
+    return reads.sourceHistory(request.params.id, request.query.kind, request.query.source, request.query.adoption, request.query.before);
+  });
   app.get('/api/project-summary',{schema:{querystring:{type:'object',additionalProperties:false,properties:{}}}},request=>{
     if(!request.actor)throw Object.assign(new Error('AUTH_REQUIRED'),{code:'AUTH_REQUIRED',status:401});
     if(!reads)throw Object.assign(new Error('DATABASE_UNAVAILABLE'),{code:'DATABASE_UNAVAILABLE',status:503});

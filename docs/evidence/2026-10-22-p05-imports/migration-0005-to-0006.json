@@ -1,0 +1,91 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-22T03:56:42.854Z",
+  "nodeVersion": "v24.21.0",
+  "serverUuid": "7381e37c-cdcc-11f1-90fe-a6b5330159ea",
+  "checks": [
+    "含数据0005额外结构在新增DDL前拒绝",
+    "11个结构/数据步骤逐个真实进程中断后续跑、旧34表全部旧列逐值保持、重复迁移不变",
+    "旧历史双同文不丢、批次改来源不追改旧历史、来源对应唯一键与子范围代次隔离、两采用唯一键及历史单一来源约束、三类未知时间可空",
+    "登记摘要回改拒绝、0005结构识别拒绝新结构，必须兼容恢复产物"
+  ],
+  "interruptions": [
+    {
+      "step": "import_sources:1",
+      "signal": "SIGKILL",
+      "registeredVersions": 5,
+      "originalRowsUnchanged": true
+    },
+    {
+      "step": "seed-import-sources",
+      "signal": "SIGKILL",
+      "registeredVersions": 5,
+      "originalRowsUnchanged": true
+    },
+    {
+      "step": "import_bindings:3",
+      "signal": "SIGKILL",
+      "registeredVersions": 5,
+      "originalRowsUnchanged": true
+    },
+    {
+      "step": "import_adoptions:4",
+      "signal": "SIGKILL",
+      "registeredVersions": 5,
+      "originalRowsUnchanged": true
+    },
+    {
+      "step": "import_batches:5",
+      "signal": "SIGKILL",
+      "registeredVersions": 5,
+      "originalRowsUnchanged": true
+    },
+    {
+      "step": "legacy_project_history:6",
+      "signal": "SIGKILL",
+      "registeredVersions": 5,
+      "originalRowsUnchanged": true
+    },
+    {
+      "step": "freeze-legacy-history-source",
+      "signal": "SIGKILL",
+      "registeredVersions": 5,
+      "originalRowsUnchanged": true
+    },
+    {
+      "step": "legacy_project_history:8",
+      "signal": "SIGKILL",
+      "registeredVersions": 5,
+      "originalRowsUnchanged": true
+    },
+    {
+      "step": "project_risks:9",
+      "signal": "SIGKILL",
+      "registeredVersions": 5,
+      "originalRowsUnchanged": true
+    },
+    {
+      "step": "project_changes:10",
+      "signal": "SIGKILL",
+      "registeredVersions": 5,
+      "originalRowsUnchanged": true
+    },
+    {
+      "step": "schedule_changes:11",
+      "signal": "SIGKILL",
+      "registeredVersions": 5,
+      "originalRowsUnchanged": true
+    }
+  ],
+  "oldRowsHash": "755e3c5b284dcb031a0374c743352878b6535f1526b7757c4e647e92801b3144",
+  "structure": {
+    "database": "geekdash_test",
+    "version": "0006-imports",
+    "checksum": "08e1941425e3f57b5586b0c01f7b124f24074cd9c064b413109ca8345b837811",
+    "tables": 37,
+    "columns": 344,
+    "foreignKeys": 62,
+    "differences": 0
+  },
+  "source": "独立空MySQL实例与合成0005数据；常驻数据库未参与"
+}

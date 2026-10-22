@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GeekDash · 导入项目</title></head>
+<body class="imports-page"><main class="page">
+  <header class="imports-header"><a class="board-brand" href="/">GeekDash</a><nav aria-label="全站导航"><a href="/">项目看板</a><a href="/project-status-summary.html">状态简要</a><a href="/data-manage.html">资料与设置</a><a href="/imports.html" aria-current="page">导入项目</a></nav><div class="head-actions"><div class="view-switch theme-switch"><button data-theme="dark">深色</button><button data-theme="light">浅色</button><button data-theme="warm">暖色</button></div></div></header>
+  <div class="imports-page-title"><div><a id="imports-back" href="/imports.html" hidden>← 返回导入批次</a><h1 id="imports-title">导入项目</h1><p id="imports-subtitle">选择本地备份，系统核对后导入；有冲突的内容再处理。</p></div><button class="head-btn" id="imports-reload">刷新</button></div>
+  <div id="imports-message" role="status" aria-live="polite"></div>
+  <section id="imports-entry" aria-label="选择备份"></section>
+  <section id="imports-batch" hidden aria-label="当前导入批次"></section>
+  <section id="imports-list" aria-label="已有批次"></section>
+  <footer id="imports-savebar" hidden><button class="save-btn" id="imports-save">导入可处理内容</button><span id="imports-save-status">正常内容一起导入，冲突与错误留在原卡片。</span></footer>
+</main><script type="module" src="/imports.ts"></script></body></html>

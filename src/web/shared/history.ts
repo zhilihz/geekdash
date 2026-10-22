@@ -80,5 +80,5 @@ export function auditHistory(items: AuditPage['items']) {
 
 export function statusDescriptionHistory(items: AuditPage['items']) {
   const snapshots = items.filter(item => typeof item.afterValues?.statusDesc === 'string' && item.afterValues.statusDesc !== (item.beforeValues?.statusDesc ?? ''));
-  return '<p class="history-scope">仅显示已读取记录中的状态说明。</p>' + (snapshots.map(item => `<article class="audit-entry audit-timeline-entry"><h3><time datetime="${esc(item.createdAt)}">${esc(historyTime(item.createdAt))}</time> · ${esc(item.actorDisplayName)}</h3><p class="status-history-text">${esc(item.afterValues!.statusDesc || '（已清空状态说明）')}</p></article>`).join('') || '<p class="history-empty">已读取记录中暂无状态说明变更。</p>');
+  return '<p class="history-scope">仅显示已读取记录中的状态说明。</p>' + (snapshots.map(item => `<article class="audit-entry audit-timeline-entry"><h3><time datetime="${esc(item.createdAt)}">${esc(historyTime(item.createdAt))}</time> · ${esc(item.actorDisplayName)}${item.action === 'project.import' ? ' · 采用本地状态说明' : ''}</h3><p class="status-history-text">${esc(item.afterValues!.statusDesc || '（已清空状态说明）')}</p></article>`).join('') || '<p class="history-empty">已读取记录中暂无状态说明变更。</p>');
 }

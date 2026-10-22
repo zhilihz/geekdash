@@ -9,6 +9,9 @@ type Check = { name: string; expression: string };
 type ForeignKey = { name: string; columns: string[]; parent: string; references: string[]; onUpdate: string; onDelete: string; sql: string };
 type Table = { name: string; columns: Column[]; indexes: Index[]; checks: Check[]; foreignKeys: ForeignKey[]; sql: string };
 type Manifest = { version: string; tables: Table[] };
+type DataStep = 'seed-import-sources' | 'freeze-legacy-history-source';
+type MigrationStep = { table: string; sql?: string; create?: Table; columns?: Column[]; indexes?: Index[]; checks?: Check[]; foreignKeys?: ForeignKey[]; dropIndexes?: string[]; data?: DataStep };
+type ResolvedStep = MigrationStep & { before: Table | undefined; after: Table };
 type ActualTable = { name: string; engine: string; collation: string; columns: Column[]; indexes: Index[]; checks: Check[]; foreignKeys: Omit<ForeignKey, 'sql'>[] };
 type Difference = { table: string; object: string; expected: unknown; actual: unknown };
 
@@ -22,22 +25,35 @@ export async function loadSchema() {
   if (foundation.version !== '0001-foundation' || foundation.tables.length !== 34) fail('DB_MIGRATION_RESOURCE_INVALID');
   let manifest = structuredClone(foundation);
   const history = [{ version: foundation.version, checksum: createHash('sha256').update(bytes).digest() }];
-  const increments: { previous: Manifest; manifest: Manifest; steps: { table: string; sql: string; columns?: Column[]; indexes?: Index[]; checks?: Check[] }[] }[] = [];
-  for (const [version, count] of [['0002-trial-save', 3], ['0003-node-recovery', 1], ['0004-project-compatibility', 2], ['0005-check-facts', 1]] as const) {
+  const increments: { previous: Manifest; manifest: Manifest; steps: ResolvedStep[] }[] = [];
+  for (const [version, count] of [['0002-trial-save', 3], ['0003-node-recovery', 1], ['0004-project-compatibility', 2], ['0005-check-facts', 1], ['0006-imports', 11]] as const) {
     const bytes = await readFile(new URL('../../migrations/' + version + '.json', import.meta.url));
-    const delta = JSON.parse(bytes.toString('utf8')) as { version: string; steps: typeof increments[number]['steps'] };
+    const delta = JSON.parse(bytes.toString('utf8')) as { version: string; steps: MigrationStep[] };
     if (delta.version !== version || delta.steps.length !== count) fail('DB_MIGRATION_RESOURCE_INVALID');
     const previous = manifest; manifest = structuredClone(previous); manifest.version = version;
+    const steps: ResolvedStep[] = [];
     for (const step of delta.steps) {
-      const table = manifest.tables.find(table => table.name === step.table);
+      let table = manifest.tables.find(table => table.name === step.table);
+      const before = table && structuredClone(table);
+      if (step.create) {
+        if (table || step.create.name !== step.table || !step.sql || step.data) fail('DB_MIGRATION_RESOURCE_INVALID');
+        table = structuredClone(step.create); manifest.tables.push(table);
+      }
       if (!table) fail('DB_MIGRATION_RESOURCE_INVALID');
-      for (const kind of ['columns', 'indexes', 'checks'] as const) for (const item of step[kind] ?? []) {
+      if (step.data && (!['seed-import-sources', 'freeze-legacy-history-source'].includes(step.data) || step.sql || step.create)
+        || !step.data && !step.sql) fail('DB_MIGRATION_RESOURCE_INVALID');
+      for (const name of step.dropIndexes ?? []) {
+        if (!table.indexes.some(index => index.name === name)) fail('DB_MIGRATION_RESOURCE_INVALID');
+        table.indexes = table.indexes.filter(index => index.name !== name);
+      }
+      for (const kind of ['columns', 'indexes', 'checks', 'foreignKeys'] as const) for (const item of step[kind] ?? []) {
         const items = table[kind] as { name: string }[];
         const index = items.findIndex(existing => existing.name === item.name);
         if (index === -1) items.push(item); else items[index] = item;
       }
+      steps.push({ ...step, before, after: structuredClone(table) });
     }
-    increments.push({ previous, manifest, steps: delta.steps });
+    increments.push({ previous, manifest, steps });
     history.push({ version, checksum: createHash('sha256').update(bytes).digest() });
   }
   return { manifest, foundation, increments, history, checksum: history.at(-1)!.checksum };
@@ -46,6 +62,28 @@ export async function loadSchema() {
 async function query(connection: Connection, sql: string, values: unknown[] = []) {
   const [rows] = await connection.query<RowDataPacket[]>({ sql, timeout: 10000 }, values);
   return rows;
+}
+
+async function migrateImportData(connection: Connection, data: DataStep) {
+  if (data === 'seed-import-sources') {
+    await query(connection, `INSERT INTO import_sources (source_namespace,name,created_at)
+      SELECT b.source_namespace,b.source_namespace,MIN(b.created_at) FROM import_batches b
+      LEFT JOIN import_sources s ON s.source_namespace=b.source_namespace
+      WHERE s.source_namespace IS NULL GROUP BY b.source_namespace`);
+    const [row] = await query(connection, `SELECT COUNT(*) AS invalid FROM import_batches b
+      LEFT JOIN import_sources s ON s.source_namespace=b.source_namespace WHERE s.source_namespace IS NULL`);
+    if (Number(row.invalid)) fail('DB_IMPORT_SOURCE_BACKFILL_INVALID');
+    return;
+  }
+  // Only old rows get a frozen namespace. New history always derives its source from an immutable adoption.
+  await query(connection, `UPDATE legacy_project_history h JOIN import_items i ON i.id=h.source_import_item_id
+    JOIN import_batches b ON b.id=i.batch_id SET h.legacy_source_namespace=b.source_namespace
+    WHERE h.source_adoption_id IS NULL AND h.legacy_source_namespace IS NULL`);
+  const [row] = await query(connection, `SELECT COUNT(*) AS invalid FROM legacy_project_history h
+    LEFT JOIN import_items i ON i.id=h.source_import_item_id LEFT JOIN import_batches b ON b.id=i.batch_id
+    WHERE h.source_adoption_id IS NULL AND (b.id IS NULL OR h.legacy_source_namespace IS NULL
+      OR h.legacy_source_namespace<>b.source_namespace)`);
+  if (Number(row.invalid)) fail('DB_IMPORT_HISTORY_BACKFILL_INVALID');
 }
 
 // ponytail: 首版 CHECK 都是单条件；引入复合布尔表达式时需扩展保留分组的规范化。
@@ -201,26 +239,33 @@ export async function migrateDatabase(profile: DatabaseProfile) {
     for (const [index, increment] of increments.entries()) {
       if (completed > index + 1) continue;
       const { manifest: target, previous, steps } = increment;
-      // 每次增量只接受上一精确结构或本次精确目标；额外对象在DDL前拒绝。
+      // 接受每个已声明步骤的精确中间态，DDL已生效但登记未完成时可以接续。
       actual = await readStructure(connection);
       for (const name of actual.keys()) if (!target.tables.some(table => table.name === name)) fail('DB_SCHEMA_MISMATCH', [{ table: name, object: 'table', expected: '未定义', actual: '额外对象' }]);
       for (const table of target.tables) {
         const differences = compareTable(table, actual.get(table.name), true);
         if (!differences.length) continue;
-        const old = previous.tables.find(old => old.name === table.name)!;
-        const pending = steps.find(step => step.table === table.name);
-        const oldDifferences = compareTable(old, actual.get(table.name), true);
-        if (!pending || oldDifferences.length) fail('DB_SCHEMA_MISMATCH', differences);
+        const old = previous.tables.find(old => old.name === table.name);
+        const states = [old, ...steps.filter(step => step.table === table.name).map(step => step.after)];
+        if (!states.some(state => state ? !compareTable(state, actual.get(table.name), true).length : !actual.has(table.name))) fail('DB_SCHEMA_MISMATCH', differences);
       }
-      for (const increment of steps) {
-        step = increment.table;
-        const table = target.tables.find(table => table.name === increment.table)!;
-        if (compareTable(table, actual.get(table.name), true).length) {
-          await query(connection, increment.sql);
-          actual = await readStructure(connection);
+      for (const [stepIndex, increment] of steps.entries()) {
+        step = increment.data ?? `${increment.table}:${stepIndex + 1}`;
+        if (increment.data) {
+          await migrateImportData(connection, increment.data);
+          console.log(JSON.stringify({ event: 'migration_step_verified', object: step }));
+          continue;
         }
-        const differences = compareTable(table, actual.get(table.name), true);
-        if (differences.length) fail('DB_SCHEMA_MISMATCH', differences);
+        const current = actual.get(increment.table);
+        const alreadyApplied = steps.slice(stepIndex).some(later => later.table === increment.table && !compareTable(later.after, current, true).length);
+        if (!alreadyApplied) {
+          const differences = increment.before ? compareTable(increment.before, current, true) : current ? [{ table: increment.table, object: 'table', expected: '缺失', actual: '存在' }] : [];
+          if (differences.length) fail('DB_SCHEMA_MISMATCH', differences);
+          await query(connection, increment.sql!);
+          actual = await readStructure(connection);
+          const afterDifferences = compareTable(increment.after, actual.get(increment.table), true);
+          if (afterDifferences.length) fail('DB_SCHEMA_MISMATCH', afterDifferences);
+        }
         console.log(JSON.stringify({ event: 'migration_step_verified', object: step }));
       }
       step = 'final_structure';

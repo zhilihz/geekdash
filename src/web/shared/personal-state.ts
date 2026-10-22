@@ -35,7 +35,7 @@ export class PersonalPreference {
   private cacheKey:string;
   private global:boolean;
   constructor(private scope:string,private feedback:(message:string)=>void=()=>{}){
-    this.global=['appearance','summary-layout'].includes(scope);
+    this.global=['appearance','summary-layout','imports'].includes(scope);
     let device=crypto.randomUUID();
     try{const saved=localStorage.getItem('geekdash_device');if(saved && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(saved))device=saved as typeof device;else localStorage.setItem('geekdash_device',device);}catch{}
     this.deviceKey=this.global?'account':device;this.cacheKey=`geekdash_preference:${account!.id}:${scope}`;
@@ -44,11 +44,12 @@ export class PersonalPreference {
   private cache(){if(this.stopped)return;try{(this.global?localStorage:sessionStorage).setItem(this.cacheKey,JSON.stringify({...this.value,...this.scope==='appearance' && this.changes.theme?{pendingTheme:this.changes.theme,pendingThemeVersion:this.version}:{}}));}catch{this.feedback('本机页面状态无法保留，当前操作仍可继续。');}}
   private read(){return get<PreferenceRow>('/api/personal/preferences?'+new URLSearchParams({deviceKey:this.deviceKey,scope:this.scope}),undefined,false);}
   current(){return structuredClone(this.value);}
+  revision(){return this.version;}
   async load():Promise<PreferenceValue>{
     const generation=this.generation;let cached:PreferenceValue|undefined,pendingTheme:string|undefined,pendingVersion:string|undefined;
     try{const parsed=JSON.parse((this.global?localStorage:sessionStorage).getItem(this.cacheKey) ?? 'null');if(parsed?.schemaVersion===1){const {pendingTheme:pending,pendingThemeVersion:version,...value}=parsed;cached=value;if(this.scope==='appearance' && ['dark','light','warm'].includes(pending)){pendingTheme=pending;if(typeof version==='string' && /^(0|[1-9][0-9]*)$/.test(version))pendingVersion=version;}}}catch{}
     try{const row=await this.read();if(this.stopped)return {schemaVersion:1};this.version=row.version;this.serverValue=row.value ?? {schemaVersion:1};if(generation===this.generation)this.value=(!this.global && cached?cached:row.value ?? cached) ?? {schemaVersion:1};}
-    catch{if(generation===this.generation && cached)this.value=cached;this.feedback('页面偏好暂未同步，当前页面仍可使用。');}
+    catch{if(generation===this.generation && cached)this.value=cached;if(this.scope==='imports')this.stopped=true;this.feedback(this.scope==='imports'?'导入页状态暂未读回，当前输入保留在本机；刷新后再同步。':'页面偏好暂未同步，当前页面仍可使用。');}
     if(generation===this.generation && pendingTheme){
       if(this.version===undefined)return structuredClone(this.value); // 读取失败，保留原基线缓存供下次读取，不借未知版本重放。
       if(this.serverValue.theme!==pendingTheme){
@@ -75,6 +76,7 @@ export class PersonalPreference {
     }catch(error){
       if(this.stopped)return;
       this.handledGeneration=this.generation;this.changes={};clearTimeout(this.timer);
+      if(this.scope==='imports'){this.stopped=true;this.feedback('导入页状态尚未同步，输入和原操作保留在本机；刷新后核对服务器内容。');return;}
       this.cache();
       // 不自动重放冲突或未知写入；仅更新版本供下一次明确操作使用。
       try{const current=await this.read();if(!this.stopped){this.version=current.version;this.serverValue=current.value ?? {schemaVersion:1};}}catch{this.version=undefined;}

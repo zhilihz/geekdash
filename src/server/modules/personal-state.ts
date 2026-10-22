@@ -63,12 +63,21 @@ const preferenceKeys: Record<string, string[]> = {
   appearance: ['theme','layout','visibleFilters'], 'summary-layout': ['columns','hiddenColumns','showStatus','showNotes','showChipNotes'],
   board: ['view','filters','sort','page','anchor','scrollY','filtersOpen'], checks: ['view','filters','page','anchor','scrollY','expanded'],
   summary: ['filters','sort','rowOrder','hiddenRows','scrollY','anchor','filtersOpen'], detail: ['projectId','tab','expanded','scrollY','viewport'],
+  imports: ['batchId','sourceNamespace','sourceName','view','search','cards','pendingUpload','pendingBatch'],
 };
 function preferenceAddress(device: unknown, scope: unknown) {
-  if (typeof scope !== 'string' || !Object.hasOwn(preferenceKeys,scope) || (['appearance','summary-layout'].includes(scope) ? device !== 'account' : !uuid(device))) failure('INVALID_PERSONAL_STATE',400);
+  if (typeof scope !== 'string' || !Object.hasOwn(preferenceKeys,scope) || (['appearance','summary-layout','imports'].includes(scope) ? device !== 'account' : !uuid(device))) failure('INVALID_PERSONAL_STATE',400);
 }
 function preferenceValue(scope: string, value: unknown) {
   if (!object(value) || value.schemaVersion !== 1 || Object.keys(value).some(key => key !== 'schemaVersion' && !preferenceKeys[scope].includes(key))) failure('INVALID_PERSONAL_STATE',400);
+  if (scope === 'imports') {
+    if (Buffer.byteLength(canonical(value),'utf8') > 1048576) failure('PREFERENCE_TOO_LARGE',413);
+    for (const [key,item] of Object.entries(value)) {
+      if (key === 'schemaVersion' || item === null) continue;
+      if (['cards','pendingUpload','pendingBatch'].includes(key) ? !object(item) : typeof item !== 'string' || item.length > 2048) failure('INVALID_PERSONAL_STATE',400);
+    }
+    return;
+  }
   for (const [key, item] of Object.entries(value)) {
     if (key === 'schemaVersion') continue;
     if (key==='page' && (typeof item!=='number' || !Number.isSafeInteger(item) || item<1) || key==='scrollY' && (typeof item!=='number' || !Number.isFinite(item) || item<0)) failure('INVALID_PERSONAL_STATE',400);

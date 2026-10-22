@@ -1,0 +1,485 @@
+{
+  "date": "2026-10-22",
+  "build": "2026-10-22T08:26:33.178Z",
+  "environment": "独立本地UI实例 127.0.0.1:41866；仅合成项目与资料",
+  "interaction": "Edge web-access实际页面DOM按钮；后半段Edge插件AX点击/原生输入；没有直接API写入替代页面操作",
+  "scenarios": [
+    {
+      "name": "一次导入两个正常项目和明确新建客户",
+      "batch": "145",
+      "userActions": [
+        "选择备份并读取",
+        "客户行明确新建此资料",
+        "一次点击导入可处理内容"
+      ],
+      "adoptRequests": 3,
+      "reviewRequests": 0,
+      "result": {
+        "counts": {
+          "total": 2,
+          "processed": 2,
+          "unchanged": 0,
+          "pending": 0
+        },
+        "items": [
+          {
+            "id": "242",
+            "targetId": "48",
+            "name": "简化导入 · 客户项目",
+            "previousResult": {
+              "action": "adopt",
+              "changed": true,
+              "savedAt": "2026-10-22T08:40:53.699Z",
+              "projectId": "48",
+              "adoptionId": "167",
+              "operationId": "8f0fdc7e-e52d-46c9-a767-25306617e1db",
+              "adoptedCount": 5,
+              "savedVersion": "1",
+              "beforeVersion": null,
+              "keptOnlineCount": 0,
+              "notAdoptedCount": 0,
+              "sourceNamespace": "local-76fc7b4a-8666-4dd0-9098-2a439d40ba5a",
+              "affectedProjects": []
+            }
+          },
+          {
+            "id": "243",
+            "targetId": "49",
+            "name": "简化导入 · 独立项目",
+            "previousResult": {
+              "action": "adopt",
+              "changed": true,
+              "savedAt": "2026-10-22T08:40:55.179Z",
+              "projectId": "49",
+              "adoptionId": "168",
+              "operationId": "18f73e92-fbd0-47d0-84d6-603be5a64556",
+              "adoptedCount": 3,
+              "savedVersion": "1",
+              "beforeVersion": null,
+              "keptOnlineCount": 0,
+              "notAdoptedCount": 0,
+              "sourceNamespace": "local-76fc7b4a-8666-4dd0-9098-2a439d40ba5a",
+              "affectedProjects": []
+            }
+          }
+        ],
+        "catalog": [
+          {
+            "id": "244",
+            "targetId": "7",
+            "name": "简化导入 合成客户",
+            "previousResult": {
+              "id": "7",
+              "action": "adopt",
+              "changed": true,
+              "savedAt": "2026-10-22T08:40:50.990Z",
+              "adoptionId": "166",
+              "catalogKind": "customers",
+              "operationId": "4570b5ba-9fa0-4691-bdb7-c1e07563b3d5",
+              "adoptedCount": 3,
+              "savedVersion": "1",
+              "beforeVersion": null,
+              "keptOnlineCount": 0,
+              "notAdoptedCount": 0,
+              "sourceNamespace": "local-76fc7b4a-8666-4dd0-9098-2a439d40ba5a",
+              "affectedProjects": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "正常与冲突混合，已有客户内容未选不挡项目",
+      "batch": "186",
+      "before": {
+        "readyProjects": 1,
+        "attentionProjects": 1,
+        "catalogNeedsChoice": 1
+      },
+      "userActions": [
+        "在正式详情保存线上状态说明",
+        "同源上传后续备份",
+        "一次点击导入可处理内容"
+      ],
+      "afterFirst": {
+        "processedProjects": 1,
+        "pendingProjects": 1,
+        "catalogUnchanged": true
+      }
+    },
+    {
+      "name": "原卡修正后一次入库",
+      "batch": "186",
+      "item": "286",
+      "userActions": [
+        "修正信息",
+        "选择状态说明区",
+        "填写最终正文",
+        "导入此项目"
+      ],
+      "sourceChoiceClicked": false,
+      "reviewRequests": 0,
+      "final": {
+        "counts": {
+          "total": 2,
+          "processed": 2,
+          "unchanged": 0,
+          "pending": 0
+        },
+        "items": [
+          {
+            "id": "285",
+            "targetId": "48",
+            "previousResult": {
+              "action": "adopt",
+              "changed": true,
+              "savedAt": "2026-10-22T08:49:25.823Z",
+              "projectId": "48",
+              "adoptionId": "169",
+              "operationId": "ed668dea-84fe-49b0-b776-32437ceb5f40",
+              "adoptedCount": 1,
+              "savedVersion": "2",
+              "beforeVersion": "1",
+              "keptOnlineCount": 0,
+              "notAdoptedCount": 0,
+              "sourceNamespace": "local-76fc7b4a-8666-4dd0-9098-2a439d40ba5a",
+              "affectedProjects": []
+            }
+          },
+          {
+            "id": "286",
+            "targetId": "49",
+            "previousResult": {
+              "action": "adopt",
+              "changed": true,
+              "savedAt": "2026-10-22T08:52:51.710Z",
+              "projectId": "49",
+              "adoptionId": "170",
+              "operationId": "3bb2af19-bc6b-426a-b9e0-b7f3c56f5106",
+              "adoptedCount": 1,
+              "savedVersion": "3",
+              "beforeVersion": "2",
+              "keptOnlineCount": 0,
+              "notAdoptedCount": 0,
+              "sourceNamespace": "local-76fc7b4a-8666-4dd0-9098-2a439d40ba5a",
+              "affectedProjects": []
+            }
+          }
+        ],
+        "catalog": [
+          {
+            "id": "287",
+            "targetId": "7",
+            "previousResult": null,
+            "diffs": [
+              {
+                "key": "contact",
+                "before": "首次客户内容",
+                "after": "文件新增联系人（未选择不得覆盖）",
+                "status": "needs_choice"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "requests": {
+    "first": [
+      {
+        "path": "/api/imports/145/items/244/preview",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/imports/145/items/244/adopt",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/imports/145",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/imports/145",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/imports/145/items/242/preview",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/imports/145/items/242/adopt",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/imports/145",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/imports/145/items/243/preview",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/imports/145/items/243/adopt",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/imports/145",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/imports/145",
+        "method": "GET",
+        "status": 200
+      }
+    ],
+    "followup": [
+      {
+        "path": "/api/imports/upload?source=local-76fc7b4a-8666-4dd0-9098-2a439d40ba5a&name=simplified-followup.bak&operation=345e91a5-bbfa-4d8b-864c-0f7412a2b0a8",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/imports/186",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/imports/186/items/285/preview",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/imports/186/items/285/adopt",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/imports/186",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/imports/186/items/286/preview",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/imports/186/items/286/preview",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/imports/186/items/286/preview",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/imports/186/items/286/adopt",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/imports/186",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/imports/186",
+        "method": "GET",
+        "status": 200
+      }
+    ]
+  },
+  "downstream": [
+    {
+      "id": "48",
+      "version": "2",
+      "name": "简化导入 · 客户项目",
+      "customerId": "7",
+      "customer": "简化导入 合成客户",
+      "summary": "文件单方更新：客户已反馈方案确认。",
+      "statusDesc": "等待样机确认",
+      "checkedToday": false
+    },
+    {
+      "id": "49",
+      "version": "3",
+      "name": "简化导入 · 独立项目",
+      "customerId": null,
+      "customer": null,
+      "summary": "",
+      "statusDesc": "已综合本地与线上核对，等待负责人确认样机。",
+      "checkedToday": false
+    },
+    {
+      "customer": {
+        "id": "7",
+        "version": "1",
+        "name": "简化导入 合成客户",
+        "contact": "首次客户内容",
+        "background": "页面验收合成资料",
+        "enabled": true,
+        "tagIds": []
+      }
+    }
+  ],
+  "visual": {
+    "warmScreenshot": "ui-convergence-warm.png",
+    "notes": "暖色在导入页和正式详情往返保持；实际页面结构分为摘要、需处理资料、需处理项目。",
+    "screenshots": [
+      "ui-convergence-warm.png",
+      "ui-convergence-causality.png",
+      "ui-convergence-mobile.png"
+    ]
+  },
+  "toolingBoundary": "后台原生鼠标/文件摘要读取及截图曾暂停；保留原请求，使用Edge插件Page.bringToFront恢复后完成。未把暂停当服务失败或重复提交。",
+  "fix": {
+    "files": [
+      "src/web/imports.ts",
+      "src/web/shared/imports.css"
+    ],
+    "changes": [
+      "冲突key定位修正区",
+      "controls同步顶部统计而不重绘输入",
+      "窄屏标题可换行，刷新按钮不挤行"
+    ],
+    "verification": "09:06:22.839Z最终候选，真实页面针对性复核通过"
+  },
+  "finalCandidate": {
+    "revision": "1584f516cd5591576d7d902e0cd14ea85093ae9c",
+    "dirty": true,
+    "builtAt": "2026-10-22T09:06:22.839Z",
+    "stage": "P05-imports",
+    "schemaVersion": "0006-imports"
+  },
+  "finalChecks": {
+    "defaultEditorGroup": "status",
+    "previewCounts": [
+      {
+        "kind": "ready",
+        "value": "1\n可导入"
+      },
+      {
+        "kind": "unchanged",
+        "value": "1\n已相同 / 保留线上"
+      },
+      {
+        "kind": "attention",
+        "value": "0\n需处理"
+      },
+      {
+        "kind": "processed",
+        "value": "0\n已处理"
+      }
+    ],
+    "previewButton": "导入可处理内容（1 个项目）",
+    "originalInputPreserved": true,
+    "previewOnlyNotAdopted": {
+      "batch": "93",
+      "item": "164",
+      "temporaryTextReverted": true,
+      "effects": [
+        "这次选择的影响\n“前置节点”完成日期改为 2026-10-20：该节点从项目状态简要的未完成节点中移出；节点列表与 Flow 同时显示已完成。\n“前置节点”的连线变为“无 → 前置节点 → 后续节点”：节点列表与 Flow 使用同一条连线；后续完成时按这份前置关系校验。\n“后续节点”完成日期改为 2026-10-21：该节点从项目状态简要的未完成节点中移出；节点列表与 Flow 同时显示已完成。\n“后续节点”的连线变为“前置节点 → 后续节点 → 无”：节点列表与 Flow 使用同一条连线；后续完成时按这份前置关系校验。\n“需求立项”下节点的最晚目标日由待确定改为2026-10-21：阶段预计完成日期将同步显示2026-10-21。"
+      ]
+    },
+    "keepOnline": {
+      "batch": "186",
+      "item": "287",
+      "userActions": [
+        "保留线上",
+        "一次点击导入可处理内容（0个项目、1条资料）"
+      ],
+      "requests": [
+        {
+          "path": "/api/imports/186/items/287/preview",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/imports/186/items/287/preview",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/imports/186/items/287/adopt",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "path": "/api/imports/186",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/imports/186",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "path": "/api/imports/186",
+          "method": "GET",
+          "status": 200
+        }
+      ],
+      "readback": {
+        "counts": {
+          "total": 2,
+          "processed": 2,
+          "unchanged": 0,
+          "pending": 0
+        },
+        "result": {
+          "id": "7",
+          "action": "adopt",
+          "changed": false,
+          "savedAt": "2026-10-22T09:14:56.580Z",
+          "adoptionId": "171",
+          "catalogKind": "customers",
+          "operationId": "4d4f8e1d-3c23-45a9-8924-588f8542ec72",
+          "adoptedCount": 0,
+          "savedVersion": "1",
+          "beforeVersion": "1",
+          "keptOnlineCount": 1,
+          "notAdoptedCount": 0,
+          "sourceNamespace": "local-76fc7b4a-8666-4dd0-9098-2a439d40ba5a",
+          "affectedProjects": []
+        },
+        "customer": {
+          "id": "7",
+          "version": "1",
+          "name": "简化导入 合成客户",
+          "contact": "首次客户内容",
+          "background": "页面验收合成资料",
+          "enabled": true,
+          "tagIds": []
+        }
+      }
+    },
+    "layout": {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "refreshNoWrap": true,
+      "summaryTwoColumns": true,
+      "viewportReset": true,
+      "themes": [
+        "warm",
+        "dark",
+        "light"
+      ],
+      "themeRestored": "warm",
+      "visualReview": "390px实际截图未见页面横向越界，标题换行且刷新保持单行。"
+    }
+  }
+}

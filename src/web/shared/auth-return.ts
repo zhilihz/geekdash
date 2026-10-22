@@ -1,4 +1,4 @@
-const workPages = new Set(['/', '/index.html', '/GeekDash.html', '/project-detail.html', '/project-new.html', '/project-checks.html', '/project-status-summary.html', '/data-manage.html', '/settings.html']);
+const workPages = new Set(['/', '/index.html', '/GeekDash.html', '/project-detail.html', '/project-new.html', '/project-checks.html', '/project-status-summary.html', '/data-manage.html', '/settings.html', '/imports.html']);
 const workKeys = new Set(['view', 'search', 'page', 'layout', 'customer', 'productLine', 'odmFactory', 'app', 'status', 'priority', 'signal', 'stage', 'progress', 'chip', 'tags', 'group', 'owner', 'deadline', 'checkToday', 'id', 'ids', 'quick', 'tab']);
 
 export function workTarget(value: string | null, origin = location.origin, nested = false): string | undefined {

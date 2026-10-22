@@ -1,0 +1,108 @@
+{
+  "status": "passed",
+  "verifiedAt": "2026-10-22T08:54:28.405Z",
+  "build": {
+    "revision": "1584f516cd5591576d7d902e0cd14ea85093ae9c",
+    "dirty": true,
+    "builtAt": "2026-10-22T08:26:33.178Z",
+    "stage": "P05-imports",
+    "schemaVersion": "0006-imports"
+  },
+  "projects": [
+    {
+      "id": "48",
+      "version": "2",
+      "name": "简化导入 · 客户项目",
+      "statusDescription": "等待样机确认",
+      "customerId": "7"
+    },
+    {
+      "id": "49",
+      "version": "3",
+      "name": "简化导入 · 独立项目",
+      "statusDescription": "已综合本地与线上核对，等待负责人确认样机。",
+      "customerId": null
+    }
+  ],
+  "customers": [
+    {
+      "id": "7",
+      "version": "1",
+      "name": "简化导入 合成客户",
+      "contact": "首次客户内容",
+      "background": "页面验收合成资料"
+    }
+  ],
+  "items": [
+    {
+      "id": "242",
+      "batchId": "145",
+      "kind": "project",
+      "status": "committed",
+      "projectId": "48"
+    },
+    {
+      "id": "243",
+      "batchId": "145",
+      "kind": "project",
+      "status": "committed",
+      "projectId": "49"
+    },
+    {
+      "id": "244",
+      "batchId": "145",
+      "kind": "customers",
+      "status": "committed",
+      "projectId": null
+    },
+    {
+      "id": "285",
+      "batchId": "186",
+      "kind": "project",
+      "status": "committed",
+      "projectId": "48"
+    },
+    {
+      "id": "286",
+      "batchId": "186",
+      "kind": "project",
+      "status": "committed",
+      "projectId": "49"
+    },
+    {
+      "id": "287",
+      "batchId": "186",
+      "kind": "customers",
+      "status": "pending",
+      "projectId": null
+    }
+  ],
+  "adoptions": [
+    {
+      "itemId": "242",
+      "count": "1"
+    },
+    {
+      "itemId": "243",
+      "count": "1"
+    },
+    {
+      "itemId": "244",
+      "count": "1"
+    },
+    {
+      "itemId": "285",
+      "count": "1"
+    },
+    {
+      "itemId": "286",
+      "count": "1"
+    }
+  ],
+  "checks": [
+    "single_action_catalog_and_two_projects_persisted",
+    "normal_update_keeps_existing_catalog_version",
+    "conflict_corrected_in_same_adoption",
+    "unchosen_catalog_difference_did_not_block_project"
+  ]
+}
