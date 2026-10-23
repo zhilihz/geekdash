@@ -1072,6 +1072,50 @@ DEC-132/133取消共享资料的维护账号专属限制，并退出周检查规
 
 ### 5.13 P05来源对应及多次采用的增量结构
 
+#### 0007持久执行与0008名称对应承接
+
+`0007-import-executions`仅增加导入专用的`import_executions`，记录一次已明确提交的完整范围及执行进度。原`import_batches`表示文件与来源，`import_items`表示候选，`import_adoptions`表示单项成功事实；它们都不能独立证明“哪些未执行项已由用户授权提交”。执行记录补这个缺口，不重复保存正式项目，也不建设通用任务表。字段对应实际迁移文件；环境是否升级查系统真相及部署记录，0001～0006内容保持原校验和。
+
+| 字段组 | 用途及不可替代性 |
+|---|---|
+| `id:I`、`batch_id:I`、`actor_id:I` | 标识本次执行、所属批次与实际提交者；FK连接原批次和账号 |
+| `operation_key:V128`、`request_hash:H` | 同次点击/传输重试只接收一次；UK(batch_id,actor_id,operation_key)，同键不同输入拒绝 |
+| `command_json:J` | 不可变的已确认范围：项目/资料项、版本依据、修正/决定与各原子操作标识；不复制整份原备份，不在运行时默默扩选 |
+| `progress_json:J` | 本次各项尚未执行、成功、业务问题或结果待确认及原结果引用；已成功必须能由adoption/receipt验证，不能靠此JSON制造成功事实 |
+| `status:V16` | 接受、执行、等待恢复或本轮处理结束；本轮结束不等于全部项目已入库，业务结果由各项记录说明 |
+| `lease_token:V64?`、`lease_until:T?` | 运行期间的执行权；重启或并存进程接续时防重复领取，进度写入须匹配当前token；不能替代原事务幂等 |
+| `created_at:T`、`updated_at:T` | 接收时间与最近进度更新时间，用于恢复和“最后确认进度”展示 |
+
+索引：主键id，幂等唯一索引`(batch_id,actor_id,operation_key)`兼作批次查找入口，`actor_id`支持外键，`(status,lease_until)`恢复未终结任务。单批接收以原batch行锁协调，当前执行未终结时不同时创建另一次相互覆盖的执行。索引性能未作规模基准测试，结构与业务验证见报告。
+
+```mermaid
+erDiagram
+  import_batches ||--o{ import_executions : "拥有已提交执行"
+  users ||--o{ import_executions : "明确提交"
+  import_batches ||--o{ import_items : "包含候选"
+  import_items ||--o{ import_adoptions : "记录成功采用"
+  import_executions {
+    bigint id PK
+    bigint batch_id FK
+    bigint actor_id FK
+    varchar operation_key UK
+    binary request_hash
+    json command_json
+    json progress_json
+    varchar status
+    varchar lease_token
+    datetime lease_until
+    datetime created_at
+    datetime updated_at
+  }
+```
+
+图中operation_key只是复合唯一键的一部分，准确约束见上表。执行与采用通过冻结的项ID/原操作键核对，不新增不真实的直接外键。业务提交后进度更新中断时，读取原回执/永久采用补齐进度；旧pending只能用于确认既有结果或恢复输入，不能批量改造成已授权执行。源文件、旧采用及正式数据保持，兼容/回退方案须在升级验证时覆盖新旧读取。
+
+`0008-import-name-bindings`不增加字段或表，使用既有`import_bindings`，为无编号共享资料保留`source_scope=catalog-name`，`source_key=SHA-256(JSON.stringify(原名称))`的十六进制值。来源与类别仍在复合唯一键内；原名称留在不可变来源项，不用截断名称充当编号。新采用同事务写对应；升级只承接目标唯一的既有采用，已有对应不覆盖。批次出现重名时不自动使用名称对应。
+
+#### 0006已经实现的来源、对应与采用结构
+
 DEC-151的三方核对复用`import_adoptions.adopted_json`，不增加表或迁移步骤。受限属性`comparisonBase`按实际已采用或明确保留线上的事项键保存`{source,saved}`：分别为当时来源值和正式保存后值，键缺失表示没有可靠基准，不能等同明确空值；`keepOnline`记录本次明确保留线上内容的事项键。父绑定ID/版本及`comparisonRecords`内子记录绑定ID/版本/目标共同限定基准范围，改绑不能复用旧目标基准。待审对应选择在`validation_json.choiceBinding`保留选择时绑定依据，后续绑定改变须重新核对，不能由旧卡默认绑回。旧采用记录仅从不可变来源及已冻结采用事实恢复能够证明的值。准确判定规则归SPEC-009，旧记录缺少依据时不补造共同基准。
 
 业务契约只归SPEC-009/DEC-142～149，DEC-148确认逻辑来源、当前对应、每次成功采用三类持久记录的结构方向。以下字段和约束对应`0006-imports`，在0005的34表上增加三表。迁移与结构实测证据见[P05实施报告](../testing/reports/2026-10-22-p05-imports.md)；本文不维护部署进度，也不将结构验证视为索引性能实测。对应施工计划归执行计划1.3，事务取锁归架构4.2，验收归TEST-009/028/032。

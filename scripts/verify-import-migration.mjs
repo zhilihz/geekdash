@@ -37,7 +37,7 @@ try {
   assert.equal((await c.query('SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE()'))[0].length, 0, '实例必须从空test库开始；不重置已有库');
   await mkdir(fixture, { recursive: true }); await cp('dist/server', resolve(fixture, 'server'), { recursive: true }); await cp('dist/migrations', resolve(fixture, 'migrations'), { recursive: true });
   const current = await readFile(code, 'utf8');
-  const old = current.replace(/,\s*\['0006-imports',\s*11\]/, '');
+  const old = current.replace(/,\s*\['0006-imports',\s*11\]/, '').replace(/,\s*\['0007-import-executions',\s*1\]/, '').replace(/,\s*\['0008-import-name-bindings',\s*1\]/, '');
   assert.notEqual(old, current, '精确移除本轮增量以建立0005，不猜测版本');
   await writeFile(code, old);
   const initial = await run(); assert.equal(initial.exitCode, 0, JSON.stringify(initial));
@@ -69,7 +69,7 @@ try {
   const marker = "console.log(JSON.stringify({ event: 'migration_step_verified', object: step }));";
   assert.equal(current.split(marker).length - 1, 2, '只在增量结构/数据步骤后插入隔离进程中断');
   await writeFile(code, current.replaceAll(marker, marker + " if (process.env.GEEKDASH_IMPORT_KILL_STEP === step) process.kill(process.pid, 'SIGKILL');"));
-  const resource = await loadSchema(), steps = resource.increments.at(-1).steps;
+  const resource = await loadSchema(), steps = resource.increments.find(value=>value.manifest.version==='0006-imports').steps;
   for (const [index, step] of steps.entries()) {
     const key = step.data ?? `${step.table}:${index + 1}`, killed = await run('migrate', key);
     assert.equal(killed.signal, 'SIGKILL', JSON.stringify(killed));
@@ -79,7 +79,7 @@ try {
   }
   await writeFile(code, current);
   const upgraded = await run(); assert.equal(upgraded.exitCode, 0, JSON.stringify(upgraded));
-  assert.equal(upgraded.last.tables, 37); assert.deepEqual(await snapshot(oldResource.manifest.tables), before);
+  assert.equal(upgraded.last.tables, 38); assert.deepEqual(await snapshot(oldResource.manifest.tables), before);
   assert.deepEqual((await c.query('SELECT version,checksum,applied_at FROM schema_migrations ORDER BY version'))[0].slice(0, 5), oldHistory);
   const registered = (await c.query('SELECT version,checksum,applied_at FROM schema_migrations ORDER BY version'))[0];
   assert.equal((await run()).last.applied, false);

@@ -2,6 +2,8 @@
 
 对应代码：`src/server/routes/imports.ts`、`modules/imports.ts`、`modules/project-import.ts`。本文件描述P05施工中的实际协议；固定发布版本及通过范围查系统真相和P05报告。业务规则只维护于[SPEC-009](../specification.md#spec-009-导入迁移与删除恢复)。
 
+**协议版本**：本轮持久执行代码使用`0008-import-name-bindings`；部署是否完成以系统真相为准。旧独立review/adopt HTTP写入口返回410，只保留原结果与来源读取。
+
 ## 身份与文件
 
 所有接口沿用登录、账号上下文和写入CSRF校验。上传正文为`application/octet-stream`，最大32MiB；反向代理与应用限制一致。服务器保留原字节及SHA-256，文件名仅用于展示，不用作磁盘路径或对象身份。凭据与原文件不进入Git。
@@ -22,24 +24,41 @@
 
 DEC-151收敛后的候选还返回`classification=ready|needs_attention|unchanged`、`defaultSelected`、`conflictKeys`、`keptOnline`及`needsMapping`。每条差异的`status=normal|conflict|needs_choice|keep_online`说明处理类别，阶段或子记录用`members`保留同一事项的字段差异；默认采用键只含正常更新的实际成员，不携带同对象未选字段。只读候选校验通过才列入`ready`，保存时仍重新核验。
 
-`unresolvedReferences`列出未解引用的路径及本批次对应资料卡`itemIds`。客户端可将依赖已确认资料或DEC-153明确新资料的项目列为等待资料的候选；资料保存后必须重新读取和校验项目，不复用旧`basis`或猜测正式ID。没有依赖该资料的正常项目可独立继续。
+`unresolvedReferences`列出未解引用的路径及本批次对应资料卡`itemIds`。客户端可将依赖已确认资料或DEC-153明确新资料的项目列为等待资料的候选；服务器冻结依赖并在资料成功后重新校验，只对本次自身资料写入造成的变化更新依据，外部变化仍报冲突。没有依赖该资料的正常项目可独立继续。
 
-`keepOnline`为本次明确保留线上内容的差异键，与`selected`不能重叠；全部保留时允许`selected=[]`，在同一事务记录决定及原回执，项目无实际修改时不推进业务版本。`payload`可以直接随`adopt`修正入库，无需先调用`review`；旧`review`保留兼容及待审记录接续，不是页面入库的前置步骤。没有对应的项目默认拟新增，未知共享资料仍需显式选择`mode/targetId`，不按同名自动配对。
+`keepOnline`为本次明确保留线上内容的差异键，与`selected`不能重叠；全部保留时允许`selected=[]`，在同一事务记录决定及原回执，项目无实际修改时不推进业务版本。`payload`随执行命令一次修正入库，旧`review`不再接受写入；已有待审纠正仍可读取。没有对应的项目默认拟新增，未知共享资料仍需显式选择`mode/targetId`，不按同名自动配对。
 
 读取与预览中的`referenceBasis`表示来源自动解析所得的引用依据，未叠加本次人工修改。客户端用它区分本人修改与外部对应改变；它只用于页面重新核对，不能替代写入时的`basis`、实际版本或权限校验。
 
 | 方法与路径 | 行为 |
 |---|---|
 | `POST /api/imports/:batchId/items/:itemId/preview` | 只读合并候选；返回实际差异、问题及`cause/consequence/requiredKeys`因果信息，不自动扩选 |
-| `POST /api/imports/:batchId/items/:itemId/review` | 保存待审纠正与对应选择，只推进待审修订，不改正式项目 |
-| `POST /api/imports/:batchId/items/:itemId/adopt` | 保存所选正式信息、来源对应和采用事实。同一项目全部成功或回滚 |
+| `POST /api/imports/:batchId/items/:itemId/review` | 已退役，410 `IMPORT_CLIENT_OUTDATED`，不写入 |
+| `POST /api/imports/:batchId/items/:itemId/adopt` | 已退役，410 `IMPORT_CLIENT_OUTDATED`，不写入 |
 | `POST /api/imports/:batchId/items/:itemId/results/query` | 以原正文及原操作键查询结果；不接受换正文重试 |
 | `GET /api/imports/:batchId/items/:itemId/source` | 按需查看该条目的完整来源和解析问题 |
 | `GET /api/imports/:batchId/items/:itemId/adoptions/:adoptionId` | 按需查看当次采用及来源历史，不从当前待审副本重建过去结果 |
 
 差异键由响应提供，例如`fields.name`、`people.hardware_owner`、`stage.S2`、`record.<来源条目键>`、`history.mixed`。客户端不能自行推导另一个项目的正式ID。同一风险/需求变更作为一个事项，普通字段和不同事项分别选择。
 
-成功返回`outcome=committed`及`result`。正式结果包含项目或资料ID、版本、采用与未采用计数、来源、操作号、采用ID和保存时间。短期回执清理后，正式采用通过不可改写的`import_adoptions`恢复原结果；`review`与`adopt`动作不能共用同一操作键。跨项目批量由页面逐项调用，单项冲突不撤销其他已成功项目。
+成功返回`outcome=committed`及`result`。正式结果包含项目或资料ID、版本、采用与未采用计数、来源、操作号、采用ID和保存时间。短期回执清理后，正式采用通过不可改写的`import_adoptions`恢复原结果；`review`与`adopt`动作不能共用同一操作键。跨项目批量由服务器执行，单项冲突不撤销其他已成功项目。
+
+## 一次提交与自动接续
+
+`POST /api/imports/:batchId/executions`接收`{idempotencyKey,items:[{id,command,resolveReferences?}]}`，正文上限16MiB。`command`为上述原子项正文；`resolveReferences:true`明确允许完成本项目缺失但已明确的资料关联，未选择时不扩大所选范围。接收事务冻结依赖、输入、版本和原子操作号，返回202及执行记录；一次批次只能有一个未结束执行，同键同正文返回原执行，同键不同正文409。
+
+`GET /api/imports/:batchId/executions`读取该批最新执行；`?operation=<UUID>`读取当前账号的指定执行。返回`id,batchId,actorId,operationId,status,items,operationIds`，不返回冻结命令或个人凭据。
+
+| 层级 | 状态及客户端行为 |
+|---|---|
+| 整次执行 | `accepted/running/finished`；finished表示本次逐项结果均确定，不等于所有项目成功 |
+| 每项 | `pending/saving/committed/failed/confirming`；成功含原result，失败含code/statusCode/fields，confirming由服务器按原键继续核实 |
+| 接收响应未知 | 保留原批次、操作号和正文，先GET确认；不存在才重发相同接收命令，不生成替代操作 |
+| 页面离开/服务重启 | MySQL保留范围及进度，执行器重新领取过期租约；业务提交后进度丢失优先读永久采用，不重复保存 |
+| 账号变化 | 原已成功结果可回读；停用、改密、处理人或项目权限变化在后续写入前重新检查 |
+| 老页面未知请求 | 原结果查询先锁项确认；有结果返回committed；仍有执行返回not_found；无执行无结果返回not_committed，保留输入后重新使用当前入口 |
+
+页面只发送一次范围命令、读取进度和展示结果；正常资料依赖自动处理，业务冲突仍停在原项目直接修正。公司信息不自动加入依赖。
 
 ## 批次接续与正式项目读取
 

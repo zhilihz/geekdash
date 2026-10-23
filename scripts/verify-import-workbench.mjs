@@ -24,7 +24,7 @@ try {
     const headers=new Headers(opts.headers);headers.set('Cookie',jar.getCookieStringSync(origin));headers.set('Origin','http://localhost');
     const response=await fetch(new URL(path,origin),{...opts,headers});for(const cookie of response.headers.getSetCookie())jar.setCookieSync(cookie,origin);
     http.push({path:path.split('?')[0],status:response.status});
-    if(lostAck&&path.endsWith('/adopt')&&response.ok){lostAck=false;await response.arrayBuffer();throw new Error('test: response lost after commit');}
+    if(lostAck&&path.endsWith('/executions')&&response.ok){lostAck=false;await response.arrayBuffer();throw new Error('test: response lost after commit');}
     return response;
   }
   async function api(path,body,raw=false) {
@@ -62,11 +62,11 @@ try {
   checks.push('缺阶段依据原位一次选择→通过自动准备所需芯片→项目事务→独立SQL/详情新读→自动下一个');
   assert.equal(current(),ids[2]);click('[data-action=edit]');await wait(()=>!!w.document.querySelector('[data-value-path="fields.dueDate"]'));
   change('[data-value-path="fields.dueDate"]','2026-11-12');await wait(()=>enabled('[data-action=approve]'));
-  lostAck=true;click('[data-action=approve]');await wait(()=>enabled('[data-action=query]'));
-  assert.equal(current(),ids[2]);click('[data-action=query]');await wait(()=>current()!==ids[2]);
+  lostAck=true;click('[data-action=approve]');await wait(()=>!lostAck);
+  await wait(()=>current()!==ids[2]);
   after=await api('/api/imports/'+batchId);const third=after.items[2];assert(third.previousResult);assert.equal((await api('/api/projects/'+third.previousResult.projectId)).project.dueDate,'2026-11-12');
   assert.equal(Number((await c.query('SELECT COUNT(*) n FROM import_adoptions WHERE item_id=?',[ids[2]]))[0][0].n),1);
-  checks.push('错误日期直接在差异处修正；提交成功丢响应时留在本项，查询原结果只产生一次采用且自动接续');
+  checks.push('错误日期直接在差异处修正；提交成功丢响应时留在本项，自动查询原任务只产生一次采用且自动接续');
   click('[data-view=ready]');await wait(()=>current()===ids[1]);click('[data-action=skip]');
   click('[data-view=skipped]');assert.equal(current(),ids[1]);assert.equal((await api('/api/imports/'+batchId)).items[1].previousResult,null);
   click('[data-action=edit]');await wait(()=>!!w.document.querySelector('[data-value-path="fields.summary"]'));change('[data-value-path="fields.summary"]','修正后的简介');await wait(()=>enabled('[data-action=approve]'));click('[data-action=approve]');

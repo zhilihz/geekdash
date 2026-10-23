@@ -1,3 +1,4 @@
+import { executeImport } from './import-execution-test-helper.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -14,12 +15,13 @@ const prefix = 'p05_extra_' + randomUUID().slice(0, 8), secret = 'P05 新事务�
 const checks = [], users = [], projectIds = [];
 let app, origin, requests = 0, loseCommit = false, companyOriginal, companyChanged = false, apiB;
 const fresh = async (sql, values = []) => { const { connection } = await connectDatabase('test_app'); try { return (await connection.query(sql, values))[0]; } finally { await connection.end(); } };
-const itemPath = (data, item, action = 'adopt') => `/api/imports/${data.batch.id}/items/${item.id}/${action}`;
+const itemPath = (data, item, action = 'adopt') => action === 'adopt' ? {batchId:data.batch.id,itemId:item.id} : `/api/imports/${data.batch.id}/items/${item.id}/${action}`;
 const command = (data, item, selected = item.diffs.map(row => row.key)) => ({ expectedBatchVersion: data.batch.version, expectedReviewVersion: item.reviewVersion, expectedVersion: item.expectedVersion, basis: item.basis, mode: item.mode, targetId: item.targetId, selected, idempotencyKey: randomUUID() });
 function client() {
   let cookie = '', csrf = '', account = '';
   return {
     async api(path, method = 'GET', body, expected = 200, raw = false) {
+      if(typeof path==='object')return executeImport(this.api.bind(this),path,body,expected);
       const response = await fetch(origin + path, { method, headers: { Cookie: cookie, Origin: 'http://localhost', 'Content-Type': raw ? 'application/octet-stream' : 'application/json', 'X-GeekDash-Request': '1', 'X-GeekDash-CSRF': csrf, 'X-GeekDash-Account': account }, ...body === undefined ? {} : { body: raw ? body : JSON.stringify(body) } }); requests++;
       for (const value of response.headers.getSetCookie()) { const part = value.split(';')[0]; if (part.startsWith('geekdash_dev=')) cookie = part; if (part.startsWith('geekdash_dev_csrf=')) csrf = part.split('=')[1]; }
       const result = await response.json(); assert.ok((Array.isArray(expected) ? expected : [expected]).includes(response.status), path + ': ' + response.status + ' ' + JSON.stringify(result));

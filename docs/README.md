@@ -1,14 +1,14 @@
 # GeekDash 文档目录
 
-导航更新：2026-10-22。项目仓库：[zhilihz/geekdash](https://github.com/zhilihz/geekdash)。全部项目文档在本目录；协作与分类规则只维护于根目录[AGENTS.md](../AGENTS.md)。
+导航更新：2026-10-23。项目仓库：[zhilihz/geekdash](https://github.com/zhilihz/geekdash)。全部项目文档在本目录；协作与分类规则只维护于根目录[AGENTS.md](../AGENTS.md)。
 
 ## 本轮阅读入口
 
-2026-10-23按DEC-152/153修正真实导入链和逐项目快速处理，本地验证、真实来源断点及发布边界查[导入链报告](testing/reports/2026-10-23-p05-import-chain.md)。当前运行版本与接续始终以系统真相和交接为准；下方保留前次发布入口。
+2026-10-23持久导入修正已完成本地验证，当前固定发布中；公网在新发布成功前仍为1c0e1d2/0006。新增执行与名称对应承接的证据见[报告第8节](testing/reports/2026-10-23-p05-import-chain.md#8-持久导入与旧链清退2026-10-23)，实际发布状态查系统真相。[导入链报告第6～7节](testing/reports/2026-10-23-p05-import-chain.md#6-固定发布与公网验证)区分已验单项链与未完成整批路径，[部署记录](operations/deployments/2026-10-23-p05-import-chain.md)记录运行及恢复。当前接续查系统真相和交接；下方为前次发布时点。
 
 P05导入已按DEC-151收敛并部署测试站：正常内容一次导入，仅冲突与错误原卡处理，无对应项目默认新增、可改为已有。[当前结论](status/current-system-truth.md#1-一句话结论)、[交接](handoff/handoff.md)是接手入口；用户操作及结果查[PRD9.21](product/PRD.md#921-p05导入与会议的逐行为结果)，规则归SPEC-009，模块与存储归架构4.2、ERD5.13，工程步骤归[P05计划1.3](implementation/execution-plan.md#13-p05完整实施设计2026-10-22)。会议、真实业务迁入与实际使用切换未纳入本次交付。
 
-当前交付记录：[P05实施与验证](testing/reports/2026-10-22-p05-imports.md#9-固定发布与公网结果2026-10-22)、[部署与恢复](operations/deployments/2026-10-22-p05-imports.md)。产品13255f3、0006已合并推送main并在新加坡运行。此前[P04收口](testing/reports/2026-10-21-p04-closeout.md)、[首页层级](operations/deployments/2026-10-20-card-hierarchy.md)、[1054修正](operations/deployments/2026-10-20-local-1054.md)保留历史时点，不代表现行版本。
+前次交付记录：[P05实施与验证](testing/reports/2026-10-22-p05-imports.md#9-固定发布与公网结果2026-10-22)、[部署与恢复](operations/deployments/2026-10-22-p05-imports.md)。产品13255f3是2026-10-22发布时点，当前已被1c0e1d2替代。此前[P04收口](testing/reports/2026-10-21-p04-closeout.md)、[首页层级](operations/deployments/2026-10-20-card-hierarchy.md)、[1054修正](operations/deployments/2026-10-20-local-1054.md)保留历史时点，不代表现行版本。
 
 2026-10-22设计来源：[P05设计包与核查范围](testing/reports/2026-10-22-p05-design-preparation.md)。其后用户确认简化导入，实际交付沿DEC-151；设计画面与产品运行分别取证，不能把较早设计中的表单数量作为现行操作要求。
 

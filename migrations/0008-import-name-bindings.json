@@ -1,0 +1,6 @@
+{
+  "version": "0008-import-name-bindings",
+  "steps": [
+    { "table": "import_bindings", "data": "remember-import-catalog-names" }
+  ]
+}

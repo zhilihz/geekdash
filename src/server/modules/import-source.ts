@@ -61,7 +61,7 @@ export function parseImportSource(input: Uint8Array | string): ParsedImportSourc
       const raw: Record<string, unknown> = object(entry) ? structuredClone(entry) : { $invalidSource: entry };
       if (!object(entry)) entryIssues.push(issue('IMPORT_ITEM_INVALID', entryPath, '该条目不是对象，请在原卡纠正后采用。', 'error'));
       let sourceKey = kind === 'company' ? null : keys[index];
-      if (kind !== 'company' && sourceKey === null) entryIssues.push(issue('IMPORT_SOURCE_KEY_MISSING', `${entryPath}.id`, '来源编号缺失或无效，本条需要明确对应，不建立永久来源绑定。'));
+      if (kind !== 'company' && sourceKey === null) entryIssues.push(issue('IMPORT_SOURCE_KEY_MISSING', `${entryPath}.id`, kind==='project'?'来源编号缺失或无效，本项目需要明确对应，不建立永久来源绑定。':'资料没有有效来源编号；采用后记住同一来源的原名称对应，改名或重名时重新确认。'));
       if (sourceKey !== null && counts.get(sourceKey)! > 1) {
         sourceKey = null;
         entryIssues.push(issue('IMPORT_SOURCE_KEY_DUPLICATE', `${entryPath}.id`, '同类来源编号重复，保留每条内容并分别确认对应。'));

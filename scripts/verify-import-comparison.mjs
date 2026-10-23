@@ -1,3 +1,4 @@
+import { executeImport } from './import-execution-test-helper.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -15,14 +16,15 @@ const checks = [], projects = [];
 let app, origin, requests = 0, cookie = '', csrf = '', account = '';
 async function fresh(sql, values = []) { const { connection } = await connectDatabase('test_app'); try { return (await connection.query(sql, values))[0]; } finally { await connection.end(); } }
 async function api(path, method = 'GET', body, expected = 200, raw = false) {
+  if(typeof path==='object')return executeImport(api,path,body,expected);
   const response = await fetch(origin + path, { method, headers: { Cookie: cookie, Origin: 'http://localhost', 'Content-Type': raw ? 'application/octet-stream' : 'application/json', 'X-GeekDash-Request': '1', 'X-GeekDash-CSRF': csrf, 'X-GeekDash-Account': account }, ...body === undefined ? {} : { body: raw ? body : JSON.stringify(body) } }); requests++;
   for (const value of response.headers.getSetCookie()) { const part = value.split(';')[0]; if (part.startsWith('geekdash_dev=')) cookie = part; if (part.startsWith('geekdash_dev_csrf=')) csrf = part.split('=')[1]; }
-  const data = await response.json(); assert.equal(response.status, expected, path + ': ' + JSON.stringify(data));
+  const data = await response.json(); assert.ok((Array.isArray(expected)?expected:[expected]).includes(response.status), path + ': ' + JSON.stringify(data));
   if (path === '/api/auth/me') account = data.account.id;
   return data;
 }
 const file = projects => ({ version: 2, appVersion: '1054', projects });
-const path = (data, item, action = 'adopt') => `/api/imports/${data.batch.id}/items/${item.id}/${action}`;
+const path = (data, item, action = 'adopt') => action === 'adopt' ? {batchId:data.batch.id,itemId:item.id} : `/api/imports/${data.batch.id}/items/${item.id}/${action}`;
 const command = (data, item, selected = item.defaultSelected, extra = {}) => ({ expectedBatchVersion: data.batch.version, expectedReviewVersion: item.reviewVersion, expectedVersion: item.expectedVersion, basis: item.basis, selected, mode: item.mode, targetId: item.targetId, idempotencyKey: randomUUID(), ...extra });
 const leaves = item => item.diffs.flatMap(diff => diff.members ?? [diff]);
 const diff = (item, key) => leaves(item).find(value => value.key === key);
@@ -112,7 +114,9 @@ try {
   checks.push('本次改子对应并全部保留线上，同步明确对应但不改业务版，冻结的是本次实际目标值');
 
   const staleData=await upload(source,file([{...next,name:prefix+' 旧待审选择'}]));const staleItem=staleData.items[0];
-  await api(path(staleData,staleItem,'review'),'POST',command(staleData,staleItem,[],{mode:'existing',targetId:id}));
+  // 构造升级前已有的待审选择，只验证读取兼容。
+  const legacyBinding=(await fresh("SELECT CAST(id AS CHAR) id,CAST(version AS CHAR) version,CAST(target_id AS CHAR) targetId FROM import_bindings WHERE source_namespace=? AND object_kind='project' AND source_scope='' AND source_key=?",[source,staleItem.sourceKey]))[0];
+  await c.execute('UPDATE import_items SET validation_json=? WHERE id=?',[JSON.stringify({sourceNamespace:source,choice:{mode:'existing',targetId:id},choiceBinding:legacyBinding}),staleItem.id]);
   data = await upload(source, file([{ ...original, name: prefix + ' 明确重绑新项目' }])); item = await preview(data, data.items[0], { mode: 'new', targetId: null });
   const remade = await api(path(data, item), 'POST', command(data, item)); projects.push(remade.result.projectId); assert.notEqual(remade.result.projectId, id);
   const stale=(await api('/api/imports/'+staleData.batch.id)).items[0];assert.equal(stale.classification,'needs_attention');assert.equal(stale.needsMapping,true);assert(stale.issues.some(issue=>issue.code==='IMPORT_BINDING_CHANGED'&&issue.path==='mapping'));
@@ -149,6 +153,16 @@ try {
   data = await upload(source, file([{ id: 401, name: prefix + ' 日期矛盾', status: '已结案', startDate: '2026-09-03', closedOn: '2026-09-01' }])); item = data.items[0]; assert.equal(item.classification, 'needs_attention'); assert(item.issues.some(issue => issue.code === 'INVALID_PROJECT_DATE'));
   assert.equal((await fresh('SELECT COUNT(*) n FROM projects WHERE name=?', [prefix + ' 日期矛盾']))[0].n, '0');
   checks.push('GET按最终默认候选做只读业务校验；日期矛盾不会误计可导入或写正式库');
+  const named={...file([]),chips:[{name:prefix+' 无编号芯片'}]};
+  data=await upload(source,named);item=data.catalogRows[0];assert.equal(item.needsMapping,false);
+  const namedId=(await api(path(data,item),'POST',command(data,item))).result.id;
+  data=await upload(source,named);item=data.catalogRows[0];assert.equal(item.targetId,namedId);assert.equal(item.unchanged,true);assert.equal(item.needsMapping,false);
+  const renamed=structuredClone(named);renamed.chips[0].name+=' 改名';data=await upload(source,renamed);assert.equal(data.catalogRows[0].targetId,null,'名称变化不借用原对应');
+  const duplicated={...file([]),chips:[...named.chips,...named.chips]};data=await upload(source,duplicated);assert(data.catalogRows.every(row=>row.needsMapping&&!row.targetId));
+  const otherSource=(await api('/api/imports/sources','POST',{name:prefix+' 不同来源',idempotencyKey:randomUUID()})).result.sourceNamespace;
+  data=await upload(otherSource,named);assert(data.catalogRows[0].needsMapping&&!data.catalogRows[0].targetId);
+  assert.equal((await fresh("SELECT COUNT(*) n FROM import_bindings WHERE source_namespace=? AND object_kind='chips' AND source_scope='catalog-name'",[source]))[0].n,'1');
+  checks.push('同来源无编号资料重复导入复用明确名称对应；改名不沿用，重名与跨来源同名不自动合并');
   const result = { status: 'passed', verifiedAt: new Date().toISOString(), build: JSON.parse(await readFile('dist/build-info.json', 'utf8')), serverUuid, prefix, source, requests, projects, checks };
   await mkdir('test-results', { recursive: true }); await writeFile('test-results/import-comparison.json', JSON.stringify(result, null, 2)); console.log(JSON.stringify(result));
 } finally { if (app) await app.close(); await c.end(); }

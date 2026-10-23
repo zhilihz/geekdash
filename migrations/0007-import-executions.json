@@ -1,0 +1,185 @@
+{
+  "version": "0007-import-executions",
+  "steps": [
+    {
+      "table": "import_executions",
+      "create": {
+        "name": "import_executions",
+        "columns": [
+          {
+            "name": "id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": true,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "batch_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "actor_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "operation_key",
+            "type": "varchar(128)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": "ascii",
+            "collation": "ascii_bin"
+          },
+          {
+            "name": "request_hash",
+            "type": "binary(32)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "command_json",
+            "type": "json",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "progress_json",
+            "type": "json",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "status",
+            "type": "varchar(16)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": "ascii",
+            "collation": "ascii_bin"
+          },
+          {
+            "name": "lease_token",
+            "type": "varchar(64)",
+            "nullable": true,
+            "default": null,
+            "autoIncrement": false,
+            "charset": "ascii",
+            "collation": "ascii_bin"
+          },
+          {
+            "name": "lease_until",
+            "type": "datetime(3)",
+            "nullable": true,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "created_at",
+            "type": "datetime(3)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "updated_at",
+            "type": "datetime(3)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          }
+        ],
+        "indexes": [
+          {
+            "name": "PRIMARY",
+            "unique": true,
+            "columns": [
+              "id"
+            ]
+          },
+          {
+            "name": "uq_import_execution_operation",
+            "unique": true,
+            "columns": [
+              "batch_id",
+              "actor_id",
+              "operation_key"
+            ]
+          },
+          {
+            "name": "ix_import_execution_actor",
+            "unique": false,
+            "columns": [
+              "actor_id"
+            ]
+          },
+          {
+            "name": "ix_import_execution_status",
+            "unique": false,
+            "columns": [
+              "status",
+              "lease_until"
+            ]
+          }
+        ],
+        "checks": [],
+        "foreignKeys": [
+          {
+            "name": "fk_import_execution_batch_id",
+            "columns": [
+              "batch_id"
+            ],
+            "parent": "import_batches",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `import_executions` ADD CONSTRAINT `fk_import_execution_batch_id` FOREIGN KEY (`batch_id`) REFERENCES `import_batches` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          },
+          {
+            "name": "fk_import_execution_actor_id",
+            "columns": [
+              "actor_id"
+            ],
+            "parent": "users",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `import_executions` ADD CONSTRAINT `fk_import_execution_actor_id` FOREIGN KEY (`actor_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          }
+        ],
+        "sql": "CREATE TABLE `import_executions` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `batch_id` bigint unsigned NOT NULL,\n  `actor_id` bigint unsigned NOT NULL,\n  `operation_key` varchar(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `request_hash` binary(32) NOT NULL,\n  `command_json` json NOT NULL,\n  `progress_json` json NOT NULL,\n  `status` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `lease_token` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NULL,\n  `lease_until` datetime(3) NULL,\n  `created_at` datetime(3) NOT NULL,\n  `updated_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `uq_import_execution_operation` (`batch_id`,`actor_id`,`operation_key`),\n  KEY `ix_import_execution_actor` (`actor_id`),\n  KEY `ix_import_execution_status` (`status`,`lease_until`),\n  CONSTRAINT `fk_import_execution_batch_id` FOREIGN KEY (`batch_id`) REFERENCES `import_batches` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,\n  CONSTRAINT `fk_import_execution_actor_id` FOREIGN KEY (`actor_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+      },
+      "sql": "CREATE TABLE `import_executions` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `batch_id` bigint unsigned NOT NULL,\n  `actor_id` bigint unsigned NOT NULL,\n  `operation_key` varchar(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `request_hash` binary(32) NOT NULL,\n  `command_json` json NOT NULL,\n  `progress_json` json NOT NULL,\n  `status` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `lease_token` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NULL,\n  `lease_until` datetime(3) NULL,\n  `created_at` datetime(3) NOT NULL,\n  `updated_at` datetime(3) NOT NULL,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `uq_import_execution_operation` (`batch_id`,`actor_id`,`operation_key`),\n  KEY `ix_import_execution_actor` (`actor_id`),\n  KEY `ix_import_execution_status` (`status`,`lease_until`),\n  CONSTRAINT `fk_import_execution_batch_id` FOREIGN KEY (`batch_id`) REFERENCES `import_batches` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,\n  CONSTRAINT `fk_import_execution_actor_id` FOREIGN KEY (`actor_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    }
+  ]
+}

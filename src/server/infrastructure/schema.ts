@@ -9,7 +9,7 @@ type Check = { name: string; expression: string };
 type ForeignKey = { name: string; columns: string[]; parent: string; references: string[]; onUpdate: string; onDelete: string; sql: string };
 type Table = { name: string; columns: Column[]; indexes: Index[]; checks: Check[]; foreignKeys: ForeignKey[]; sql: string };
 type Manifest = { version: string; tables: Table[] };
-type DataStep = 'seed-import-sources' | 'freeze-legacy-history-source';
+type DataStep = 'seed-import-sources' | 'freeze-legacy-history-source' | 'remember-import-catalog-names';
 type MigrationStep = { table: string; sql?: string; create?: Table; columns?: Column[]; indexes?: Index[]; checks?: Check[]; foreignKeys?: ForeignKey[]; dropIndexes?: string[]; data?: DataStep };
 type ResolvedStep = MigrationStep & { before: Table | undefined; after: Table };
 type ActualTable = { name: string; engine: string; collation: string; columns: Column[]; indexes: Index[]; checks: Check[]; foreignKeys: Omit<ForeignKey, 'sql'>[] };
@@ -26,7 +26,7 @@ export async function loadSchema() {
   let manifest = structuredClone(foundation);
   const history = [{ version: foundation.version, checksum: createHash('sha256').update(bytes).digest() }];
   const increments: { previous: Manifest; manifest: Manifest; steps: ResolvedStep[] }[] = [];
-  for (const [version, count] of [['0002-trial-save', 3], ['0003-node-recovery', 1], ['0004-project-compatibility', 2], ['0005-check-facts', 1], ['0006-imports', 11]] as const) {
+  for (const [version, count] of [['0002-trial-save', 3], ['0003-node-recovery', 1], ['0004-project-compatibility', 2], ['0005-check-facts', 1], ['0006-imports', 11], ['0007-import-executions', 1], ['0008-import-name-bindings', 1]] as const) {
     const bytes = await readFile(new URL('../../migrations/' + version + '.json', import.meta.url));
     const delta = JSON.parse(bytes.toString('utf8')) as { version: string; steps: MigrationStep[] };
     if (delta.version !== version || delta.steps.length !== count) fail('DB_MIGRATION_RESOURCE_INVALID');
@@ -40,7 +40,7 @@ export async function loadSchema() {
         table = structuredClone(step.create); manifest.tables.push(table);
       }
       if (!table) fail('DB_MIGRATION_RESOURCE_INVALID');
-      if (step.data && (!['seed-import-sources', 'freeze-legacy-history-source'].includes(step.data) || step.sql || step.create)
+      if (step.data && (!['seed-import-sources', 'freeze-legacy-history-source', 'remember-import-catalog-names'].includes(step.data) || step.sql || step.create)
         || !step.data && !step.sql) fail('DB_MIGRATION_RESOURCE_INVALID');
       for (const name of step.dropIndexes ?? []) {
         if (!table.indexes.some(index => index.name === name)) fail('DB_MIGRATION_RESOURCE_INVALID');
@@ -65,6 +65,19 @@ async function query(connection: Connection, sql: string, values: unknown[] = []
 }
 
 async function migrateImportData(connection: Connection, data: DataStep) {
+  if(data==='remember-import-catalog-names'){
+    const adopted=await query(connection,"SELECT a.source_namespace namespace,a.target_kind kind,CAST(a.target_id AS CHAR) targetId,i.source_payload_json payload FROM import_adoptions a JOIN import_items i ON i.id=a.item_id WHERE i.source_key IS NULL AND a.target_kind NOT IN ('project','company') ORDER BY a.id");
+    const names=new Map<string,{namespace:string;kind:string;key:string;targets:Set<string>}>();
+    for(const row of adopted){
+      const raw=typeof row.payload==='string'?JSON.parse(row.payload):row.payload;
+      if(typeof raw?.name!=='string'||!raw.name.trim())continue;
+      const key=createHash('sha256').update(JSON.stringify(raw.name)).digest('hex'),group=JSON.stringify([row.namespace,row.kind,key]);
+      const entry=names.get(group)??{namespace:row.namespace,kind:row.kind,key,targets:new Set<string>()};entry.targets.add(row.targetId);names.set(group,entry);
+    }
+    // 只承接已有明确采用且目标唯一的对应；有歧义的原记录保持，交由使用者确认。
+    for(const entry of names.values())if(entry.targets.size===1)await query(connection,"INSERT INTO import_bindings(source_namespace,object_kind,source_scope,source_key,target_id,version) VALUES (?,?,'catalog-name',?,?,1) ON DUPLICATE KEY UPDATE id=id",[entry.namespace,entry.kind,entry.key,[...entry.targets][0]]);
+    return;
+  }
   if (data === 'seed-import-sources') {
     await query(connection, `INSERT INTO import_sources (source_namespace,name,created_at)
       SELECT b.source_namespace,b.source_namespace,MIN(b.created_at) FROM import_batches b

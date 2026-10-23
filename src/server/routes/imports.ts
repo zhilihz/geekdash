@@ -4,9 +4,17 @@ import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 import type { Notifications } from '../infrastructure/notifications.js';
 import { imports, importFileLimit } from '../modules/imports.js';
 import { failure } from '../modules/project-save.js';
+import { importExecutions } from '../modules/import-execution.js';
 
 export function registerImports(app:FastifyInstance,database?:RuntimeDatabase,notifications?:Notifications) {
   const service=database?imports(database):undefined;
+  const executions=database?importExecutions(database,result=>{
+    if(result.projectId)notifications?.projectChanged(result as any);
+    for(const project of result.affectedProjects ?? [])notifications?.projectChanged({projectId:project.projectId,savedVersion:project.version,operationId:result.operationId});
+    if(result.id&&result.changed)notifications?.resourceChanged({resource:'catalog',kind:result.catalogKind,operationId:result.operationId});
+  }):undefined;
+  app.addHook('onReady',async()=>{executions?.start();});
+  app.addHook('preClose',async()=>{await executions?.close();});
   const available=()=>{if(!service)failure('DATABASE_UNAVAILABLE',503);return service;};
   const writable=()=>{if(process.env.GEEKDASH_IMPORT_WRITES==='disabled')failure('IMPORT_WRITES_PAUSED',503);};
   // 返回原流，身份/CSRF通过后才将文件写入受控卷。
@@ -27,16 +35,18 @@ export function registerImports(app:FastifyInstance,database?:RuntimeDatabase,no
   for(const action of ['source','takeover'] as const)for(const query of [false,true])app.post<{Params:{batchId:string}}>('/api/imports/:batchId/'+action+(query?'/results/query':''),{bodyLimit:4096},request=>{
     if(!request.actor)failure('AUTH_REQUIRED',401);if(!query)writable();return available().changeBatch(request.actor,request.params.batchId,action,request.body,request.id,query);
   });
-  for(const action of ['preview','review','adopt','results/query'] as const)app.post<{Params:{batchId:string;itemId:string}}>('/api/imports/:batchId/items/:itemId/'+action,{bodyLimit:4*1024*1024},async request=>{
+  app.post<{Params:{batchId:string}}>('/api/imports/:batchId/executions',{bodyLimit:16*1024*1024},async(request,reply)=>{
+    if(!request.actor)failure('AUTH_REQUIRED',401);writable();if(!executions)failure('DATABASE_UNAVAILABLE',503);
+    return reply.code(202).send(await executions.submit(request.actor,request.params.batchId,request.body));
+  });
+  app.get<{Params:{batchId:string};Querystring:{operation?:string}}>('/api/imports/:batchId/executions',request=>{
+    if(!request.actor)failure('AUTH_REQUIRED',401);if(!executions)failure('DATABASE_UNAVAILABLE',503);
+    return executions.read(request.actor,request.params.batchId,request.query.operation);
+  });
+  for(const action of ['review','adopt'])app.post('/api/imports/:batchId/items/:itemId/'+action,()=>failure('IMPORT_CLIENT_OUTDATED',410));
+  for(const action of ['preview','results/query'] as const)app.post<{Params:{batchId:string;itemId:string}}>('/api/imports/:batchId/items/:itemId/'+action,{bodyLimit:4*1024*1024},async request=>{
     if(!request.actor)failure('AUTH_REQUIRED',401);
-    if(process.env.GEEKDASH_IMPORT_WRITES==='disabled' && action!=='preview' && action!=='results/query')failure('IMPORT_WRITES_PAUSED',503);
     const value=await available().item(request.actor,request.params.batchId,request.params.itemId,action,request.body,request.id);
-    if('outcome' in value && value.outcome==='committed') {
-      const result=value.result;
-      if(result.projectId)notifications?.projectChanged(result);
-      for(const project of result.affectedProjects ?? [])notifications?.projectChanged({projectId:project.projectId,savedVersion:project.version,operationId:result.operationId});
-      if(result.id && result.changed)notifications?.resourceChanged({resource:'catalog',kind:result.catalogKind,operationId:result.operationId});
-    }
     return value;
   });
 }

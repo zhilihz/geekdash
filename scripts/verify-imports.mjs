@@ -1,3 +1,4 @@
+import { executeImport } from './import-execution-test-helper.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -15,17 +16,18 @@ const ownId=async()=> (await c.query('SELECT CAST(LAST_INSERT_ID() AS CHAR) id')
 async function start(){
   runtime=await openRuntimeDatabase('test_app');const write=runtime.writeTransaction;
   runtime.writeTransaction=work=>write(async lease=>{
-    const execute=lease.execute,query=lease.query,commit=lease.commit;
+    const execute=lease.execute,query=lease.query,commit=lease.commit;let executionSql=false,adoptionSql=false,uploadSql=false;
     const fail=sql=>fault==='audit'&&/INSERT INTO (audit_log|import_adoptions)/.test(sql);
-    lease.execute=function(sql,args){if(fail(String(sql)))throw Object.assign(new Error('injected'),{code:'PROBE_AUDIT'});return execute.call(this,sql,args);};
+    lease.execute=function(sql,args){if(String(sql).startsWith('INSERT INTO import_batches'))uploadSql=true;if(String(sql).includes('import_executions'))executionSql=true;if(String(sql).startsWith('INSERT INTO import_adoptions'))adoptionSql=true;if(fail(String(sql)))throw Object.assign(new Error('injected'),{code:'PROBE_AUDIT'});return execute.call(this,sql,args);};
     lease.query=function(sql,args){if(fail(String(sql)))throw Object.assign(new Error('injected'),{code:'PROBE_AUDIT'});return query.call(this,sql,args);};
-    lease.commit=async function(){await commit.call(this);if(fault==='ack')throw Object.assign(new Error('lost acknowledgement'),{code:'PROTOCOL_CONNECTION_LOST'});};
-    try{return await work(lease);}finally{lease.execute=execute;lease.query=query;if(fault!=='ack')lease.commit=commit;}
+    lease.commit=async function(){try{await commit.call(this);if(fault==='ack'&&(uploadSql||adoptionSql))throw Object.assign(new Error('lost acknowledgement'),{code:'PROTOCOL_CONNECTION_LOST'});}finally{lease.commit=commit;}};
+    try{return await work(lease);}finally{lease.execute=execute;lease.query=query;}
   });
   app=await createApp(runtime,{origin:'http://localhost',secure:false});origin=await app.listen({host:'0.0.0.0',port:0});
 }
 function client(){let cookie='',csrf='',account='';return{
   async api(path,method='GET',body,status=200,raw=false){
+    if(typeof path==='object')return executeImport(this.api.bind(this),path,body,status);
     const response=await fetch(origin+path,{method,headers:{Cookie:cookie,Origin:'http://localhost','Content-Type':raw?'application/octet-stream':'application/json','X-GeekDash-Request':'1','X-GeekDash-CSRF':csrf,'X-GeekDash-Account':account},...(body===undefined?{}:{body:raw?body:JSON.stringify(body)})});requests++;
     for(const value of response.headers.getSetCookie()){const part=value.split(';')[0];if(part.startsWith('geekdash_dev='))cookie=part;if(part.startsWith('geekdash_dev_csrf='))csrf=part.split('=')[1];}
     const data=await response.json();assert.ok((Array.isArray(status)?status:[status]).includes(response.status),path+': '+response.status+' '+JSON.stringify(data));
@@ -35,7 +37,7 @@ function client(){let cookie='',csrf='',account='';return{
   async upload(source,file,operation=randomUUID(),fresh=false){return this.api('/api/imports/upload?'+new URLSearchParams({source,name:prefix+'.bak',operation,...fresh?{new:'1'}:{}}),'POST',JSON.stringify(file),200,true);}
 };}
 const cmd=(data,item,selected=item.diffs.map(d=>d.key))=>({expectedBatchVersion:data.batch.version,expectedReviewVersion:item.reviewVersion,expectedVersion:item.expectedVersion,basis:item.basis,mode:item.mode,targetId:item.targetId,selected,idempotencyKey:randomUUID()});
-const path=(data,item,action)=>`/api/imports/${data.batch.id}/items/${item.id}/${action}`;
+const path=(data,item,action)=> action === 'adopt' ? {batchId:data.batch.id,itemId:item.id} : `/api/imports/${data.batch.id}/items/${item.id}/${action}`;
 const fresh=async(sql,values=[])=>{const {connection}=await connectDatabase('test_app');try{return(await connection.query(sql,values))[0];}finally{await connection.end();}};
 try{
   const password=await hashPassword(secret);
@@ -100,15 +102,15 @@ try{
   assert.deepEqual((await fresh('SELECT app_version appVersion,description FROM apps WHERE id=?',[appSaved.result.id]))[0],{appVersion:'2.1',description:'1054 原说明'});
   const reviewBatch=await a.upload(source,{version:2,projects:[{id:801,name:prefix+' 修正未入库'}]});
   const reviewData=await a.api('/api/imports/'+reviewBatch.result.batchId),reviewItem=reviewData.items[0],reviewBody=cmd(reviewData,reviewItem);
-  await a.api(path(reviewData,reviewItem,'review'),'POST',reviewBody);
-  assert.equal((await a.api(path(reviewData,reviewItem,'adopt'),'POST',reviewBody,409)).code,'OPERATION_KEY_REUSED');
+  assert.equal((await a.api(path(reviewData,reviewItem,'review'),'POST',reviewBody,410)).code,'IMPORT_CLIENT_OUTDATED');
   assert.equal((await fresh('SELECT id FROM projects WHERE name=?',[prefix+' 修正未入库'])).length,0);
-  checks.push('1054 APP版本/说明实际入库；待审保存与正式采用禁止误用同一操作键');
+  checks.push('1054 APP版本/说明实际入库；旧待审写入明确拒绝且不写正式项目');
   const source2=(await a.api('/api/imports/sources','POST',{name:prefix+' 第二来源',idempotencyKey:randomUUID()})).result.sourceNamespace;
   const moveBatch=await a.upload(source,{version:2,projects:[{id:802,name:prefix+' 改来源',chips:[file.chips[0].name]}],chips:file.chips});
   let moveData=await a.api('/api/imports/'+moveBatch.result.batchId),moveItem=moveData.items[0];
   const edited=structuredClone(moveItem.payload);edited.fields.name=prefix+' 人工纠正保留';
-  await a.api(path(moveData,moveItem,'review'),'POST',{...cmd(moveData,moveItem),payload:edited});
+  // 显式构造升级前已有的待审纠正，验证旧数据读取；不再调用废弃写入口。
+  await c.execute('UPDATE import_items SET corrected_payload_json=? WHERE id=?',[JSON.stringify({fields:{name:edited.fields.name}}),moveItem.id]);
   moveData=await a.api('/api/imports/'+moveBatch.result.batchId);
   await a.api('/api/imports/'+moveBatch.result.batchId+'/source','POST',{expectedVersion:moveData.batch.version,sourceNamespace:source2,idempotencyKey:randomUUID()});
   moveData=await a.api('/api/imports/'+moveBatch.result.batchId);moveItem=moveData.items[0];
@@ -141,17 +143,14 @@ try{
   let extraData=await a.api('/api/imports/'+extraRisk.result.batchId),extraItem=extraData.items[0];
   const correctedRisk=structuredClone(extraItem.payload);correctedRisk.records[0].targetId=null;
   const badRisk=structuredClone(correctedRisk);badRisk.records[0].sourceKey='999';
-  assert.equal((await a.api(path(extraData,extraItem,'review'),'POST',{...cmd(extraData,extraItem),payload:badRisk},400)).code,'IMPORT_RECORD_IDENTITY_CHANGED');
-  await a.api(path(extraData,extraItem,'review'),'POST',{...cmd(extraData,extraItem),payload:correctedRisk});
-  extraData=await a.api('/api/imports/'+extraRisk.result.batchId);extraItem=extraData.items[0];
-  assert.equal(extraItem.payload.records[0].targetId,null);
-  await a.api(path(extraData,extraItem,'adopt'),'POST',cmd(extraData,extraItem));
+  assert.equal((await a.api(path(extraData,extraItem,'preview'),'POST',{...cmd(extraData,extraItem),payload:badRisk},400)).code,'IMPORT_RECORD_IDENTITY_CHANGED');
+  await a.api(path(extraData,extraItem,'adopt'),'POST',{...cmd(extraData,extraItem),payload:correctedRisk});
   assert.equal((await fresh('SELECT content FROM project_risks WHERE project_id=? AND content=?',[id,'新增来源风险'])).length,1);
   const tagsBatch=await a.upload(source,{version:2,projects:[],customers:[{id:903,name:prefix+' 客户标签纠正',tags:['未映射的标签']} ]});
   const tagsData=await a.api('/api/imports/'+tagsBatch.result.batchId),tagsItem=tagsData.catalogRows.find(v=>v.kind==='customers');
   const tagsResult=await a.api(path(tagsData,tagsItem,'adopt'),'POST',{...cmd(tagsData,tagsItem,['name','tagIds']),payload:{tagIds:[]}});
   assert.equal((await fresh('SELECT id FROM customers WHERE id=?',[tagsResult.result.id])).length,1);
-  checks.push('无对应子记录明确新增经待审重读保持；来源身份不可篡改；客户标签可明确纠正为空后采用');
+  checks.push('无对应子记录在同次采用明确新增；来源身份不可篡改；客户标签可明确纠正为空后采用');
   process.env.GEEKDASH_IMPORT_WRITES='disabled';
   await a.api('/api/imports/sources','POST',{name:'不应写入',idempotencyKey:randomUUID()},503);
   const beforePausedSave=await a.api('/api/projects/'+id),pausedText='关闭导入写入后仍可保存项目';
@@ -160,7 +159,7 @@ try{
   assert.equal((await fresh('SELECT status_description body FROM projects WHERE id=?',[id]))[0].body,pausedText);
   assert.equal((await a.api(path(data,item,'results/query'),'POST',body)).outcome,'committed');
   delete process.env.GEEKDASH_IMPORT_WRITES;
-  checks.push('0006关闭导入写入：导入拒绝、既有项目查询/保存/新读及原采用查询保持可用');
+  checks.push('关闭导入写入：导入拒绝、既有项目查询/保存/新读及原采用查询保持可用');
   const takeoverFile={version:2,projects:[{id:901,name:prefix+' 接管项目'}]},takeover=await a.upload(source,takeoverFile);const beforeTakeover=await b.api('/api/imports/'+takeover.result.batchId);
   await b.api('/api/imports/'+takeover.result.batchId+'/takeover','POST',{expectedVersion:beforeTakeover.batch.version,reason:'合成接续',idempotencyKey:randomUUID()},409);
   await c.execute('UPDATE users SET enabled=0,version=version+1 WHERE id=?',[users[0].id]);

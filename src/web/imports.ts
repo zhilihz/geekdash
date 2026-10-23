@@ -24,7 +24,9 @@ type Command = { expectedBatchVersion: string; expectedReviewVersion: string; ex
 type Pending = { path: string; body: Command | Values; action: 'review' | 'adopt' | 'source' | 'takeover' | 'createSource'; queryPath: string; recoverOnly?: boolean; queue?: Pending[]; advance?: boolean };
 type CardState = { basis: string; referenceBasis?: string; serverReferenceBasis?:string; selected: string[]; choices?:Record<string,{value:'source'|'online';basis:string}>; editing?: boolean; full?: boolean; mapping?: boolean; payload?: Payload; editedPaths?: string[]; localCopy?: Payload; mode?: 'new' | 'existing'; targetId?: string | null; expectedVersion?: string | null; intent?: { kind: string; reason: string }; pending?: Pending; feedback?: string; fieldErrors?: Record<string,string>; tone?: string; stale?: boolean; continuing?: boolean };
 type UploadState = { idempotencyKey: string; name: string; sourceNamespace: string; hash: string; size: number; allowDuplicate: boolean; queue?: UploadState[] };
-type PageState = { batchId?: string; sourceNamespace?: string; view?: string; search?: string; activeItemId?: string; catalogItemId?: string; cards?: Record<string, CardState & { reviewing?: boolean; skipped?: boolean }>; pendingUpload?: UploadState; pendingBatch?: Pending; sourceName?: string };
+type ExecutionRequest={body:{idempotencyKey:string;items:{id:string;command:Command;resolveReferences:boolean}[]};advance?:string};
+type Execution={id:string;status:string;operationId:string;operationIds:string[];items:{id:string;kind:string;status?:string;result?:Outcome['result'];code?:string;fields?:Record<string,string>}[]};
+type PageState = { executions?:Record<string,ExecutionRequest>; batchId?: string; sourceNamespace?: string; view?: string; search?: string; activeItemId?: string; catalogItemId?: string; cards?: Record<string, CardState & { reviewing?: boolean; skipped?: boolean }>; pendingUpload?: UploadState; pendingBatch?: Pending; sourceName?: string };
 type Field = { key: string; title: string; type?: 'date' | 'number' | 'text' | 'textarea' | 'select' | 'reference' | 'boolean'; options?: string[]; catalog?: string; multiple?: boolean; wide?: boolean };
 
 const kindNames: Record<string, string> = { project: '项目', customers: '客户', engineers: '工程师', productLines: '产品线', product_lines: '产品线', apps: 'APP', tags: '标签', company: '企业信息', groups: '分组', project_groups: '分组', chips: '芯片', project_node: '项目节点', customer_node: '客户节点', risk: '风险', change: '需求变更', schedule: '计划记录' };
@@ -54,7 +56,8 @@ Object.assign(errors,{IMPORT_FORMAT_INVALID:'无法读取此备份，请选择�
 
 let data: BatchData | undefined, sources: Source[] = [], batches: BatchBrief[] = [], state: PageState = { cards: {} };
 let preference: PersonalPreference, frozen = false, busy = false, loading = false, generation = 0, file: File | undefined;
-let preparingCatalogs=false;
+let executionActive=false,polling=false,executionFeedback='';
+const seenExecutions=new Map<string,string>();
 let sourceName = '', selectedSource = '', catalogue: Record<string, Values[]> = {}, projectOptions: Values[] = [], duplicateBatches: BatchBrief[] = [];
 const previews = new Map<string, { issues: Issue[]; effects: Effect[]; pending?: boolean }>();
 const previewTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -177,7 +180,7 @@ function persist() {
   preference?.update({ ...state, cards: state.cards ?? {} });
 }
 function feedback(item: Item, text: string, tone = '') { Object.assign(card(item), { feedback: text, tone }); persist(); }
-function locked(item?: Item) { return frozen || busy || !!(item && card(item).pending); }
+function locked(item?: Item) { return frozen || busy || executionActive || !!(item && card(item).pending); }
 function readable(value: unknown, name = '', references = true, recordKind = '', records: RecordValue[] = []): string {
   if (value === undefined) return '来源未提供';
   if (value === null || value === '') return '未填写';
@@ -360,7 +363,7 @@ function renderReview(item:Item) {
     ${!item.canEdit?'<p class="import-muted">当前只能查看。新项目由本批次处理人导入；已有项目由项目经理导入。</p>':''}
     ${current.stale?`<p>线上内容已更新，输入保留。</p>${button('重新核对','refresh-item',item.id)}`:''}
     <div class="import-feedback" data-tone="${esc(current.tone)}" role="status">${esc(current.feedback)}</div>
-    ${current.pending?`${button('核对保存结果','query',item.id)}${button('重试原保存','retry',item.id)}`:''}
+    ${current.pending?`${button('核对保存结果','query',item.id)}`:''}
     </aside></article>`;
 }
 function renderWorkbench() {
@@ -388,7 +391,7 @@ function renderCard(item: Item, catalog = false) {
     ${current.stale?`<div class="import-impact"><p>线上信息已更新。输入已保留，请重新核对。</p>${button('重新核对这一项','refresh-item',item.id)}</div>`:''}
     ${current.localCopy?group('本机尚未同步的输入',`<p class="import-muted">服务器内容保持，本机输入留在这里供复制。</p><p>${esc(readable(current.localCopy,'',false))}</p>`):''}
     <div class="import-feedback" data-tone="${esc(current.tone)}" role="status">${esc(current.feedback)}</div>
-    ${current.pending?`<div class="import-impact"><p>这次保存结果还需确认，输入与前次成果保持。</p>${button('核对保存结果','query',item.id)}${button('重试原保存','retry',item.id)}</div>`:''}</article>`;
+    ${current.pending?`<div class="import-impact"><p>这次保存结果还需确认，输入与前次成果保持。</p>${button('核对保存结果','query',item.id)}</div>`:''}</article>`;
 }
 function render() {
   renderEntry();content.hidden=!data;savebar.hidden=!data;document.getElementById('imports-back')!.hidden=!data;
@@ -434,6 +437,7 @@ function renderOne(item: Item) {
   if(selection&&selection[0]!==null&&selection[1]!==null&&(next instanceof HTMLInputElement||next instanceof HTMLTextAreaElement))try{next.setSelectionRange(selection[0],selection[1]);}catch{}
 }
 function controls() {
+  if(executionFeedback)document.getElementById('imports-save-status')!.textContent=executionFeedback;
   const ready=data?.items.filter(item=>itemState(item)==='ready') ?? [],count=ready.length;
   content.querySelectorAll<HTMLElement>('.import-counts [data-view] strong').forEach(node=>{
     const status=node.parentElement?.dataset.view;
@@ -443,19 +447,20 @@ function controls() {
   const newCount=ready.filter(item=>(card(item).mode ?? item.mode)==='new').length;
   if(summary)summary.textContent=`可导入项目中，将新增 ${newCount} 个，更新 ${count-newCount} 个。相同内容和仅线上修改的内容保持。`;
   const catalogs=data?.catalogRows.filter(item=>item.kind!=='company'&&itemState(item)==='ready').length ?? 0;
-  saveButton.textContent=busy?'正在导入…':`导入可处理内容（${count} 个项目${catalogs?`、${catalogs} 条资料`:''}）`;
-  saveButton.disabled=frozen||busy||!count&&!catalogs||!!state.pendingBatch;
+  saveButton.textContent=busy||executionActive?'正在导入…':`导入可处理内容（${count} 个项目${catalogs?`、${catalogs} 条资料`:''}）`;
+  saveButton.disabled=frozen||busy||executionActive||!count&&!catalogs||!!state.pendingBatch;
   document.getElementById('imports-reload')!.toggleAttribute('disabled', frozen || busy || loading);
   document.querySelectorAll<HTMLButtonElement|HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>('#imports-entry button,#imports-entry input,#imports-entry select,#imports-batch button,#imports-batch input,#imports-batch select,#imports-batch textarea').forEach(control => {
     const item = findItem(control.dataset.item ?? control.closest<HTMLElement>('[data-card]')?.dataset.card ?? '');
     if (!defaultDisabled.has(control)) defaultDisabled.set(control,['adopt-item','approve'].includes(control.dataset.action ?? '')?false:control.disabled);
+    const readOnlyControl=!!control.dataset.view||control.id==='import-search'||['open-project','full','view-adoption','view-source','back-project','open-catalog'].includes(control.dataset.action??'');
     const matching = !!(control.dataset.mode || control.dataset.target || control.closest('.field')?.querySelector('select[data-target]'));
-    control.disabled = !!(defaultDisabled.get(control) || frozen || busy || item && inFlight.has(item.id)
+    control.disabled = !!(defaultDisabled.get(control) || frozen || busy || executionActive&&!readOnlyControl || item && inFlight.has(item.id)
       || data && !data.batch.canEdit && (control.id === 'batch-source' || control.dataset.action === 'source')
       || state.pendingBatch && !['batch-query','batch-retry','full','view-adoption','view-source'].includes(control.dataset.action ?? '')
       || item && ['adopt-item','approve'].includes(control.dataset.action ?? '') && !canApprove(item)
-      || item && card(item).pending && !['query','retry','full','view-adoption','view-source'].includes(control.dataset.action ?? '')
-      || item && !item.canEdit && !['query','retry','full','continue','refresh-item','map','view-adoption','view-source','open-project','skip'].includes(control.dataset.action ?? '') && !matching);
+      || item && card(item).pending && !['query','full','view-adoption','view-source'].includes(control.dataset.action ?? '')
+      || item && !item.canEdit && !['query','full','continue','refresh-item','map','view-adoption','view-source','open-project','skip'].includes(control.dataset.action ?? '') && !matching);
   });
 }
 function setPath(payload: Payload, path: string, value: unknown) {
@@ -481,10 +486,16 @@ function command(item: Item): Command {
   const current = card(item),mode=current.mode ?? (isProject(item)&&!item.targetId&&!item.needsMapping?'new':undefined);
   return { expectedBatchVersion: data!.batch.version, expectedReviewVersion: item.reviewVersion, expectedVersion: current.expectedVersion === undefined ? item.expectedVersion ?? null : current.expectedVersion, ...(item.basis ? {basis:item.basis} : {}), selected: [...current.selected], keepOnline:keepOnline(item), ...(current.payload ? { payload: correction(item) } : {}), ...(mode?{mode,targetId:mode==='new'?null:current.targetId ?? item.targetId ?? null}:{}), ...(current.intent?.kind ? { intent: structuredClone(current.intent) } : {}), idempotencyKey: crypto.randomUUID() };
 }
-async function loadOptions() {
-  const kinds = ['customers','engineers','productLines','apps','tags','groups','chips'];
-  const result = await Promise.allSettled(kinds.map(async kind => { const response = await get<{ items: Values[] }>('/api/catalog/' + kind); catalogue[kind] = response.items; }));
-  if (result.some(row => row.status === 'rejected')) notice('部分资料候选尚未读取。原输入保持，请刷新后再核对对应。', true);
+let loadingOptions:Promise<void>|undefined;
+function loadOptions():Promise<void> {
+  if(loadingOptions)return loadingOptions;
+  loadingOptions=(async()=>{
+    try {
+      const response=await get<Record<string,Values[]>>('/api/project-options');
+      catalogue={...response,productLines:response.product_lines,groups:response.project_groups};
+    }catch{notice('资料候选暂未读到，原输入保持。请稍后重试。',true);}
+  })().finally(()=>{loadingOptions=undefined;});
+  return loadingOptions;
 }
 async function loadProjectOptions() {
   const options: Values[] = []; let page = 1;
@@ -531,7 +542,7 @@ async function readBatch(id: string, replaceItem?: string, acceptFresh = false) 
       if(current.payload && !current.pending)current.payload=correctedPayload(item.payload,correction(item));
       current.referenceBasis=nextReferences;current.serverReferenceBasis=nextReferences;
       const previous=previousItems.get(item.id);
-      const ownReferenceRefresh=preparingCatalogs&&previous&&previous.reviewVersion===item.reviewVersion&&previous.expectedVersion===item.expectedVersion&&previous.targetId===item.targetId;
+      const ownReferenceRefresh=executionActive&&previous&&previous.reviewVersion===item.reviewVersion&&previous.expectedVersion===item.expectedVersion&&previous.targetId===item.targetId;
       if (current.basis !== nextBasis) {
         if (hadSelection || current.reviewing || current.editing || current.pending || referencesChanged && current.payload) {
           current.selected = [];
@@ -598,103 +609,82 @@ async function preview(item: Item):Promise<void> {
   }
   if(current.editing)renderOne(item);else render();
 }
-async function adopt(item: Item, advance=false) {
-  const current = card(item);
-  if(!canImport(item))return;
-  current.pending = { path: itemPath(item.id) + '/adopt', queryPath: itemPath(item.id) + '/results/query', action: 'adopt', body: command(item), advance };
-  current.feedback = '正在保存所选信息…'; current.tone = ''; persist(); renderOne(item);
-  await performItem(item, false);
-}
-async function readPreparedItem(item:Item) {
-  try {
-    const fresh=await get<{item:Item;batchVersion:string}>(itemPath(item.id));
-    if(fresh.batchVersion!==data!.batch.version)throw new Error('批次来源或处理人已变化，请重新读取批次。');
-    Object.assign(item,fresh.item);
-    const current=card(item);current.basis=basis(item);current.referenceBasis=referenceBasis(item);current.serverReferenceBasis=referenceBasis(item);
-    if(current.payload)current.payload=correctedPayload(item.payload,correction(item));
-    previews.delete(item.id);applySelection(item);persist();
-    return true;
-  }catch(error){feedback(item,explain(error),'error');return false;}
-}
-async function performItem(item: Item, query: boolean) {
-  const current = card(item), operation = current.pending;
-  if (!operation || frozen || inFlight.has(item.id)) return;
+async function recoverLegacyItem(item:Item) {
+  const current=card(item),pending=current.pending;if(!pending||inFlight.has(item.id))return;
   inFlight.add(item.id);
-  ownOperations.add(String(operation.body.idempotencyKey));
-  renderOne(item);
   try {
-    if (!query) await preference.flush();
-    const response = await send<Outcome>(query ? operation.queryPath : operation.path, 'POST', operation.body, !query);
-    if (current.pending !== operation || frozen) return;
-    if (response.outcome !== 'committed') { feedback(item, '本次结果尚未确认。请核对原结果或重试原保存，前次成功结果保持。'); renderOne(item); return; }
-    if (operation.action === 'adopt' && response.result) {
-      if (isProject(item) && !item.previousResult) { data!.counts.processed++; data!.counts.pending = Math.max(0,data!.counts.pending-1); }
-      item.previousResult = response.result; item.targetId = response.result.projectId ?? response.result.id ?? item.targetId;
-    }
-    current.pending = nextRequest(operation); current.selected = [];
-    if(!operation.recoverOnly){current.reviewing=false;current.skipped=false;current.editing = false;current.choices=undefined; current.mapping = false; current.payload = undefined; current.editedPaths=undefined; current.intent = undefined; current.mode = undefined; current.targetId = undefined; current.expectedVersion = undefined; current.stale = false; current.continuing = false; current.fieldErrors = undefined;}
-    feedback(item, operation.action === 'review' ? '待审修正已保存。核对后选择需要采用的信息。' : isProject(item) ? (Array.isArray(operation.body.selected)&&!operation.body.selected.length?'已保留线上内容，本项已处理。':`本次已采用 ${response.result?.adoptedCount ?? 0} 项。`) : '共享资料已保存。', 'success');
-    if (!isProject(item)&&!preparingCatalogs) await loadOptions();
-    const readBack=preparingCatalogs ? await readPreparedItem(item) : await readBatch(data!.batch.id, item.id, true);
-    if (!readBack) { current.stale = true; state.activeItemId=item.id;feedback(item,'保存已成功，最新内容暂未读回。请重新核对这一项，不需要再次保存。','success'); }
-    else if(operation.advance&&!operation.recoverOnly){notice('已通过：'+itemName(item));advanceReview(item);}
-  } catch (error) {
-    if (current.pending !== operation) return;
-    const failure = error instanceof SaveError ? error : new SaveError('TRANSPORT_UNKNOWN','unknown');
-    if (failure.outcome === 'not_committed' && failure.code !== 'OPERATION_KEY_REUSED') current.pending = nextRequest(operation);
-    if (/VERSION|BINDING|MAPPING_CHANGED/.test(failure.code)) current.stale = true;
-    if (/AUTH_|PASSWORD_CHANGE|CSRF/.test(failure.code)) frozen = true;
-    current.fieldErrors = failure.fields;
-    feedback(item, failure.outcome === 'unknown' ? '本次保存结果待确认。输入和原操作已保留，前次成功结果保持。' : explain(failure) + (failure.fields ? '\n' + [...new Set(Object.values(failure.fields))].join('\n') : ''), failure.outcome === 'unknown' ? '' : 'error');
-    persist(); renderOne(item);
-  } finally { inFlight.delete(item.id); const next = findItem(item.id); if (next) renderOne(next); }
+    const result=await send<Outcome>(pending.queryPath,'POST',pending.body,false);
+    if(result.outcome==='committed'){
+      current.pending=nextRequest(pending);persist();await readBatch(data!.batch.id,item.id,true);
+      feedback(item,'原保存已经完成。','success');
+    }else if(result.outcome==='not_committed'){
+      current.pending=nextRequest(pending);persist();
+      feedback(item,'原保存没有入库，原输入保留。核对后点击通过即可按新流程保存。');
+    }else feedback(item,'原任务仍在处理，原输入保留。系统会继续查询结果。');
+  }catch(error){feedback(item,explain(error),'error');}
+  finally{inFlight.delete(item.id);renderOne(item);}
 }
-async function prepareCatalogs(ids:string[]) {
-  preparingCatalogs=true;
+async function submitExecution(items:Item[],advance?:string) {
+  if(!data||executionActive||frozen||state.executions?.[data.batch.id])return;
+  const unique=[...new Map(items.flatMap(item=>[...referenceDependencies(item),item]).map(item=>[item.id,item])).values()];
+  const request:ExecutionRequest={body:{idempotencyKey:crypto.randomUUID(),items:unique.map(item=>({id:item.id,command:command(item),resolveReferences:true}))},advance};
+  (state.executions??={})[data.batch.id]=request;
+  for(const item of request.body.items)ownOperations.add(item.command.idempotencyKey);
+  persist();executionActive=true;controls();
+  await pollExecution();
+}
+async function pollExecution() {
+  if(!data||polling||frozen)return;
+  polling=true;const batchId=data.batch.id,request=state.executions?.[batchId];
+  const path=`/api/imports/${encodeURIComponent(batchId)}/executions`;
   try {
-    const remaining=new Set(ids);
-    while(remaining.size&&!frozen){
-      const item=data!.catalogRows.find(row=>remaining.has(row.id)&&canImport(row));
-      if(!item)break;
-      remaining.delete(item.id);
-      await preview(item);
-      if(canImport(item))await adopt(item);
-      if(card(item).pending||card(item).stale)return false;
-      // 只重读受影响资料；整批项目在资料处理后统一重读。
-      for(const dependent of data!.catalogRows.filter(row=>remaining.has(row.id)&&row.unresolvedReferences?.some(ref=>ref.itemIds.includes(item.id)))) {
-        if(!await readPreparedItem(dependent))return false;
+    let result=await get<Execution|null>(path+(request?'?operation='+encodeURIComponent(request.body.idempotencyKey):''));
+    if(!result&&request)result=await send<Execution>(path,'POST',request.body);
+    if(data?.batch.id!==batchId)return;
+    if(!result){executionActive=false;return;}
+    result.operationIds.forEach(id=>ownOperations.add(id));
+    executionActive=result.status!=='finished';
+    const projects=result.items.filter(item=>item.kind==='project'),done=projects.filter(item=>item.status==='committed').length;
+    const failed=result.items.filter(item=>item.status==='failed').length;
+    const catalogs=result.items.filter(item=>item.kind!=='project'&&item.status==='committed').length;
+    executionFeedback=`本次已入库 ${done} / ${projects.length} 个项目，已保存 ${catalogs} 条资料`+(failed?`，${failed} 项需处理。`:'。')+(executionActive?'服务器正在继续，可离开页面。':'');
+    const signature=JSON.stringify(result.items.map(item=>[item.id,item.status]));
+    const changed=seenExecutions.get(result.id)!==signature;
+    if(changed){
+      for(const outcome of result.items){
+        const item=findItem(outcome.id);if(!item)continue;
+        const current=card(item);
+        if(outcome.status==='committed'&&request?.body.items.some(value=>value.id===item.id)){
+          Object.assign(current,{pending:undefined,selected:[],reviewing:false,skipped:false,editing:false,choices:undefined,mapping:false,payload:undefined,editedPaths:undefined,intent:undefined,mode:undefined,targetId:undefined,expectedVersion:undefined,stale:false,continuing:false,fieldErrors:undefined,tone:'success',feedback:'已保存到正式数据。'});
+        }
+        if(outcome.status==='failed'){current.fieldErrors=outcome.fields;feedback(item,(errors[outcome.code??'']??outcome.code??'本项未保存')+(outcome.fields?'：'+Object.values(outcome.fields).join('；'):''),'error');}
       }
+      persist();
+      if(await readBatch(batchId))seenExecutions.set(result.id,signature);
+      else return;
+      await loadOptions();
     }
-    await loadOptions();
-    return await readBatch(data!.batch.id);
-  } finally {preparingCatalogs=false;}
-}
-async function approve(item:Item) {
-  const current=card(item);current.reviewing=true;applySelection(item);
-  const ids=referenceDependencies(item).filter(row=>row.kind!=='company'&&canApprove(row)).map(row=>row.id);
-  if(ids.length&&!await prepareCatalogs(ids))return;
-  const next=findItem(item.id)!;
-  await preview(next);
-  if(canImport(next))await adopt(next,true);
-  else {state.activeItemId=item.id;feedback(next,'当前内容还不能保存，请处理本项目标出的信息。','error');}
-}
-async function saveSelected() {
-  if(busy||frozen||state.pendingBatch)return;
-  const projects=data!.items.filter(item=>itemState(item)==='ready').map(item=>item.id);
-  const catalogs=data!.catalogRows.filter(item=>item.kind!=='company'&&itemState(item)==='ready').map(item=>item.id);
-  if(!projects.length&&!catalogs.length)return;
-  busy=true;controls();let completed=0;
-  try {
-    if(catalogs.length&&!await prepareCatalogs(catalogs))return;
-    for(const id of projects){
-      if(frozen)break;
-      const item=findItem(id);if(!item||card(item).pending)continue;
-      await preview(item);
-      const next=findItem(id);if(next&&canImport(next))await adopt(next);
-      completed++;
-      document.getElementById('imports-save-status')!.textContent=`已核对 ${completed} / ${projects.length} 个项目。成功内容保留，有问题的留在原卡。`;
+    if(!executionActive){
+      if(request){delete state.executions![batchId];persist();}
+      if(request?.advance){const item=findItem(request.advance);if(item&&result.items.some(row=>row.id===item.id&&row.status==='committed'))advanceReview(item);}
     }
-  } finally {busy=false;state.view='attention';render();}
+    if(changed||request||executionActive)notice(executionFeedback,failed>0);controls();
+  }catch(error){
+    if(error instanceof SaveError&&error.outcome==='not_committed'&&error.code!=='OPERATION_KEY_REUSED'&&error.code!=='IMPORT_EXECUTION_ACTIVE'){
+      if(request){delete state.executions![batchId];persist();}executionActive=false;
+    }
+    notice(explain(error)+' 输入和已有入库结果保留。',true);
+  }finally{polling=false;controls();}
+}
+async function approve(item:Item){
+  card(item).reviewing=true;applySelection(item);
+  if(canApprove(item))await submitExecution([item],item.id);
+  else feedback(item,'请修正本项目标出的信息后通过。','error');
+}
+async function saveSelected(){
+  if(busy||frozen||executionActive||state.pendingBatch)return;
+  const items=allItems().filter(item=>item.kind!=='company'&&itemState(item)==='ready');
+  if(items.length)await submitExecution(items);
 }
 async function batchOperation(operation: Pending, query = false) {
   if (frozen) return;
@@ -754,7 +744,7 @@ async function upload(query = false, retry = false, allowDuplicate = false) {
 
 document.addEventListener('change', event => {
   const target = event.target as HTMLInputElement | HTMLSelectElement;
-  if (frozen || busy) return;
+  if (frozen || busy || executionActive) return;
   const id = target.dataset.item ?? target.dataset.mode ?? target.dataset.target;
   const item = id ? findItem(id) : undefined;
   if (!item) return;
@@ -813,11 +803,11 @@ document.addEventListener('click', event => {
     const current = card(item);
     if(action==='open-project'){state.catalogItemId=undefined;state.activeItemId=item.id;prepareReview(item);persist();filterCards();return;}
     if(action==='open-catalog'){state.catalogItemId=item.id;persist();filterCards();return;}
-    if (action === 'query' || action === 'retry') return performItem(item, action === 'query');
+    if (action === 'query') return recoverLegacyItem(item);
     if (action === 'full') { current.full = !current.full; persist(); renderOne(item); return; }
     if (action === 'view-source') { sourceSnapshots.set(item.id,await get<{source:Values;issues:Issue[]}>(itemPath(item.id) + '/source')); renderOne(item); return; }
     if (action === 'view-adoption') { const id = control.dataset.adoption!; adoptionSnapshots.set(item.id+':'+id,await get<{adoption:Values;histories:Payload['histories']}>(itemPath(item.id) + '/adoptions/' + encodeURIComponent(id))); renderOne(item); return; }
-    if (current.pending || busy) return;
+    if (current.pending || busy || executionActive) return;
     if(control.dataset.choice){const diff=leaves(item).find(diff=>diff.key===control.dataset.choice);if(!diff||!item.canAdopt)return;current.choices ??={};current.choices[diff.key]={value:control.dataset.choiceValue as 'source'|'online',basis:choiceBasis(diff)};current.tone='';current.feedback='';applySelection(item);persist();renderOne(item);schedulePreview(item);return;}
     if(action==='skip'){current.skipped=true;notice('已跳过：'+itemName(item)+'，可从“已跳过”找回。');advanceReview(item);return;}
     if(action==='approve'){busy=true;controls();try{await approve(item);}finally{busy=false;render();}return;}
@@ -837,7 +827,7 @@ document.addEventListener('click', event => {
       const preview = previews.get(item.id), keys = [...(item.issues ?? []), ...(preview?.issues ?? []), ...(preview?.effects ?? [])].flatMap(issue => typeof issue === 'object' ? issue.requiredKeys ?? [] : []);
       current.choices ??={};for(const key of selectionKeys(item,keys)){const diff=leaves(item).find(diff=>diff.key===key);if(diff?.selectable)current.choices[key]={value:'source',basis:choiceBasis(diff)};}applySelection(item);persist();renderOne(item);schedulePreview(item);
     }
-    if(action==='adopt-item'){busy=true;controls();try{await preview(item);const next=findItem(item.id);if(next&&canImport(next))await adopt(next);}finally{busy=false;render();}}
+    if(action==='adopt-item'){busy=true;controls();try{await preview(item);const next=findItem(item.id);if(next&&canImport(next))await submitExecution([next]);}finally{busy=false;render();}}
   })().catch(error => { if (item) { feedback(item,explain(error),'error'); renderOne(item); } else notice(explain(error),true); });
 });
 
@@ -863,22 +853,25 @@ void requireIdentity().then(async () => {
     }
     state.pendingUpload=retainRequests(state.pendingUpload,local.pendingUpload,request=>request.idempotencyKey);
     state.pendingBatch=retainRequests(state.pendingBatch,local.pendingBatch,request=>request.body.idempotencyKey);
+    state.executions={...local.executions,...state.executions};
   }
   selectedSource = state.sourceNamespace ?? ''; sourceName = state.sourceName ?? '';
   await Promise.all([loadList(),loadOptions()]);
   const id = new URLSearchParams(location.search).get('id');
   if (id) await readBatch(id);
   if (state.pendingUpload && !data) await upload(true);
-  if (data) for (const item of allItems()) if (card(item).pending) await performItem(item,true);
+  if (data) for (const item of allItems()) if (card(item).pending) await recoverLegacyItem(item);
+  await pollExecution();
+  setInterval(()=>{void pollExecution();},2000);
   new ProjectNotifications(event => {
     if (!data || frozen) return;
-    if (ownOperations.has(event.operationId)) return;
+    if (ownOperations.has(event.operationId) || executionActive) return;
     for (const item of data.items.filter(item => item.targetId === event.projectId && item.expectedVersion !== event.version)) {
       const current = card(item); current.stale = true; current.selected = []; feedback(item,'项目已被他人更新，请重新核对导入信息。'); renderOne(item);
     }
   }, () => {}, text => { if (text) notice(text); }, undefined, undefined, event => {
     if (event.resource !== 'catalog' || !data || frozen) return;
-    if (ownOperations.has(event.operationId)) return;
+    if (ownOperations.has(event.operationId) || executionActive) return;
     void loadOptions();
     for (const item of allItems()) { const current = card(item); if (current.selected.length || current.editing) { current.stale = true; current.selected = []; feedback(item,'共享资料已更新，请核对当前对应后重新选择。'); renderOne(item); } }
   });

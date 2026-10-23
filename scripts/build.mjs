@@ -24,8 +24,8 @@ try {
   execFileSync(process.execPath, ['node_modules/typescript/bin/tsc', '-p', 'tsconfig.server.json'], { stdio: 'inherit' });
   execFileSync(process.execPath, ['node_modules/vite/bin/vite.js', 'build'], { stdio: 'inherit' });
   await cp(new URL('../migrations/', import.meta.url), new URL('migrations/', candidate), { recursive: true });
-  const schemaVersion = JSON.parse(await readFile(new URL('migrations/0006-imports.json', candidate), 'utf8')).version;
-  if (schemaVersion !== '0006-imports') throw new Error('迁移资源目标版本无效');
+  const schemaVersion = JSON.parse(await readFile(new URL('migrations/0008-import-name-bindings.json', candidate), 'utf8')).version;
+  if (schemaVersion !== '0008-import-name-bindings') throw new Error('迁移资源目标版本无效');
   await access(new URL('server/start.js', candidate));
   const html = await readFile(new URL('web/index.html', candidate), 'utf8');
   const checksHtml = await readFile(new URL('web/project-checks.html', candidate), 'utf8');

@@ -1,3 +1,4 @@
+import { executeImport } from './import-execution-test-helper.mjs';
 import assert from 'node:assert/strict';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -17,21 +18,22 @@ const uuid = (await c.query('SELECT @@server_uuid uuid'))[0][0].uuid;
 assert.equal(uuid, process.env.GEEKDASH_MIGRATION_PROBE_SERVER_UUID, '实例 UUID 必须明确匹配');
 const privateDir = '/restore-private', sha = data => createHash('sha256').update(data).digest('hex');
 let app, origin, requests = 0;
-const path = (data, item, action) => `/api/imports/${data.batch.id}/items/${item.id}/${action}`;
+const path = (data, item, action) => action === 'adopt' ? {batchId:data.batch.id,itemId:item.id} : `/api/imports/${data.batch.id}/items/${item.id}/${action}`;
 const command = (data, item) => ({ expectedBatchVersion: data.batch.version, expectedReviewVersion: item.reviewVersion, expectedVersion: item.expectedVersion, basis: item.basis, mode: item.mode, targetId: item.targetId, selected: item.diffs.map(row => row.key), idempotencyKey: randomUUID() });
 async function start() { app = await createApp(await openRuntimeDatabase('test_app'), { origin: 'http://localhost', secure: false }); origin = await app.listen({ host: '0.0.0.0', port: 0 }); }
 function client() {
   let cookie = '', csrf = '', account = '';
   return {
-    async api(route, method = 'GET', body, raw = false) {
+    async api(route, method = 'GET', body, expected = 200, raw = false) {
+      if(typeof route==='object')return executeImport(this.api.bind(this),route,body,expected);
       const response = await fetch(origin + route, { method, headers: { Cookie: cookie, Origin: 'http://localhost', 'Content-Type': raw ? 'application/octet-stream' : 'application/json', 'X-GeekDash-Request': '1', 'X-GeekDash-CSRF': csrf, 'X-GeekDash-Account': account }, ...body === undefined ? {} : { body: raw ? body : JSON.stringify(body) } }); requests++;
       for (const value of response.headers.getSetCookie()) { const part = value.split(';')[0]; if (part.startsWith('geekdash_dev=')) cookie = part; if (part.startsWith('geekdash_dev_csrf=')) csrf = part.split('=')[1]; }
-      const result = await response.json(); assert.equal(response.status, 200, route + ': ' + JSON.stringify(result));
+      const result = await response.json(); assert.ok((Array.isArray(expected)?expected:[expected]).includes(response.status), route + ': ' + JSON.stringify(result));
       if (route === '/api/auth/me') account = result.account.id;
       return result;
     },
     async login(loginName, password) { await this.api('/api/auth/login', 'POST', { loginName, password }); await this.api('/api/auth/me'); },
-    async upload(source, file) { const result = await this.api('/api/imports/upload?' + new URLSearchParams({ source, name: 'restore-synthetic.bak', operation: randomUUID() }), 'POST', JSON.stringify(file), true); return this.api('/api/imports/' + result.result.batchId); },
+    async upload(source, file) { const result = await this.api('/api/imports/upload?' + new URLSearchParams({ source, name: 'restore-synthetic.bak', operation: randomUUID() }), 'POST', JSON.stringify(file), 200, true); return this.api('/api/imports/' + result.result.batchId); },
   };
 }
 async function tableSnapshot() {
@@ -69,7 +71,8 @@ try {
     file.projects[0].summary = '待审原始简介';
     const pending = await api.upload(source, file), pendingItem = pending.items[0];
     const correctedSummary = '恢复后继续使用的人工修正简介';
-    await api.api(path(pending, pendingItem, 'review'), 'POST', { ...command(pending, pendingItem), payload: { fields: { summary: correctedSummary } } });
+    // 恢复验收保留升级前的待审内容，旧写接口不再可用。
+    await c.execute('UPDATE import_items SET corrected_payload_json=? WHERE id=?',[JSON.stringify({fields:{summary:correctedSummary}}),pendingItem.id]);
     const reread = await api.api('/api/imports/' + pending.batch.id); assert.equal(reread.items[0].payload.fields.summary, correctedSummary);
     assert.equal((await api.api('/api/projects/' + saved.result.projectId)).project.summary, '合成简介');
     const fixture = { sourceUuid: uuid, loginName: prefix, password, source, firstBatch: first.batch.id, firstItem: item.id, body, saved, pendingBatch: pending.batch.id, pendingItem: pendingItem.id, projectId: saved.result.projectId, correctedSummary };
@@ -86,13 +89,13 @@ try {
     const structure = await verifyDatabase('test_migrator');
     const restored = await tableSnapshot(); assert.deepEqual(restored, { schema: before.schema, tables: before.tables }, '登录前核全部表逐行摘要，包含来源/绑定/采用/待审修正/历史/会话');
     const files = await filesSnapshot(); assert.deepEqual(files, { files: before.files });
-    const checks = ['恢复实例 UUID 与原实例不同，0006 结构校验通过', '登录前全37表行数与逐行内容SHA一致', '全部原文件长度与SHA一致；初迁移合成fixture按固定输入补齐的来源单列'];
+    const checks = ['恢复实例 UUID 与原实例不同，当前增量结构校验通过', '登录前全部表行数与逐行内容SHA一致', '全部原文件长度与SHA一致；初迁移合成fixture按固定输入补齐的来源单列'];
     await start(); const api = client(); await api.login(fixture.loginName, fixture.password);
     const resultPath = `/api/imports/${fixture.firstBatch}/items/${fixture.firstItem}`;
     assert.deepEqual(await api.api(resultPath + '/results/query', 'POST', fixture.body), fixture.saved);
     const previous = (await fresh('SELECT version FROM projects WHERE id=?', [fixture.projectId]))[0].version;
     const adoptionsBefore = (await fresh('SELECT COUNT(*) n FROM import_adoptions WHERE target_kind=\'project\' AND target_id=?', [fixture.projectId]))[0].n;
-    assert.deepEqual(await api.api(resultPath + '/adopt', 'POST', fixture.body), fixture.saved);
+    assert.deepEqual(await api.api({batchId:fixture.firstBatch,itemId:fixture.firstItem}, 'POST', fixture.body), fixture.saved);
     assert.equal((await fresh('SELECT version FROM projects WHERE id=?', [fixture.projectId]))[0].version, previous);
     assert.equal((await fresh('SELECT COUNT(*) n FROM import_adoptions WHERE target_kind=\'project\' AND target_id=?', [fixture.projectId]))[0].n, adoptionsBefore);
     checks.push('新登录查询原采用结果并按原键重放，返回相同结果，无重复版本或采用');

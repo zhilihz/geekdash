@@ -285,8 +285,18 @@ function applicableCorrection(correction:Json|null,metadata:Json,source:string,t
   }
   return value;
 }
+function sourceIdentity(row:RowDataPacket,all:RowDataPacket[]) {
+  if(row.sourceKey)return {scope:'',key:row.sourceKey};
+  if(row.kind==='project'||row.kind==='company'||typeof row.raw?.name!=='string'||!row.raw.name.trim())return null;
+  if(all.filter(value=>value.kind===row.kind&&typeof value.raw?.name==='string'&&catalogNameKey(value.raw.name)===catalogNameKey(row.raw.name)).length!==1)return null;
+  return {scope:'catalog-name',key:hash(row.raw.name).toString('hex')};
+}
+function sourceBinding(row:RowDataPacket,all:RowDataPacket[],bindings:RowDataPacket[]) {
+  const identity=sourceIdentity(row,all);
+  return identity?bindings.find(value=>value.kind===row.kind&&value.scope===identity.scope&&value.sourceKey===identity.key):undefined;
+}
 async function viewItem(c: PoolConnection, actor: Actor, b: RowDataPacket, row: RowDataPacket, all: RowDataPacket[], bindings: RowDataPacket[], catalog: Record<string,RowDataPacket[]>, input?: Partial<ItemCommand>) {
-  const project = row.kind === 'project', metadata = row.validation ?? {}, bound = row.sourceKey ? bindings.find(v=>v.kind===row.kind && v.scope==='' && v.sourceKey===row.sourceKey) : undefined;
+  const project = row.kind === 'project', metadata = row.validation ?? {}, bound = sourceBinding(row,all,bindings);
   const stored = metadata.sourceNamespace===b.sourceNamespace ? metadata.choice : undefined;
   const choice = input?.mode ? {mode:input.mode,targetId:input.targetId ?? null} : stored;
   const staleChoice=!input?.mode&&stored&&(Object.hasOwn(metadata,'choiceBinding')?!equal(metadata.choiceBinding,bound?{id:bound.id,version:bound.version,targetId:bound.targetId}:null):bound&&stored.targetId!==bound.targetId);
@@ -302,7 +312,7 @@ async function viewItem(c: PoolConnection, actor: Actor, b: RowDataPacket, row: 
     if (!direct) {
       const candidates = all.filter(v=>v.kind===kind && (v.sourceKey===key || v.raw?.name===key));
       const resolved = candidates.map(v=> {
-        const mapping = v.sourceKey ? bindings.find(r=>r.kind===kind && r.scope==='' && r.sourceKey===v.sourceKey) : null;
+        const mapping = sourceBinding(v,all,bindings);
         const adopted = v.result?.sourceNamespace===b.sourceNamespace ? v.result : null;
         used.push(['item',v.id,v.reviewVersion,mapping?.version ?? null,adopted?.id ?? null]);
         return mapping?.targetId ?? adopted?.id ?? null;
@@ -402,7 +412,7 @@ async function viewItem(c: PoolConnection, actor: Actor, b: RowDataPacket, row: 
     basePayload.people,(basePayload.records ?? []).map((record:Json)=>[record.key,record.targetId,record.values.previousNodeId,record.values.nextNodeId])
   ]).toString('hex');
   const adoptions=await rows(c,'SELECT CAST(id AS CHAR) id,CAST(target_id AS CHAR) targetId,CAST(version_after AS CHAR) savedVersion,adopted_json adopted,JSON_KEYS(history_manifest_json) historyKinds,created_at savedAt FROM import_adoptions WHERE item_id=? ORDER BY id DESC',[row.id]);
-  return {id:row.id,kind:row.kind,reviewVersion:row.reviewVersion,sourceKey:row.sourceKey,payload,basePayload,canEdit,canAdopt:canEdit && !unchanged && !keptOnline,targetId,expectedVersion:current?.expectedVersion ?? current?.version ?? (targetId?null:'0'),mode,diffs,issues,unresolvedReferences,unchanged,keptOnline,needsMapping,classification,defaultSelected,conflictKeys,basis,referenceBasis,bindingVersion:bound?.version ?? null,previousResult:row.result ?? null,adoptions,sourceName:row.raw.name ?? row.raw.fullName ?? '',name:payload.fields?.name ?? payload.name ?? payload.fullName ?? '',target:current,candidates:project?[]:catalog[row.kind] ?? []};
+  return {id:row.id,kind:row.kind,reviewVersion:row.reviewVersion,sourceKey:row.sourceKey,payload,basePayload,canEdit,canAdopt:canEdit && !unchanged && !keptOnline,targetId,expectedVersion:current?.expectedVersion ?? current?.version ?? (targetId?null:'0'),mode,diffs,issues,unresolvedReferences,unchanged,keptOnline,needsMapping,classification,defaultSelected,conflictKeys,basis,executionBasis:[b.sourceNamespace,b.version,row.reviewVersion,targetId,bound?[bound.id,bound.version,bound.targetId]:null,used,comparison.versions],referenceBasis,bindingVersion:bound?.version ?? null,previousResult:row.result ?? null,adoptions,sourceName:row.raw.name ?? row.raw.fullName ?? '',name:payload.fields?.name ?? payload.name ?? payload.fullName ?? '',target:current,candidates:project?[]:catalog[row.kind] ?? []};
 }
 
 async function bind(c: PoolConnection, source: string, kind: string, scope: string, key: string | null, targetId: string) {
@@ -461,14 +471,77 @@ function usefulIssues(view: Awaited<ReturnType<typeof viewItem>>, selected: stri
 function issueFailure(issues: Json[]) {
   failure('IMPORT_REVIEW_REQUIRED',422,{fields:Object.fromEntries(issues.map((issue,index)=>[issue.path ?? 'item.'+index,issue.message ?? issue.code]))});
 }
+// 已接收任务凭持久授权执行；退出页面或会话不撤销任务，账号停用/改密/交接仍立即阻止后续写入。
+async function executionActor(c:PoolConnection,actor:Actor,execution:{id:string;token:string}) {
+  const user=(await rows(c,'SELECT enabled,must_change_password,CAST(version AS CHAR) version,display_name name FROM users WHERE id=? FOR SHARE',[actor.id]))[0];
+  if(!user?.enabled||user.must_change_password||user.version!==actor.version)failure('AUTH_REQUIRED',401);
+  const job=(await rows(c,"SELECT actor_id FROM import_executions WHERE id=? AND actor_id=? AND lease_token=? AND lease_until>UTC_TIMESTAMP(3) AND status='running' FOR UPDATE",[execution.id,actor.id,execution.token]))[0];
+  if(!job)failure('IMPORT_EXECUTION_LEASE_LOST',409);
+  actor.name=user.name;
+}
 export function imports(database: RuntimeDatabase) {
   const globalScope = (actor:Actor) => `user:${actor.id}:imports`;
   async function query(actor:Actor, key:string, scope=globalScope(actor), body?:unknown) {
     operation(key);
     return database.readSnapshot(async c=>{await assertActor(c,actor,false,new Date(),false,false);const result=await receipt(c,actor,scope,key,body);return result?{outcome:'committed',result}:{outcome:'not_found'};});
   }
-  return {
+  const service = {
     query,
+    executionResult(actor:Actor,itemId:string,body:ItemCommand){return database.readSnapshot(c=>itemResult(c,actor,`user:${actor.id}:import:item:${itemId}`,itemId,body,'adopt'));},
+    async planExecution(c:PoolConnection,actor:Actor,batchId:string,input:unknown) {
+      if(!object(input)||!uuid(input.idempotencyKey)||!Array.isArray(input.items)||!input.items.length||Object.keys(input).some(key=>!['idempotencyKey','items'].includes(key)))failure('INVALID_IMPORT_COMMAND',400);
+      await actorLock(c,actor);
+      const b=await batch(c,batchId,true),all=await itemRows(c,batchId),bindings=await bindingRows(c,b.sourceNamespace),catalog=await catalogs(c);
+      const requested=new Map<string,ItemCommand>(),resolveReferences=new Set<string>();
+      for(const value of input.items){if(!object(value)||!validId(value.id)||requested.has(value.id)||Object.keys(value).some(key=>!['id','command','resolveReferences'].includes(key))||value.resolveReferences!==undefined&&typeof value.resolveReferences!=='boolean')failure('INVALID_IMPORT_COMMAND',400);requested.set(value.id,command(value.command));if(value.resolveReferences===true)resolveReferences.add(value.id);}
+      const entries:Json[]=[],visiting=new Set<string>();
+      const add=async(id:string):Promise<void>=>{
+        if(entries.some(value=>value.id===id))return;
+        if(visiting.has(id))failure('IMPORT_DEPENDENCY_REQUIRED',422);visiting.add(id);
+        const row=all.find(value=>value.id===id);if(!row)failure('IMPORT_ITEM_NOT_FOUND',404);
+        const supplied=requested.get(id),view=await viewItem(c,actor,b,row,all,bindings,catalog,supplied);
+        if(!view.canEdit)failure(view.targetId?'PROJECT_RESPONSIBILITY_REQUIRED':'IMPORT_HANDLER_REQUIRED',403);
+        const body=supplied ?? {expectedBatchVersion:b.version,expectedReviewVersion:row.reviewVersion,expectedVersion:view.expectedVersion,idempotencyKey:randomUUID(),basis:view.basis,selected:view.defaultSelected};
+        assertVersions(b,row,body);
+        if(body.basis!==view.basis)failure('IMPORT_BINDING_CHANGED',409);
+        if(!supplied&&(row.kind==='project'||row.kind==='company'||view.needsMapping||view.conflictKeys.length||view.issues.some(issue=>issue.code!=='IMPORT_REFERENCE_REQUIRED')))failure('IMPORT_DEPENDENCY_REQUIRED',422);
+        const dependencies:string[]=[];
+        for(const reference of view.unresolvedReferences){
+          if(row.kind==='project'&&!resolveReferences.has(id))continue;
+          if(!view.issues.some(issue=>issue.code==='IMPORT_REFERENCE_REQUIRED'&&issue.path===reference.path))continue;
+          if(reference.itemIds.length!==1)continue;
+          const dependency=reference.itemIds[0];await add(dependency);dependencies.push(dependency);
+        }
+        entries.push({id,kind:row.kind,sourceKey:row.sourceKey,body,basis:view.executionBasis,dependencies,referencePaths:row.kind==='project'&&!resolveReferences.has(id)?[]:view.unresolvedReferences.map(ref=>ref.path)});visiting.delete(id);
+      };
+      // 每个项目之前只处理它依赖的资料，其余资料排在项目之后。
+      for(const id of [...requested.keys()].sort((a,b)=>Number(all.find(r=>r.id===b)?.kind==='project')-Number(all.find(r=>r.id===a)?.kind==='project')))await add(id);
+      return {actorVersion:actor.version,entries};
+    },
+    async prepareExecution(actor:Actor,batchId:string,entry:Json,completed:Json[],execution:{id:string;token:string}) {
+      return database.writeTransaction(async c=>{
+        await executionActor(c,actor,execution);
+        const prior=await itemResult(c,actor,`user:${actor.id}:import:item:${entry.id}`,entry.id,entry.body);
+        if(prior)return {result:prior};
+        const b=await batch(c,batchId),all=await itemRows(c,batchId),row=all.find(r=>r.id===entry.id);
+        if(!row)failure('IMPORT_ITEM_NOT_FOUND',404);
+        const view=await viewItem(c,actor,b,row,all,await bindingRows(c,b.sourceNamespace),await catalogs(c),entry.body);
+        const dependencies=completed.filter(value=>entry.dependencies.includes(value.id));
+        if(dependencies.length!==entry.dependencies.length)failure('IMPORT_DEPENDENCY_REQUIRED',422);
+        for(const dependency of dependencies){
+          const current=all.find(r=>r.id===dependency.id),result=dependency.result;
+          if(!current||current.result?.adoptionId!==result.adoptionId||current.reviewVersion!==String(BigInt(dependency.body.expectedReviewVersion)+1n))failure('IMPORT_BINDING_CHANGED',409);
+          const record=(await readCatalogInTransaction(c,dependency.kind)).find(value=>value.id===result.id);
+          if(!record||record.version!==result.savedVersion)failure('CATALOG_VERSION_CONFLICT',409);
+        }
+        const strip=(basis:Json[])=>basis.map((part,index)=>index!==5?part:part.filter((token:any[])=>!dependencies.some(dep=>
+          token[0]==='item'&&token[1]===dep.id || token[0]===dep.kind&&(token[1]===dep.sourceKey||token[1]===dep.result.id) || token[0]==='reference'&&token[1]===dep.kind&&token[2]===dep.result.id)));
+        if(!equal(strip(entry.basis),strip(view.executionBasis)))failure('IMPORT_BINDING_CHANGED',409);
+        const selected=[...new Set([...(entry.body.selected ?? []),...view.defaultSelected.filter(key=>entry.referencePaths.includes(key))])];
+        const body={...entry.body,basis:view.basis,selected};
+        return {body};
+      });
+    },
     sourceItem(actor:Actor,batchId:string,itemId:string,adoptionId?:string) { return database.readSnapshot(async c=> {
       await assertActor(c,actor,false,new Date(),false,false);await batch(c,batchId);
       const row=(await itemRows(c,batchId,itemId))[0];if(!row)failure('IMPORT_ITEM_NOT_FOUND',404);
@@ -529,16 +602,20 @@ export function imports(database: RuntimeDatabase) {
       const projects=views.filter(v=>v.kind==='project');
       return {batch:{...b,metadata:undefined,name:b.metadata.filename ?? '备份',filename:b.metadata.filename ?? '备份',handlerEnabled:!!b.handlerEnabled,canEdit:b.handlerId===actor.id,canTakeover:!b.handlerEnabled && all.some(v=>v.status==='pending')},sources:await sources(c),items:projects,catalogRows:views.filter(v=>v.kind!=='project'),counts:{total:projects.length,processed:projects.filter(v=>v.previousResult).length,unchanged:projects.filter(v=>!v.previousResult&&(v.unchanged||v.keptOnline)).length,pending:projects.filter(v=>!v.previousResult&&!v.unchanged&&!v.keptOnline).length}};
     }); },
-    async item(actor:Actor,batchId:string,itemId:string,action:'preview'|'review'|'adopt'|'results/query',input:unknown,requestId:string) {
+    async item(actor:Actor,batchId:string,itemId:string,action:'preview'|'adopt'|'results/query',input:unknown,requestId:string,execution?:{id:string;token:string}) {
       const body=command(input),scope=`user:${actor.id}:import:item:${itemId}`;
-      if(action==='results/query')return database.readSnapshot(async c=> {
-        await assertActor(c,actor,false,new Date(),false,false);await batch(c,batchId);
-        if(!(await itemRows(c,batchId,itemId)).length)failure('IMPORT_ITEM_NOT_FOUND',404);
-        const result=await itemResult(c,actor,scope,itemId,body);return result?{outcome:'committed',result}:{outcome:'not_found'};
+      if(action==='results/query')return database.writeTransaction(async c=> {
+        await assertActor(c,actor);await batch(c,batchId,true);
+        if(!(await itemRows(c,batchId,itemId,true)).length)failure('IMPORT_ITEM_NOT_FOUND',404);
+        const result=await itemResult(c,actor,scope,itemId,body);
+        if(result)return{outcome:'committed',result};
+        const active=await rows(c,"SELECT id FROM import_executions WHERE batch_id=? AND status IN ('accepted','running') AND JSON_SEARCH(command_json,'one',?,NULL,'$.entries[*].body.idempotencyKey') IS NOT NULL",[batchId,body.idempotencyKey]);
+        // 已退役入口不会接受新写入；取原项锁后再次查无结果，才解除旧页面的未知状态。
+        return active.length?{outcome:'not_found'}:{outcome:'not_committed',code:'IMPORT_CLIENT_OUTDATED'};
       });
       const execute=async(c:PoolConnection)=> {
         const writing=action!=='preview';
-        await assertActor(c,actor,false,new Date(),false,writing);
+        if(execution)await executionActor(c,actor,execution);else await assertActor(c,actor,false,new Date(),false,writing);
         const initial=await batch(c,batchId);
         const raw=(await itemRows(c,batchId,itemId))[0];if(!raw)failure('IMPORT_ITEM_NOT_FOUND',404);
         if(writing && raw.kind!=='project')await rows(c,'SELECT id FROM system_configuration WHERE id=1 FOR UPDATE');
@@ -579,15 +656,6 @@ export function imports(database: RuntimeDatabase) {
           }
           const {basePayload:_,...publicView}=view;return {item:publicView,...publicView,issues,effects};
         }
-        if(action==='review') {
-          const corrected=correctionFor(view.basePayload,view.payload,project);
-          const selectedBinding=bindings.find(value=>value.kind===row.kind&&value.scope===''&&value.sourceKey===row.sourceKey);
-          const validation={...row.validation,sourceNamespace:b.sourceNamespace,choice:{mode:view.mode,targetId:view.targetId},choiceBinding:selectedBinding?{id:selectedBinding.id,version:selectedBinding.version,targetId:selectedBinding.targetId}:null};
-          const changed=!equal(corrected,row.corrected)||!equal(validation,row.validation);
-          if(changed)await c.execute('UPDATE import_items SET corrected_payload_json=?,validation_json=?,target_project_id=?,expected_project_version=?,review_version=review_version+1,corrected_by=?,corrected_at=UTC_TIMESTAMP(3) WHERE id=?',[JSON.stringify(corrected),JSON.stringify(validation),project?view.targetId:null,project&&view.targetId?body.expectedVersion:null,actor.id,itemId]);
-          const result={action:'review',itemId,reviewVersion:changed?String(BigInt(row.reviewVersion)+1n):row.reviewVersion,changed};
-          await remember(c,actor,scope,body.idempotencyKey,{action:'review',body},result);return{outcome:'committed',result};
-        }
         if(!selected.length&&!kept.length)failure('IMPORT_SELECTION_REQUIRED',422);
         const issues=usefulIssues(view,selected);if(issues.length)issueFailure(issues);
         if(view.targetId && body.expectedVersion!==view.expectedVersion)failure(project?'PROJECT_VERSION_CONFLICT':'CATALOG_VERSION_CONFLICT',409,{currentVersion:view.expectedVersion});
@@ -608,7 +676,8 @@ export function imports(database: RuntimeDatabase) {
           result={id:view.targetId,savedVersion:view.expectedVersion,beforeVersion:view.expectedVersion,changed:false,affectedProjects:[]};
         }
         const targetId=result.projectId ?? result.id;
-        const parent=await bind(c,b.sourceNamespace,row.kind,'',row.sourceKey,targetId);
+        const identity=sourceIdentity(row,all);
+        const parent=identity?await bind(c,b.sourceNamespace,row.kind,identity.scope,identity.key,targetId):null;
         const comparisonRecords:Json={};
         if(project && parent)for(const record of (candidate as ImportProjectInput).records ?? []) {
           const id=result.childIdMap[record.key];if(id){const child=await bind(c,b.sourceNamespace,record.kind,`project:${parent.id}:${parent.version}`,record.sourceKey,id);if(child)comparisonRecords[record.key]={...child,targetId:id};}
@@ -619,7 +688,7 @@ export function imports(database: RuntimeDatabase) {
         }
         const adopted=project?result.adopted:{fields:candidate};
         const sourceComparison=freezeComparison(view.basePayload,project?{...adopted,histories:result.histories}:candidate,view.target,selected,kept,project,result.childIdMap);
-        const beforeBinding=bindings.find(v=>v.kind===row.kind&&v.scope===''&&v.sourceKey===row.sourceKey);
+        const beforeBinding=sourceBinding(row,all,bindings);
         const frozenResult={action:'adopt',...(project?{projectId:targetId}:{id:targetId,catalogKind:row.kind}),savedVersion:result.savedVersion,beforeVersion:result.beforeVersion ?? null,adoptedCount:selected.filter(k=>k!=='binding').length,keptOnlineCount:kept.length,notAdoptedCount:leaves(view.diffs).filter(v=>!selected.includes(v.key)&&!kept.includes(v.key)&&v.status!=='keep_online').length,changed:result.changed,sourceNamespace:b.sourceNamespace,operationId:body.idempotencyKey,affectedProjects:result.affectedProjects ?? [],savedAt:new Date().toISOString()};
         await c.execute('INSERT INTO import_adoptions(item_id,source_namespace,actor_id,review_version,target_kind,target_id,version_before,version_after,operation_key,request_hash,adopted_json,history_manifest_json,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(3))',[itemId,b.sourceNamespace,actor.id,row.reviewVersion,row.kind,targetId,result.beforeVersion ?? null,result.savedVersion,body.idempotencyKey,hash({action:'adopt',body}),JSON.stringify({...adopted,selected,keepOnline:kept,comparisonBase:sourceComparison,comparisonRecords,bindingBefore:beforeBinding?{id:beforeBinding.id,targetId:beforeBinding.targetId,version:beforeBinding.version}:null,bindingAfter:parent,sourceKey:row.sourceKey,result:frozenResult}),project?JSON.stringify(result.historyManifest ?? {}):null]);
         const adoptionId=await lastId(c);
@@ -653,4 +722,5 @@ export function imports(database: RuntimeDatabase) {
       });
     },
   };
+  return service;
 }
