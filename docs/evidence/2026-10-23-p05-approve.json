@@ -1,0 +1,299 @@
+{
+  "scope": "P05通过恢复与已读取导入页精简；用户真实项目只读",
+  "build": {
+    "revision": "cbb6f857f52d643a114d8cd5cf11d26b37f1ec16",
+    "dirty": false,
+    "builtAt": "2026-10-23T10:09:50.576Z",
+    "stage": "P05-imports",
+    "schemaVersion": "0008-import-name-bindings"
+  },
+  "fixedArtifactChecks": {
+    "status": "passed",
+    "build": {
+      "revision": "cbb6f857f52d643a114d8cd5cf11d26b37f1ec16",
+      "dirty": false,
+      "builtAt": "2026-10-23T10:09:50.576Z",
+      "stage": "P05-imports",
+      "schemaVersion": "0008-import-name-bindings"
+    },
+    "requests": 70,
+    "checks": [
+      "本次批量保存资料后，待处理项目不被误判过期；EVT原位选择→通过→独立SQL/详情新读→自动下一个",
+      "另一处资料变化仍禁用旧版本，原因与恢复入口就近展示；原位修改保留原因，重新核对保留阶段输入且不提交，明确通过后持久化",
+      "错误日期直接在差异处修正；提交成功丢响应时留在本项，自动查询原任务只产生一次采用且自动接续",
+      "不通过不写正式项目→已跳过找回→原位置修正正文→通过后只保存本项目"
+    ],
+    "limitation": "实际前端执行模型与真实HTTP/MySQL；SSE及原生像素另验"
+  },
+  "nativeLocal": {
+    "batchId": "10",
+    "result": {
+      "projectId": "26",
+      "state": "ready",
+      "onBoard": true,
+      "build": {
+        "revision": "cc6e2293c113674e8bec7159305f78128ff661c6",
+        "dirty": false,
+        "builtAt": "2026-10-23T09:58:38.080Z",
+        "stage": "P05-imports",
+        "schemaVersion": "0008-import-name-bindings"
+      }
+    },
+    "chain": "资料保存→选择旧阶段→另一处资料更新触发SSE→重新核对保留输入→通过→新请求详情及首页",
+    "finalLayoutRevision": "cbb6f857f52d643a114d8cd5cf11d26b37f1ec16",
+    "finalLayoutSourceControlCount": 0,
+    "screenshots": [
+      "2026-10-23-p05-approve-stale.png",
+      "2026-10-23-p05-approve-final.png"
+    ]
+  },
+  "deployment": {
+    "status": "installed",
+    "checkedAt": "2026-10-23T10:14:55.424227+00:00",
+    "revision": "cbb6f857f52d643a114d8cd5cf11d26b37f1ec16",
+    "previousRevision": "154e34cfdcd725ccbbae6d4aef8d04070d53e460",
+    "imageId": "sha256:01df6802612bd0d42cfab030111a662b689856ae705432f228f8a24a053c6756",
+    "schemaChanged": false,
+    "migrationAttempted": false,
+    "backup": {
+      "files": {
+        "path": "/var/backups/geekdash/pre-p05-approve-cbb6f857f52d-files.tar.gz",
+        "bytes": 67556,
+        "sha256": "53d94a9e29a43cbd41d8a758b312c517089830d413dcc57955993bbb4fdf6283"
+      },
+      "path": "/var/backups/geekdash/pre-p05-approve-cbb6f857f52d.sql.gz",
+      "bytes": 208985,
+      "sha256": "4f1a58e4e310d94a512b108697b6e2f94b87431745456e3e3fc11e27bab28043",
+      "scope": "both complete databases with routines/events/triggers and binary columns; app stopped",
+      "restoreDrill": "not_repeated_in_this_release"
+    },
+    "mysqlIdStartedAtPreserved": true,
+    "otherContainersPreserved": 119
+  },
+  "databasePreservation": {
+    "geekdash_dev": {
+      "tableCount": 38,
+      "rowCountsPreserved": true,
+      "businessCellBytesPreserved": true,
+      "migrationRegistrationsPreserved": true,
+      "tableLayoutPreserved": true
+    },
+    "geekdash_test": {
+      "tableCount": 38,
+      "rowCountsPreserved": true,
+      "businessCellBytesPreserved": true,
+      "migrationRegistrationsPreserved": true,
+      "tableLayoutPreserved": true
+    }
+  },
+  "independentServerReadback": {
+    "status": "passed",
+    "checkedAt": "2026-10-23T10:15:16.611254+00:00",
+    "backupHashVerified": true,
+    "build": {
+      "revision": "cbb6f857f52d643a114d8cd5cf11d26b37f1ec16",
+      "dirty": false,
+      "builtAt": "2026-10-23T10:09:50.576Z",
+      "stage": "P05-imports",
+      "schemaVersion": "0008-import-name-bindings"
+    }
+  },
+  "publicResourceReadback": {
+    "status": "passed",
+    "checkedAt": "2026-10-23T10:22:31.479574+00:00",
+    "build": {
+      "revision": "cbb6f857f52d643a114d8cd5cf11d26b37f1ec16",
+      "dirty": false,
+      "builtAt": "2026-10-23T10:09:50.576Z",
+      "stage": "P05-imports",
+      "schemaVersion": "0008-import-name-bindings"
+    },
+    "pageCount": 9,
+    "assetCount": 26,
+    "checks": [
+      {
+        "path": "/data-manage.html",
+        "sha256": "cb579fa874da694427fbb9fc890020f20cad250f9f1b21b6b0591e2222f9a1d2",
+        "matchesDist": true
+      },
+      {
+        "path": "/imports.html",
+        "sha256": "86a7b0dc583796a5fca580f71b34167412a54603d9c1cbcb83b75cc337fe9fe9",
+        "matchesDist": true
+      },
+      {
+        "path": "/index.html",
+        "sha256": "3747c42b79d673e0e9597ea2328d2c840fe887f1028e0981e0bc0527cfc6471e",
+        "matchesDist": true
+      },
+      {
+        "path": "/login.html",
+        "sha256": "4b102a3fe4f04ba26ad7279fccbf6e35effec4bbb291edeed75baa388189d5ed",
+        "matchesDist": true
+      },
+      {
+        "path": "/project-checks.html",
+        "sha256": "f79bd3b2e31b4a29ccd97c74db4f5c95b306be79b6598c42fe35d2f4bdf956c7",
+        "matchesDist": true
+      },
+      {
+        "path": "/project-detail.html",
+        "sha256": "ac623a2cb5bc06e4bf74d81fd1001bf7c16766eee2b6723353694c2861a8ada1",
+        "matchesDist": true
+      },
+      {
+        "path": "/project-new.html",
+        "sha256": "f00872fafed4c13fdefbd0ea3e6b915de21c2a006dfcd365b34125fa59c53541",
+        "matchesDist": true
+      },
+      {
+        "path": "/project-status-summary.html",
+        "sha256": "1be245f3759303c002366d79f21fa6c9c08f1f8d179a2d7b600e365e39273ad9",
+        "matchesDist": true
+      },
+      {
+        "path": "/settings.html",
+        "sha256": "4d800df30ada5b00b77debacf82a935457286d0317fa3c03c10afd49e787d78b",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/api-BAehCoWo.js",
+        "sha256": "43db9d9802db7f45adfc5ab7a8dfe74ce2f025408ec68e05f0b503fcf5a8d773",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/api-BlqHeACC.css",
+        "sha256": "f372da079db5e82c6f7a6663ac55e9082f114d9430040bd63d71b3d96e08e594",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/board-CQojm_yy.css",
+        "sha256": "0a865bca24defb0ee5e0dab74a284257ffb426510df26cb92ffa4c65b3680236",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/data-manage-Bk-2UBJj.css",
+        "sha256": "c122fced89056792515d36a40750ecd13b6d9c22a2b061e68f9209c025c585bf",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/data-manage-C4HgeyTn.js",
+        "sha256": "92b211241ee0c0c9043d668ef597a400cd661aac9ad28b798794e364643b4492",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/detail-DpFES_2X.css",
+        "sha256": "6010d0cd578b042b4ee5b64b33005a96375547b78315c8dd2c4b3a5c347d4b7b",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/imports-CTn29XVO.css",
+        "sha256": "ab95aa9353afc22b675e4dc2e53c72572e27b8663e71facd44182d36d9543106",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/imports-ECCJlnEz.js",
+        "sha256": "db285574705bb7ecd9b20d2681c3c465953b495cb827fa7e2605d22488532424",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/index-DBoi7Rob.js",
+        "sha256": "cdf452cf1a4341144f804d4b8a2bbf0859283306e9f59549b4e21aa9623353d1",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/index-qaE9AgNN.css",
+        "sha256": "ec0bad02468d9f0be6343692ef41149735e5fb8d367283d329c14d9b2ffd66c4",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/login-Bhu_Spkb.js",
+        "sha256": "8f7d58eaa9e0bed66032a0ad8696aafdecd1020c49529105e69585b8b47fba82",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/login-D9KYl3tU.css",
+        "sha256": "e179bf8998912737851b88af0bc94aeff622a19313ac40fe5dd626fb3206ece0",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/notifications-BrHO_PV4.js",
+        "sha256": "f9597e6b9e83f266706ff78ec63e0364d2a263b6f4c5287833cf9307bacd6fb2",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/project-checks-Bz2hpst1.css",
+        "sha256": "336c57f98527fd1691c1fefdacbb79cd14eced50da676f4f496565f92181aa40",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/project-checks-CkAHoubh.js",
+        "sha256": "cb888359fe13f03ac3a6f8b1c6e646eb9d42b5dee461e53ac3c014023adb7ec1",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/project-detail-DVhYxJ0P.js",
+        "sha256": "21adaa96031b56e5f10d557334d271e505a5a9ec0f4884aff69da9662e98fe0a",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/project-new-Df8nHiv5.js",
+        "sha256": "b2b80490c4d76c1cd4738df20cd365ba0e6452621b86349eb77f66c67f25540b",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/project-options-DaN8P52v.js",
+        "sha256": "e5a0f387f5d34cd50a1a73d2ec635cb7b35c09dcfd32679f8a6191d3720a1d5a",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/project-status-summary-B2ZGgdUX.js",
+        "sha256": "33c51c2b35c78f40454548eb9ca87fcfee633d79200b0d7dd50be29bfdd7c9f0",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/project-status-summary-BCj6m17I.css",
+        "sha256": "2647c252f97afc08d1b9704a125a62e68a57fbe8830a551e1647b9b8fe98ba48",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/reference-picker-CjjHA-vc.css",
+        "sha256": "b329eab4502f60f2562a236a1a69b3816f170c80e72b4557ef83971d3bbba6c0",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/reference-picker-tnaMVvjX.js",
+        "sha256": "b278844f184eb1377f2e9a2f7ff6985fb914ee32f6c02cc59ad0dc57c53beab7",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/settings-BMztwkJq.js",
+        "sha256": "e3148b754ac3c630575e63c557bacf305fe95caffcc2af39a198e7474bd1ff83",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/status-mentions-BEKWmcfs.js",
+        "sha256": "53609d4c5f99d480b0b1a8e359f7d943fb16507d76feef0e71be99c5515ac1d8",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/status-mentions-C7V-HnNg.css",
+        "sha256": "356893628f579f2a15122974c3f5345c8cf9ba62182d668a12acbaf47e914f41",
+        "matchesDist": true
+      },
+      {
+        "path": "/assets/status-text-C1oZ5wwb.js",
+        "sha256": "ba3301810fc0220f62821fee16f11d2fd7cea3a5a4ea339437e85d90aa01066d",
+        "matchesDist": true
+      }
+    ],
+    "transport": "public HTTPS curl; no authentication or business writes",
+    "nativePublicAcceptance": false
+  },
+  "limitations": [
+    "本轮公网原生业务写入未重复；Edge自动化返回空响应，公网采用只读HTTPS资源核验。",
+    "本地原生完整实点链基于cc6e229；最终cbb6f85重跑70请求/4组并核暖色页面删除来源控件。",
+    "0008完整备份恢复演练未重复。",
+    "用户原批3只读，没有代为重新核对或通过真实项目。"
+  ]
+}
