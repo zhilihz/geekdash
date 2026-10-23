@@ -58,7 +58,11 @@ try{
   const uploaded=await a.upload(source,file),batchId=uploaded.result.batchId;
   let data=await a.api('/api/imports/'+batchId);assert.equal(data.counts.total,1);assert.equal(data.counts.pending,1);assert.equal((await fresh('SELECT id FROM projects WHERE name=?',[file.projects[0].name])).length,0);
   checks.push('原文件上传只登记待审；新请求卡片与正式库隔离');
-  const chip=data.catalogRows.find(v=>v.kind==='chips');assert(chip);const chipSaved=await a.api(path(data,chip,'adopt'),'POST',cmd(data,chip));assert(chipSaved.result.id);
+  const beforeList=(await a.api('/api/imports')).batches.find(row=>row.id===batchId);assert.equal(Number(beforeList.total),1);assert.equal(Number(beforeList.processed),0);
+  const chip=data.catalogRows.find(v=>v.kind==='chips');assert(chip);assert.equal(chip.needsMapping,false);assert.equal(chip.classification,'ready');
+  const automaticChip=cmd(data,chip);delete automaticChip.mode;delete automaticChip.targetId;
+  const chipSaved=await a.api(path(data,chip,'adopt'),'POST',automaticChip);assert(chipSaved.result.id);
+  const chipRead=(await a.api(path(data,chip,'').replace(/\/$/,''))).item;assert.equal(chipRead.previousResult.id,chipSaved.result.id);
   data=await a.api('/api/imports/'+batchId);let item=data.items[0];assert.deepEqual(item.payload.fields.chipIds,[chipSaved.result.id]);assert.equal(item.issues.length,0);
   const manualReference={...cmd(data,item),payload:{fields:{chipIds:[]}}};
   const referencePreview=await a.api(path(data,item,'preview'),'POST',manualReference);
@@ -68,6 +72,12 @@ try{
   const denied=await b.api(path(data,item,'adopt'),'POST',cmd(data,item),403);assert.equal(denied.code,'IMPORT_HANDLER_REQUIRED');
   const body=cmd(data,item),saved=await a.api(path(data,item,'adopt'),'POST',body);projects.push(saved.result.projectId);
   const id=saved.result.projectId;assert.equal(saved.result.savedVersion,'1');
+  assert.equal(Number((await a.api('/api/imports')).batches.find(row=>row.id===batchId).processed),1);
+  const sameNameBatch=await a.upload(source,{version:2,projects:[],chips:[{id:9999,name:file.chips[0].name}]});
+  const sameNameItem=(await a.api('/api/imports/'+sameNameBatch.result.batchId)).catalogRows[0];
+  assert.equal(sameNameItem.needsMapping,true);assert(sameNameItem.issues.some(issue=>issue.code==='IMPORT_MAPPING_REQUIRED'));
+  assert.equal(Number((await fresh('SELECT COUNT(*) n FROM chips WHERE name=?',[file.chips[0].name]))[0].n),1);
+  checks.push('批次进度来自实际采用；明确新资料不填映射直接入库，单项新请求回读；同名未知来源不会自动合并或覆盖');
   assert.deepEqual((await fresh('SELECT CAST(user_id AS CHAR) id FROM project_responsibilities WHERE project_id=?',[id])).map(v=>v.id),[users[0].id]);
   assert.equal(Number((await fresh('SELECT COUNT(*) n FROM project_checks WHERE project_id=?',[id]))[0].n),0);
   assert.equal(Number((await fresh('SELECT COUNT(*) n FROM legacy_project_history WHERE project_id=? AND history_kind=\'mixed\'',[id]))[0].n),2);

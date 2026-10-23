@@ -8,11 +8,13 @@
 
 | 方法与路径 | 输入 | 返回用途 |
 |---|---|---|
-| `GET /api/imports` | 无 | `sources`和`batches`，继续原批次 |
+| `GET /api/imports` | 无 | `sources`和`batches`，每批明确返回`total/processed`，继续原批次 |
 | `POST /api/imports/sources` | `name,idempotencyKey` | 登记逻辑来源，返回`sourceNamespace` |
 | `POST /api/imports/upload` | 查询`source,name,operation`；可选`new=1`；文件正文 | 返回`batchId,reused`。重复内容默认继续既有批次；明确另开才建立另一批 |
 | `POST /api/imports/results/query` | `idempotencyKey` | 查询原上传或来源登记结果，不重复执行 |
 | `GET /api/imports/:batchId` | 批次ID | 同快照的批次、资料行、项目卡、差异、权限、版本和计数 |
+
+`GET /api/imports/:batchId/items/:itemId`返回同快照的`item,batchVersion`，结构与整批读取的单项一致，复用身份与来源校验。资料保存后可据此核对该项；依赖项目仍须重新读取并校验，不能沿用旧basis。
 
 ## 项目卡与共享资料行
 
@@ -20,7 +22,7 @@
 
 DEC-151收敛后的候选还返回`classification=ready|needs_attention|unchanged`、`defaultSelected`、`conflictKeys`、`keptOnline`及`needsMapping`。每条差异的`status=normal|conflict|needs_choice|keep_online`说明处理类别，阶段或子记录用`members`保留同一事项的字段差异；默认采用键只含正常更新的实际成员，不携带同对象未选字段。只读候选校验通过才列入`ready`，保存时仍重新核验。
 
-`unresolvedReferences`列出未解引用的路径及本批次对应资料卡`itemIds`。客户端只能在这些资料已由人明确选择且可导入时，将依赖项目列为等待资料的候选；资料保存后必须重新读取和校验项目，不复用旧`basis`或猜测正式ID。没有依赖该资料的正常项目可独立继续。
+`unresolvedReferences`列出未解引用的路径及本批次对应资料卡`itemIds`。客户端可将依赖已确认资料或DEC-153明确新资料的项目列为等待资料的候选；资料保存后必须重新读取和校验项目，不复用旧`basis`或猜测正式ID。没有依赖该资料的正常项目可独立继续。
 
 `keepOnline`为本次明确保留线上内容的差异键，与`selected`不能重叠；全部保留时允许`selected=[]`，在同一事务记录决定及原回执，项目无实际修改时不推进业务版本。`payload`可以直接随`adopt`修正入库，无需先调用`review`；旧`review`保留兼容及待审记录接续，不是页面入库的前置步骤。没有对应的项目默认拟新增，未知共享资料仍需显式选择`mode/targetId`，不按同名自动配对。
 

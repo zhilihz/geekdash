@@ -21,6 +21,7 @@ export function registerImports(app:FastifyInstance,database?:RuntimeDatabase,no
   });
   app.post<{Body:{idempotencyKey:string}}>('/api/imports/results/query',{bodyLimit:4096},request=>{if(!request.actor)failure('AUTH_REQUIRED',401);return available().query(request.actor,request.body?.idempotencyKey);});
   app.get<{Params:{batchId:string}}>('/api/imports/:batchId',request=>{if(!request.actor)failure('AUTH_REQUIRED',401);return available().read(request.actor,request.params.batchId);});
+  app.get<{Params:{batchId:string;itemId:string}}>('/api/imports/:batchId/items/:itemId',request=>{if(!request.actor)failure('AUTH_REQUIRED',401);return available().readItem(request.actor,request.params.batchId,request.params.itemId);});
   app.get<{Params:{batchId:string;itemId:string}}>('/api/imports/:batchId/items/:itemId/source',request=>{if(!request.actor)failure('AUTH_REQUIRED',401);return available().sourceItem(request.actor,request.params.batchId,request.params.itemId);});
   app.get<{Params:{batchId:string;itemId:string;adoptionId:string}}>('/api/imports/:batchId/items/:itemId/adoptions/:adoptionId',request=>{if(!request.actor)failure('AUTH_REQUIRED',401);return available().sourceItem(request.actor,request.params.batchId,request.params.itemId,request.params.adoptionId);});
   for(const action of ['source','takeover'] as const)for(const query of [false,true])app.post<{Params:{batchId:string}}>('/api/imports/:batchId/'+action+(query?'/results/query':''),{bodyLimit:4096},request=>{

@@ -21,10 +21,10 @@ type Batch = { id: string; name: string; sourceNamespace: string; version: strin
 type BatchData = { batch: Batch; counts: { total: number; pending: number; processed: number; unchanged: number }; catalogRows: Item[]; items: Item[]; sources: Source[] };
 type BatchBrief = Partial<Batch> & { id: string; name: string; fileHash?: string; filename?: string; pending?: number; processed?: number; total?: number; createdAt?: string };
 type Command = { expectedBatchVersion: string; expectedReviewVersion: string; expectedVersion: string | null; basis?: string; selected?: string[]; keepOnline?:string[]; intent?: { kind: string; reason: string }; idempotencyKey: string; payload?: Payload; mode?: 'new' | 'existing'; targetId?: string | null };
-type Pending = { path: string; body: Command | Values; action: 'review' | 'adopt' | 'source' | 'takeover' | 'createSource'; queryPath: string; recoverOnly?: boolean; queue?: Pending[] };
-type CardState = { basis: string; referenceBasis?: string; serverReferenceBasis?:string; selected: string[]; choices?:Record<string,{value:'source'|'online';basis:string}>; editing?: boolean; editGroup?:string; full?: boolean; mapping?: boolean; payload?: Payload; editedPaths?: string[]; localCopy?: Payload; mode?: 'new' | 'existing'; targetId?: string | null; expectedVersion?: string | null; intent?: { kind: string; reason: string }; pending?: Pending; feedback?: string; fieldErrors?: Record<string,string>; tone?: string; stale?: boolean; continuing?: boolean };
+type Pending = { path: string; body: Command | Values; action: 'review' | 'adopt' | 'source' | 'takeover' | 'createSource'; queryPath: string; recoverOnly?: boolean; queue?: Pending[]; advance?: boolean };
+type CardState = { basis: string; referenceBasis?: string; serverReferenceBasis?:string; selected: string[]; choices?:Record<string,{value:'source'|'online';basis:string}>; editing?: boolean; full?: boolean; mapping?: boolean; payload?: Payload; editedPaths?: string[]; localCopy?: Payload; mode?: 'new' | 'existing'; targetId?: string | null; expectedVersion?: string | null; intent?: { kind: string; reason: string }; pending?: Pending; feedback?: string; fieldErrors?: Record<string,string>; tone?: string; stale?: boolean; continuing?: boolean };
 type UploadState = { idempotencyKey: string; name: string; sourceNamespace: string; hash: string; size: number; allowDuplicate: boolean; queue?: UploadState[] };
-type PageState = { batchId?: string; sourceNamespace?: string; view?: string; search?: string; cards?: Record<string, CardState>; pendingUpload?: UploadState; pendingBatch?: Pending; sourceName?: string };
+type PageState = { batchId?: string; sourceNamespace?: string; view?: string; search?: string; activeItemId?: string; catalogItemId?: string; cards?: Record<string, CardState & { reviewing?: boolean; skipped?: boolean }>; pendingUpload?: UploadState; pendingBatch?: Pending; sourceName?: string };
 type Field = { key: string; title: string; type?: 'date' | 'number' | 'text' | 'textarea' | 'select' | 'reference' | 'boolean'; options?: string[]; catalog?: string; multiple?: boolean; wide?: boolean };
 
 const kindNames: Record<string, string> = { project: '项目', customers: '客户', engineers: '工程师', productLines: '产品线', product_lines: '产品线', apps: 'APP', tags: '标签', company: '企业信息', groups: '分组', project_groups: '分组', chips: '芯片', project_node: '项目节点', customer_node: '客户节点', risk: '风险', change: '需求变更', schedule: '计划记录' };
@@ -54,6 +54,7 @@ Object.assign(errors,{IMPORT_FORMAT_INVALID:'无法读取此备份，请选择�
 
 let data: BatchData | undefined, sources: Source[] = [], batches: BatchBrief[] = [], state: PageState = { cards: {} };
 let preference: PersonalPreference, frozen = false, busy = false, loading = false, generation = 0, file: File | undefined;
+let preparingCatalogs=false;
 let sourceName = '', selectedSource = '', catalogue: Record<string, Values[]> = {}, projectOptions: Values[] = [], duplicateBatches: BatchBrief[] = [];
 const previews = new Map<string, { issues: Issue[]; effects: Effect[]; pending?: boolean }>();
 const previewTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -91,6 +92,7 @@ function applySelection(item:Item) {
   const values=leaves(item),edited=(current.editedPaths ?? []).map(path=>editedKey(item,path));
   for(const diff of values)if(edited.includes(diff.key)&&current.choices?.[diff.key]?.basis!==choiceBasis(diff)){current.choices ??={};current.choices[diff.key]={value:'source',basis:choiceBasis(diff)};}
   for(const [key,choice] of Object.entries(current.choices ?? {}))if(!values.some(diff=>diff.key===key&&choice.basis===choiceBasis(diff)))delete current.choices![key];
+  if(current.reviewing&&!current.stale)for(const diff of values)if(diff.selectable&&!current.choices?.[diff.key]){current.choices ??={};current.choices[diff.key]={value:'source',basis:choiceBasis(diff)};}
   current.selected=values.filter(diff=>diff.selectable&&(current.choices?.[diff.key]?.value==='source'||current.choices?.[diff.key]?.value!=='online'&&(item.defaultSelected ?? []).includes(diff.key))).map(diff=>diff.key);
 }
 const keepOnline=(item:Item)=>Object.entries(card(item).choices ?? {}).filter(([,choice])=>choice.value==='online').map(([key])=>key);
@@ -116,10 +118,20 @@ function waitingForCatalog(item:Item,visited=new Set<string>()):boolean {
     });
   });
 }
+const canApprove=(item:Item)=>canImport(item)||waitingForCatalog(item);
+function referenceDependencies(item:Item,seen=new Set<string>()):Item[] {
+  if(seen.has(item.id))return [];
+  seen.add(item.id);
+  const paths=itemIssues(item).flatMap(issue=>typeof issue==='object'&&issue.code==='IMPORT_REFERENCE_REQUIRED'?[issue.path ?? issue.field]:[]);
+  const direct=data?.catalogRows.filter(row=>item.unresolvedReferences?.some(ref=>paths.includes(ref.path)&&ref.itemIds.includes(row.id))) ?? [];
+  return [...new Map(direct.flatMap(row=>[...referenceDependencies(row,seen),row]).map(row=>[row.id,row])).values()];
+}
 function itemState(item:Item) {
+  if(card(item).skipped&&!card(item).pending)return 'skipped';
   if(card(item).pending||card(item).stale||card(item).tone==='error')return 'attention';
   if(item.previousResult&&!card(item).continuing)return 'processed';
   if(item.unchanged||item.keptOnline||item.classification==='unchanged')return 'unchanged';
+  if(card(item).reviewing)return 'attention';
   return canImport(item)||waitingForCatalog(item)?'ready':'attention';
 }
 function correction(item: Item): Payload | undefined {
@@ -181,7 +193,7 @@ function renderEntry() {
   entry.hidden = !!data; list.hidden = !!data;
   if (data) return;
   entry.innerHTML = `<div class="import-panel"><h2>读取本地备份</h2><div class="import-grid"><div class="field"><label for="import-source">备份来自哪里</label><select id="import-source">${sourceOptions(selectedSource)}</select></div><div class="field"${selectedSource ? ' hidden' : ''}><label for="import-source-name">来源名称</label><input id="import-source-name" value="${esc(sourceName)}" placeholder="例如：研发本地库" maxlength="128"></div><div class="field"><label for="import-file">备份文件</label><input type="file" id="import-file" accept=".bak,.json,application/json"></div></div><div class="import-actions">${button(state.pendingUpload ? '核对原读取结果' : '读取备份', state.pendingUpload ? 'upload-query' : 'upload', '', true)}${state.pendingUpload ? button('重试原文件读取', 'upload-retry') : ''}<span class="import-muted">读取后先核对信息，项目尚未入库。</span></div><p id="import-file-note" class="import-muted">${esc(file?.name ?? state.pendingUpload?.name ?? '')}</p>${state.pendingBatch ? `<div class="import-impact"><p>来源登记结果待确认，请先核对原结果。</p>${button('核对原操作','batch-query')}${button('重试原操作','batch-retry')}</div>` : ''}<div id="import-duplicate">${duplicateBatches.length ? duplicateNotice() : ''}</div></div>`;
-  list.innerHTML = `<h2>已有导入批次</h2><div class="import-batch-list">${batches.map(batch => `<a class="import-batch-link" href="/imports.html?id=${encodeURIComponent(batch.id)}"><div><strong>${esc(batch.name || batch.filename || '未命名批次')}</strong><span>${esc(batch.handlerName ?? batch.uploaderName ?? '')}${batch.createdAt ? '　' + formatTime(batch.createdAt) : ''}</span></div><span>${batch.total == null ? '进入核对' : `共 ${batch.total} 个项目　待处理 ${batch.pending ?? 0} 个`}</span></a>`).join('') || '<p class="import-empty">还没有导入批次。</p>'}</div>`;
+  list.innerHTML = `<h2>已有导入批次</h2><div class="import-batch-list">${batches.map(batch => `<a class="import-batch-link" href="/imports.html?id=${encodeURIComponent(batch.id)}"><div><strong>${esc(batch.name || batch.filename || '未命名批次')}</strong><span>${esc(batch.handlerName ?? batch.uploaderName ?? '')}${batch.createdAt ? '　' + formatTime(batch.createdAt) : ''}</span></div><span>${batch.total == null ? '进入核对' : `共 ${batch.total} 个项目${batch.processed == null ? ' · 进入核对进度' : ` · 已处理 ${batch.processed} 个`}`}</span></a>`).join('') || '<p class="import-empty">还没有导入批次。</p>'}</div>`;
   const source = document.getElementById('import-source') as HTMLSelectElement;
   source.onchange = () => { selectedSource = source.value; duplicateBatches = []; state.sourceNamespace = selectedSource; persist(); renderEntry(); };
   document.getElementById('import-source-name')!.oninput = e => { sourceName = (e.target as HTMLInputElement).value; state.sourceName = sourceName; persist(); };
@@ -199,27 +211,53 @@ function mapping(item: Item, current: CardState) {
   return `<div class="import-source-row"><div class="field"><label for="mode-${item.id}">本次如何采用</label><select id="mode-${item.id}" data-mode="${item.id}">${mode?'':'<option value="">请选择如何对应</option>'}<option value="new"${mode === 'new' ? ' selected' : ''}>${project ? '作为新项目入库' : '新建资料'}</option><option value="existing"${mode === 'existing' ? ' selected' : ''}>${project ? '对应已有项目' : '对应已有资料'}</option></select></div>${mode === 'existing' ? `<div class="field"><label for="target-${item.id}">${project ? '线上项目' : '线上资料'}</label><select id="target-${item.id}-source" data-reference="true" data-target="${item.id}"><option value="">请选择</option>${options.map(option => `<option value="${esc(option.id)}"${String(option.id) === String(targetId) ? ' selected' : ''}>${esc(option.name ?? option.fullName)}${project ? `（#${esc(option.id)}）` : ''}</option>`).join('')}</select></div>` : ''}</div>${mode === 'new' && project ? '<p class="import-muted">新项目由实际保存入库的人负责。本地经理姓名保留为来源，不改变账号权限。</p>' : '<p class="import-muted">核对差异后，所选信息和对应会一起保存。</p>'}`;
 }
 function differences(item: Item, current: CardState) {
-  const visible=item.diffs.map(diff=>({diff,members:(diff.members?.length?diff.members:[diff]).filter(member=>current.full||(item.conflictKeys ?? []).includes(member.key))})).filter(row=>row.members.length);
+  const project=isProject(item);
+  const visible=item.diffs.map(diff=>({diff,members:(diff.members?.length?diff.members:[diff]).filter(member=>(project||current.full||(item.conflictKeys ?? []).includes(member.key))&&(item.targetId||current.editing||member.after!==null&&member.after!==''&&(!Array.isArray(member.after)||member.after.length)))})).filter(row=>row.members.length);
   if(!visible.length)return '';
   const records=[...(item.payload.records ?? []),...((item.target?.records as RecordValue[]) ?? [])];
-  return `<div class="import-diff"><table><thead><tr><th>需要核对的信息</th><th>线上信息</th><th>文件信息</th></tr></thead><tbody>${visible.map(({diff,members})=>{
+  return `<div class="import-diff"><table><thead><tr><th>修改事项</th><th>线上信息</th><th>${project?'最终内容':'文件信息'}</th></tr></thead><tbody>${visible.map(({diff,members})=>{
     const recordKind=diff.key.startsWith('record.')?diff.key.slice(7).split(':')[0]:'';
-    const title=isProject(item)?diff.label:catalogFields[catalogKinds[item.kind] ?? item.kind]?.find(field=>field.key===diff.key)?.title ?? diff.label;
-    const display=(member:Difference,value:unknown)=>readable(value,member.key.split('.').at(-1),true,recordKind,records);
+    const title=diff.key.startsWith('stage.')?label(diff.key.slice(6))+'阶段':isProject(item)?diff.label:catalogFields[catalogKinds[item.kind] ?? item.kind]?.find(field=>field.key===diff.key)?.title ?? diff.label;
+    const memberTitle=(member:Difference)=>titles[member.key.split('.').at(-1)!] ?? member.label;
+    const display=(member:Difference,value:unknown)=>member.key.startsWith('history.')?(Array.isArray(value)?`${value.length} 条原记录；完整内容可在下方展开查看。`:'无来源记录'):member.key==='lastCheckAt'?formatTime(value):readable(value,member.key.split('.').at(-1),true,recordKind,records);
     const choice=(member:Difference)=>{
+      if(project)return member.status==='keep_online'||current.choices?.[member.key]?.value==='online'?'<small class="import-muted">保持线上</small>':'';
       if(!(item.conflictKeys ?? []).includes(member.key))return `<small class="import-muted">${member.status==='keep_online'?'保留线上':'随本次导入'}</small>`;
       return `<div class="import-choices" role="group" aria-label="${esc(member.label)}采用内容">${[['online','保留线上'],['source','采用文件']].map(([value,label])=>`<button type="button" class="head-btn" data-choice="${esc(member.key)}" data-choice-value="${value}" data-item="${item.id}" aria-pressed="${current.choices?.[member.key]?.value===value}"${!item.canAdopt||locked(item)?' disabled':''}>${label}</button>`).join('')}</div>`;
     };
-    return `<tr><td><strong>${esc(title)}</strong>${members.map(member=>`<div class="import-diff-part">${diff.members?.length?`<span>${esc(member.label)}</span>`:''}${choice(member)}</div>`).join('')}</td><td>${members.map(member=>`<div class="import-diff-part">${diff.members?.length?`<small>${esc(member.label)}</small>`:''}${esc(display(member,member.before))}</div>`).join('')}</td><td>${members.map(member=>`<div class="import-diff-part">${diff.members?.length?`<small>${esc(member.label)}</small>`:''}${esc(display(member,member.after))}${member.issues?.length?`<p class="import-error">${member.issues.map(issue=>esc(issueText(issue))).join('\n')}</p>`:''}</div>`).join('')}</td></tr>`;
+    return `<tr><td><strong>${esc(title)}</strong>${members.map(choice).join('')}</td><td data-label="线上信息">${members.map(member=>`<div class="import-diff-part">${diff.members?.length?`<small>${esc(memberTitle(member))}</small>`:''}${esc(display(member,member.before))}</div>`).join('')}</td><td data-label="最终内容">${members.map(member=>{
+      const value=project&&(member.status==='keep_online'||current.choices?.[member.key]?.value==='online')?member.before:member.after;
+      const input=project&&current.editing?differenceControl(item,member,value):'';
+      return `<div class="import-diff-part">${input||`${diff.members?.length?`<small>${esc(memberTitle(member))}</small>`:''}${esc(display(member,value))}`}${member.issues?.length?`<p class="import-error">${member.issues.map(issue=>esc(issueText(issue))).join('\n')}</p>`:''}</div>`;
+    }).join('')}</td></tr>`;
   }).join('')}</tbody></table></div>`;
+}
+function differenceControl(item:Item,diff:Difference,value:unknown) {
+  const payload=card(item).payload ?? item.payload;
+  let prefix='',spec:Field|undefined;
+  if(diff.key.startsWith('fields.')){prefix='fields.';spec=[...basicFields,...extraFields,{key:'statusDesc',title:'最新状态说明',type:'textarea'},{key:'summaryNote',title:'备注',type:'textarea'},{key:'chipstatNote',title:'芯片备注',type:'textarea'},{key:'signal',title:'灯色',type:'select',options:['green','yellow','red']},{key:'signalNote',title:'灯色说明',type:'textarea'}].find(field=>diff.key===prefix+field.key) as Field;}
+  else if(diff.key.startsWith('people.')){prefix='people.';const key=diff.key.slice(7);spec={key,title:titles[key],type:'reference',catalog:'engineers',multiple:true};}
+  else if(diff.key.startsWith('stage.')){const index=payload.stages?.findIndex(stage=>diff.key.startsWith(`stage.${stage.code}.`)) ?? -1;if(index>=0){prefix=`stages.${index}.`;spec=stageFields.find(field=>diff.key===`stage.${payload.stages![index].code}.${field.key}`);}}
+  else if(diff.key.startsWith('record.')){const index=payload.records?.findIndex(record=>diff.key.startsWith(`record.${record.key}.`)) ?? -1;if(index>=0){prefix=`records.${index}.values.`;const record=payload.records![index];spec=recordFields[record.kind]?.find(field=>diff.key===`record.${record.key}.${field.key}`);}}
+  return spec?fieldControl(item,spec,{[spec.key]:value},prefix,true):'';
 }
 function impact(item: Item, current: CardState) {
   const preview = previews.get(item.id), issues = preview && !preview.pending ? preview.issues : item.issues ?? [];
   if (!issues.length && !preview?.effects.length && !preview?.pending) return '';
-  const rows = [...new Set(issues.map(issueText))];
+  const visibleIssues=issues.filter(issue=>typeof issue==='string'||issue.code!=='IMPORT_REFERENCE_REQUIRED'||!referenceDependencies(item).some(dependency=>canApprove(dependency)&&item.unresolvedReferences?.some(ref=>ref.path===(issue.path ?? issue.field)&&ref.itemIds.includes(dependency.id))));
+  const rows = [...new Set(visibleIssues.filter(issue=>typeof issue==='string'||issue.code!=='IMPORT_STAGE_STATE_REQUIRED').map(issueText))];
   const dependencyKeys = selectionKeys(item,[...new Set(issues.flatMap(issue => typeof issue === 'object' ? issue.requiredKeys ?? [] : []).concat((preview?.effects ?? []).flatMap(effect => typeof effect === 'object' ? effect.requiredKeys ?? [] : [])))]).filter(k => !current.selected.includes(k));
-  const needsIntent = issues.some(issue => /INTENT|REOPEN|ROLLBACK|LIFECYCLE/.test(typeof issue === 'string' ? issue : issue.code ?? '')) || (preview?.effects ?? []).some(effect => /回退|重开|已结案/.test(issueText(effect)));
-  return `<div class="import-impact"><h3>${preview?.pending ? '正在核对所选信息…' : '这次选择的影响'}</h3>${rows.length ? `<ul>${rows.map(text => `<li>${esc(text)}</li>`).join('')}</ul>` : ''}${preview?.effects.length ? `<ol>${preview.effects.map(effect => `<li>${esc(issueText(effect))}</li>`).join('')}</ol>` : ''}${dependencyKeys.length ? button('一并选择所需的前置信息', 'select-dependencies', item.id) : ''}${needsIntent ? `<div class="import-grid"><div class="field"><label for="intent-${item.id}">这次状态变化的原因</label><select id="intent-${item.id}" data-intent="kind" data-item="${item.id}"><option value="">请选择</option>${[['correction','线上误录，需要纠正'],['rework','本地发生实际返工'],['reopen','本地已重新打开项目']].map(([v,t]) => `<option value="${v}"${current.intent?.kind === v ? ' selected' : ''}>${t}</option>`).join('')}</select></div><div class="field import-wide"><label for="reason-${item.id}">原因说明</label><textarea id="reason-${item.id}" data-intent="reason" data-item="${item.id}" rows="2">${esc(current.intent?.reason)}</textarea></div></div><p class="import-muted">如需保持线上状态，在对应冲突中选择“保留线上”。</p>` : ''}</div>`;
+  const needsIntent = issues.some(issue => /INTENT|REOPEN|ROLLBACK|LIFECYCLE/.test(typeof issue === 'string' ? issue : issue.code ?? '')) || !!current.intent?.kind;
+  const payload=current.payload ?? item.payload;
+  const missingStages=issues.flatMap(issue=>{
+    if(typeof issue==='string'||issue.code!=='IMPORT_STAGE_STATE_REQUIRED')return [];
+    const code=(issue.path ?? issue.field ?? '').split('.')[1],index=payload.stages?.findIndex(stage=>stage.code===code) ?? -1;
+    if(index<0)return [];
+    return [`<div class="import-stage-choice"><strong>${esc(label(code))}</strong><p>本地未记录这个阶段是否已开始，只需确认当前状态。</p>${fieldControl(item,{key:'state',title:'当前阶段',type:'select',options:['ready','active']},payload.stages![index],`stages.${index}.`,true)}</div>`];
+  }).join('');
+  const effects=(preview?.effects ?? []).map(effect=>typeof effect==='object'&&effect.cause&&effect.consequence?`<li><span>${esc(effect.cause)}</span><b aria-label="导致">→</b><span>${esc(effect.consequence)}</span></li>`:`<li class="import-effect-note">${esc(issueText(effect))}</li>`).join('');
+  if(!rows.length&&!effects&&!preview?.pending&&!missingStages)return '';
+  return `<div class="import-impact"><h3>${preview?.pending ? '正在核对当前内容…' : '修改与影响'}</h3>${missingStages}${rows.length ? `<ul>${rows.map(text => `<li>${esc(text)}</li>`).join('')}</ul>` : ''}${effects ? `<ol class="import-causal-chain">${effects}</ol>` : ''}${dependencyKeys.length ? button('一并采用关联内容', 'select-dependencies', item.id) : ''}${needsIntent ? `<div class="import-grid"><div class="field"><label for="intent-${item.id}">这次状态变化的原因</label><select id="intent-${item.id}" data-intent="kind" data-item="${item.id}"><option value="">请选择</option>${[['correction','线上误录，需要纠正'],['rework','本地发生实际返工'],['reopen','本地已重新打开项目']].map(([v,t]) => `<option value="${v}"${current.intent?.kind === v ? ' selected' : ''}>${t}</option>`).join('')}</select></div><div class="field import-wide"><label for="reason-${item.id}">原因说明</label><textarea id="reason-${item.id}" data-intent="reason" data-item="${item.id}" rows="2">${esc(current.intent?.reason)}</textarea></div></div>` : ''}</div>`;
 }
 function fieldControl(item: Item, spec: Field, values: Values, prefix: string, editing: boolean) {
   const value = values[spec.key], present = Object.hasOwn(values, spec.key), path = prefix + spec.key;
@@ -260,27 +298,18 @@ function originalSource(item: Item) {
   const source = sourceSnapshots.get(item.id);
   return source ? `<h3>原文件中的本项信息</h3>${source.issues?.length ? `<ul>${source.issues.map(issue => `<li>${esc(issueText(issue))}</li>`).join('')}</ul>` : ''}<p>${esc(readable(source.source,'',false))}</p>` : button('查看完整来源信息','view-source',item.id);
 }
-function suggestedGroup(item:Item) {
-  const issue=itemIssues(item).find(issue=>typeof issue==='object') as Exclude<Issue,string>|undefined;
-  const path=issue?.path ?? issue?.field ?? issue?.key ?? item.conflictKeys?.[0] ?? '';
-  if(path.startsWith('stage'))return 'stages';
-  const record=item.payload.records?.find(record=>path.includes(record.key));if(record)return record.kind;
-  if(/statusDesc|summaryNote|chipstatNote/.test(path))return 'status';
-  return 'basic';
-}
 function fullInformation(item: Item, editing = false) {
   const current = card(item), payload = editing ? current.payload ?? item.payload : item.payload;
   if (!isProject(item)) return `<div class="import-grid">${(catalogFields[catalogKinds[item.kind] ?? item.kind] ?? [{ key: 'name', title: '名称' }]).map(spec => fieldControl(item, spec, payload, '', editing)).join('')}</div>` + (!editing ? group('本地原有记录',originalSource(item)) + adoptionHistory(item) : '');
   const fields = payload.fields ?? {}, people = payload.people ?? {};
-  const render = (specs: Field[], v = fields, prefix = 'fields.') => `<div class="import-grid">${specs.map(spec => fieldControl(item, spec, v, prefix, editing)).join('')}</div>`;
+  const render = (specs: Field[], v = fields, prefix = 'fields.') => `<div class="import-grid">${specs.filter(spec=>!editing||!leaves(item).some(diff=>diff.key===editedKey(item,prefix+spec.key))&&!itemIssues(item).some(issue=>typeof issue==='object'&&issue.code==='IMPORT_STAGE_STATE_REQUIRED'&&issue.path===editedKey(item,prefix+spec.key))).map(spec => fieldControl(item, spec, v, prefix, editing)).join('')}</div>`;
   const peopleHtml = render(['pm','hardware_owner','software_owner','participant'].map(key => ({ key, title: titles[key], type: 'reference', catalog: 'engineers', multiple: true })), people, 'people.') + ('pm' in people ? '<p class="import-muted">本地经理姓名是来源资料，不授予线上账号权限。</p>' : '');
   const stages = (payload.stages ?? []).map((stage, index) => `<div class="import-record"><h3>${esc(label(stage.code))}</h3>${render(stageFields, stage, `stages.${index}.`)}</div>`).join('');
   const records = Object.keys(recordFields).map(kind => {
     const rows = (payload.records ?? []).map((record, index) => ({record,index})).filter(({record}) => record.kind === kind);
-    if(editing&&current.editGroup!==kind)return '';
     return group(kindNames[kind], rows.map(({record,index}) => {
       const targets = ((item.target?.records as RecordValue[]) ?? []).filter(row => row.kind === kind);
-      const mapping = editing && (current.mode ?? item.mode) === 'existing' ? `<div class="field"><label for="record-target-${item.id}-${index}">这条记录如何采用</label><select id="record-target-${item.id}-${index}-source" data-reference="true" data-item="${item.id}" data-value-path="records.${index}.targetId" data-value-type="record-target"><option value="">请选择新增或对应</option><option value="__new"${record.targetId === null ? ' selected' : ''}>作为新记录加入</option>${targets.map(row => `<option value="${esc(row.targetId)}"${row.targetId === record.targetId ? ' selected' : ''}>${esc(row.values.title ?? row.values.content ?? row.values.reason ?? kindNames[kind])}（#${esc(row.targetId)}）</option>`).join('')}</select></div>` : '';
+      const mapping = editing && record.targetId === undefined && (current.mode ?? item.mode) === 'existing' ? `<div class="field"><label for="record-target-${item.id}-${index}">这条记录如何采用</label><select id="record-target-${item.id}-${index}-source" data-reference="true" data-item="${item.id}" data-value-path="records.${index}.targetId" data-value-type="record-target"><option value="">请选择新增或对应</option><option value="__new"${record.targetId === null ? ' selected' : ''}>作为新记录加入</option>${targets.map(row => `<option value="${esc(row.targetId)}"${row.targetId === record.targetId ? ' selected' : ''}>${esc(row.values.title ?? row.values.content ?? row.values.reason ?? kindNames[kind])}（#${esc(row.targetId)}）</option>`).join('')}</select></div>` : '';
       return `<div class="import-record"><div class="import-record-head"><h3>${esc(record.values.title ?? record.values.content ?? (kindNames[kind] + ' ' + (index + 1)))}</h3>${record.targetId ? '<span class="import-badge">对应线上记录</span>' : '<span class="import-badge">来源记录</span>'}</div>${mapping}${render(recordFields[kind], record.values, `records.${index}.values.`)}</div>`;
     }).join(''),editing);
   }).join('');
@@ -292,14 +321,57 @@ function fullInformation(item: Item, editing = false) {
     stages:['阶段',stages],
     other:['灯色与其他历史事实',render([{key:'signal',title:'灯色',type:'select',options:['green','yellow','red']},{key:'signalNote',title:'灯色说明',type:'textarea'},...extraFields])],
   };
-  if(editing){
-    current.editGroup ??= 'basic';
-    const options=[...Object.entries(sections).map(([key,[title]])=>[key,title]),...Object.keys(recordFields).filter(kind=>payload.records?.some(record=>record.kind===kind)).map(kind=>[kind,kindNames[kind]])];
-    return `<div class="field import-editor-choice"><label for="edit-group-${item.id}">需要修正的信息</label><select id="edit-group-${item.id}" data-edit-group="${item.id}">${options.map(([key,title])=>`<option value="${key}"${current.editGroup===key?' selected':''}>${title}</option>`).join('')}</select></div>`+(sections[current.editGroup]?.[1] ?? records);
-  }
+
   return Object.values(sections).map(([title,html])=>group(title,html)).join('')+records+group('本地原有记录',history)+adoptions;
 }
 function itemName(item: Item) { return String(item.payload.fields?.name ?? item.payload.name ?? item.payload.fullName ?? item.name ?? item.sourceName ?? kindNames[item.kind] ?? '来源项目'); }
+function reviewItems() {
+  const search=(state.search ?? '').toLocaleLowerCase();
+  return data?.items.filter(item=>(state.view==='all'||itemState(item)===(state.view ?? 'attention'))&&itemName(item).toLocaleLowerCase().includes(search)) ?? [];
+}
+function advanceReview(item:Item) {
+  const candidates=reviewItems().filter(row=>row.id!==item.id&&!card(row).pending&&!card(row).skipped&&!row.previousResult&&!row.unchanged);
+  const index=data!.items.findIndex(row=>row.id===item.id);
+  state.activeItemId=(candidates.find(row=>data!.items.indexOf(row)>index) ?? candidates[0])?.id;
+  persist();render();
+}
+function prepareReview(item:Item) {
+  const current=card(item);
+  if(!item.canEdit||current.pending||current.stale||item.previousResult&&!current.continuing||item.unchanged)return;
+  if(!current.reviewing&&(item.conflictKeys?.length||itemIssues(item).some(issue=>typeof issue==='string'||issue.code!=='IMPORT_REFERENCE_REQUIRED'))){current.reviewing=true;applySelection(item);persist();}
+  if(!previews.has(item.id))schedulePreview(item);
+}
+function renderReview(item:Item) {
+  const current=card(item),prior=item.previousResult,active=!prior||current.continuing;
+  const dependencies=referenceDependencies(item),problems=dependencies.filter(row=>!canApprove(row)&&!row.previousResult);
+  return `<article class="import-review" id="import-item-${item.id}" data-card="${item.id}">
+    <div class="import-review-content"><header class="import-review-title"><h2>${esc(itemName(item))}</h2><span class="import-badge">${prior&&!current.continuing?'已处理':current.skipped?'已跳过':(current.mode ?? item.mode)==='new'?'新增项目':'更新项目'}</span></header>
+    ${current.mapping||item.needsMapping?mapping(item,current):''}
+    ${active?impact(item,current)+differences(item,current):'<p class="import-muted">这次处理已保存。</p>'}
+    ${problems.length?`<div class="import-impact"><h3>需要确认的共享资料</h3><p>同一份资料确认一次，相关项目自动复用。</p><div class="import-actions">${problems.map(row=>button(esc(kindNames[row.kind]+ '：'+itemName(row)),'open-catalog',row.id)).join('')}</div></div>`:dependencies.length?`<p class="import-muted">通过时自动建立并关联 ${dependencies.length} 条新资料。</p>`:''}
+    ${current.editing?group('其他信息',fullInformation(item,true)):group('完整项目信息',fullInformation(item))}
+    ${current.localCopy?group('保留的输入',`<p>${esc(readable(current.localCopy,'',false))}</p>`):''}
+    </div><aside class="import-review-actions" aria-label="当前项目操作">
+    ${active&&!item.unchanged&&!item.keptOnline?`<button class="save-btn" data-action="approve" data-item="${item.id}"${canApprove(item)?'':' disabled'}>通过</button><button class="head-btn" data-action="skip" data-item="${item.id}">不通过</button><button class="head-btn" data-action="edit" data-item="${item.id}" aria-pressed="${!!current.editing}">${current.editing?'正在修正':'修正'}</button><p class="import-muted">通过后保存本项目并自动进入下一个。<br>不通过的项目可从“已跳过”找回。</p>`:''}
+    ${current.editing?button('撤销本次修正','cancel-edit',item.id):''}
+    ${active?button('对应已有／新增项目','map',item.id):''}
+    ${prior?`${prior.projectId?`<a href="/project-detail.html?id=${encodeURIComponent(prior.projectId)}">进入正式项目</a>`:''}${!current.continuing?button('继续处理','continue',item.id):''}`:''}
+    ${item.unchanged||item.keptOnline?'<p>保持线上，无需修改。</p>':''}
+    ${!item.canEdit?'<p class="import-muted">当前只能查看。新项目由本批次处理人导入；已有项目由项目经理导入。</p>':''}
+    ${current.stale?`<p>线上内容已更新，输入保留。</p>${button('重新核对','refresh-item',item.id)}`:''}
+    <div class="import-feedback" data-tone="${esc(current.tone)}" role="status">${esc(current.feedback)}</div>
+    ${current.pending?`${button('核对保存结果','query',item.id)}${button('重试原保存','retry',item.id)}`:''}
+    </aside></article>`;
+}
+function renderWorkbench() {
+  const shown=reviewItems();
+  let item=data?.items.find(row=>row.id===state.activeItemId);
+  if(!item||!shown.includes(item)&&!card(item).pending&&!card(item).stale)item=shown[0];
+  state.activeItemId=item?.id;
+  const catalogItem=data?.catalogRows.find(row=>row.id===state.catalogItemId);
+  if(item&&!catalogItem)prepareReview(item);
+  return `<div class="import-workbench"><nav class="import-project-nav" aria-label="本批次项目">${shown.map(row=>`<button class="head-btn" data-action="open-project" data-item="${row.id}" aria-current="${!catalogItem&&row.id===item?.id?'true':'false'}"><span>${esc(itemName(row))}</span><small>${({attention:'需处理',ready:'可导入',unchanged:'保持线上',processed:'已处理',skipped:'已跳过'})[itemState(row)]}</small></button>`).join('')||'<p class="import-muted">当前范围没有项目</p>'}</nav>${catalogItem?`<section class="import-catalog-review"><div class="import-actions">${button('返回项目','back-project')}</div>${renderCard(catalogItem,true)}</section>`:item?renderReview(item):'<div class="import-empty">当前范围已处理完。可切换“已跳过”继续处理，或查看已处理结果。</div>'}</div>`;
+}
 function renderCard(item: Item, catalog = false) {
   const current=card(item),prior=item.previousResult,status=itemState(item),mode=current.mode ?? item.mode;
   const statusText=status==='processed'?'已处理':status==='unchanged'?(item.keptOnline?'保留线上':'已相同'):status==='ready'?(mode==='existing'?'可更新':'可新增'):'需处理';
@@ -326,35 +398,37 @@ function render() {
   document.getElementById('imports-subtitle')!.textContent=`${batch.uploaderName ?? batch.handlerName}上传 · 共 ${counts.total} 个项目`;
   const source=sources.find(s=>s.sourceNamespace===batch.sourceNamespace);
   const proposedSource=state.pendingBatch?.path===`/api/imports/${batch.id}/source`?(state.pendingBatch.body as Values).sourceNamespace:batch.sourceNamespace;
-  const numbers=Object.fromEntries(['ready','unchanged','attention','processed'].map(status=>[status,data!.items.filter(item=>itemState(item)===status).length]));
+  const numbers=Object.fromEntries(['ready','unchanged','attention','processed','skipped'].map(status=>[status,data!.items.filter(item=>itemState(item)===status).length]));
   const ready=data.items.filter(item=>itemState(item)==='ready'),newCount=ready.filter(item=>(card(item).mode ?? item.mode)==='new').length;
-  const view=['attention','ready','unchanged','processed','all'].includes(state.view ?? '')?state.view!:'attention';
-  const shown=data.items.filter(item=>view==='all'||itemState(item)===view);
-  const catalogAttention=data.catalogRows.filter(item=>itemState(item)==='attention');
-  const catalogOthers=data.catalogRows.filter(item=>itemState(item)!=='attention');
-  content.innerHTML=`<section class="import-panel import-summary"><div class="import-heading"><div><h2>核对结果</h2><p class="import-muted">可导入项目中，将新增 ${newCount} 个，更新 ${ready.length-newCount} 个。相同内容和仅线上修改的内容保持。</p></div><span class="import-muted">${esc(source?.name ?? '本地来源')}</span></div><div class="import-counts">${[['ready','可导入'],['unchanged','已相同 / 保留线上'],['attention','需处理'],['processed','已处理']].map(([value,title])=>`<button class="head-btn" data-view="${value}" aria-pressed="${view===value}"><strong>${numbers[value]}</strong><span>${title}</span></button>`).join('')}</div>${group('文件与来源',`<p>文件：${esc(batch.filename ?? batch.name)}</p><div class="import-source-row"><div class="field"><label for="batch-source">来源</label><select id="batch-source">${sources.map(s=>`<option value="${esc(s.sourceNamespace)}"${s.sourceNamespace===proposedSource?' selected':''}>${esc(s.name)}</option>`).join('')}</select></div>${button('保存来源','source')}</div><p class="import-muted">同一本地库继续使用同一来源，对应会在下次复用。</p>`)}${batch.canTakeover?`<div class="import-impact"><p>当前处理人 ${esc(batch.handlerName)} 已停用。</p><div class="field"><label for="takeover-reason">接管原因</label><textarea id="takeover-reason" rows="2"></textarea></div>${button('接管未完成项目','takeover')}</div>`:''}${state.pendingBatch?`<div class="import-impact"><p>有一次来源或接管操作需要核对结果。</p>${button('核对原操作','batch-query')}${button('重试原操作','batch-retry')}</div>`:''}</section>
-    ${catalogAttention.length?`<section aria-label="需处理的共享资料"><h2>这些资料需要核对</h2>${catalogAttention.map(item=>renderCard(item,true)).join('')}</section>`:''}
-    ${catalogOthers.length?group(`共享资料（${catalogOthers.length} 条）`,catalogOthers.map(item=>renderCard(item,true)).join('')):''}
-    <div class="import-toolbar" aria-label="导入项目范围"><h2>${({attention:'需要处理的项目',ready:'可导入的项目',unchanged:'保持现有内容',processed:'已处理的项目',all:'全部项目'} as Record<string,string>)[view]}（${shown.length}）</h2><button class="head-btn" data-view="all" aria-pressed="${view==='all'}">查看全部</button><div class="field"><label for="import-search">查找本批次项目</label><input id="import-search" type="search" value="${esc(state.search)}" placeholder="输入项目名称"></div></div>
-    <section id="import-project-cards" aria-label="项目卡片">${shown.map(item=>renderCard(item)).join('')||`<p class="import-empty">${view==='attention'?'没有需要处理的项目，可以直接导入可处理的内容。':'当前范围没有项目。'}</p>`}</section>`;
+  const view=['attention','ready','unchanged','processed','skipped','all'].includes(state.view ?? '')?state.view!:'attention';
+  state.view=view;const shown=reviewItems();
+  const catalogAttention=data.catalogRows.filter(item=>!canApprove(item)&&!item.previousResult&&!item.unchanged||item.kind==='company'&&!item.previousResult&&!item.unchanged);
+  const catalogReady=data.catalogRows.filter(item=>item.kind!=='company'&&itemState(item)==='ready');
+  content.innerHTML=`<section class="import-panel import-summary"><div class="import-heading"><div><h2>核对结果</h2><p class="import-muted">可导入项目中，将新增 ${newCount} 个，更新 ${ready.length-newCount} 个。相同内容和仅线上修改的内容保持。</p></div><span class="import-muted">${esc(source?.name ?? '本地来源')}</span></div><div class="import-counts">${[['ready','可导入'],['unchanged','已相同 / 保留线上'],['attention','需处理'],['processed','已处理'],['skipped','已跳过']].map(([value,title])=>`<button class="head-btn" data-view="${value}" aria-pressed="${view===value}"><strong>${numbers[value]}</strong><span>${title}</span></button>`).join('')}</div>${group('文件与来源',`<p>文件：${esc(batch.filename ?? batch.name)}</p><div class="import-source-row"><div class="field"><label for="batch-source">来源</label><select id="batch-source">${sources.map(s=>`<option value="${esc(s.sourceNamespace)}"${s.sourceNamespace===proposedSource?' selected':''}>${esc(s.name)}</option>`).join('')}</select></div>${button('保存来源','source')}</div><p class="import-muted">同一本地库继续使用同一来源，对应会在下次复用。</p>`)}${batch.canTakeover?`<div class="import-impact"><p>当前处理人 ${esc(batch.handlerName)} 已停用。</p><div class="field"><label for="takeover-reason">接管原因</label><textarea id="takeover-reason" rows="2"></textarea></div>${button('接管未完成项目','takeover')}</div>`:''}${state.pendingBatch?`<div class="import-impact"><p>有一次来源或接管操作需要核对结果。</p>${button('核对原操作','batch-query')}${button('重试原操作','batch-retry')}</div>`:''}</section>
+    <div class="import-catalog-summary"><span>${catalogReady.length} 条明确的新资料或已确认修改将随导入处理，包含未被本次项目引用的资料。</span>${catalogAttention.length?group(`需要单独确认的资料（${catalogAttention.length} 条）`,`<div class="import-actions">${catalogAttention.map(item=>button(esc(kindNames[item.kind]+'：'+itemName(item)),'open-catalog',item.id)).join('')}</div>`):''}</div>
+    <div class="import-toolbar" aria-label="导入项目范围"><h2>${({attention:'需要处理的项目',ready:'可导入的项目',unchanged:'保持现有内容',processed:'已处理的项目',skipped:'已跳过的项目',all:'全部项目'} as Record<string,string>)[view]}（${shown.length}）</h2><button class="head-btn" data-view="all" aria-pressed="${view==='all'}">查看全部</button><div class="field"><label for="import-search">查找本批次项目</label><input id="import-search" type="search" value="${esc(state.search)}" placeholder="输入项目名称"></div></div>
+    <section id="import-project-cards" aria-label="项目处理区"></section>`;
   mountReferencePickers(content);bindValues();filterCards();controls();
 }
 function filterCards() {
-  const value = (state.search ?? '').toLocaleLowerCase();
-  content.querySelectorAll<HTMLElement>('#import-project-cards [data-card]').forEach(node => { const item = findItem(node.dataset.card!)!; node.hidden = !itemName(item).toLocaleLowerCase().includes(value); });
+  const root=document.getElementById('import-project-cards');if(!root)return;
+  root.innerHTML=renderWorkbench();mountReferencePickers(root);bindValues(root);controls();
 }
+
 function renderOne(item: Item) {
   const previous=document.getElementById('import-item-'+item.id);
-  if(!previous){render();return;}
+  if(!previous){controls();return;}
   const active=document.activeElement;
   const focused=active instanceof HTMLInputElement||active instanceof HTMLTextAreaElement||active instanceof HTMLSelectElement?active:null;
   const focusId=focused&&previous.contains(focused)?focused.id:'';
   const selection=focused instanceof HTMLInputElement||focused instanceof HTMLTextAreaElement?[focused.selectionStart,focused.selectionEnd]:null;
+  const scroll=previous.querySelector<HTMLElement>('.import-review-content')?.scrollTop ?? 0;
   const expanded=[...previous.querySelectorAll<HTMLDetailsElement>('details[open]')].map(node=>node.querySelector('summary')?.textContent);
-  previous.outerHTML=renderCard(item,!isProject(item));
+  previous.outerHTML=isProject(item)?renderReview(item):renderCard(item,true);
   const root=document.getElementById('import-item-'+item.id)!;
   root.querySelectorAll<HTMLDetailsElement>('details').forEach(node=>{if(expanded.includes(node.querySelector('summary')?.textContent))node.open=true;});
   mountReferencePickers(root);bindValues(root);controls();
+  const scroller=root.querySelector<HTMLElement>('.import-review-content');if(scroller)scroller.scrollTop=scroll;
   const next=focusId?document.getElementById(focusId):null;
   next?.focus({preventScroll:true});
   if(selection&&selection[0]!==null&&selection[1]!==null&&(next instanceof HTMLInputElement||next instanceof HTMLTextAreaElement))try{next.setSelectionRange(selection[0],selection[1]);}catch{}
@@ -368,20 +442,20 @@ function controls() {
   const summary=content.querySelector<HTMLElement>('.import-summary .import-heading>div>p');
   const newCount=ready.filter(item=>(card(item).mode ?? item.mode)==='new').length;
   if(summary)summary.textContent=`可导入项目中，将新增 ${newCount} 个，更新 ${count-newCount} 个。相同内容和仅线上修改的内容保持。`;
-  const catalogs=data?.catalogRows.filter(item=>itemState(item)==='ready').length ?? 0;
+  const catalogs=data?.catalogRows.filter(item=>item.kind!=='company'&&itemState(item)==='ready').length ?? 0;
   saveButton.textContent=busy?'正在导入…':`导入可处理内容（${count} 个项目${catalogs?`、${catalogs} 条资料`:''}）`;
   saveButton.disabled=frozen||busy||!count&&!catalogs||!!state.pendingBatch;
   document.getElementById('imports-reload')!.toggleAttribute('disabled', frozen || busy || loading);
   document.querySelectorAll<HTMLButtonElement|HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>('#imports-entry button,#imports-entry input,#imports-entry select,#imports-batch button,#imports-batch input,#imports-batch select,#imports-batch textarea').forEach(control => {
     const item = findItem(control.dataset.item ?? control.closest<HTMLElement>('[data-card]')?.dataset.card ?? '');
-    if (!defaultDisabled.has(control)) defaultDisabled.set(control,control.dataset.action==='adopt-item'?false:control.disabled);
+    if (!defaultDisabled.has(control)) defaultDisabled.set(control,['adopt-item','approve'].includes(control.dataset.action ?? '')?false:control.disabled);
     const matching = !!(control.dataset.mode || control.dataset.target || control.closest('.field')?.querySelector('select[data-target]'));
     control.disabled = !!(defaultDisabled.get(control) || frozen || busy || item && inFlight.has(item.id)
       || data && !data.batch.canEdit && (control.id === 'batch-source' || control.dataset.action === 'source')
       || state.pendingBatch && !['batch-query','batch-retry','full','view-adoption','view-source'].includes(control.dataset.action ?? '')
-      || item && control.dataset.action==='adopt-item' && !canImport(item)
+      || item && ['adopt-item','approve'].includes(control.dataset.action ?? '') && !canApprove(item)
       || item && card(item).pending && !['query','retry','full','view-adoption','view-source'].includes(control.dataset.action ?? '')
-      || item && !item.canEdit && !['query','retry','full','continue','refresh-item','map','view-adoption','view-source'].includes(control.dataset.action ?? '') && !matching);
+      || item && !item.canEdit && !['query','retry','full','continue','refresh-item','map','view-adoption','view-source','open-project','skip'].includes(control.dataset.action ?? '') && !matching);
   });
 }
 function setPath(payload: Payload, path: string, value: unknown) {
@@ -391,7 +465,7 @@ function setPath(payload: Payload, path: string, value: unknown) {
 }
 function bindValues(root: ParentNode = content) {
   root.querySelectorAll<HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement>('[data-value-path]').forEach(input => {
-    const write = () => { const item = findItem(input.dataset.item!)!, current = card(item); if (locked(item) || !current.editing) return; current.payload ??= structuredClone(item.payload);
+    const write = () => { const item = findItem(input.dataset.item!)!, current = card(item); if (locked(item) || !current.editing&&!input.closest('.import-stage-choice')) return; current.payload ??= structuredClone(item.payload); if(input.closest('.import-stage-choice'))current.reviewing=true;
       let value: unknown = input.value;
       if (input instanceof HTMLSelectElement && input.multiple) value = [...input.selectedOptions].map(o => o.value).filter(Boolean);
       else if (input.dataset.valueType === 'record-target') value = input.value === '__new' ? null : input.value || undefined;
@@ -442,6 +516,7 @@ async function readBatch(id: string, replaceItem?: string, acceptFresh = false) 
     if (ticket !== generation || frozen) return false;
     next.items ??= []; next.catalogRows ??= []; next.sources ??= sources;
     const previousId = data?.batch.id ?? state.batchId;
+    const previousItems=new Map(allItems().map(item=>[item.id,item]));
     data = next; sources = next.sources; state.batchId = id;
     const candidates:Item[]=[];
     for (const item of allItems()) {
@@ -455,18 +530,20 @@ async function readBatch(id: string, replaceItem?: string, acceptFresh = false) 
       if(referencesChanged && !current.pending)resetReferenceEdits(item);
       if(current.payload && !current.pending)current.payload=correctedPayload(item.payload,correction(item));
       current.referenceBasis=nextReferences;current.serverReferenceBasis=nextReferences;
+      const previous=previousItems.get(item.id);
+      const ownReferenceRefresh=preparingCatalogs&&previous&&previous.reviewVersion===item.reviewVersion&&previous.expectedVersion===item.expectedVersion&&previous.targetId===item.targetId;
       if (current.basis !== nextBasis) {
-        if (hadSelection || current.editing || current.pending || referencesChanged && current.payload) {
+        if (hadSelection || current.reviewing || current.editing || current.pending || referencesChanged && current.payload) {
           current.selected = [];
           if (!current.pending) current.feedback = referencesChanged ? '对应信息已更新，人写内容保留；资料与节点对应已按最新内容重新读取，请核对后选择。' : '对应信息已更新，原输入保留。请核对后重新选择。';
-          current.stale = !!current.editing && !(replaceItem === item.id && acceptFresh);
+          current.stale = !!(current.editing||current.reviewing) && !(replaceItem === item.id && acceptFresh) && !ownReferenceRefresh;
         }
         current.basis = nextBasis; previews.delete(item.id);
       }
       if (acceptFresh && (!replaceItem || replaceItem === item.id)) current.stale = false;
       if(!current.pending&&!current.stale&&(current.mode||current.editedPaths?.length||current.intent?.kind)){previews.set(item.id,{issues:[],effects:[],pending:true});candidates.push(item);}else applySelection(item);
     }
-    if(previousId!==id)state.view='attention';
+    if(previousId!==id){state.view='attention';state.activeItemId=undefined;state.catalogItemId=undefined;}
     if (previousId !== id) history.replaceState(null, '', '/imports.html?id=' + encodeURIComponent(id));
     persist();render();
     for(const item of candidates)await preview(item);
@@ -494,11 +571,14 @@ async function preview(item: Item):Promise<void> {
       const choosingTarget=current.mode!==undefined && chosenTarget!==item.targetId;
       if (!choosingTarget && current.referenceBasis !== referenceBasis(result.item)) {
         current.selected=[];current.stale=true;
-        feedback(item,'资料或节点对应已变化，正在重新读取；你填写的文字保持。');
-        await readBatch(data!.batch.id,item.id,true);
+        feedback(item,'资料或节点对应已变化，输入保留。请重新核对这一项后再保存。');
+        previews.delete(item.id);renderOne(item);
         return;
       }
-      if (!choosingTarget && (item.expectedVersion !== result.item.expectedVersion || item.reviewVersion !== result.item.reviewVersion) && current.selected.length) { current.selected = []; current.feedback = '线上内容或待审信息已变化，请核对当前差异后重新选择。'; }
+      if (!choosingTarget && (item.expectedVersion !== result.item.expectedVersion || item.reviewVersion !== result.item.reviewVersion)) {
+        current.selected=[];current.stale=true;feedback(item,'线上内容或待审信息已变化，输入保留。请重新核对后再保存。');
+        previews.delete(item.id);renderOne(item);return;
+      }
       Object.assign(item, result.item); current.basis = basis(item);current.referenceBasis=referenceBasis(item);
       if(current.payload)current.payload=correctedPayload(item.payload,correction(item));
     }
@@ -518,12 +598,23 @@ async function preview(item: Item):Promise<void> {
   }
   if(current.editing)renderOne(item);else render();
 }
-async function adopt(item: Item) {
+async function adopt(item: Item, advance=false) {
   const current = card(item);
   if(!canImport(item))return;
-  current.pending = { path: itemPath(item.id) + '/adopt', queryPath: itemPath(item.id) + '/results/query', action: 'adopt', body: command(item) };
+  current.pending = { path: itemPath(item.id) + '/adopt', queryPath: itemPath(item.id) + '/results/query', action: 'adopt', body: command(item), advance };
   current.feedback = '正在保存所选信息…'; current.tone = ''; persist(); renderOne(item);
   await performItem(item, false);
+}
+async function readPreparedItem(item:Item) {
+  try {
+    const fresh=await get<{item:Item;batchVersion:string}>(itemPath(item.id));
+    if(fresh.batchVersion!==data!.batch.version)throw new Error('批次来源或处理人已变化，请重新读取批次。');
+    Object.assign(item,fresh.item);
+    const current=card(item);current.basis=basis(item);current.referenceBasis=referenceBasis(item);current.serverReferenceBasis=referenceBasis(item);
+    if(current.payload)current.payload=correctedPayload(item.payload,correction(item));
+    previews.delete(item.id);applySelection(item);persist();
+    return true;
+  }catch(error){feedback(item,explain(error),'error');return false;}
 }
 async function performItem(item: Item, query: boolean) {
   const current = card(item), operation = current.pending;
@@ -541,10 +632,12 @@ async function performItem(item: Item, query: boolean) {
       item.previousResult = response.result; item.targetId = response.result.projectId ?? response.result.id ?? item.targetId;
     }
     current.pending = nextRequest(operation); current.selected = [];
-    if(!operation.recoverOnly){current.editing = false;current.choices=undefined; current.mapping = false; current.payload = undefined; current.editedPaths=undefined; current.intent = undefined; current.mode = undefined; current.targetId = undefined; current.expectedVersion = undefined; current.stale = false; current.continuing = false; current.fieldErrors = undefined;}
+    if(!operation.recoverOnly){current.reviewing=false;current.skipped=false;current.editing = false;current.choices=undefined; current.mapping = false; current.payload = undefined; current.editedPaths=undefined; current.intent = undefined; current.mode = undefined; current.targetId = undefined; current.expectedVersion = undefined; current.stale = false; current.continuing = false; current.fieldErrors = undefined;}
     feedback(item, operation.action === 'review' ? '待审修正已保存。核对后选择需要采用的信息。' : isProject(item) ? (Array.isArray(operation.body.selected)&&!operation.body.selected.length?'已保留线上内容，本项已处理。':`本次已采用 ${response.result?.adoptedCount ?? 0} 项。`) : '共享资料已保存。', 'success');
-    if (!isProject(item)) await loadOptions();
-    if (!await readBatch(data!.batch.id, item.id, true)) { current.stale = true; feedback(item,'保存已成功，最新内容暂未读回。请重新核对这一项，不需要再次保存。','success'); }
+    if (!isProject(item)&&!preparingCatalogs) await loadOptions();
+    const readBack=preparingCatalogs ? await readPreparedItem(item) : await readBatch(data!.batch.id, item.id, true);
+    if (!readBack) { current.stale = true; state.activeItemId=item.id;feedback(item,'保存已成功，最新内容暂未读回。请重新核对这一项，不需要再次保存。','success'); }
+    else if(operation.advance&&!operation.recoverOnly){notice('已通过：'+itemName(item));advanceReview(item);}
   } catch (error) {
     if (current.pending !== operation) return;
     const failure = error instanceof SaveError ? error : new SaveError('TRANSPORT_UNKNOWN','unknown');
@@ -556,20 +649,43 @@ async function performItem(item: Item, query: boolean) {
     persist(); renderOne(item);
   } finally { inFlight.delete(item.id); const next = findItem(item.id); if (next) renderOne(next); }
 }
+async function prepareCatalogs(ids:string[]) {
+  preparingCatalogs=true;
+  try {
+    const remaining=new Set(ids);
+    while(remaining.size&&!frozen){
+      const item=data!.catalogRows.find(row=>remaining.has(row.id)&&canImport(row));
+      if(!item)break;
+      remaining.delete(item.id);
+      await preview(item);
+      if(canImport(item))await adopt(item);
+      if(card(item).pending||card(item).stale)return false;
+      // 只重读受影响资料；整批项目在资料处理后统一重读。
+      for(const dependent of data!.catalogRows.filter(row=>remaining.has(row.id)&&row.unresolvedReferences?.some(ref=>ref.itemIds.includes(item.id)))) {
+        if(!await readPreparedItem(dependent))return false;
+      }
+    }
+    await loadOptions();
+    return await readBatch(data!.batch.id);
+  } finally {preparingCatalogs=false;}
+}
+async function approve(item:Item) {
+  const current=card(item);current.reviewing=true;applySelection(item);
+  const ids=referenceDependencies(item).filter(row=>row.kind!=='company'&&canApprove(row)).map(row=>row.id);
+  if(ids.length&&!await prepareCatalogs(ids))return;
+  const next=findItem(item.id)!;
+  await preview(next);
+  if(canImport(next))await adopt(next,true);
+  else {state.activeItemId=item.id;feedback(next,'当前内容还不能保存，请处理本项目标出的信息。','error');}
+}
 async function saveSelected() {
   if(busy||frozen||state.pendingBatch)return;
   const projects=data!.items.filter(item=>itemState(item)==='ready').map(item=>item.id);
-  const catalogs=data!.catalogRows.filter(item=>itemState(item)==='ready').map(item=>item.id);
+  const catalogs=data!.catalogRows.filter(item=>item.kind!=='company'&&itemState(item)==='ready').map(item=>item.id);
   if(!projects.length&&!catalogs.length)return;
   busy=true;controls();let completed=0;
   try {
-    const remaining=new Set(catalogs);
-    while(remaining.size&&!frozen){
-      const item=data!.catalogRows.find(item=>remaining.has(item.id)&&canImport(item));
-      if(!item)break;
-      remaining.delete(item.id);await preview(item);const next=findItem(item.id);if(next&&canImport(next))await adopt(next);
-      await readBatch(data!.batch.id,undefined,true);
-    }
+    if(catalogs.length&&!await prepareCatalogs(catalogs))return;
     for(const id of projects){
       if(frozen)break;
       const item=findItem(id);if(!item||card(item).pending)continue;
@@ -626,8 +742,10 @@ async function upload(query = false, retry = false, allowDuplicate = false) {
     if (response.outcome !== 'committed' || !response.result?.batchId) { notice('登记结果尚未确认，请核对原结果。原文件未被修改。'); return; }
     state.pendingUpload = nextRequest(operation); persist();
     if (response.result.reused) { duplicateBatches = [{ id:response.result.batchId, name: operation.name }]; notice('找到了同一文件的原批次。'); return; }
-    file = undefined; notice('备份已读取并自动核对。可以一次导入可处理的内容。');
-    await readBatch(response.result.batchId);
+    file = undefined; state.batchId=response.result.batchId;persist();
+    history.replaceState(null,'','/imports.html?id='+encodeURIComponent(response.result.batchId));
+    if(await readBatch(response.result.batchId))notice('备份已读取，正式项目尚未写入。请导入可处理内容，其余问题在原项目处理。');
+    else {await loadList();notice('文件已登记，项目内容暂未读回。可从下方原批次继续，不需要重新上传。',true);}
   } catch (error) {
     if (error instanceof SaveError && error.outcome === 'not_committed' && error.code !== 'OPERATION_KEY_REUSED') state.pendingUpload = nextRequest(operation);
     notice(explain(error), true); persist();
@@ -637,13 +755,12 @@ async function upload(query = false, retry = false, allowDuplicate = false) {
 document.addEventListener('change', event => {
   const target = event.target as HTMLInputElement | HTMLSelectElement;
   if (frozen || busy) return;
-  const id = target.dataset.item ?? target.dataset.editGroup ?? target.dataset.mode ?? target.dataset.target;
+  const id = target.dataset.item ?? target.dataset.mode ?? target.dataset.target;
   const item = id ? findItem(id) : undefined;
   if (!item) return;
   const current = card(item);
   if (current.pending) return;
-  if(target.dataset.editGroup){current.editGroup=target.value;persist();renderOne(item);}
-  else if (target.dataset.mode || target.dataset.target) {
+  if (target.dataset.mode || target.dataset.target) {
     current.mapping = true; current.selected = [];current.choices=undefined; previews.delete(item.id);
     resetReferenceEdits(item);
     if (target.dataset.mode) { current.mode = target.value ? target.value as 'new' | 'existing' : undefined; current.targetId = null; current.expectedVersion = null; }
@@ -691,15 +808,20 @@ document.addEventListener('click', event => {
       if (!reason) return notice('请填写接管原因。', true);
       return batchOperation({ path: `/api/imports/${data.batch.id}/takeover`, queryPath: `/api/imports/${data.batch.id}/takeover/results/query`, action: 'takeover', body: {expectedVersion:data.batch.version,reason,idempotencyKey:crypto.randomUUID()} });
     }
+    if(action==='back-project'){state.catalogItemId=undefined;persist();filterCards();return;}
     if (!item) return;
     const current = card(item);
+    if(action==='open-project'){state.catalogItemId=undefined;state.activeItemId=item.id;prepareReview(item);persist();filterCards();return;}
+    if(action==='open-catalog'){state.catalogItemId=item.id;persist();filterCards();return;}
     if (action === 'query' || action === 'retry') return performItem(item, action === 'query');
     if (action === 'full') { current.full = !current.full; persist(); renderOne(item); return; }
     if (action === 'view-source') { sourceSnapshots.set(item.id,await get<{source:Values;issues:Issue[]}>(itemPath(item.id) + '/source')); renderOne(item); return; }
     if (action === 'view-adoption') { const id = control.dataset.adoption!; adoptionSnapshots.set(item.id+':'+id,await get<{adoption:Values;histories:Payload['histories']}>(itemPath(item.id) + '/adoptions/' + encodeURIComponent(id))); renderOne(item); return; }
     if (current.pending || busy) return;
     if(control.dataset.choice){const diff=leaves(item).find(diff=>diff.key===control.dataset.choice);if(!diff||!item.canAdopt)return;current.choices ??={};current.choices[diff.key]={value:control.dataset.choiceValue as 'source'|'online',basis:choiceBasis(diff)};current.tone='';current.feedback='';applySelection(item);persist();renderOne(item);schedulePreview(item);return;}
-    if (action === 'edit') { current.payload ??= structuredClone(item.payload); current.editedPaths ??= []; current.editing = true; current.editGroup ??= suggestedGroup(item); await loadOptions(); persist(); renderOne(item); }
+    if(action==='skip'){current.skipped=true;notice('已跳过：'+itemName(item)+'，可从“已跳过”找回。');advanceReview(item);return;}
+    if(action==='approve'){busy=true;controls();try{await approve(item);}finally{busy=false;render();}return;}
+    if (action === 'edit') { current.payload ??= structuredClone(item.payload); current.editedPaths ??= []; current.editing = true;if(isProject(item))current.reviewing=true;applySelection(item);await loadOptions(); persist(); renderOne(item);schedulePreview(item); }
     if (action === 'cancel-edit') { current.editing = false; current.payload = undefined; current.editedPaths=undefined; persist(); await readBatch(data!.batch.id,item.id,true); }
     if(action==='finish-edit'){current.editing=false;persist();await preview(item);return;}
     if(action==='new-catalog'){current.mode='new';current.targetId=null;current.expectedVersion=null;current.mapping=false;persist();await preview(item);return;}
@@ -746,7 +868,7 @@ void requireIdentity().then(async () => {
   await Promise.all([loadList(),loadOptions()]);
   const id = new URLSearchParams(location.search).get('id');
   if (id) await readBatch(id);
-  if (state.pendingUpload && !data) notice('上次文件登记结果尚未确认，请核对原读取结果。');
+  if (state.pendingUpload && !data) await upload(true);
   if (data) for (const item of allItems()) if (card(item).pending) await performItem(item,true);
   new ProjectNotifications(event => {
     if (!data || frozen) return;

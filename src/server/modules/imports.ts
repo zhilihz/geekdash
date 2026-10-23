@@ -8,7 +8,7 @@ import { assertActor, type Actor } from './identity.js';
 import { canonical } from './personal-state.js';
 import { failure, validId } from './project-save.js';
 import { parseImportSource, importCatalogKinds } from './import-source.js';
-import { catalogDefinition, readCatalogInTransaction, previewCatalogInTransaction, saveCatalogInTransaction, validateCatalog } from './catalog.js';
+import { catalogDefinition, catalogNameKey, readCatalogInTransaction, previewCatalogInTransaction, saveCatalogInTransaction, validateCatalog } from './catalog.js';
 import { normalizeImportProject, readImportProject, lockImportProject, validateImportProject, applyImportProject, writeImportHistory, type ImportProjectInput } from './project-import.js';
 
 type Json = Record<string, any>;
@@ -356,7 +356,12 @@ async function viewItem(c: PoolConnection, actor: Actor, b: RowDataPacket, row: 
   if (targetId && !current) issues.push({code:'IMPORT_TARGET_NOT_FOUND',message:'原对应对象已不存在，请重新选择对应。'});
   const comparison=await comparisonBase(c,b,row,targetId,bound,bindings,payload);
   for(let index=issues.length-1;index>=0;index--)if(issues[index].code==='IMPORT_STAGE_STATE_REQUIRED'&&comparison.unchangedStageChoices.includes(issues[index].path.split('.')[1]))issues.splice(index,1);
-  const needsMapping=!!staleChoice||!project&&row.kind!=='company'&&!bound&&!choice;
+  const sourceName=typeof payload.name==='string'?catalogNameKey(payload.name):'';
+  const sameName=(catalog[row.kind] ?? []).filter(value=>typeof value.name==='string'&&catalogNameKey(value.name)===sourceName);
+  const ambiguousSource=(metadata.issues ?? []).some((issue:Json)=>issue.severity==='error'||issue.code==='IMPORT_SOURCE_KEY_DUPLICATE')
+    || all.filter(value=>value.kind===row.kind&&typeof value.raw?.name==='string'&&catalogNameKey(value.raw.name)===sourceName).length>1;
+  const automaticNew=!project&&row.kind!=='company'&&!bound&&!choice&&!!sourceName&&!sameName.length&&!ambiguousSource;
+  const needsMapping=!!staleChoice||!project&&row.kind!=='company'&&!bound&&!choice&&!automaticNew;
   if(needsMapping&&!staleChoice)issues.push({path:'mapping',code:'IMPORT_MAPPING_REQUIRED',message:'请选择新建这份资料或对应已有资料'});
   const diffs=differences(payload,current,project,comparison.values);
   if (targetId && (!bound || bound.targetId!==targetId) && row.kind!=='company') diffs.unshift({key:'binding',label:'确认来源对应',before:bound?.targetId ?? null,after:targetId,selectable:true,status:'normal',defaultSelected:true});
@@ -476,7 +481,7 @@ export function imports(database: RuntimeDatabase) {
     }); },
     list(actor:Actor) { return database.readSnapshot(async c=> {
       await assertActor(c,actor,false,new Date(),false,false);
-      const values=await rows(c,`SELECT ${batchColumns},LOWER(HEX(b.source_hash)) fileHash,(SELECT COUNT(*) FROM import_items i WHERE i.batch_id=b.id AND i.item_kind='project') total FROM import_batches b JOIN users u ON u.id=b.current_handler_id JOIN users creator ON creator.id=b.created_by ORDER BY b.id DESC`);
+      const values=await rows(c,`SELECT ${batchColumns},LOWER(HEX(b.source_hash)) fileHash,(SELECT COUNT(*) FROM import_items i WHERE i.batch_id=b.id AND i.item_kind='project') total,(SELECT COUNT(*) FROM import_items i WHERE i.batch_id=b.id AND i.item_kind='project' AND i.result_json IS NOT NULL) processed FROM import_batches b JOIN users u ON u.id=b.current_handler_id JOIN users creator ON creator.id=b.created_by ORDER BY b.id DESC`);
       return {sources:await sources(c),batches:values.map(value=>({...value,name:decode(value.metadata)?.filename ?? '备份',metadata:undefined}))};
     }); },
     createSource(actor:Actor,input:unknown) {
@@ -511,6 +516,13 @@ export function imports(database: RuntimeDatabase) {
           const result={batchId,reused:false};await remember(c,actor,scope,options.operation,request,result);return{outcome:'committed',result};
       });
     },
+    readItem(actor:Actor,id:string,itemId:string) { return database.readSnapshot(async c=> {
+      await assertActor(c,actor,false,new Date(),false,false);
+      const b=await batch(c,id),all=await itemRows(c,id),row=all.find(value=>value.id===itemId);
+      if(!row)failure('IMPORT_ITEM_NOT_FOUND',404);
+      const {basePayload:_,...item}=await viewItem(c,actor,b,row,all,await bindingRows(c,b.sourceNamespace),await catalogs(c));
+      return {item,batchVersion:b.version};
+    }); },
     read(actor:Actor,id:string) { return database.readSnapshot(async c=> {
       await assertActor(c,actor,false,new Date(),false,false);const b=await batch(c,id), all=await itemRows(c,id), bindings=await bindingRows(c,b.sourceNamespace), catalog=await catalogs(c);
       const views=[];for(const row of all) {const {basePayload:_,...view}=await viewItem(c,actor,b,row,all,bindings,catalog);views.push(view);}

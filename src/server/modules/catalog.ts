@@ -135,7 +135,7 @@ export async function saveCatalogInTransaction(c: PoolConnection, actor: Actor, 
   return result;
 }
 
-export { rows as readCatalogInTransaction, prepare as previewCatalogInTransaction, configuration as lockCatalogConfiguration, definition as catalogDefinition };
+export { rows as readCatalogInTransaction, prepare as previewCatalogInTransaction, configuration as lockCatalogConfiguration, definition as catalogDefinition, nameKey as catalogNameKey };
 
 export function catalog(database: RuntimeDatabase) {
   return {

@@ -50,12 +50,18 @@ try {
     delays: [{ id: 501, reason: '来源改期', newTargetDate: '2026-11-20', measures: '原应对措施', createdAt: '2026-09-07 10:00:00' }],
     statusDescEntries: ['重复行', '重复行', '第三行'].map((text, index) => ({ text, updatedAt: dates[index] })), statusDescHistory: [{ date: '', text: '' }, { date: '旧时间', text: '原说明' }], statusHistory: [{ date: '旧时间', text: '重复原文' }, { date: '旧时间', text: '重复原文' }], lastCheckAt: 1700000000000,
   }], preferences: { hw_project_board_summary_notes: JSON.stringify({ 101: '简要备注' }), hw_project_board_chipstat_notes: JSON.stringify({ 101: '芯片专属备注' }) } };
+  file.projects[0].proposalDate='-';file.projects[0].stages[6].startDate='-';file.projects[0].customerNodes[0].doneDate='-';
   let data = await a.upload(source, file), item = projectItem(data); assert.equal(item.issues.length, 0, JSON.stringify(item.issues));
+  assert.equal(item.payload.fields.proposalDate,null);assert.equal(item.payload.stages[6].startedOn,null);
+  const originalDates=await a.api(path(data,item,'source'));assert.equal(originalDates.source.proposalDate,'-');
   const preview = await a.api(path(data, item, 'preview'), 'POST', command(data, item)); assert.equal(preview.issues.length, 0, JSON.stringify(preview.issues));
   assert(preview.effects.some(effect => effect.cause?.includes('最晚目标日') && effect.consequence?.includes('2026-10-29')));
   assert.equal((await fresh('SELECT COUNT(*) n FROM projects WHERE name=?', [file.projects[0].name]))[0].n, '0');
   const saved = await a.api(path(data, item), 'POST', command(data, item)), id = saved.result.projectId; projects.push(id);
   let detail = await a.api('/api/projects/' + id);
+  assert.equal(detail.project.proposalDate,null);assert.equal(detail.stages[6].startedOn,null);assert.equal(detail.nodes.find(node=>node.kind==='customer').completedOn,null);
+  assert.equal((await fresh('SELECT proposed_on FROM projects WHERE id=?',[id]))[0].proposed_on,null);
+  checks.push('本地“-”日期统一转为未知，原始来源保持；项目、阶段、客户节点经正式保存、新请求和独立SQL一致');
   assert.equal(detail.project.version, '1'); assert.equal(detail.stages[1].state, 'active'); assert.equal(detail.stages[1].expectedEndOn, '2026-10-29');
   const firstNode = detail.nodes.find(node => node.title === '前置节点'), nextNode = detail.nodes.find(node => node.title === '后续节点'); assert.equal(firstNode.nextNodeId, nextNode.id); assert.equal(nextNode.previousNodeId, firstNode.id); assert.equal(firstNode.x, 0);
   assert.equal((await fresh("SELECT JSON_UNQUOTE(JSON_EXTRACT(after_json,'$.node.nextNodeId')) nextId FROM audit_log WHERE project_id=? AND entity_id=? AND action='project.import.project_node'", [id, firstNode.id]))[0].nextId, nextNode.id);

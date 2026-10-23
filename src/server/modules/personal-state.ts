@@ -63,7 +63,7 @@ const preferenceKeys: Record<string, string[]> = {
   appearance: ['theme','layout','visibleFilters'], 'summary-layout': ['columns','hiddenColumns','showStatus','showNotes','showChipNotes'],
   board: ['view','filters','sort','page','anchor','scrollY','filtersOpen'], checks: ['view','filters','page','anchor','scrollY','expanded'],
   summary: ['filters','sort','rowOrder','hiddenRows','scrollY','anchor','filtersOpen'], detail: ['projectId','tab','expanded','scrollY','viewport'],
-  imports: ['batchId','sourceNamespace','sourceName','view','search','cards','pendingUpload','pendingBatch'],
+  imports: ['batchId','sourceNamespace','sourceName','view','search','activeItemId','catalogItemId','cards','pendingUpload','pendingBatch'],
 };
 function preferenceAddress(device: unknown, scope: unknown) {
   if (typeof scope !== 'string' || !Object.hasOwn(preferenceKeys,scope) || (['appearance','summary-layout','imports'].includes(scope) ? device !== 'account' : !uuid(device))) failure('INVALID_PERSONAL_STATE',400);

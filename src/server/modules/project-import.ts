@@ -42,7 +42,8 @@ const stageStateName = (state?: string) => ({ locked: '未解锁', ready: '待�
 const dateColumns = { proposalDate: 'proposed_on', filingDate: 'filed_on', startDate: 'started_on', dueDate: 'current_due_date', originalDueDate: 'original_due_date', closedOn: 'closed_on', closureDueDate: 'closure_due_date' } as const;
 const factColumns = { ...dateColumns, status: 'status', resumeStatus: 'resume_status', preCloseStatus: 'pre_close_status', closureType: 'closure_type', closureNote: 'closure_note', remainingWorkNote: 'remaining_work_note', maintenanceEnabled: 'maintenance_enabled' } as const;
 const ordinaryKeys = () => new Set([...Object.keys(columns), 'chipIds', 'tagIds']);
-const dateValue = (v: unknown) => v === '' || v === null ? null : v;
+// 本地日期控件把未填写保存为“-”；原文仍保存在来源记录中。
+const dateValue = (v: unknown) => v === '' || v === '-' || v === null ? null : v;
 const sourceKey = importSourceKey;
 async function rows(c: PoolConnection, sql: string, values: unknown[] = []) { return (await c.query<RowDataPacket[]>({ sql, timeout: 10000 }, values))[0]; }
 

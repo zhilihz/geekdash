@@ -4,6 +4,8 @@
 
 ## 本轮阅读入口
 
+2026-10-23按DEC-152/153修正真实导入链和逐项目快速处理，本地验证、真实来源断点及发布边界查[导入链报告](testing/reports/2026-10-23-p05-import-chain.md)。当前运行版本与接续始终以系统真相和交接为准；下方保留前次发布入口。
+
 P05导入已按DEC-151收敛并部署测试站：正常内容一次导入，仅冲突与错误原卡处理，无对应项目默认新增、可改为已有。[当前结论](status/current-system-truth.md#1-一句话结论)、[交接](handoff/handoff.md)是接手入口；用户操作及结果查[PRD9.21](product/PRD.md#921-p05导入与会议的逐行为结果)，规则归SPEC-009，模块与存储归架构4.2、ERD5.13，工程步骤归[P05计划1.3](implementation/execution-plan.md#13-p05完整实施设计2026-10-22)。会议、真实业务迁入与实际使用切换未纳入本次交付。
 
 当前交付记录：[P05实施与验证](testing/reports/2026-10-22-p05-imports.md#9-固定发布与公网结果2026-10-22)、[部署与恢复](operations/deployments/2026-10-22-p05-imports.md)。产品13255f3、0006已合并推送main并在新加坡运行。此前[P04收口](testing/reports/2026-10-21-p04-closeout.md)、[首页层级](operations/deployments/2026-10-20-card-hierarchy.md)、[1054修正](operations/deployments/2026-10-20-local-1054.md)保留历史时点，不代表现行版本。
