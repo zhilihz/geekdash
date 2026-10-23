@@ -355,7 +355,7 @@ function renderReview(item:Item) {
     ${current.editing?group('其他信息',fullInformation(item,true)):group('完整项目信息',fullInformation(item))}
     ${current.localCopy?group('保留的输入',`<p>${esc(readable(current.localCopy,'',false))}</p>`):''}
     </div><aside class="import-review-actions" aria-label="当前项目操作">
-    ${current.stale?`<div class="import-recheck" role="status"><strong>需重新核对后通过</strong><p>线上信息或资料对应已变化。你的输入已保留，重新核对不会提交项目。</p>${button('重新核对','refresh-item',item.id)}</div>`:''}
+    ${current.stale?`<div class="import-recheck" role="status"><strong>需重新核对后通过</strong><p>内容已更新，输入已保留。重新核对后可继续。</p>${button('重新核对','refresh-item',item.id)}</div>`:''}
     ${active&&!item.unchanged&&!item.keptOnline?`<button class="save-btn" data-action="approve" data-item="${item.id}"${canApprove(item)?'':' disabled'}>通过</button><button class="head-btn" data-action="skip" data-item="${item.id}">不通过</button><button class="head-btn" data-action="edit" data-item="${item.id}" aria-pressed="${!!current.editing}">${current.editing?'正在修正':'修正'}</button><p class="import-muted">通过后保存本项目并自动进入下一个。<br>不通过的项目可从“已跳过”找回。</p>`:''}
     ${current.editing?button('撤销本次修正','cancel-edit',item.id):''}
     ${active?button('对应已有／新增项目','map',item.id):''}
@@ -399,15 +399,13 @@ function render() {
   const {batch,counts}=data;
   document.getElementById('imports-title')!.textContent=batch.name;
   document.getElementById('imports-subtitle')!.textContent=`${batch.uploaderName ?? batch.handlerName}上传 · 共 ${counts.total} 个项目`;
-  const source=sources.find(s=>s.sourceNamespace===batch.sourceNamespace);
-  const proposedSource=state.pendingBatch?.path===`/api/imports/${batch.id}/source`?(state.pendingBatch.body as Values).sourceNamespace:batch.sourceNamespace;
   const numbers=Object.fromEntries(['ready','unchanged','attention','processed','skipped'].map(status=>[status,data!.items.filter(item=>itemState(item)===status).length]));
   const ready=data.items.filter(item=>itemState(item)==='ready'),newCount=ready.filter(item=>(card(item).mode ?? item.mode)==='new').length;
   const view=['attention','ready','unchanged','processed','skipped','all'].includes(state.view ?? '')?state.view!:'attention';
   state.view=view;const shown=reviewItems();
   const catalogAttention=data.catalogRows.filter(item=>!canApprove(item)&&!item.previousResult&&!item.unchanged||item.kind==='company'&&!item.previousResult&&!item.unchanged);
   const catalogReady=data.catalogRows.filter(item=>item.kind!=='company'&&itemState(item)==='ready');
-  content.innerHTML=`<section class="import-panel import-summary"><div class="import-heading"><div><h2>核对结果</h2><p class="import-muted">可导入项目中，将新增 ${newCount} 个，更新 ${ready.length-newCount} 个。相同内容和仅线上修改的内容保持。</p></div><span class="import-muted">${esc(source?.name ?? '本地来源')}</span></div><div class="import-counts">${[['ready','可导入'],['unchanged','已相同 / 保留线上'],['attention','需处理'],['processed','已处理'],['skipped','已跳过']].map(([value,title])=>`<button class="head-btn" data-view="${value}" aria-pressed="${view===value}"><strong>${numbers[value]}</strong><span>${title}</span></button>`).join('')}</div>${group('文件与来源',`<p>文件：${esc(batch.filename ?? batch.name)}</p><div class="import-source-row"><div class="field"><label for="batch-source">来源</label><select id="batch-source">${sources.map(s=>`<option value="${esc(s.sourceNamespace)}"${s.sourceNamespace===proposedSource?' selected':''}>${esc(s.name)}</option>`).join('')}</select></div>${button('保存来源','source')}</div><p class="import-muted">同一本地库继续使用同一来源，对应会在下次复用。</p>`)}${batch.canTakeover?`<div class="import-impact"><p>当前处理人 ${esc(batch.handlerName)} 已停用。</p><div class="field"><label for="takeover-reason">接管原因</label><textarea id="takeover-reason" rows="2"></textarea></div>${button('接管未完成项目','takeover')}</div>`:''}${state.pendingBatch?`<div class="import-impact"><p>有一次来源或接管操作需要核对结果。</p>${button('核对原操作','batch-query')}${button('重试原操作','batch-retry')}</div>`:''}</section>
+  content.innerHTML=`<section class="import-panel import-summary"><div class="import-heading"><div><h2>核对结果</h2><p class="import-muted">可导入项目中，将新增 ${newCount} 个，更新 ${ready.length-newCount} 个。相同内容和仅线上修改的内容保持。</p></div></div><div class="import-counts">${[['ready','可导入'],['unchanged','已相同 / 保留线上'],['attention','需处理'],['processed','已处理'],['skipped','已跳过']].map(([value,title])=>`<button class="head-btn" data-view="${value}" aria-pressed="${view===value}"><strong>${numbers[value]}</strong><span>${title}</span></button>`).join('')}</div>${batch.canTakeover?`<div class="import-impact"><p>当前处理人 ${esc(batch.handlerName)} 已停用。</p><div class="field"><label for="takeover-reason">接管原因</label><textarea id="takeover-reason" rows="2"></textarea></div>${button('接管未完成项目','takeover')}</div>`:''}${state.pendingBatch?`<div class="import-impact"><p>有一次来源或接管操作需要核对结果。</p>${button('核对原操作','batch-query')}${button('重试原操作','batch-retry')}</div>`:''}</section>
     <div class="import-catalog-summary"><span>${catalogReady.length} 条明确的新资料或已确认修改将随导入处理，包含未被本次项目引用的资料。</span>${catalogAttention.length?group(`需要单独确认的资料（${catalogAttention.length} 条）`,`<div class="import-actions">${catalogAttention.map(item=>button(esc(kindNames[item.kind]+'：'+itemName(item)),'open-catalog',item.id)).join('')}</div>`):''}</div>
     <div class="import-toolbar" aria-label="导入项目范围"><h2>${({attention:'需要处理的项目',ready:'可导入的项目',unchanged:'保持现有内容',processed:'已处理的项目',skipped:'已跳过的项目',all:'全部项目'} as Record<string,string>)[view]}（${shown.length}）</h2><button class="head-btn" data-view="all" aria-pressed="${view==='all'}">查看全部</button><div class="field"><label for="import-search">查找本批次项目</label><input id="import-search" type="search" value="${esc(state.search)}" placeholder="输入项目名称"></div></div>
     <section id="import-project-cards" aria-label="项目处理区"></section>`;
@@ -456,7 +454,6 @@ function controls() {
     const readOnlyControl=!!control.dataset.view||control.id==='import-search'||['open-project','full','view-adoption','view-source','back-project','open-catalog'].includes(control.dataset.action??'');
     const matching = !!(control.dataset.mode || control.dataset.target || control.closest('.field')?.querySelector('select[data-target]'));
     control.disabled = !!(defaultDisabled.get(control) || frozen || busy || executionActive&&!readOnlyControl || item && inFlight.has(item.id)
-      || data && !data.batch.canEdit && (control.id === 'batch-source' || control.dataset.action === 'source')
       || state.pendingBatch && !['batch-query','batch-retry','full','view-adoption','view-source'].includes(control.dataset.action ?? '')
       || item && ['adopt-item','approve'].includes(control.dataset.action ?? '') && !canApprove(item)
       || item && card(item).pending && !['query','full','view-adoption','view-source'].includes(control.dataset.action ?? '')
@@ -788,11 +785,6 @@ document.addEventListener('click', event => {
     if (action === 'upload-retry') return upload(false,true);
     if (action === 'upload-new') return upload(false,false,true);
     if (action === 'batch-query' || action === 'batch-retry') { if (state.pendingBatch) await batchOperation(state.pendingBatch,action === 'batch-query'); return; }
-    if (action === 'source' && data) {
-      const sourceNamespace = (document.getElementById('batch-source') as HTMLSelectElement).value;
-      if (sourceNamespace === data.batch.sourceNamespace) return notice('来源没有变化。');
-      return batchOperation({ path: `/api/imports/${data.batch.id}/source`, queryPath: `/api/imports/${data.batch.id}/source/results/query`, action: 'source', body: {expectedVersion:data.batch.version,sourceNamespace,idempotencyKey:crypto.randomUUID()} });
-    }
     if (action === 'takeover' && data) {
       const reason = (document.getElementById('takeover-reason') as HTMLTextAreaElement).value.trim();
       if (!reason) return notice('请填写接管原因。', true);

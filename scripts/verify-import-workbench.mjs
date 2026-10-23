@@ -53,6 +53,7 @@ try {
   const current=()=>w.document.querySelector('.import-review')?.dataset.card;
   const enabled=selector=>!!w.document.querySelector(selector)&&!w.document.querySelector(selector).disabled;
   load('src/web/imports.ts');await wait(()=>!!w.document.querySelector('.import-stage-choice select'));
+  assert(!w.document.getElementById('batch-source'));assert(![...w.document.querySelectorAll('summary')].some(node=>node.textContent==='文件与来源'));
   click('[data-view=ready]');await wait(()=>current()===ids[1]);click('[data-action=skip]');click('[data-view=attention]');
   await wait(()=>enabled('#imports-save'));click('#imports-save');
   await wait(()=>w.document.getElementById('imports-save-status').textContent.includes('已保存 2 条资料')&&w.document.getElementById('imports-save').textContent!=='正在导入…');
@@ -71,7 +72,7 @@ try {
   click('[data-action=refresh-item]');await wait(()=>enabled('[data-action=approve]'));
   assert.equal((await api('/api/imports/'+batchId)).items[0].previousResult,null,'重新核对只读取与校验，不提交项目');
   click('[data-action=approve]');await wait(()=>current()!==ids[0]&&w.document.getElementById('imports-save').textContent!=='正在导入…');
-  let after=await api('/api/imports/'+batchId),first=after.items[0];assert(first.previousResult);
+  let after=await api('/api/imports/'+batchId),first=after.items[0];assert(first.previousResult);assert.equal(after.batch.sourceNamespace,source,'去掉来源操作不改来源身份');
   assert.equal(after.catalogRows.filter(row=>row.previousResult).length,2,'批量保存资料后项目继续沿用已有对应');
   const firstDetail=await api('/api/projects/'+first.previousResult.projectId);assert.equal(firstDetail.stages[3].state,'active');assert.equal(firstDetail.project.chips.length,1);
   assert.equal(Number((await c.query('SELECT COUNT(*) n FROM project_chips WHERE project_id=?',[first.previousResult.projectId]))[0][0].n),1);
