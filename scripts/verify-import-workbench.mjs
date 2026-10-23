@@ -35,7 +35,7 @@ try {
   await api('/api/auth/login',{loginName:prefix,password});actor=(await api('/api/auth/me')).account.id;
   const source=(await api('/api/imports/sources',{name:prefix,idempotencyKey:randomUUID()})).result.sourceNamespace;
   const fixture={version:2,projects:[
-    {id:1,name:prefix+' 一',status:'进行中',proposalDate:'-',chips:[prefix+' 芯片'],stages:Array.from({length:7},()=>({done:false,startDate:'-',doneDate:'-'}))},
+    {id:1,name:prefix+' 一',status:'进行中',proposalDate:'-',chips:[prefix+' 芯片'],stages:Array.from({length:7},(_,index)=>({done:index<3,startDate:'-',doneDate:'-'}))},
     {id:2,name:prefix+' 二',status:'提案中',summary:'原简介'},
     {id:3,name:prefix+' 三',status:'提案中',dueDate:'2026-99-99'},
   ],chips:[{id:1,name:prefix+' 芯片'},{id:2,name:prefix+' 未引用芯片'}]};
@@ -53,13 +53,30 @@ try {
   const current=()=>w.document.querySelector('.import-review')?.dataset.card;
   const enabled=selector=>!!w.document.querySelector(selector)&&!w.document.querySelector(selector).disabled;
   load('src/web/imports.ts');await wait(()=>!!w.document.querySelector('.import-stage-choice select'));
+  click('[data-view=ready]');await wait(()=>current()===ids[1]);click('[data-action=skip]');click('[data-view=attention]');
+  await wait(()=>enabled('#imports-save'));click('#imports-save');
+  await wait(()=>w.document.getElementById('imports-save-status').textContent.includes('已保存 2 条资料')&&w.document.getElementById('imports-save').textContent!=='正在导入…');
   change('.import-stage-choice select','ready');await wait(()=>enabled('[data-action=approve]'));
+  assert.equal(w.document.querySelector('.import-recheck'),null,'本次资料保存不增加重新核对步骤');
+  const chip=(await api('/api/catalog/chips')).items.find(row=>row.name===prefix+' 芯片');
+  const chipChange={id:chip.id,expectedVersion:chip.version,idempotencyKey:randomUUID(),changes:{firmwareVersion:'另一处修改'}};
+  const chipPreview=await api('/api/catalog/chips/preview',chipChange);
+  await api('/api/catalog/chips/save',{...chipChange,impactToken:chipPreview.impactToken});
+  click('#imports-reload');await wait(()=>!!w.document.querySelector('.import-recheck'));
+  assert.equal(w.document.querySelector('.import-review-actions').firstElementChild.className,'import-recheck','阻断原因和恢复入口紧靠通过按钮');
+  assert(!enabled('[data-action=approve]'),'真实资料更新仍拦截旧版本');
+  const staleFeedback=w.document.querySelector('.import-feedback').textContent;
+  change('.import-stage-choice select','active');assert.equal(w.document.querySelector('.import-feedback').textContent,staleFeedback,'改输入不能清除阻断原因');
+  assert.equal((await api('/api/imports/'+batchId)).items[0].previousResult,null);
+  click('[data-action=refresh-item]');await wait(()=>enabled('[data-action=approve]'));
+  assert.equal((await api('/api/imports/'+batchId)).items[0].previousResult,null,'重新核对只读取与校验，不提交项目');
   click('[data-action=approve]');await wait(()=>current()!==ids[0]&&w.document.getElementById('imports-save').textContent!=='正在导入…');
   let after=await api('/api/imports/'+batchId),first=after.items[0];assert(first.previousResult);
-  assert.equal(after.catalogRows.filter(row=>row.previousResult).length,1,'单项目只准备其引用资料');
-  const firstDetail=await api('/api/projects/'+first.previousResult.projectId);assert.equal(firstDetail.stages[0].state,'ready');assert.equal(firstDetail.project.chips.length,1);
+  assert.equal(after.catalogRows.filter(row=>row.previousResult).length,2,'批量保存资料后项目继续沿用已有对应');
+  const firstDetail=await api('/api/projects/'+first.previousResult.projectId);assert.equal(firstDetail.stages[3].state,'active');assert.equal(firstDetail.project.chips.length,1);
   assert.equal(Number((await c.query('SELECT COUNT(*) n FROM project_chips WHERE project_id=?',[first.previousResult.projectId]))[0][0].n),1);
-  checks.push('缺阶段依据原位一次选择→通过自动准备所需芯片→项目事务→独立SQL/详情新读→自动下一个');
+  checks.push('本次批量保存资料后，待处理项目不被误判过期；EVT原位选择→通过→独立SQL/详情新读→自动下一个');
+  checks.push('另一处资料变化仍禁用旧版本，原因与恢复入口就近展示；原位修改保留原因，重新核对保留阶段输入且不提交，明确通过后持久化');
   assert.equal(current(),ids[2]);click('[data-action=edit]');await wait(()=>!!w.document.querySelector('[data-value-path="fields.dueDate"]'));
   change('[data-value-path="fields.dueDate"]','2026-11-12');await wait(()=>enabled('[data-action=approve]'));
   lostAck=true;click('[data-action=approve]');await wait(()=>!lostAck);
@@ -67,7 +84,6 @@ try {
   after=await api('/api/imports/'+batchId);const third=after.items[2];assert(third.previousResult);assert.equal((await api('/api/projects/'+third.previousResult.projectId)).project.dueDate,'2026-11-12');
   assert.equal(Number((await c.query('SELECT COUNT(*) n FROM import_adoptions WHERE item_id=?',[ids[2]]))[0][0].n),1);
   checks.push('错误日期直接在差异处修正；提交成功丢响应时留在本项，自动查询原任务只产生一次采用且自动接续');
-  click('[data-view=ready]');await wait(()=>current()===ids[1]);click('[data-action=skip]');
   click('[data-view=skipped]');assert.equal(current(),ids[1]);assert.equal((await api('/api/imports/'+batchId)).items[1].previousResult,null);
   click('[data-action=edit]');await wait(()=>!!w.document.querySelector('[data-value-path="fields.summary"]'));change('[data-value-path="fields.summary"]','修正后的简介');await wait(()=>enabled('[data-action=approve]'));click('[data-action=approve]');
   await wait(()=>current()!==ids[1]);after=await api('/api/imports/'+batchId);assert.equal(after.counts.processed,3);

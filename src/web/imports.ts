@@ -355,13 +355,13 @@ function renderReview(item:Item) {
     ${current.editing?group('其他信息',fullInformation(item,true)):group('完整项目信息',fullInformation(item))}
     ${current.localCopy?group('保留的输入',`<p>${esc(readable(current.localCopy,'',false))}</p>`):''}
     </div><aside class="import-review-actions" aria-label="当前项目操作">
+    ${current.stale?`<div class="import-recheck" role="status"><strong>需重新核对后通过</strong><p>线上信息或资料对应已变化。你的输入已保留，重新核对不会提交项目。</p>${button('重新核对','refresh-item',item.id)}</div>`:''}
     ${active&&!item.unchanged&&!item.keptOnline?`<button class="save-btn" data-action="approve" data-item="${item.id}"${canApprove(item)?'':' disabled'}>通过</button><button class="head-btn" data-action="skip" data-item="${item.id}">不通过</button><button class="head-btn" data-action="edit" data-item="${item.id}" aria-pressed="${!!current.editing}">${current.editing?'正在修正':'修正'}</button><p class="import-muted">通过后保存本项目并自动进入下一个。<br>不通过的项目可从“已跳过”找回。</p>`:''}
     ${current.editing?button('撤销本次修正','cancel-edit',item.id):''}
     ${active?button('对应已有／新增项目','map',item.id):''}
     ${prior?`${prior.projectId?`<a href="/project-detail.html?id=${encodeURIComponent(prior.projectId)}">进入正式项目</a>`:''}${!current.continuing?button('继续处理','continue',item.id):''}`:''}
     ${item.unchanged||item.keptOnline?'<p>保持线上，无需修改。</p>':''}
     ${!item.canEdit?'<p class="import-muted">当前只能查看。新项目由本批次处理人导入；已有项目由项目经理导入。</p>':''}
-    ${current.stale?`<p>线上内容已更新，输入保留。</p>${button('重新核对','refresh-item',item.id)}`:''}
     <div class="import-feedback" data-tone="${esc(current.tone)}" role="status">${esc(current.feedback)}</div>
     ${current.pending?`${button('核对保存结果','query',item.id)}`:''}
     </aside></article>`;
@@ -477,7 +477,7 @@ function bindValues(root: ParentNode = content) {
       else if (input.dataset.valueType === 'number') value = input.value === '' ? null : Number(input.value);
       else if (input.dataset.valueType === 'boolean') value = input.value === '' ? null : input.value === 'true';
       else if (input.dataset.valueType === 'date' || input instanceof HTMLSelectElement) value = input.value || null;
-      setPath(current.payload, input.dataset.valuePath!, value);if(current.choices)delete current.choices[editedKey(item,input.dataset.valuePath!)];current.tone='';current.feedback=''; current.editedPaths=[...new Set([...(current.editedPaths ?? []),input.dataset.valuePath!])]; if(current.fieldErrors)delete current.fieldErrors[input.dataset.valuePath!]; current.selected = []; previews.delete(item.id); persist(); schedulePreview(item);
+      setPath(current.payload, input.dataset.valuePath!, value);if(current.choices)delete current.choices[editedKey(item,input.dataset.valuePath!)];if(!current.stale){current.tone='';current.feedback='';} current.editedPaths=[...new Set([...(current.editedPaths ?? []),input.dataset.valuePath!])]; if(current.fieldErrors)delete current.fieldErrors[input.dataset.valuePath!]; current.selected = []; previews.delete(item.id); persist(); schedulePreview(item);
     };
     input.addEventListener(input instanceof HTMLSelectElement ? 'change' : 'input', write);
   });
@@ -519,7 +519,7 @@ async function loadList() {
   } catch (error) { notice(explain(error) + ' 请重试读取，当前文件和输入保留。', true); }
   finally { loading = false; controls(); }
 }
-async function readBatch(id: string, replaceItem?: string, acceptFresh = false) {
+async function readBatch(id: string, replaceItem?: string, acceptFresh = false, ownExecutionRefresh = false) {
   const ticket = ++generation;
   loading = true; controls();
   try {
@@ -542,7 +542,7 @@ async function readBatch(id: string, replaceItem?: string, acceptFresh = false) 
       if(current.payload && !current.pending)current.payload=correctedPayload(item.payload,correction(item));
       current.referenceBasis=nextReferences;current.serverReferenceBasis=nextReferences;
       const previous=previousItems.get(item.id);
-      const ownReferenceRefresh=executionActive&&previous&&previous.reviewVersion===item.reviewVersion&&previous.expectedVersion===item.expectedVersion&&previous.targetId===item.targetId;
+      const ownReferenceRefresh=ownExecutionRefresh&&!current.stale&&previous&&previous.reviewVersion===item.reviewVersion&&previous.expectedVersion===item.expectedVersion&&previous.targetId===item.targetId;
       if (current.basis !== nextBasis) {
         if (hadSelection || current.reviewing || current.editing || current.pending || referencesChanged && current.payload) {
           current.selected = [];
@@ -660,7 +660,7 @@ async function pollExecution() {
         if(outcome.status==='failed'){current.fieldErrors=outcome.fields;feedback(item,(errors[outcome.code??'']??outcome.code??'本项未保存')+(outcome.fields?'：'+Object.values(outcome.fields).join('；'):''),'error');}
       }
       persist();
-      if(await readBatch(batchId))seenExecutions.set(result.id,signature);
+      if(await readBatch(batchId,undefined,false,!!request))seenExecutions.set(result.id,signature);
       else return;
       await loadOptions();
     }

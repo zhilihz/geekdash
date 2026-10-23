@@ -102,6 +102,7 @@
 .import-review-actions button[data-action=approve],.import-review-actions button[data-action=skip],.import-review-actions button[data-action=edit]{min-height:64px;font-size:18px;font-weight:650}
 .import-review-actions button[aria-pressed=true]{border-color:var(--accent);color:var(--accent)}
 .import-review-actions p{font-size:12px;line-height:1.8;margin:0}
+.import-recheck{grid-column:1/-1;display:grid;gap:8px;border-left:3px solid var(--p-mid);padding-left:10px;font-size:13px}
 .import-review .import-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .import-review .import-diff th:first-child{width:23%}
 .import-review .import-diff-part{padding:6px 0}
