@@ -16,7 +16,7 @@ export function registerImports(app:FastifyInstance,database?:RuntimeDatabase,no
   app.addHook('onReady',async()=>{executions?.start();});
   app.addHook('preClose',async()=>{await executions?.close();});
   const available=()=>{if(!service)failure('DATABASE_UNAVAILABLE',503);return service;};
-  const writable=()=>{if(process.env.GEEKDASH_IMPORT_WRITES==='disabled')failure('IMPORT_WRITES_PAUSED',503);};
+  const writable=()=>{if(process.env.GEEKDASH_IMPORT_WRITES==='disabled'||process.env.GEEKDASH_IMPORT_ACCEPTING==='disabled')failure('IMPORT_WRITES_PAUSED',503);};
   // 返回原流，身份/CSRF通过后才将文件写入受控卷。
   app.addContentTypeParser('application/octet-stream',(_request,payload,done)=>done(null,payload));
   app.get('/api/imports',request=>{if(!request.actor)failure('AUTH_REQUIRED',401);return available().list(request.actor);});
