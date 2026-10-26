@@ -1,0 +1,347 @@
+{
+  "标题": "P05重设实施前服务器存量只读核查",
+  "日期": "2026-10-26",
+  "环境": "新加坡现有GeekDash测试实例",
+  "范围": "现运行应用健康、geekdash_dev的一致性只读查询、原上传文件大小及SHA-256；不是迁移或业务验收",
+  "方法": "已授权tccli TAT；查询使用START TRANSACTION READ ONLY，项目名在服务器内按ECMAScript trim后精确比较；输出移除名称、正文、账号名、凭据及原文件路径",
+  "runtime": {
+    "checkedAt": "2026-10-26T06:00:56.608959+00:00",
+    "readOnly": true,
+    "build": {
+      "revision": "cbb6f857f52d643a114d8cd5cf11d26b37f1ec16",
+      "dirty": false,
+      "builtAt": "2026-10-23T10:09:50.576Z",
+      "stage": "P05-imports",
+      "schemaVersion": "0008-import-name-bindings"
+    },
+    "ready": "ready",
+    "appRunning": true,
+    "mysqlHealth": "healthy",
+    "databases": [
+      {
+        "schema": "geekdash_dev",
+        "tables": 38
+      },
+      {
+        "schema": "geekdash_test",
+        "tables": 38
+      }
+    ]
+  },
+  "inventory": {
+    "checkedAt": "2026-10-26T06:09:24.436227+00:00",
+    "database": "geekdash_dev",
+    "readOnly": true,
+    "snapshot": "One repeatable-read read-only transaction; immutable file hashes checked afterwards",
+    "projects": {
+      "total": 42,
+      "byStatus": {
+        "closed": 12,
+        "ongoing": 9,
+        "proposal": 21
+      },
+      "byStoredDataKind": {
+        "business": 16,
+        "trial": 26
+      },
+      "exactTrimDuplicateIdGroups": [],
+      "trimChanges": 0,
+      "blankIds": [],
+      "nameKeyOversizeIds": []
+    },
+    "accounts": {
+      "total": 5,
+      "enabled": 5,
+      "disabled": 0
+    },
+    "responsibilities": {
+      "rows": 55,
+      "projectsByMemberCount": {
+        "0": 2,
+        "1": 25,
+        "2": 15
+      },
+      "noEnabledOwnerProjectIds": [
+        "1",
+        "2"
+      ],
+      "disabledMemberRows": 0,
+      "danglingRows": 0
+    },
+    "imports": {
+      "batches": 6,
+      "items": 252,
+      "itemsByKindStatus": {
+        "apps:committed": 3,
+        "apps:pending": 3,
+        "chips:committed": 31,
+        "chips:pending": 31,
+        "company:pending": 2,
+        "customers:committed": 14,
+        "customers:pending": 14,
+        "engineers:committed": 22,
+        "engineers:pending": 22,
+        "groups:committed": 3,
+        "groups:pending": 3,
+        "productLines:committed": 12,
+        "productLines:pending": 12,
+        "project:committed": 16,
+        "project:pending": 60,
+        "tags:committed": 2,
+        "tags:pending": 2
+      },
+      "correctedItems": 103,
+      "batchesWithDisabledHandler": [],
+      "perBatch": [
+        {
+          "id": "1",
+          "counts": {
+            "project:committed": 1
+          }
+        },
+        {
+          "id": "2",
+          "counts": {
+            "project:pending": 35,
+            "customers:pending": 14,
+            "engineers:pending": 22,
+            "productLines:pending": 12,
+            "groups:pending": 3,
+            "chips:pending": 30,
+            "company:pending": 1,
+            "apps:pending": 3,
+            "tags:pending": 2
+          }
+        },
+        {
+          "id": "3",
+          "counts": {
+            "project:pending": 23,
+            "project:committed": 12,
+            "customers:committed": 14,
+            "engineers:committed": 22,
+            "productLines:committed": 12,
+            "groups:committed": 3,
+            "chips:committed": 30,
+            "company:pending": 1,
+            "apps:committed": 3,
+            "tags:committed": 2
+          }
+        },
+        {
+          "id": "4",
+          "counts": {
+            "project:committed": 1
+          }
+        },
+        {
+          "id": "5",
+          "counts": {
+            "project:committed": 2,
+            "chips:committed": 1
+          }
+        },
+        {
+          "id": "6",
+          "counts": {
+            "project:pending": 2,
+            "chips:pending": 1
+          }
+        }
+      ]
+    },
+    "executions": {
+      "total": 2,
+      "byStatus": {
+        "finished": 2
+      },
+      "entryStates": {
+        "committed": 48,
+        "failed": 1
+      },
+      "active": [],
+      "finishedWithUnfinishedEntry": []
+    },
+    "adoptions": {
+      "total": 103,
+      "byTargetKind": {
+        "apps": 3,
+        "chips": 31,
+        "customers": 14,
+        "engineers": 22,
+        "groups": 3,
+        "productLines": 12,
+        "project": 16,
+        "tags": 2
+      },
+      "missingReceiptIds": [],
+      "differentReceiptHashIds": [],
+      "differentReceiptAdoptionIds": [],
+      "missingFrozenResultIds": [],
+      "danglingItemIds": [],
+      "missingProjectTargetIds": [],
+      "savedChildComparisonCount": 0
+    },
+    "bindingsByKind": [
+      {
+        "kind": "apps",
+        "count": 3
+      },
+      {
+        "kind": "chips",
+        "count": 31
+      },
+      {
+        "kind": "customers",
+        "count": 14
+      },
+      {
+        "kind": "engineers",
+        "count": 22
+      },
+      {
+        "kind": "groups",
+        "count": 3
+      },
+      {
+        "kind": "productLines",
+        "count": 12
+      },
+      {
+        "kind": "project",
+        "count": 16
+      },
+      {
+        "kind": "tags",
+        "count": 2
+      }
+    ],
+    "originalFiles": {
+      "checked": 6,
+      "matched": 6,
+      "missing": [],
+      "mismatched": [],
+      "outsideExpectedDirectory": []
+    },
+    "structure": {
+      "sources": 5,
+      "receipts": 324,
+      "nameKeyColumns": 0,
+      "membershipRequestTables": 0
+    }
+  },
+  "details": {
+    "checkedAt": "2026-10-26T06:10:27.777326+00:00",
+    "readOnly": true,
+    "unowned": [
+      {
+        "id": "1",
+        "kind": "trial",
+        "status": "ongoing",
+        "imported": false,
+        "creatorKnown": false
+      },
+      {
+        "id": "2",
+        "kind": "trial",
+        "status": "ongoing",
+        "imported": false,
+        "creatorKnown": false
+      }
+    ],
+    "executionFailures": [
+      {
+        "executionId": "2",
+        "batchId": "3",
+        "itemId": "147",
+        "status": "failed",
+        "code": "IMPORT_BINDING_CHANGED",
+        "statusCode": 409
+      }
+    ],
+    "targets": [
+      {
+        "kind": "project",
+        "bindingsMissing": 0,
+        "adoptionsMissing": 0
+      },
+      {
+        "kind": "customers",
+        "bindingsMissing": 0,
+        "adoptionsMissing": 0
+      },
+      {
+        "kind": "engineers",
+        "bindingsMissing": 0,
+        "adoptionsMissing": 0
+      },
+      {
+        "kind": "productLines",
+        "bindingsMissing": 0,
+        "adoptionsMissing": 0
+      },
+      {
+        "kind": "groups",
+        "bindingsMissing": 0,
+        "adoptionsMissing": 0
+      },
+      {
+        "kind": "chips",
+        "bindingsMissing": 0,
+        "adoptionsMissing": 0
+      },
+      {
+        "kind": "apps",
+        "bindingsMissing": 0,
+        "adoptionsMissing": 0
+      },
+      {
+        "kind": "tags",
+        "bindingsMissing": 0,
+        "adoptionsMissing": 0
+      }
+    ],
+    "maintenance": {
+      "exists": true,
+      "enabled": 1,
+      "configured": true
+    },
+    "runtimeProfile": "dev_app",
+    "importsEnabled": "enabled",
+    "importMountMatchesExpected": true
+  },
+  "reconcile": {
+    "checkedAt": "2026-10-26T06:11:13.476199+00:00",
+    "readOnly": true,
+    "rows": [
+      {
+        "id": "147",
+        "kind": "project",
+        "batch": "3",
+        "status": "pending",
+        "section": "failedItemNow",
+        "targetKnown": false,
+        "successfulAdoptions": 0
+      },
+      {
+        "count": 2,
+        "section": "duplicateFile",
+        "batchIds": "2,3",
+        "logicalSources": 2
+      },
+      {
+        "count": 2,
+        "section": "duplicateFile",
+        "batchIds": "5,6",
+        "logicalSources": 1
+      }
+    ]
+  },
+  "边界": [
+    "42为正式表当前全部项目行数；data_kind为存储标签，不能据此区分全部真实业务与合成验收数据。",
+    "60为待处理项目导入条目，跨批次可能重复，不等于60个独立项目；执行finished只表示已终结，不表示每项成功。",
+    "103条成功采用逐条核对原回执存在、请求摘要及adoptionId；固定结果对象和目标存在，不代表所有历史业务内容已重验。",
+    "文件哈希核对在数据库快照之后执行；当前允许新导入，切换前必须重新查询。",
+    "没有停止服务、修改正式数据、接管批次、重试失败项目、恢复备份、迁移、提交或发布；未验证公网页面体验。"
+  ]
+}

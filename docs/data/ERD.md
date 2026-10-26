@@ -1,6 +1,6 @@
 # 数据模型与实体关系（ERD）
 
-版本：D0.76；日期：2026-10-20；状态：历史结构基线为0001初始34表/313列/55条引用、0002的34/314/55及0003的34/315/55，0004增量归5.10/5.11；各运行环境当前结构只归系统真相。0005取消周检查依据的可执行增量已编写，字段契约归5.12，本条不声称迁移已实测。E03身份、责任和会话复用原实体，DEC-108日期未知复用可空列；原约束验证范围见[F02/F03实际报告](../testing/reports/2026-10-08-e01-f02-f03.md)。
+日期：2026-10-26；本轮新增目标结构见5.14，尚未编写或执行迁移。历史结构基线为0001初始34表/313列/55条引用、0002的34/314/55及0003的34/315/55，0004增量归5.10/5.11，0005归5.12，0006～0008归5.13；各运行环境当前结构只归系统真相。E03身份、责任和会话复用原实体，DEC-108日期未知复用可空列；原约束验证范围见[F02/F03实际报告](../testing/reports/2026-10-08-e01-f02-f03.md)。
 
 本文分清三类来源：**B** 是真实 V1.044 备份中观察到的结构，**C** 是 V1.050 源码的读写或归一化结构，**T** 是服务器目标表达。旧系统是 JSON 与浏览器存储，下面的实体名称不代表旧系统已有 MySQL 表。字段反推完成的范围是本次备份与七个运行文件；不证明备份覆盖全部业务数据，也不替代剩余业务规则确认或可执行 DDL。
 
@@ -460,10 +460,10 @@ erDiagram
 | system_configuration | `id:I`、`maintenance_user_id:I`、`full_name:V255`、`short_name:V128`、`manager_text:X`、`name_prefix:V128`、`version:R`、`updated_by:I`、`updated_at:T` | PK(id)，单例 id=1（不使用 AUTO_INCREMENT）；维护人与企业信息同一配置聚合。 | 一个公共配置入口；合并旧 company_profile，避免两个单例表互相同步。 |
 | check_rule_revisions | `version:I`、`deadline_weekday:S`、`effective_week:D`、`saved_at:T`、`saved_by:I` | PK(version)，AUTO_INCREMENT修订号；CHECK(deadline_weekday BETWEEN 1 AND 7)；IDX(effective_week,version)。 | DEC-133后只保留旧检查/旧首次义务/报告的规则来源，不再追加现行截止规则，不用当前日期重算历史。 |
 | projects | `id:I`、`name:V255`、`customer_id:I?`、`odm_customer_id:I?`、`product_line_id:I?`、`app_id:I?`、`group_id:I?`、`created_by:I?`、`source_import_item_id:I?`、`source_namespace:V64?`、`source_key:V128?`、`status:V16`、`version:R`、`proposed_on:D?`、`filed_on:D?`、`started_on:D?`、`original_due_date:D?`、`current_due_date:D?`、`manual_delayed:B`、`priority:V16`、`signal:V16`、`signal_note:X`、`market_expectation:X`、`status_description:X`、`status_description_updated_at:T?`、`detail_note:X`、`summary_note:X`、`chipstat_note:X`、`closure_due_date:D?`、`resume_status:V16?`、`pre_close_status:V16?`、`closure_type:V16?`、`closed_on:D?`、`closure_note:X`、`remaining_work_note:X`、`maintenance_enabled:B`、`first_check_week:D?`、`first_check_rule_version:I?`、`created_at:T`、`updated_at:T` | PK(id)；UK(source_namespace,source_key)，两个来源字段同时空或同时有值由模块校验；IDX(status,id)、IDX(customer_id,status,id)、IDX(current_due_date,id)。 | 项目聚合根、统一版本及筛选字段；两份固定页面备注并入项目；来源身份防止同库重复新增。 |
-| project_responsibilities | `project_id:I`、`user_id:I`、`joined_at:T` | 联合 PK(project_id,user_id)；IDX(user_id,project_id)。 | 项目修改授权；DEC-117目标中同时作为分工里的项目经理账号来源，仍不赋予系统维护权限。与旧业务PM姓名区别，退出历史由审计承接，不复制另一份经理授权表；新入口尚未实施。 |
+| project_responsibilities | `project_id:I`、`user_id:I`、`joined_at:T` | 联合 PK(project_id,user_id)；IDX(user_id,project_id)。 | 正式项目归属及读写授权；当前展示/邀请/退出目标按SPEC-014与5.14，不恢复项目经理填写字段，不赋予系统维护权限。与旧业务PM姓名区别，退出历史由审计承接，不复制另一份经理授权表。 |
 | project_stages | `id:I`、`project_id:I`、`stage_code:V2`、`state:V16`、`planned_days:S?`、`note:X`、`started_on:D?`、`completed_on:D?`、`expected_end_on:D?` | PK(id)；UK(project_id,stage_code)，UK(project_id,id) 支持节点的同项目复合外键；七阶段完整性/前置状态在项目事务校验。 | 七阶段的独立状态、工期与实际日期；查询按 project_id 一次取七行，不把状态存在页面偏好中。 |
 | project_nodes | `id:I`、`project_id:I`、`kind:V16`、`stage_id:I?`、`title:V255`、`target_date:D?`、`completed_on:D?`、`output:X`、`note:X`、`previous_node_id:I?`、`next_node_id:I?`、`x:DEC?`、`y:DEC?`、`sort_order:N`、`source_key:V128?` | PK(id)；UK(project_id,id)；IDX(project_id,kind,sort_order,id)。阶段、前后节点分别用(project_id,引用ID)复合 FK；来源 ID 非正式 PK。 | 此行是0001/0002既有列；合并两种节点，保留不同业务字段和布局，节点恢复新增列只定义于5.8，不另建连线/子节点实体。 |
-| project_people | `project_id:I`、`engineer_id:I`、`role:V32`、`sort_order:N` | 联合 PK(project_id,engineer_id,role)；IDX(engineer_id,project_id)。既有DDL没有(project_id,role)单人唯一约束；旧本地pm/hwOwner/swOwner为单姓名，当前线上硬件/软件/参与人员使用多选，不能将旧字段形状当作线上人数限制。 | 业务人员角色与排序，不授予登录权限。旧pm数据保留来源、不按姓名自动授权；DEC-117目标经理账号取project_responsibilities，切换兼容须在实施时处理，不据本行改写已有数据。 |
+| project_people | `project_id:I`、`engineer_id:I`、`role:V32`、`sort_order:N` | 联合 PK(project_id,engineer_id,role)；IDX(engineer_id,project_id)。既有DDL没有(project_id,role)单人唯一约束；旧本地pm/hwOwner/swOwner为单姓名，当前线上硬件/软件/参与人员使用多选，不能将旧字段形状当作线上人数限制。 | 业务人员角色与排序，不授予登录权限。旧pm数据保留来源、不按姓名自动授权；归属请求及正式关系分别使用5.14结构，不据本行改写已有数据或恢复旧经理填写入口。 |
 | customers | `id:I`、`name:V255`、`contact:X`、`background:X`、`enabled:B`、`version:R`、`created_at:T`、`updated_at:T` | PK(id)；IDX(enabled,name,id)；名称不设未经确认的唯一约束，不按归一化名称自动合并。 | 客户背景/联系方式与 ODM 引用；不是账号或标签。 |
 | engineers | `id:I`、`name:V255`、`role:V64`、`enabled:B`、`version:R`、`created_at:T`、`updated_at:T` | PK(id)；IDX(enabled,name,id)；名称不设未经确认的唯一约束，不按归一化名称自动合并。 | 业务工程师与登录账号不是同一集合，不能并入 users。 |
 | product_lines | `id:I`、`name:V255`、`enabled:B`、`version:R`、`created_at:T`、`updated_at:T` | PK(id)；IDX(enabled,name,id)；名称不设未经确认的唯一约束，不按归一化名称自动合并。 | 产品线与 APP/分组具有不同选择与引用语义。 |
@@ -1002,9 +1002,11 @@ DEC-108复用projects.proposed_on/filed_on/started_on/closed_on及project_stages
 
 ## 6. 来源映射与迁移次序
 
+**结构边界（2026-10-26）：**下文既有实体与0006～0008实测结构继续描述实际存储；当前没有执行结构变更。新设计需要表达项目名称唯一/曾用名和归属请求，存量业务取舍已由DEC-161/162确认；字段、索引及版本化迁移尚未定稿。不能用删旧规则指令删表、改已执行SQL或抹去历史。
+
 1. 收到原文件后校验哈希并保存受控原始字节，解析生成批次/卡片；不可变文件与对应 JSON 原值纳入完整备份，未知字段不经旧归一化器丢弃。
-2. 用户明确同一旧数据库的 source_namespace；稳定来源 ID 与正式 ID 分开。有效 (source_namespace,source_key) 唯一绑定正式项目。同名、不同旧库相同数字 ID、无稳定来源 ID 均不能自动合并；无可靠绑定时人工选择目标。每张卡片保留原 ID、数组顺序和映射结果。
-3. 客户/工程师资料为空而有名称引用时提出待确认映射；共享资料写入按SPEC-006/DEC-132验证启用账号及有效会话，不要求先负责项目；批次纠正/入库仍受各自权限约束。复用明确维护的ID映射，未解决项留待审。昵称、NFKC/大小写或空白归一化只辅助搜索，不成为身份或合并事实。
+2. 2026-10-26目标按SPEC-009以项目名称识别新旧，取消用户选择source_namespace和来源编号决定项目的要求。原文件、原ID、数组顺序和既有对应记录保留为来源；现有项目ID、内容、历史和正式责任保留；存量重名在原项目明确改名后才启用唯一约束，不自动合并。原绑定保留历史用途，具体结构承接由新迁移落实。
+3. 基础资料匹配按SPEC-009/DEC-162：同类别、名称完全一致、文件已提供信息无冲突且唯一启用时复用；明确新资料建立关联；重名、多候选、停用和内容差异集中处理。保留旧明确对应及原值，不能改写采用历史；同名业务人员不授予账号权限。
 4. 七阶段按位置/旧阶段码映射，缺日期留 NULL；非法连续性报告，不能自动补完成。dueDate/延期原文与原始计划不确定性保留；旧 lastCheckAt 不生成新检查；旧混合历史按 source_sequence 原样留存，不补 actor。
 5. 先创建无循环依赖的账号/资料/配置/批次表，再创建 projects（来源 FK 暂后加）、import_items、项目子表、草稿/会议/输出及审计/回执；最后补 projects.source_import_item_id 与 import_items 的循环 FK。正式新项目入库顺序为已有待审项 → 项目 → 子记录/负责关系/历史 → 待审结果，均在该项目事务完成。
 6. 旧基础资料重建 ID 映射后再迁移项目关联和节点前后引用；节点先插入全部对象，再设置连线。空资料、坏引用、重复来源不因 FK 建表顺序被忽略。
@@ -1250,3 +1252,82 @@ erDiagram
 DDL可能已生效而版本尚未登记；续跑逐步骤识别前后态，数据补齐独立校验。遇额外列、孤儿或未知中间结构停止并报告具体差异，不删除数据猜修复。新建库走原foundation后顺序升级；旧库保留所有来源原值/未知事实。迁移期间沿运维流程暂停本应用写入；完整数据与受控原文件都在备份范围。
 
 旧0005应用会因严格schemaVersion/结构校验拒绝0006，不能声称只回退fe4320f即可运行。发布前准备并验证理解0006结构与已导入事实、可暂关闭导入写入口的兼容应用恢复产物；只回退应用不回灌旧备份、不删除采用表。新建/含数据升级、每步骤中断续跑、旧历史读取、未知时间及后续正常新增、恢复产物启动均归TEST-032；实际结果查P05实施报告，不能据设计推断运行结果。
+
+### 5.14 项目空间与归属请求的目标增量（2026-10-26，未迁移）
+
+依据SPEC-009/014及DEC-157～164。以下为工程设计，未证明DDL、索引或数据升级已通过MySQL验证。只读基线为仓库`migrations/0001`～`0008`及`src/server/infrastructure/schema.ts`；不据本节推断服务器现状。
+
+**实体收敛。**正式项目仍只有`projects`；本人项目用`project_responsibilities`筛选，项目空间用同表的基础字段投影。新增两张专用表：曾用名用于防止改名后的误新增，请求用于保存尚未成为成员的协作意愿。后者不能放进正式责任表，否则待接受者会提前获得权限。审计、回执、导入执行及原文件继续使用现有实体，不新建空间项目表、个人项目副本、消息平台或审批表。
+
+| 对象 | 目标字段及约束 | 必要性与维护入口 |
+|---|---|---|
+| `projects.name_key`（新增） | `VARBINARY(1020) NOT NULL`；完整唯一索引`uk_projects_name_key` | 对既有最大255字符名称取`UTF-8(name.trim())`，作为精确比较键；不转大小写、不做Unicode归一化、不用摘要碰撞代替精确值。现有名称列及其默认排序不能直接承担此约束。新增、改名、导入共用一处键生成；同事务更新名称及键。存量只补键，不借迁移改写显示原文 |
+| `project_name_aliases`（新增） | `project_id:I`、`name_key:VARBINARY(1020)`；联合PK(project_id,name_key)，IDX(name_key,project_id)，FK(project_id→projects) | 保留可确证的曾用名候选；同一曾用名允许对应多个历史项目，不能给别名加全局唯一。名称可从UTF-8键还原，时间/操作者已在审计，不复制列。改名在同事务补旧键；存量只从可确定项目ID及名称前后值的实名审计回填，不解析自由文字猜历史 |
+| `project_membership_requests`（新增） | `id:I`自增PK、`project_id:I`、`kind:V16`、`initiator_id:I`、`target_user_id:I`、`status:V16`、`created_at:T`、`resolved_at:T?`、`resolved_by:I?`、`resolution_code:V32?` | kind区分邀请/申请；target始终为拟加入的人，申请时等于initiator。状态为pending/accepted/rejected/withdrawn/invalidated；终态不重新变pending，明确再发起使用新ID，防止旧页面误处理新请求。resolved_by只记实际决定人；自动失效可空，原因记稳定code。无默认到期日期、无用户必填说明列 |
+| 请求约束及索引 | FK(project_id→projects)，三个账号列FK→users；IDX(project_id,status,id)、IDX(target_user_id,status,id)、IDX(initiator_id,id)、IDX(resolved_by)；kind/status采用ASCII精确值 | 项目锁内检查同项目同目标的pending请求，所有写入通过项目负责接口；不使用仅前端查重。待处理通知按target查询，经理处理列表按当前责任关联project查询。空终态字段/终态时间及申请target=initiator由CHECK与业务契约校验；实际CHECK表达式须随迁移验证 |
+| `project_responsibilities`（复用） | 现有(project_id,user_id)主键及反向索引保持 | 创建者/上传入库者初始负责、接受/批准/认领成功后才增加；退出删除当前关系，历史仍归audit_log。请求不会替代此权限来源 |
+| `project_stages.state`（扩展既有CHECK） | 保留`VARCHAR(16) NOT NULL`，在locked/ready/active/completed以外允许`unknown` | 落实SPEC-009已确认的旧阶段依据未知，不新增并行状态列。仅缺依据的历史事实使用unknown，普通新建保持原状态规则；更新时文件缺字段不覆盖已知状态。现0001检查约束不接受unknown，必须新增迁移替换约束，不得只删前端拦截或把未知默认为ready |
+
+请求表不另外存“处理经理名单”“未读计数”“是否有权限”“项目名称快照”或第二个项目版本：处理资格每次查当前成员，名称读项目，通知数量读pending请求，正式责任变化沿`projects.version`。单纯发送/拒绝/撤回请求不改变项目业务版本；正式加入/退出在同事务推进一次。具体返回结果归SPEC-014。
+
+```mermaid
+erDiagram
+  projects ||--o{ project_responsibilities : "正式归属"
+  users ||--o{ project_responsibilities : "本人项目"
+  projects ||--o{ project_name_aliases : "曾用名候选"
+  projects ||--o{ project_membership_requests : "协作请求"
+  users ||--o{ project_membership_requests : "发起人"
+  users ||--o{ project_membership_requests : "拟加入者"
+  users o|--o{ project_membership_requests : "实际决定人"
+  projects {
+    bigint id PK
+    varchar name
+    varbinary name_key UK "新增"
+    bigint version
+  }
+  project_responsibilities {
+    bigint project_id PK,FK
+    bigint user_id PK,FK
+    datetime joined_at
+  }
+  project_name_aliases {
+    bigint project_id PK,FK
+    varbinary name_key PK
+  }
+  project_membership_requests {
+    bigint id PK
+    bigint project_id FK
+    varchar kind
+    bigint initiator_id FK
+    bigint target_user_id FK
+    varchar status
+    datetime created_at
+    datetime resolved_at
+    bigint resolved_by FK
+    varchar resolution_code
+  }
+```
+
+图只列本次关系子集，users及projects的其余列仍按原字典；三个users关系为不同外键角色。请求失效的业务条件只归SPEC-014，邀请发起人停用的边界已由DEC-163确认，不由字段设计代决。
+
+#### 5.14.1 导入持久记录的复用边界
+
+DEC-165最小账号启停复用`users.enabled/version/updated_at`、`sessions.revoked_at`、`system_configuration.maintenance_user_id`及现有审计/回执；请求失效使用本节请求表的终态字段。没有账号删除表、交接审批表或额外启停状态表。停用影响依据只属于短期读取及请求输入，不持久保存另一份项目责任名单；成功时冻结的结果进入原命令回执。真实表结构仍需迁移前回读，设计不代表已创建接口。
+
+| 现有实体 | 新链用途与存量保护 |
+|---|---|
+| `import_batches` / `import_items` | 继续保存原文件、上传者/处理人、修正内容、候选版本。不新增“待入库项目库”；正式项目只在明确导入成功后出现。原始source_payload不覆写，线上值比较时重读；缺字段与明确空继续可区分 |
+| `import_executions.command_json` | 新命令增加固定`formatVersion`，记录接收时的项目匹配结果、目标版本、明确选择、修正内容、请求账号及资料依赖；子记录同时冻结文件内定位、类别、明确选定的正式目标或新增意图、最终内容和关联。文件内定位只标识本次输入，不充当跨备份身份。沿既有request_hash冻结，不在执行时悄悄按新规则重算选择。无此标记的旧命令在升级前处理，不能按新结构直接解释 |
+| `import_executions.progress_json` | 仍逐项记录实际结果与恢复编号，成功结果引用正式项目/资料及采用记录；不复制整份项目作为第二事实。每个项目成功事务先落回执/采用记录，执行进度稍后补写，中断先查已提交事实 |
+| `import_adoptions` / `command_receipts` | 原成功、原操作键及请求摘要保持；新旧结果分别解码，只读恢复不回放业务。去掉来源管理页面不等于删除这些历史实体 |
+| `import_sources` / `import_bindings` | 保留历史来源、已确认子记录对应及FK；新项目目标以名称及本次明确改选为准，不再由顶层binding决定。子记录旧对应及原编号只提供本项目同类别候选，按DEC-164冻结本次明确选择，不由旧绑定自动授权覆盖；实际成功对应随采用结果持久保存。旧采用记录仍可还原当次目标，不覆盖其历史含义 |
+
+不为“用户无需设置来源”伪造所有备份来自同一数据库。文件名、同一上传人、同名项目或原编号均不能单独证明子记录身份；候选和本次明确选择的业务边界已由DEC-164确认。复用采用记录中的`comparisonRecords`及原输入留存每次实际对应，不为匹配分数或猜测身份另建实体；正式记录ID与所属项目/类别必须在保存时校验。跨备份候选查询的索引及旧绑定承接仍须在含真实存量的恢复副本验证，不能用空类别样本宣称已覆盖。
+
+#### 5.14.2 增量与数据对账顺序
+
+1. 在实施基线只读核实际结构及登记；按新名称键列出空名、重名、超长等阻断。重名由用户在原项目明确修正，不自动追加编号。记录原项目ID、负责关系和审计/采用数量及摘要，受控原文件保持完整。
+2. 先在恢复副本新增可空name_key并补值；此时不切换用户流量。验证每行等于共享键函数的结果、非空且无重复，再改非空并建立完整唯一索引；中断按准确前后结构续跑。两张新表按目标FK/索引创建；迁移中不生成待接受邀请、不重建成员。
+3. 从确证的改名审计补别名；不具备证据的旧名不补造。逐ID对账存量内容、责任、历史及原操作结果，缺证只限制曾用名提示，不改当前项目归属。
+4. 旧执行先核实、再升级；具体顺序归实施计划1.3.4。已有成功及未提交修正分别承接，不能把旧页面的默认选择直接变成新授权。
+5. 增量扩展阶段state约束以表达未知；只改变允许值，不批量改写存量阶段。解析、阶段读模型、校验、卡片/详情与动作入口共同理解unknown：不显示已开始/已完成，实际动作需要明确依据时才在原阶段处理。新增迁移文件与schema manifest必须一并验证，0001～0008原文件校验和不动。新版本字段类型和索引宽度、存量补值、中断续跑均须真实MySQL实测；本节不是已生成的SQL或测试通过记录。

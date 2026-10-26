@@ -1,28 +1,18 @@
 # GeekDash 文档目录
 
-导航更新：2026-10-23。项目仓库：[zhilihz/geekdash](https://github.com/zhilihz/geekdash)。全部项目文档在本目录；协作与分类规则只维护于根目录[AGENTS.md](../AGENTS.md)。
+导航更新：2026-10-26。项目仓库：[zhilihz/geekdash](https://github.com/zhilihz/geekdash)。全部项目文档在本目录；协作与分类规则只维护于根目录[AGENTS.md](../AGENTS.md)。
 
 ## 本轮阅读入口
 
-2026-10-23持久导入修正154e34c已合并推送main并部署0008；[报告第8～9节](testing/reports/2026-10-23-p05-import-chain.md#8-持久导入与旧链清退2026-10-23)记录本地、固定构建及公网验证，[部署记录](operations/deployments/2026-10-23-p05-durable-import.md)记录备份与兼容恢复。旧浏览器逐条写链已退役；原用户批3可继续，剩余真实判断不自动执行。当前接续查系统真相与handoff。
+当前为2026-10-26导入、项目空间与个人范围重设讨论，已确认DEC-157～165，最小账号启停已纳入同一阶段，**用户已明确开始实施**。旧冲突要求已从现行设计移除，不能继续沿旧P05执行计划施工。
 
-P05导入已按DEC-151收敛并部署测试站：正常内容一次导入，仅冲突与错误原卡处理，无对应项目默认新增、可改为已有。[当前结论](status/current-system-truth.md#1-一句话结论)、[交接](handoff/handoff.md)是接手入口；用户操作及结果查[PRD9.21](product/PRD.md#921-p05导入与会议的逐行为结果)，规则归SPEC-009，模块与存储归架构4.2、ERD5.13，工程步骤归[P05计划1.3](implementation/execution-plan.md#13-p05完整实施设计2026-10-22)。会议、真实业务迁入与实际使用切换未纳入本次交付。
+1. [交接](handoff/handoff.md)与[系统真相](status/current-system-truth.md)：接手位置、实际运行与未测边界。
+2. [本轮决定及待决](decisions/decisions.md#2026-10-26-导入与项目空间重设讨论中未授权实施)：已确认和还需讨论的范围。
+3. [导入体验](product/PRD.md#921-p05导入与会议的逐行为结果)及[空间与协作](product/PRD.md#923-项目空间个人项目与协作2026-10-26设计中)：结构、操作与已知结果。
+4. [SPEC-009/014](specifications/specification.md#spec-009-导入迁移与删除恢复)：唯一业务契约；[计划1.3](implementation/execution-plan.md#13-p05完整实施设计2026-10-22)记录替换位置、五步工程展开和技术细化，按该范围连续实施。
+5. [本轮增量ERD](data/ERD.md#514-项目空间与归属请求的目标增量2026-10-26未迁移)、[模块接口落位](implementation/execution-plan.md#133-五步内部的接口与核心实现)、[旧执行切换](implementation/execution-plan.md#134-旧执行旧页面与发布切换)：具体字段、保存边界和恢复顺序；均未执行迁移或产品验证。
 
-前次交付记录：[P05实施与验证](testing/reports/2026-10-22-p05-imports.md#9-固定发布与公网结果2026-10-22)、[部署与恢复](operations/deployments/2026-10-22-p05-imports.md)。产品13255f3是2026-10-22发布时点，当前已被1c0e1d2替代。此前[P04收口](testing/reports/2026-10-21-p04-closeout.md)、[首页层级](operations/deployments/2026-10-20-card-hierarchy.md)、[1054修正](operations/deployments/2026-10-20-local-1054.md)保留历史时点，不代表现行版本。
-
-2026-10-22设计来源：[P05设计包与核查范围](testing/reports/2026-10-22-p05-design-preparation.md)。其后用户确认简化导入，实际交付沿DEC-151；设计画面与产品运行分别取证，不能把较早设计中的表单数量作为现行操作要求。
-
-2026-10-16整链方案已按DEC-127收口：检查信息补全归[P04-09](implementation/execution-plan.md#p04-09-保留阶段动作与检查的原业务闭环)，跨页面消费归P04-15；布局只查[PRD](product/PRD.md#检查信息完整性已确认dec-127)，读取及修正返回只查SPEC-005，执行范围/共同实现方法只查计划1.2。Q-031已解决；设计与实际实现状态查系统真相及阶段报告，不据早期缺口描述重复施工。
-
-用户进一步要求逐行为列全结果，已按DEC-128补[PRD第9节](product/PRD.md#9-逐行为结果与恢复清单)：共用结果、各功能专有结果、输入去向与恢复入口，以及现有16步对应表。处理入口和故障验证方法在执行计划1.2与[测试策略](testing/testing.md#按prd行为结果验收dec-128)，它们是待实施/待验要求，实际状态见真相73。
-
-1. [交接](handoff/handoff.md)与[当前运行事实](status/current-system-truth.md#1-一句话结论)：确认本地、线上版本及接续位置；已交付P04证据查[收口报告](testing/reports/2026-10-21-p04-closeout.md)，P05已进入施工，当前实际范围查[实施报告](testing/reports/2026-10-22-p05-imports.md)。
-2. [首页完整筛选](product/PRD.md#首页完整筛选)、[视觉意图](product/PRD.md#813-ui09正式视觉稿2026-10-14设计中)、[UI11设计报告](testing/reports/2026-10-14-ui11-complete-filters.md)及[Figma文件](https://www.figma.com/design/leQy2Be9GaTXPvZeooQuIF?node-id=142-3499)：用户已认可当前设计，实施沿同一稿。[PRD8.12](product/PRD.md#812-ui08全站结构与日常操作2026-10-14结构评审稿)为结构与操作依据；历史设计范围仍可查[UI08](testing/reports/2026-10-14-ui08-wireframes.md)、[UI09](testing/reports/2026-10-14-ui09-visual-design.md)、[UI10](testing/reports/2026-10-14-ui10-reference-style.md)，不作为当前部署状态。
-3. [P04既有实施计划](implementation/execution-plan.md#12-p04完整实施计划2026-10-15)：用于核对已有范围和技术依赖；当前收敛步骤只维护在1.2.3，[规格书](specifications/specification.md)仍是行为契约来源。
-4. [UI07提示与副本报告](testing/reports/2026-10-13-e04-ui07-notifications.md)、[UI07部署与恢复](operations/deployments/2026-10-13-e04-ui07.md)、[UI06网页报告](testing/reports/2026-10-13-e04-ui06-frontend.md)、[UI06部署与恢复](operations/deployments/2026-10-13-e04-ui06.md)、[看板及已有入口报告](testing/reports/2026-10-12-e04-ui03-c.md)、[上下文动作报告](testing/reports/2026-10-12-e04-ui03-b.md)、[详情结构报告](testing/reports/2026-10-12-e04-ui03-a.md)、[设计核查报告](testing/reports/2026-10-12-e04-ui01-design.md)及[实际设计回读](evidence/2026-10-12-e04-ui01-design-audit.json)：分别核查实现、设计子集与未测范围。
-5. [六阶段目标任务](implementation/execution-plan.md#11-目标任务详细计划先行六大阶段交付)、[代决记录](decisions/autonomous-decisions.md)、[代码管理](operations/release-maintenance.md#2-代码管理)：原目标和交付方法的追溯入口；分支检查点、测试部署和完整阶段验收分别记录。
-
-运行事实只查系统真相与实际部署记录，计划、设计和Git推送各有自己的证据范围。初次运行及公网基底方法见[本地运行](operations/release-maintenance.md#本地工程运行e01-f01)、[D01～D07](implementation/execution-plan.md#e12-d01d07首个公网基底的逐功能施工方案)及[Linux/新域名流程](operations/release-maintenance.md#当前首个公网部署单元dec-071)。
+既有产品发布查[2026-10-23报告](testing/reports/2026-10-23-p05-import-chain.md#10-通过按钮锁定修正2026-10-23)和[部署记录](operations/deployments/2026-10-23-p05-approve.md)。历史P04/P05报告保留当时结果，不作为新设计已经实现的证据。
 
 ## 既有阶段证据入口
 
