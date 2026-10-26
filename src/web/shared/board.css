@@ -537,7 +537,7 @@ header .head-actions { display: flex; gap: 8px; align-items: center; flex-wrap: 
   padding: 16px 18px;
   margin: 16px 0;
 }
-#search {
+#search, #space-search {
   width: 100%;
   padding: 10px 14px;
   font-size: 14px;
@@ -548,8 +548,8 @@ header .head-actions { display: flex; gap: 8px; align-items: center; flex-wrap: 
   color: var(--text);
   margin-bottom: 14px;
 }
-#search::placeholder { color: var(--text-faint); }
-#search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(88,166,255,.15); }
+#search::placeholder, #space-search::placeholder { color: var(--text-faint); }
+#search:focus, #space-search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(88,166,255,.15); }
 
 .filter-row {
   display: flex;
