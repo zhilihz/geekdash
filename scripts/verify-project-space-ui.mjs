@@ -24,7 +24,7 @@ function client(index){
   async function api(path,body,status=200){const response=await call(path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json','X-GeekDash-Request':'1','X-GeekDash-Account':actor??'','X-GeekDash-CSRF':jar.getCookiesSync(origin).find(cookie=>cookie.key==='geekdash_dev_csrf')?.value??''},...body===undefined?{}:{body:JSON.stringify(body)}});const value=await response.json();assert.equal(response.status,status,JSON.stringify(value));return value;}
   return {jar,call,api,loseAck(){lostAck=true;},async login(){await api('/api/auth/login',{loginName:accounts[index].login,password});actor=(await api('/api/auth/me')).account.id;}};
 }
-function page(client,file,query=''){
+function page(client,file,query='',configure=()=>{}){
   const virtualConsole=new VirtualConsole();virtualConsole.on('jsdomError',error=>{if(!error.message.includes('Not implemented: navigation'))errors.push(error.message);});
   const dom=new JSDOM(fs.readFileSync('src/web/'+file+'.html','utf8'),{url:origin+'/'+file+'.html'+query,cookieJar:client.jar,runScripts:'outside-only',virtualConsole});
   let active=0,lastRequest=Date.now(),closed=false;
@@ -37,7 +37,7 @@ function page(client,file,query=''){
   const modules=new Map(),context=dom.getInternalVMContext();
   function load(path){if(path.endsWith('.css'))return{};path=resolve(path.endsWith('.ts')?path:path+'.ts');if(modules.has(path))return modules.get(path).exports;const module={exports:{}};modules.set(path,module);const code=ts.transpileModule(fs.readFileSync(path,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2023,module:ts.ModuleKind.CommonJS}}).outputText;vm.runInContext('(function(require,exports,module){'+code+'\n})',context,{filename:path})(name=>load(resolve(dirname(path),name)),module.exports,module);return module.exports;}
   const d=w.document,click=selector=>{const control=d.querySelector(selector);assert(control,selector);assert(!control.disabled,'禁用 '+selector);control.click();};
-  load('src/web/'+(file==='project-detail'?'detail':file)+'.ts');
+  configure(w);load('src/web/'+(file==='project-detail'?'detail':file)+'.ts');
   const close=async()=>{if(closed)return;w.dispatchEvent(new w.Event('pagehide'));const end=Date.now()+10000;while(active||Date.now()-lastRequest<1100){assert(Date.now()<end,'页面关闭前请求未收敛');await new Promise(resolve=>setTimeout(resolve,40));}closed=true;dom.window.close();};pages.push(close);return {w,d,click,close};
 }
 try{
@@ -61,6 +61,8 @@ try{
   const space=page(b,'project-space');await wait(()=>!!space.d.querySelector('button[data-action=accept]'));
   space.d.getElementById('space-search').value=prefix;space.d.getElementById('space-search').dispatchEvent(new space.w.Event('input',{bubbles:true}));await wait(()=>space.d.querySelectorAll('.space-card').length===1);
   assert(!space.d.querySelector('.space-card').textContent.includes('最新状态说明'));
+  const storageSet=space.w.Storage.prototype.setItem;space.w.Storage.prototype.setItem=function(key,value){if(key.startsWith('geekdash_membership:'))throw new space.w.DOMException('blocked','QuotaExceededError');return storageSet.call(this,key,value);};
+  space.click('button[data-action=accept]');await wait(()=>space.d.getElementById('space-message').textContent.includes('本次未发送修改'));assert.equal((await c.query('SELECT user_id FROM project_responsibilities WHERE project_id=?',[project.id]))[0].length,1);space.w.Storage.prototype.setItem=storageSet;
   b.loseAck();space.click('button[data-action=accept]');await wait(()=>!!space.d.querySelector(`a[href="/project-detail.html?id=${project.id}"]`));
   await wait(()=>!!space.d.querySelector('button[data-action=query]'));space.click('button[data-action=query]');await wait(()=>!space.d.querySelector('button[data-action=query]'));
   assert.equal((await c.query('SELECT user_id FROM project_responsibilities WHERE project_id=?',[project.id]))[0].length,2);
@@ -80,11 +82,13 @@ try{
   // 接续后续账号交接验证，退出者重新申请、由现任成员接受。
   const application=(await b.api('/api/projects/'+project.id+'/membership',{action:'apply',idempotencyKey:randomUUID()})).result.requestId;
   await a.api('/api/projects/'+project.id+'/membership',{action:'accept',requestId:application,idempotencyKey:randomUUID()});
-  const admin=page(m,'accounts');await wait(()=>!!admin.d.querySelector(`[data-account="${accounts[0].id}"]`));admin.click(`[data-account="${accounts[0].id}"]`);await wait(()=>!!admin.d.querySelector('[data-confirm]'));admin.click('[data-confirm]');
+  const admin=page(m,'accounts');await wait(()=>!!admin.d.querySelector(`[data-account="${accounts[0].id}"]`));admin.click(`[data-account="${accounts[0].id}"]`);await wait(()=>!!admin.d.querySelector('[data-confirm]'));const accountStorageSet=admin.w.Storage.prototype.setItem;admin.w.Storage.prototype.setItem=function(key,value){if(key.startsWith('geekdash_accounts:'))throw new admin.w.DOMException('blocked','QuotaExceededError');return accountStorageSet.call(this,key,value);};admin.click('[data-confirm]');await wait(()=>admin.d.getElementById('account-message').textContent.includes('本次未发送修改'));assert.equal(Number((await c.query('SELECT enabled FROM users WHERE id=?',[accounts[0].id]))[0][0].enabled),1);admin.w.Storage.prototype.setItem=accountStorageSet;const accountStorageRemove=admin.w.Storage.prototype.removeItem;admin.w.Storage.prototype.removeItem=function(key){if(key.startsWith('geekdash_accounts:'))throw new admin.w.DOMException('blocked','SecurityError');return accountStorageRemove.call(this,key);};admin.click('[data-confirm]');
   await wait(async()=>Number((await c.query('SELECT enabled FROM users WHERE id=?',[accounts[0].id]))[0][0].enabled)===0);
-  await wait(()=>admin.d.getElementById('account-message').textContent==='账号状态已保存。');await a.api('/api/projects?view=all',undefined,401);
+  await wait(()=>admin.d.getElementById('account-message').textContent==='账号状态已保存。');admin.w.Storage.prototype.removeItem=accountStorageRemove;await a.api('/api/projects?view=all',undefined,401);
   assert((await b.api('/api/projects?view=all')).items.some(row=>row.id===project.id));
   admin.click(`[data-account="${accounts[0].id}"]`);await wait(()=>!!admin.d.querySelector('[data-confirm]'));admin.click('[data-confirm]');await wait(()=>admin.d.getElementById('account-message').textContent==='账号状态已保存。'&&!admin.d.querySelector('[data-confirm]'));await a.login();assert((await a.api('/api/projects?view=all')).items.some(row=>row.id===project.id));
+  const readOnlyAdmin=page(m,'accounts','',w=>{const get=w.Storage.prototype.getItem;w.Storage.prototype.getItem=function(key){if(key.startsWith('geekdash_accounts:'))throw new w.DOMException('blocked','SecurityError');return get.call(this,key);};});await wait(()=>!!readOnlyAdmin.d.querySelector(`[data-account="${accounts[0].id}"]`));assert(readOnlyAdmin.d.querySelector(`[data-account="${accounts[0].id}"]`).disabled);assert(readOnlyAdmin.d.getElementById('account-message').textContent.includes('现有账号仍可查看'));await readOnlyAdmin.close();
+  checks.push('浏览器操作记录写入失败不发送修改且原按钮可重试；清理失败不否定已成功操作');
   checks.push('维护页就地显示影响→一次确认停用→撤销旧会话、其他协作者继续管理→重新启用需新登录');
   const unowned=(await a.api('/api/projects',{fields:{name:prefix+' 无负责人'},idempotencyKey:randomUUID()})).result.projectId;
   await c.execute('DELETE FROM project_responsibilities WHERE project_id=?',[unowned]);
