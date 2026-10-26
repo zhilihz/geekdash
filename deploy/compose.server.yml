@@ -15,6 +15,7 @@ services:
       GEEKDASH_ORIGIN: https://geekdash.zhiluan.cool
       GEEKDASH_IMPORT_DIR: /var/lib/geekdash/imports
       GEEKDASH_IMPORT_WRITES: ${GEEKDASH_IMPORT_WRITES:-enabled}
+      GEEKDASH_IMPORT_ACCEPTING: ${GEEKDASH_IMPORT_ACCEPTING:-enabled}
     volumes:
       - type: bind
         source: /var/lib/geekdash/imports
