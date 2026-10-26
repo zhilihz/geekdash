@@ -92,9 +92,9 @@ try {
   assert.deepEqual((await a.api('/api/projects/create-results/query', 'POST', creation)).result, created.result);
   await c.execute('UPDATE chips SET enabled=0 WHERE id=?', [selected.chips]);
   const countProjects = async () => Number((await c.query('SELECT COUNT(*) n FROM projects WHERE created_by=?', [users[0].id]))[0][0].n);
-  const countBefore = await countProjects(); await a.api('/api/projects', 'POST', { ...creation, idempotencyKey: randomUUID() }, 422); assert.equal(await countProjects(), countBefore);
+  const countBefore = await countProjects(); await a.api('/api/projects', 'POST', { ...creation, fields:{...creation.fields,name:creation.fields.name+' 未提交'}, idempotencyKey: randomUUID() }, 422); assert.equal(await countProjects(), countBefore);
   await c.execute('UPDATE chips SET enabled=1 WHERE id=?', [selected.chips]);
-  fault = 'INSERT INTO audit_log'; await a.api('/api/projects', 'POST', { ...creation, idempotencyKey: randomUUID() }, 503); fault = ''; assert.equal(await countProjects(), countBefore);
+  fault = 'INSERT INTO audit_log'; await a.api('/api/projects', 'POST', { ...creation, fields:{...creation.fields,name:creation.fields.name+' 未提交'}, idempotencyKey: randomUUID() }, 503); fault = ''; assert.equal(await countProjects(), countBefore);
   checks.push('PRD9.5：完整同构字段创建、七阶段与创建者负责、简介和原备注独立；新GET/SQL、原号重放、停用资料与审计失败无孤儿项目');
   await c.execute("INSERT INTO project_people (project_id,engineer_id,role,sort_order) VALUES (?,?,'pm',0)", [id, engineer]);
   const basic = await save('basic', { name: prefix + '修改', summary: '独立简介', people: [{ id: engineer, role: 'hardware_owner' }] });
@@ -212,7 +212,8 @@ try {
   const detail = await a.api(path); assert.equal(detail.stages[0].expectedEndOn, '2030-10-01'); assert.equal(detail.nodes.length, 2);
   checks.push('PRD9.10/9.11/9.12：单条记录目标隔离、客户/项目节点隔离、节点保存后阶段预计日期新GET联动');
 
-  await b.api(path + '/responsibility', 'POST', { expectedVersion: version, idempotencyKey: randomUUID(), action: 'join' }); version = (await a.api(path)).project.version;
+  async function invitation(owner,user){const targetUserId=user===a?users[0].id:users[1].id;const result=await owner.api(path+'/membership','POST',{action:'invite',targetUserId,idempotencyKey:randomUUID()});return {action:'accept',requestId:result.result.requestId,idempotencyKey:randomUUID()};}
+  await b.api(path+'/membership','POST',await invitation(a,b)); version = (await a.api(path)).project.version;
   const fullList = await a.api('/api/projects?view=all&details=checks&dashboard=1&search=' + encodeURIComponent(prefix));
   const card = fullList.items.find(item => item.id === id), live = await a.api(path);
   for (const key of ['project','stages','nodes','risks','changes','responsible','checkRule']) assert.deepEqual(card.inspection[key], live[key], '完整检查卡 ' + key);
@@ -224,11 +225,11 @@ try {
   assert.equal(fullList.dashboard.team.find(person => person.id === 'user:' + users[0].id).pmCount, 2);
   const engineerList = await a.api('/api/projects?view=all&owner=engineer:' + engineer);
   assert(engineerList.items.some(item => item.id === id));
-  await b.api(path + '/responsibility', 'POST', { expectedVersion: version, idempotencyKey: randomUUID(), action: 'leave' }); version = (await a.api(path)).project.version;
+  await b.api(path + '/membership', 'POST', { expectedVersion: version, idempotencyKey: randomUUID(), action: 'leave' }); version = (await a.api(path)).project.version;
   assert(!(await a.api('/api/projects?view=all&owner=user:' + users[1].id)).items.some(item => item.id === id));
   await b.api(path, 'PATCH', body(version, 'status', { statusDesc: '退出后无权' }), 403);
-  await a.api(path + '/responsibility', 'POST', { expectedVersion: version, idempotencyKey: randomUUID(), action: 'leave' }, 422);
-  await b.api(path + '/responsibility', 'POST', { expectedVersion: version, idempotencyKey: randomUUID(), action: 'join' }); version = (await a.api(path)).project.version;
+  await a.api(path + '/membership', 'POST', { expectedVersion: version, idempotencyKey: randomUUID(), action: 'leave' }, 422);
+  await b.api(path+'/membership','POST',await invitation(a,b)); version = (await a.api(path)).project.version;
   checks.push('PRD9.6/9.15：完整检查卡与详情同值；真实经理加入/退出、卡片/稳定ID筛选/团队统计联动、退出无权及最后一人保护');
   const requests = [body(version, 'status', { statusDesc: '并发甲' }), body(version, 'summaryNote', { summaryNote: '并发乙' })];
   const responses = await Promise.all([a.api(path, 'PATCH', requests[0], [200, 409]), b.api(path, 'PATCH', requests[1], [200, 409])]);
@@ -244,36 +245,36 @@ try {
   checks.push('PRD9.4：灯色/说明真实持久字段一致；已有标签添加后明确清空，正式关联消失；最新说明可清空且不改灯色及两类备注');
   version = (await a.api(path)).project.version;
   const leave = () => ({ expectedVersion: version, idempotencyKey: randomUUID(), action: 'leave' });
-  const exits = await Promise.all([a.api(path + '/responsibility', 'POST', leave(), [200, 409]), b.api(path + '/responsibility', 'POST', leave(), [200, 409])]);
+  const exits = await Promise.all([a.api(path + '/membership', 'POST', leave(), [200, 409]), b.api(path + '/membership', 'POST', leave(), [200, 409])]);
   assert.deepEqual(exits.map(result => result.httpStatus).sort(), [200, 409]);
-  const remaining = await a.api(path); version = remaining.project.version;
-  assert.equal(remaining.responsible.length, 1);
-  const retained = remaining.responsible[0].id === users[0].id ? a : b;
+  const remainingId=(await c.query('SELECT CAST(user_id AS CHAR) id FROM project_responsibilities WHERE project_id=?',[id]))[0][0].id;
+  const retained=remainingId===users[0].id?a:b;
+  const remaining=await retained.api(path);version=remaining.project.version;assert.equal(remaining.responsible.length,1);
   const returning = retained === a ? b : a;
   const protectedState = await fresh(id);
-  await retained.api(path + '/responsibility', 'POST', leave(), 422);
+  await retained.api(path + '/membership', 'POST', leave(), 422);
   assert.deepEqual(await fresh(id), protectedState);
   assert.equal(Number((await c.query('SELECT COUNT(*) n FROM project_responsibilities WHERE project_id=?', [id]))[0][0].n), 1);
-  const rejoin = { expectedVersion: version, idempotencyKey: randomUUID(), action: 'join' };
-  fault = 'ack'; assert.equal((await returning.api(path + '/responsibility', 'POST', rejoin, 503)).outcome, 'unknown'); fault = '';
+  const rejoin = await invitation(retained,returning);
+  fault = 'ack'; assert.equal((await returning.api(path + '/membership', 'POST', rejoin, 503)).outcome, 'unknown'); fault = '';
   const joinedState = await fresh(id);
   await app.close(); app = undefined; await start();
-  const joinedResult = await returning.api(path + '/responsibility-results/query', 'POST', rejoin);
+  const joinedResult = await returning.api(path + '/membership-results/query', 'POST', rejoin);
   assert.equal(joinedResult.outcome, 'committed');
   assert.equal(joinedResult.result.savedVersion, String(BigInt(version) + 1n));
-  assert.deepEqual((await returning.api(path + '/responsibility', 'POST', rejoin)).result, joinedResult.result);
+  assert.deepEqual((await returning.api(path + '/membership', 'POST', rejoin)).result, joinedResult.result);
   assert.deepEqual(await fresh(id), joinedState);
   assert.deepEqual((await a.api(path)).responsible.map(person => person.id).sort(), users.map(person => person.id).sort());
   assert.equal(Number((await c.query('SELECT COUNT(*) n FROM project_responsibilities WHERE project_id=?', [id]))[0][0].n), 2);
   checks.push('PRD9.6：两人同版本退出仅一次成功，最后经理拒绝且SQL不变；加入COMMIT丢响应后重启查原结果及重放，名单/版本/审计无重复');
   version = joinedResult.result.savedVersion;
-  const redundantJoin = { expectedVersion: version, idempotencyKey: randomUUID(), action: 'join' };
-  const redundant = await returning.api(path + '/responsibility', 'POST', redundantJoin);
+  const redundantJoin = { idempotencyKey: randomUUID(), action: 'apply' };
+  const redundant = await returning.api(path + '/membership', 'POST', redundantJoin);
   assert.equal(redundant.result.changed, false); assert.equal(redundant.result.savedVersion, version);
   const afterRedundant = await fresh(id);
   assert.deepEqual(afterRedundant.projects, joinedState.projects); assert.deepEqual(afterRedundant.audit_log, joinedState.audit_log);
-  assert.deepEqual((await returning.api(path + '/responsibility', 'POST', redundantJoin)).result, redundant.result);
-  for (const field of ['userId', 'actorId', 'responsibleUserId']) await a.api(path + '/responsibility', 'POST', { ...redundantJoin, idempotencyKey: randomUUID(), [field]: users[1].id }, 400);
+  assert.deepEqual((await returning.api(path + '/membership', 'POST', redundantJoin)).result, redundant.result);
+  for (const field of ['userId', 'actorId', 'responsibleUserId']) await a.api(path + '/membership', 'POST', { ...redundantJoin, idempotencyKey: randomUUID(), [field]: users[1].id }, 400);
   assert.deepEqual(await fresh(id), afterRedundant);
   assert.deepEqual((await a.api(path)).responsible.map(person => person.id).sort(), users.map(person => person.id).sort());
   checks.push('PRD9.6：已加入再确认不改版本/历史；原号重放同结果；请求夹带他人账号全部拒绝且SQL/责任名单不变');
@@ -396,6 +397,8 @@ try {
   fault = ''; if (app) await app.close();
   if (projects.length) {
     for (const table of ['project_drafts', 'audit_log', 'project_checks', 'schedule_changes', 'project_changes', 'project_risks', 'project_nodes', 'project_stages', 'project_people', 'project_chips', 'project_tags', 'project_responsibilities']) await c.query(`DELETE FROM ${table} WHERE project_id IN (?)`, [projects]);
+    await c.query('DELETE FROM project_membership_requests WHERE project_id IN (?)',[projects]);
+    await c.query('DELETE FROM project_name_aliases WHERE project_id IN (?)',[projects]);
     await c.query('DELETE FROM projects WHERE id IN (?)', [projects]);
   }
   if (users.length) { const ids = users.map(u => u.id); for (const table of ['command_receipts', 'audit_log']) await c.query(`DELETE FROM ${table} WHERE actor_id IN (?)`, [ids]); await c.query('DELETE FROM sessions WHERE user_id IN (?)', [ids]); await c.query('DELETE FROM users WHERE id IN (?)', [ids]); }

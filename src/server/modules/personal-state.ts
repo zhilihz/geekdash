@@ -3,6 +3,7 @@ import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 import { assertActor, type Actor } from './identity.js';
 import { failure, validId, scopeFields, validateSave } from './project-save.js';
 import { validateAction } from './project-actions.js';
+import { hasProjectAccess } from './project-membership.js';
 
 const uuid = (value: unknown): value is string => typeof value === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value);
 const object = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
@@ -18,7 +19,7 @@ function tree(value: unknown, depth = 0) {
   else if (object(value)) for (const [key, item] of Object.entries(value)) { if (!nestedKeys.has(key)) failure('INVALID_PERSONAL_STATE', 400); tree(item, depth + 1); }
   else if (value !== null && !['string','number','boolean'].includes(typeof value)) failure('INVALID_PERSONAL_STATE', 400);
 }
-const createFields = () => [...scopeFields.basic, 'statusDesc', 'tagIds', 'filingDate', 'dueDate', 'managerIds'];
+const createFields = () => [...scopeFields.basic, 'statusDesc', 'tagIds', 'filingDate', 'dueDate', 'inviteeIds', 'managerIds'];
 export type DraftPayload = { schemaVersion: 1; instanceId: string; target?: string; values?: Record<string, unknown>; intent?: Record<string, unknown>; record?: Record<string, unknown>; command?: Record<string, unknown>; submission?: Record<string, unknown> };
 export type DraftWrite = { clientDraftId: string; projectId: string | null; formKind: string; baseVersion: string | null; expectedDraftVersion: string; clientSequence: string; payload: DraftPayload; rebaseOperationId?: string };
 export type DraftRef = { clientDraftId: string; draftVersion: string };
@@ -57,7 +58,7 @@ const columns = 'CAST(id AS CHAR) id,client_draft_id clientDraftId,CAST(project_
 async function rows(c: PoolConnection, sql: string, values: unknown[] = []) { return (await c.query<RowDataPacket[]>({ sql, timeout: 3000 }, values))[0]; }
 async function editable(c: PoolConnection, actor: Actor, id: string) {
   if (!(await rows(c,'SELECT id FROM projects WHERE id=? FOR SHARE',[id])).length) failure('PROJECT_NOT_FOUND',404);
-  if (!(await rows(c,'SELECT user_id FROM project_responsibilities WHERE project_id=? AND user_id=?',[id,actor.id])).length) failure('PROJECT_READ_ONLY',403);
+  if (!await hasProjectAccess(c,id,actor.id)) failure('PROJECT_READ_ONLY',403);
 }
 const preferenceKeys: Record<string, string[]> = {
   appearance: ['theme','layout','visibleFilters'], 'summary-layout': ['columns','hiddenColumns','showStatus','showNotes','showChipNotes'],

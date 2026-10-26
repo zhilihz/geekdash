@@ -10,6 +10,7 @@ import { ProjectNotifications, editorBadges } from './shared/notifications';
 import { refreshProjectOptions } from './shared/project-options';
 import { attachStatusMentions } from './shared/status-mentions';
 import { statusHtml } from './shared/status-text';
+import {saveMembership} from './shared/membership';
 import type { SaveScope, SourceHistoryPage } from './shared/api';
 import { get, send, SaveError, esc, label, projectTags, setupTheme, requireIdentity, account, loginUrl, stageMessages, actionLabels, dateTitles, isPlanCommand, isLifecycleCommand, isClosureCommand, isCheckCommand, type ChangeOperation, type ChangeRecord, type ChangePreview, type ChangeFields, type NodeOperation, type NodeRecord, type NodePreview, type NodeFields, type RiskOperation, type RiskRecord, type RiskPreview, type CheckCommand, type CheckPreview, type CheckPage, closureTitles, type ClosureCommand, type ClosurePreview, type LifecycleCommand, type LifecyclePreview, type PlanCommand, type PlanPreview, type ScheduleRecord, type CorrectionCommand, type CorrectionPreview, type StageCommand, type StartCommand, type ProjectCommand, type Detail, type Entry, type EditValues, type Catalog, type SaveRequest, type SaveResult, type AuditPage } from './shared/api';
 
@@ -103,7 +104,7 @@ function stagePanel() {
       <div class="stage-days">预期天数 <input data-edit data-stage-plan="${stage.code}" type="number" min="0" max="65535" step="1" class="stage-days-input" aria-label="${esc(s.name)}预期天数" value="${esc(stage.plannedDays ?? '')}" placeholder="建议 ${s.mid} 天"${snapshot!.capabilities.editText ? '' : ' readonly'}>（标准 ${esc(s.standard)} / 建议 ${s.mid} 天）</div>
       <div class="stage-note-view">实际开始：${esc(stage.startedOn ?? '—')} · 实际完成：${esc(stage.completedOn ?? '—')} · 预期完成：${esc(stage.expectedEndOn ?? '待确定')}${Number(stage.undatedNodeCount) > 0 ? `（${esc(stage.undatedNodeCount)} 个节点未填目标日期）` : ''}</div>
       <label class="stage-note-view">评述<textarea data-edit data-stage-note="${stage.code}" class="choice-note" aria-label="${esc(s.name)}评述"${snapshot!.capabilities.editText ? '' : ' readonly'}>${esc(stage.note ?? '')}</textarea></label>
-      ${stage.state === 'completed' ? `<div class="stage-done-tag">✅ 里程碑已完成${stage.completedOn ? ' · ' + esc(stage.completedOn) : ''}</div><button type="button" class="choice-btn stage-rollback" data-correction="rollbackStage" data-stage="${stage.code}"${['proposal', 'ongoing'].includes(p.status) ? '' : ' disabled'}>回退到此阶段</button>` : p.status === 'closed' ? '<div class="stage-locked">⏹ 项目已结案</div>' : stage.state === 'locked' ? `<div class="stage-locked">🔒 ${esc(stageMessages[blocked ?? 'STAGE_PREDECESSOR_INCOMPLETE'])}</div>` : `<div class="stage-choice">${button}<button type="button" class="choice-btn choice-close" data-closure="closeProject" data-closure-type="terminated">⏹ 中途结案</button></div>${blocked ? `<div class="stage-locked">${esc(stageMessages[blocked] ?? blocked)}</div>` : ''}`}
+      ${stage.state === 'completed' ? `<div class="stage-done-tag">✅ 里程碑已完成${stage.completedOn ? ' · ' + esc(stage.completedOn) : ''}</div><button type="button" class="choice-btn stage-rollback" data-correction="rollbackStage" data-stage="${stage.code}"${['proposal', 'ongoing'].includes(p.status) ? '' : ' disabled'}>回退到此阶段</button>` : p.status === 'closed' ? '<div class="stage-locked">⏹ 项目已结案</div>' : stage.state === 'unknown' ? `<div class="stage-choice"><label for="stage-known-${stage.code}">历史开始状态</label><select id="stage-known-${stage.code}"><option value="">请选择</option><option value="ready">待开始</option><option value="active">进行中</option></select><button type="button" class="choice-confirm" data-confirm-state="${stage.code}">保存状态</button></div>` : stage.state === 'locked' ? `<div class="stage-locked">🔒 ${esc(stageMessages[blocked ?? 'STAGE_PREDECESSOR_INCOMPLETE'])}</div>` : `<div class="stage-choice">${button}<button type="button" class="choice-btn choice-close" data-closure="closeProject" data-closure-type="terminated">⏹ 中途结案</button></div>${blocked ? `<div class="stage-locked">${esc(stageMessages[blocked] ?? blocked)}</div>` : ''}`}
       ${p.status !== 'closed' && ['active', 'completed'].includes(String(stage.state)) ? `<button type="button" class="choice-btn" data-correction="${stage.state === 'active' ? 'undoStageStart' : 'undoStageComplete'}" data-stage="${stage.code}">${stage.state === 'active' ? '撤销误开始' : '撤销误完成'}</button>` : ''}
       <button class="back-btn" data-correction="correctStageFacts" data-stage="${stage.code}">修改实际日期</button><button class="back-btn" data-save-scope="stage" data-target="${stage.code}">保存工期与评述</button><div class="stage-choice-form" id="stage-form-${stage.code}"></div></div>`;
   }).join('');
@@ -114,7 +115,7 @@ function stagePanel() {
 async function prepareAction(action: ProjectCommand['action'], code?: string) {
   if (!snapshot || inFlight || pending || responsibilityPending || stagePending || stale || authFrozen || loading) return false;
   if (isCheckCommand({ action }) && dirty()) { note('请先保存或取消尚未提交的修改，再检查正式项目。', true); return false; }
-  if (['startStage','completeStage','correctStageFacts','undoStageStart','undoStageComplete','rollbackStage'].includes(action) && ((values?.nodeOps?.length ?? 0) > 0 || basicDraft && basicIntentChanged(snapshot, basicDraft))) {
+  if (['confirmStageState','startStage','completeStage','correctStageFacts','undoStageStart','undoStageComplete','rollbackStage'].includes(action) && ((values?.nodeOps?.length ?? 0) > 0 || basicDraft && basicIntentChanged(snapshot, basicDraft))) {
     note('本次阶段操作涉及尚未保存的项目日期或节点，请先保存或取消对应区域。其他区域输入会继续保留。', true); return false;
   }
   if (stageDraft?.expectedVersion !== undefined && stageDraft.expectedVersion !== snapshot.project.version) { note('动作副本已过期，请复制核对后放弃，再重新填写。', true); controls(); return false; }
@@ -833,13 +834,17 @@ async function executeStage(confirm: boolean) {
     controls();
   }
 }
-type ResponsibilityCommand = { expectedVersion: string; idempotencyKey: string; action: 'join' | 'leave' };
+type ResponsibilityCommand = { expectedVersion: string; idempotencyKey: string; action: 'join' | 'leave'; protocol?:2 };
 let responsibilityPending: ResponsibilityCommand | undefined;
 const responsibilityKey = () => `geekdash_responsibility:${account!.id}:${id}`;
 function responsibilityControls() {
   if (!snapshot || !document.getElementById('responsibility')) return;
-  const members = (snapshot.responsible ?? []).map(user => esc(user.name) + (user.enabled ? '' : '（已停用）')).join('、') || '尚未建立账号负责关系';
-  element('responsibility').innerHTML = `<div class="field-fact">${members}</div><button class="back-btn manager-action" id="responsibility-save">${snapshot.readOnly ? '本人加入' : '本人退出'}</button>${responsibilityPending ? ' <button class="back-btn" id="responsibility-confirm">确认原结果</button><button class="back-btn" id="responsibility-retry">重试原操作</button>' : ''}`;
+  const members=snapshot.responsible??[],others=members.filter(user=>user.id!==account?.id);
+  const previousInvite=(document.getElementById('invite-collaborator') as HTMLSelectElement|null)?.value;
+  const opened=!!document.querySelector<HTMLDetailsElement>('#responsibility details')?.open;
+  element('responsibility').innerHTML=`${members.length>1?`<span class="read-label">协作者：${others.map(user=>esc(user.name)+(user.enabled?'':'（已停用）')).join('、')}</span>`:''}<details class="page-menu"${opened?' open':''}><summary class="back-btn">更多</summary><div class="collaboration-actions"><label for="invite-collaborator">邀请协作者</label><select id="invite-collaborator"><option value="">选择账号</option>${(catalog?.managerAccounts??[]).filter(user=>user.enabled&&!members.some(member=>member.id===user.id)).map(user=>`<option value="${user.id}"${previousInvite===user.id?' selected':''}>${esc(user.name)}</option>`).join('')}</select><button class="back-btn" id="invite-save">发送邀请</button><button class="back-btn" id="responsibility-save">退出项目</button>${responsibilityPending?'<button class="back-btn" id="responsibility-confirm">核对原操作</button><button class="back-btn" id="responsibility-retry">重试原操作</button>':''}</div></details>`;
+  const invite=element('invite-save') as HTMLButtonElement;invite.disabled=loading||inFlight||authFrozen||stale||!!pending||!!stagePending||!!responsibilityPending;
+  invite.onclick=async()=>{const targetUserId=(element('invite-collaborator') as HTMLSelectElement).value;if(!targetUserId){note('请先选择协作者。',true);return;}invite.disabled=true;try{const result=await saveMembership(id,{action:'invite',targetUserId});note(result.outcome==='committed'?'协作邀请已保存，对方接受后加入。':'原邀请结果待确认，请在此重试核对。');document.dispatchEvent(new Event('geekdash-membership'));}catch(error){note((error as Error).message,true);}finally{invite.disabled=false;}};
   (element('responsibility-save') as HTMLButtonElement).disabled = loading || inFlight || stale || !!pending || !!responsibilityPending || !!stagePending || authFrozen;
   element('responsibility-save').onclick = async () => {
     if (!snapshot || inFlight || pending || stale || responsibilityPending || stagePending || authFrozen) return;
@@ -849,7 +854,7 @@ function responsibilityControls() {
       if (choice === 'keep') { persist(); if(!await personalDrafts?.sync()){note('草稿尚未全部同步，请先重试或复制内容，再变更负责范围。',true);return;} candidate = { format: 2, baseVersion: editBaseVersion, values: structuredClone(values!), basicDraft: basicDraft && structuredClone(basicDraft), changeDraft, riskDraft, nodeDraft, nodeRestoreExtras }; }
       else { if(!await discardPersonal())return;candidate = undefined; sessionStorage.removeItem(bufferKey); }
     }
-    responsibilityPending = { expectedVersion: snapshot.project.version, idempotencyKey: crypto.randomUUID(), action: snapshot.readOnly ? 'join' : 'leave' };
+    responsibilityPending = { expectedVersion: snapshot.project.version, idempotencyKey: crypto.randomUUID(), action: 'leave',protocol:2 };
     try { sessionStorage.setItem(responsibilityKey(), JSON.stringify(responsibilityPending)); } catch { note('恢复存储不可用，请保留页面至结果确认。', true); }
     await changeResponsibility(false);
   };
@@ -864,14 +869,17 @@ async function changeResponsibility(confirm: boolean) {
   if (!responsibilityPending || inFlight) return; inFlight = true; controls();
   let committed = false;
   try {
-    const response = await send<{ outcome: string }>(`/api/projects/${id}/${confirm ? 'responsibility-results/query' : 'responsibility'}`, 'POST', responsibilityPending, !confirm);
-    if (response.outcome === 'committed') { responsibilityPending = undefined; sessionStorage.removeItem(responsibilityKey()); committed = true; }
-    else note('暂未查到原责任变更，可重试原操作；不要另造操作编号。', true);
+    const {protocol,...body}=responsibilityPending;
+    const path=protocol===2?(confirm?'membership-results/query':'membership'):'responsibility-results/query';
+    const response=await send<{outcome:string}>(`/api/projects/${id}/${path}`,'POST',body,protocol===2&&!confirm);
+    if(response.outcome==='committed'){responsibilityPending=undefined;sessionStorage.removeItem(responsibilityKey());committed=true;}
+    else if(protocol!==2){responsibilityPending=undefined;sessionStorage.removeItem(responsibilityKey());note('旧操作未入库，请在当前项目空间申请或认领。');}
+    else note('原操作尚未完成，可在此重试。',true);
   } catch (error) {
     note((error as Error).message, true);
     if (error instanceof SaveError && error.outcome === 'not_committed') { responsibilityPending = undefined; sessionStorage.removeItem(responsibilityKey()); if (error.code === 'PROJECT_VERSION_CONFLICT') stale = true; }
   } finally { inFlight = false; controls(); }
-  if (committed) await load();
+  if(committed){leaving=true;location.assign('/project-space.html');}
 }
 let audit: AuditPage | undefined;
 let auditGeneration = 0;
@@ -956,6 +964,7 @@ function controls() {
   if (discard) { discard.disabled = frozen || actionOpen || !dirty(); discard.hidden = !dirty(); }
   for (const action of ['confirm', 'retry']) { const button = document.getElementById(action) as HTMLButtonElement | null; if (button) button.disabled = inFlight; }
   (element('reload') as HTMLButtonElement).disabled = frozen;
+  document.querySelectorAll<HTMLButtonElement|HTMLSelectElement>('[data-confirm-state], select[id^="stage-known-"]').forEach(control=>{control.disabled=frozen||actionOpen||stale||authFrozen||!snapshot?.capabilities.editText;});
   document.querySelectorAll<HTMLButtonElement>('[data-stage-action]').forEach(button => { const item = snapshot?.stageActions.find(item => item.code === button.dataset.stage); const blocked = button.dataset.stageAction === 'startStage' ? item?.startBlocked : item?.completeBlocked; button.disabled = frozen || stale || authFrozen || !item || !!blocked; });
   const startButton = document.getElementById('project-start') as HTMLButtonElement | null; if (startButton) startButton.disabled = frozen || stale || authFrozen || !!snapshot?.startBlocked;
   document.querySelectorAll<HTMLButtonElement>('[data-correction]').forEach(button => { const status = snapshot!.project.status; button.disabled = frozen || stale || authFrozen || !snapshot?.capabilities.editText || button.dataset.correction === 'rollbackStage' && !['proposal', 'ongoing'].includes(status) || button.dataset.correction !== 'correctStageFacts' && status === 'closed'; });
@@ -1032,6 +1041,7 @@ async function restorePersonalDraft(row:PersonalDraft){
     else if(isLifecycleCommand(command)){lifecycleDraft=command;await openLifecycle(command.action,'auditId' in command?command.auditId:undefined);}
     else if(isPlanCommand(command)){planDraft=command;await openPlan(command.action,'recordId' in command?command.recordId:undefined);}
     else if('reason' in command){correctionDraft=command;await openCorrection(command.action,'stageCode' in command?command.stageCode:undefined);}
+    else if(command.action==='confirmStageState'){tab='stages';render();const input=document.getElementById('stage-known-'+command.stageCode) as HTMLSelectElement|null;if(input)input.value=command.state;}
     else {stageDraft=command;if(command.action==='startProject')await openStart();else await openStage(command.stageCode,command.action);}
     persistStage();return true;
   }
@@ -1113,7 +1123,7 @@ async function copyText() {
   const nodeCopyText = nodeDraft ? '未确认节点表单\n' + JSON.stringify({ nodeDraft, nodeRestoreExtras }, null, 2) + '\n\n' : '';
   const riskCopy = riskDraft ? '未确认风险表单\n' + JSON.stringify(riskDraft, null, 2) + '\n\n' : '';
   const stageCopy = stagePending ?? stageDraft ?? correctionDraft ?? planDraft ?? lifecycleDraft ?? closureDraft ?? checkDraft;
-  const text = changeCopyText + nodeCopyText + riskCopy + (stageCopy ? (isPlanCommand(stageCopy) || isLifecycleCommand(stageCopy) || isClosureCommand(stageCopy) || isCheckCommand(stageCopy)) ? `${actionLabels[stageCopy.action]}副本\n${JSON.stringify(stageCopy, null, 2)}\n\n` : 'reason' in stageCopy ? `${actionLabels[stageCopy.action]}副本\n原因：${stageCopy.reason}\n进入版本：${stageCopy.expectedVersion}\n${stageCopy.action === 'correctStageFacts' ? JSON.stringify(stageCopy.changes) : label(stageCopy.stageCode) + (stageCopy.undoStart ? '（开始也误记）' : '')}\n\n` : stageCopy.action === 'startProject' ? `启动项目副本\n实际启动：${stageCopy.actualDate}\n预计结案：${stageCopy.dueDate}\n调整原因：${stageCopy.planReason ?? ''}\n进入版本：${stageCopy.expectedVersion}\n\n` : `阶段操作副本\n${label(stageCopy.stageCode)} · ${stageCopy.action === 'startStage' ? '开始' : '完成'}\n实际日期：${stageCopy.actualDate}\n说明：${stageCopy.completionNote ?? ''}\n进入版本：${stageCopy.expectedVersion}\n\n` : '') + keys.map(key => `${titles[key]}\n${showValue(key, values?.[key])}`).join('\n\n') + (candidate ? '\n\n——恢复候选副本——\n' + keys.map(key => `${titles[key]}\n${showValue(key, candidate!.values[key])}`).join('\n\n') + (candidate.changeDraft ? '\n未确认需求变更表单\n' + JSON.stringify(candidate.changeDraft, null, 2) : '') + (candidate.riskDraft ? '\n未确认风险表单\n' + JSON.stringify(candidate.riskDraft, null, 2) : '') + (candidate.nodeDraft ? '\n未确认节点表单\n' + JSON.stringify({ nodeDraft: candidate.nodeDraft, nodeRestoreExtras: candidate.nodeRestoreExtras }, null, 2) : '') : '') + (legacyCopy ? '\n\n——旧匿名试用副本（仅供核对）——\n' + keys.map(key => `${titles[key]}\n${showValue(key, legacyCopy!.values[key])}`).join('\n\n') : '');
+  const text = changeCopyText + nodeCopyText + riskCopy + (stageCopy ? (stageCopy.action==='confirmStageState' || isPlanCommand(stageCopy) || isLifecycleCommand(stageCopy) || isClosureCommand(stageCopy) || isCheckCommand(stageCopy)) ? `${actionLabels[stageCopy.action]}副本\n${JSON.stringify(stageCopy, null, 2)}\n\n` : 'reason' in stageCopy ? `${actionLabels[stageCopy.action]}副本\n原因：${stageCopy.reason}\n进入版本：${stageCopy.expectedVersion}\n${stageCopy.action === 'correctStageFacts' ? JSON.stringify(stageCopy.changes) : label(stageCopy.stageCode) + (stageCopy.undoStart ? '（开始也误记）' : '')}\n\n` : stageCopy.action === 'startProject' ? `启动项目副本\n实际启动：${stageCopy.actualDate}\n预计结案：${stageCopy.dueDate}\n调整原因：${stageCopy.planReason ?? ''}\n进入版本：${stageCopy.expectedVersion}\n\n` : `阶段操作副本\n${label(stageCopy.stageCode)} · ${stageCopy.action === 'startStage' ? '开始' : '完成'}\n实际日期：${stageCopy.actualDate}\n说明：${stageCopy.completionNote ?? ''}\n进入版本：${stageCopy.expectedVersion}\n\n` : '') + keys.map(key => `${titles[key]}\n${showValue(key, values?.[key])}`).join('\n\n') + (candidate ? '\n\n——恢复候选副本——\n' + keys.map(key => `${titles[key]}\n${showValue(key, candidate!.values[key])}`).join('\n\n') + (candidate.changeDraft ? '\n未确认需求变更表单\n' + JSON.stringify(candidate.changeDraft, null, 2) : '') + (candidate.riskDraft ? '\n未确认风险表单\n' + JSON.stringify(candidate.riskDraft, null, 2) : '') + (candidate.nodeDraft ? '\n未确认节点表单\n' + JSON.stringify({ nodeDraft: candidate.nodeDraft, nodeRestoreExtras: candidate.nodeRestoreExtras }, null, 2) : '') : '') + (legacyCopy ? '\n\n——旧匿名试用副本（仅供核对）——\n' + keys.map(key => `${titles[key]}\n${showValue(key, legacyCopy!.values[key])}`).join('\n\n') : '');
   await choose('以下文字可选择后复制；复制不会保存项目。', [['cancel', '关闭']], `<textarea class="copy-text" readonly aria-label="未保存文字">${esc(text)}</textarea>`);
 }
 function editor() {
@@ -1625,6 +1635,7 @@ function render() {
   const planRestore = document.getElementById('plan-restore'); if (planRestore) planRestore.onclick = () => { if (planDraft) void openPlan(planDraft.action, 'recordId' in planDraft ? planDraft.recordId : undefined); };
   const planDiscard = document.getElementById('plan-discard'); if (planDiscard) planDiscard.onclick = () => { planDraft = undefined; persistStage(); render(); };
   const asNote = document.getElementById('plan-as-note'); if (asNote) asNote.onclick = () => { if (planDraft?.action === 'reschedulePlan') { planDraft = { action: 'notePlan', expectedVersion: planDraft.expectedVersion, idempotencyKey: crypto.randomUUID(), reason: planDraft.reason, measures: planDraft.measures }; persistStage(); void openPlan('notePlan'); } };
+  document.querySelectorAll<HTMLButtonElement>('[data-confirm-state]').forEach(button=>button.onclick=async()=>{const code=button.dataset.confirmState!,state=(element('stage-known-'+code) as HTMLSelectElement).value;if(!['ready','active'].includes(state)){note('请选择这个阶段是否已开始。',true);return;}if(!await prepareAction('confirmStageState',code)||!snapshot)return;stagePending={action:'confirmStageState',stageCode:code,state:state as 'ready'|'active',expectedVersion:snapshot.project.version,idempotencyKey:crypto.randomUUID()};persistStage();await executeStage(false);});
   document.querySelectorAll<HTMLButtonElement>('[data-stage-action]').forEach(button => button.onclick = () => { void openStage(button.dataset.stage!, button.dataset.stageAction as StageCommand['action']); });
   document.querySelectorAll<HTMLButtonElement>('[data-correction]').forEach(button => button.onclick = () => { void openCorrection(button.dataset.correction as CorrectionCommand['action'], button.dataset.stage); });
   const correctionRestore = document.getElementById('correction-restore'); if (correctionRestore) correctionRestore.onclick = () => { if (correctionDraft) void openCorrection(correctionDraft.action, 'stageCode' in correctionDraft ? correctionDraft.stageCode : undefined); };
@@ -1673,7 +1684,8 @@ async function load(initial = false) {
     return true;
   } catch (error) {
     if (current !== generation) return false;
-    note((error as Error).message + (snapshot ? ' 当前仍显示上次进入的项目版本。' : ''), true);
+    if(error instanceof SaveError&&['PROJECT_ACCESS_REQUIRED','BUSINESS_ACCOUNT_REQUIRED'].includes(error.code)){persist();snapshot=undefined;stale=true;element('detail-panel').hidden=true;note('当前没有本项目的协作资格，请回项目空间认领或申请。未保存输入仍保留供本人复制。',true);}
+    else note((error as Error).message + (snapshot ? ' 当前仍显示上次进入的项目版本。' : ''), true);
   } finally { if (current === generation) { loading = false; controls(); } }
 }
 document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => button.onclick = () => { persist(); tab = button.dataset.tab!; render();rememberReading(); if (tab === 'history' && !audit) void loadAudit(); });
@@ -1749,7 +1761,7 @@ void requireIdentity().then(async () => {
       const validLifecycle = v && isLifecycleCommand(v) && (v.action === 'pauseProject' ? typeof v.reason === 'string' : v.action === 'resumeProject' ? typeof v.note === 'string' && (v.dueDate === undefined || typeof v.dueDate === 'string') && (v.planReason === undefined || typeof v.planReason === 'string') : /^[1-9][0-9]{0,19}$/.test(v.auditId) && typeof v.note === 'string' && typeof v.reason === 'string');
       const validClosure = v && isClosureCommand(v) && (v.action === 'closeProject' ? (['closureType', 'closedOn', 'closureNote', 'remainingWorkNote'] as const).every(key => typeof v[key] === 'string') : typeof v.reason === 'string' && (v.action === 'setMaintenance' ? typeof v.enabled === 'boolean' : (v.closureAuditId === null || /^[1-9][0-9]{0,19}$/.test(v.closureAuditId)) && (v.action === 'reopenProject' || validPatch && Object.keys(patch).every(key => Object.hasOwn(closureTitles, key)))));
       const validCheck = v && isCheckCommand(v) && ['checked', 'follow_up'].includes(v.conclusion) && typeof v.note === 'string' && (v.action === 'saveCheck' ? (v.ruleVersion === undefined || typeof v.ruleVersion === 'string') && (v.previewWeek === undefined || typeof v.previewWeek === 'string') : /^[1-9][0-9]{0,19}$/.test(v.checkId) && typeof v.reason === 'string');
-      const validAction = validCheck || validClosure || validLifecycle || validPlan || validCorrection || v && typeof v.actualDate === 'string' && (v.action === 'startProject' ? (v.dueDate === null || typeof v.dueDate === 'string') && ['configVersion', 'ruleVersion', 'previewWeek', 'previewFirstCheckWeek'].every(key => v[key] === undefined || typeof v[key] === 'string') : /^S[1-7]$/.test(v.stageCode) && ['startStage', 'completeStage'].includes(v.action) && (v.completionNote === undefined || typeof v.completionNote === 'string'));
+      const validAction = v?.action==='confirmStageState'&&/^S[1-7]$/.test(v.stageCode)&&['ready','active'].includes(v.state) || validCheck || validClosure || validLifecycle || validPlan || validCorrection || v && typeof v.actualDate === 'string' && (v.action === 'startProject' ? (v.dueDate === null || typeof v.dueDate === 'string') && ['configVersion', 'ruleVersion', 'previewWeek', 'previewFirstCheckWeek'].every(key => v[key] === undefined || typeof v[key] === 'string') : /^S[1-7]$/.test(v.stageCode) && ['startStage', 'completeStage'].includes(v.action) && (v.completionNote === undefined || typeof v.completionNote === 'string'));
       if (validAction && /^[1-9][0-9]{0,19}$/.test(v.expectedVersion) && (part === 'draft' || typeof v.idempotencyKey === 'string')) { if (part === 'pending') stagePending = v; else if (part === 'correction' && validCorrection) correctionDraft = v; else if (part === 'plan' && validPlan) planDraft = v; else if (part === 'lifecycle' && validLifecycle) lifecycleDraft = v; else if (part === 'closure' && validClosure) closureDraft = v; else if (part === 'check' && validCheck) checkDraft = v; else if (part === 'draft' && !validCheck && !validClosure && !validPlan && !validLifecycle && !validCorrection) stageDraft = v; }
     }
   } catch { note('动作恢复信息无法读取，请核对当前项目。', true); }

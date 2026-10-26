@@ -53,7 +53,15 @@
     "test:changes": "node scripts/verify-project-changes.mjs",
     "test:changes-capacity": "node scripts/verify-project-capacity.mjs --checks --risks --nodes --recovery --changes",
     "test:node-recovery": "node scripts/verify-project-node-recovery.mjs",
-    "test:node-recovery-capacity": "node scripts/verify-project-capacity.mjs --checks --risks --nodes --recovery"
+    "test:node-recovery-capacity": "node scripts/verify-project-capacity.mjs --checks --risks --nodes --recovery",
+    "test:membership": "node scripts/verify-project-membership.mjs",
+    "test:project-space-ui": "node scripts/verify-project-space-ui.mjs",
+    "test:import-project-space": "node scripts/verify-import-project-space.mjs",
+    "test:import-ui": "node scripts/verify-import-workbench.mjs",
+    "test:space-migration": "node scripts/verify-project-space-migration.mjs",
+    "test:space-restore": "node scripts/verify-project-space-restore.mjs",
+    "test:import-drain": "node scripts/verify-import-drain.mjs",
+    "test:write-recovery": "node scripts/verify-write-recovery.mjs"
   },
   "dependencies": {
     "@fastify/static": "10.1.5",

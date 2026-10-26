@@ -1,0 +1,342 @@
+{
+  "version": "0009-project-space",
+  "steps": [
+    {
+      "table": "projects",
+      "data": "check-project-names"
+    },
+    {
+      "table": "projects",
+      "sql": "ALTER TABLE projects ADD COLUMN name_key VARBINARY(1020) NULL",
+      "columns": [
+        {
+          "name": "name_key",
+          "type": "varbinary(1020)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ]
+    },
+    {
+      "table": "projects",
+      "data": "fill-project-name-keys"
+    },
+    {
+      "table": "projects",
+      "sql": "ALTER TABLE projects MODIFY COLUMN name_key VARBINARY(1020) NOT NULL, ADD UNIQUE KEY uk_projects_name_key (name_key)",
+      "columns": [
+        {
+          "name": "name_key",
+          "type": "varbinary(1020)",
+          "nullable": false,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "uk_projects_name_key",
+          "unique": true,
+          "columns": [
+            "name_key"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "project_name_aliases",
+      "create": {
+        "name": "project_name_aliases",
+        "columns": [
+          {
+            "name": "project_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "name_key",
+            "type": "varbinary(1020)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          }
+        ],
+        "indexes": [
+          {
+            "name": "PRIMARY",
+            "unique": true,
+            "columns": [
+              "project_id",
+              "name_key"
+            ]
+          },
+          {
+            "name": "idx_name_key_project_id",
+            "unique": false,
+            "columns": [
+              "name_key",
+              "project_id"
+            ]
+          }
+        ],
+        "checks": [],
+        "foreignKeys": [
+          {
+            "name": "fk_project_name_aliases_project_id",
+            "columns": [
+              "project_id"
+            ],
+            "parent": "projects",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `project_name_aliases` ADD CONSTRAINT `fk_project_name_aliases_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          }
+        ],
+        "sql": "CREATE TABLE `project_name_aliases` (\n  `project_id` bigint unsigned NOT NULL,\n  `name_key` varbinary(1020) NOT NULL,\n  PRIMARY KEY (`project_id`, `name_key`),\n  KEY `idx_name_key_project_id` (`name_key`, `project_id`),\n  CONSTRAINT `fk_project_name_aliases_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+      },
+      "sql": "CREATE TABLE `project_name_aliases` (\n  `project_id` bigint unsigned NOT NULL,\n  `name_key` varbinary(1020) NOT NULL,\n  PRIMARY KEY (`project_id`, `name_key`),\n  KEY `idx_name_key_project_id` (`name_key`, `project_id`),\n  CONSTRAINT `fk_project_name_aliases_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "table": "project_name_aliases",
+      "data": "remember-project-names"
+    },
+    {
+      "table": "project_membership_requests",
+      "create": {
+        "name": "project_membership_requests",
+        "columns": [
+          {
+            "name": "id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": true,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "project_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "kind",
+            "type": "varchar(16)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": "ascii",
+            "collation": "ascii_bin"
+          },
+          {
+            "name": "initiator_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "target_user_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "status",
+            "type": "varchar(16)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": "ascii",
+            "collation": "ascii_bin"
+          },
+          {
+            "name": "created_at",
+            "type": "datetime(3)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "resolved_at",
+            "type": "datetime(3)",
+            "nullable": true,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "resolved_by",
+            "type": "bigint unsigned",
+            "nullable": true,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "resolution_code",
+            "type": "varchar(32)",
+            "nullable": true,
+            "default": null,
+            "autoIncrement": false,
+            "charset": "ascii",
+            "collation": "ascii_bin"
+          }
+        ],
+        "indexes": [
+          {
+            "name": "PRIMARY",
+            "unique": true,
+            "columns": [
+              "id"
+            ]
+          },
+          {
+            "name": "idx_project_status_id",
+            "unique": false,
+            "columns": [
+              "project_id",
+              "status",
+              "id"
+            ]
+          },
+          {
+            "name": "idx_target_status_id",
+            "unique": false,
+            "columns": [
+              "target_user_id",
+              "status",
+              "id"
+            ]
+          },
+          {
+            "name": "idx_initiator_id",
+            "unique": false,
+            "columns": [
+              "initiator_id",
+              "id"
+            ]
+          },
+          {
+            "name": "idx_resolved_by",
+            "unique": false,
+            "columns": [
+              "resolved_by"
+            ]
+          }
+        ],
+        "checks": [
+          {
+            "name": "ck_membership_kind",
+            "expression": "`kind` IN ('invitation','application')"
+          },
+          {
+            "name": "ck_membership_status",
+            "expression": "`status` IN ('pending','accepted','rejected','withdrawn','invalidated')"
+          },
+          {
+            "name": "ck_membership_applicant",
+            "expression": "IF(`kind` = 'application', `initiator_id` = `target_user_id`, 1) = 1"
+          },
+          {
+            "name": "ck_membership_resolution",
+            "expression": "IF(`status` = 'pending', `resolved_at` IS NULL AND `resolved_by` IS NULL AND `resolution_code` IS NULL, `resolved_at` IS NOT NULL AND `resolution_code` IS NOT NULL) = 1"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "name": "fk_project_membership_requests_project_id",
+            "columns": [
+              "project_id"
+            ],
+            "parent": "projects",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `project_membership_requests` ADD CONSTRAINT `fk_project_membership_requests_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          },
+          {
+            "name": "fk_project_membership_requests_initiator_id",
+            "columns": [
+              "initiator_id"
+            ],
+            "parent": "users",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `project_membership_requests` ADD CONSTRAINT `fk_project_membership_requests_initiator_id` FOREIGN KEY (`initiator_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          },
+          {
+            "name": "fk_project_membership_requests_target_user_id",
+            "columns": [
+              "target_user_id"
+            ],
+            "parent": "users",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `project_membership_requests` ADD CONSTRAINT `fk_project_membership_requests_target_user_id` FOREIGN KEY (`target_user_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          },
+          {
+            "name": "fk_project_membership_requests_resolved_by",
+            "columns": [
+              "resolved_by"
+            ],
+            "parent": "users",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `project_membership_requests` ADD CONSTRAINT `fk_project_membership_requests_resolved_by` FOREIGN KEY (`resolved_by`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          }
+        ],
+        "sql": "CREATE TABLE `project_membership_requests` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `project_id` bigint unsigned NOT NULL,\n  `kind` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `initiator_id` bigint unsigned NOT NULL,\n  `target_user_id` bigint unsigned NOT NULL,\n  `status` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `created_at` datetime(3) NOT NULL,\n  `resolved_at` datetime(3) NULL,\n  `resolved_by` bigint unsigned NULL,\n  `resolution_code` varchar(32) CHARACTER SET ascii COLLATE ascii_bin NULL,\n  PRIMARY KEY (`id`),\n  KEY `idx_project_status_id` (`project_id`, `status`, `id`),\n  KEY `idx_target_status_id` (`target_user_id`, `status`, `id`),\n  KEY `idx_initiator_id` (`initiator_id`, `id`),\n  KEY `idx_resolved_by` (`resolved_by`),\n  CONSTRAINT `ck_membership_kind` CHECK (`kind` IN ('invitation','application')),\n  CONSTRAINT `ck_membership_status` CHECK (`status` IN ('pending','accepted','rejected','withdrawn','invalidated')),\n  CONSTRAINT `ck_membership_applicant` CHECK (IF(`kind` = 'application', `initiator_id` = `target_user_id`, 1) = 1),\n  CONSTRAINT `ck_membership_resolution` CHECK (IF(`status` = 'pending', `resolved_at` IS NULL AND `resolved_by` IS NULL AND `resolution_code` IS NULL, `resolved_at` IS NOT NULL AND `resolution_code` IS NOT NULL) = 1),\n  CONSTRAINT `fk_project_membership_requests_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,\n  CONSTRAINT `fk_project_membership_requests_initiator_id` FOREIGN KEY (`initiator_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,\n  CONSTRAINT `fk_project_membership_requests_target_user_id` FOREIGN KEY (`target_user_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,\n  CONSTRAINT `fk_project_membership_requests_resolved_by` FOREIGN KEY (`resolved_by`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+      },
+      "sql": "CREATE TABLE `project_membership_requests` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  `project_id` bigint unsigned NOT NULL,\n  `kind` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `initiator_id` bigint unsigned NOT NULL,\n  `target_user_id` bigint unsigned NOT NULL,\n  `status` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n  `created_at` datetime(3) NOT NULL,\n  `resolved_at` datetime(3) NULL,\n  `resolved_by` bigint unsigned NULL,\n  `resolution_code` varchar(32) CHARACTER SET ascii COLLATE ascii_bin NULL,\n  PRIMARY KEY (`id`),\n  KEY `idx_project_status_id` (`project_id`, `status`, `id`),\n  KEY `idx_target_status_id` (`target_user_id`, `status`, `id`),\n  KEY `idx_initiator_id` (`initiator_id`, `id`),\n  KEY `idx_resolved_by` (`resolved_by`),\n  CONSTRAINT `ck_membership_kind` CHECK (`kind` IN ('invitation','application')),\n  CONSTRAINT `ck_membership_status` CHECK (`status` IN ('pending','accepted','rejected','withdrawn','invalidated')),\n  CONSTRAINT `ck_membership_applicant` CHECK (IF(`kind` = 'application', `initiator_id` = `target_user_id`, 1) = 1),\n  CONSTRAINT `ck_membership_resolution` CHECK (IF(`status` = 'pending', `resolved_at` IS NULL AND `resolved_by` IS NULL AND `resolution_code` IS NULL, `resolved_at` IS NOT NULL AND `resolution_code` IS NOT NULL) = 1),\n  CONSTRAINT `fk_project_membership_requests_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,\n  CONSTRAINT `fk_project_membership_requests_initiator_id` FOREIGN KEY (`initiator_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,\n  CONSTRAINT `fk_project_membership_requests_target_user_id` FOREIGN KEY (`target_user_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,\n  CONSTRAINT `fk_project_membership_requests_resolved_by` FOREIGN KEY (`resolved_by`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    },
+    {
+      "table": "project_stages",
+      "sql": "ALTER TABLE project_stages DROP CHECK ck_project_stages_state, ADD CONSTRAINT ck_project_stages_state CHECK (`state` IN ('locked','ready','active','completed','unknown'))",
+      "checks": [
+        {
+          "name": "ck_project_stages_state",
+          "expression": "`state` IN ('locked','ready','active','completed','unknown')"
+        }
+      ]
+    }
+  ]
+}

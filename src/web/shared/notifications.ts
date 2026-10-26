@@ -45,6 +45,7 @@ export class ProjectNotifications {
     source.addEventListener('resource',event=>{if(!current())return;try{const value=JSON.parse((event as MessageEvent).data);if(typeof value.operationId==='string' && (value.resource==='catalog' && typeof value.kind==='string' || value.resource==='check-rule' && /^[1-9][0-9]*$/.test(value.version)))this.resource?.(value);}catch{this.reconnect();}});
     source.addEventListener('editors',event=>{if(!current())return;try{const value=JSON.parse((event as MessageEvent).data);if(typeof value.projectId!=='string' || !/^[1-9][0-9]*$/.test(value.projectId) || !Array.isArray(value.users) || value.users.some((item:{id?:unknown;name?:unknown})=>!item || typeof item.id!=='string' || typeof item.name!=='string'))return;if(this.projectId && value.projectId!==this.projectId)return;if(this.editors)this.editors(value);else if(value.projectId===this.projectId)this.state(value.users.length?'正在编辑：'+value.users.map((item:{name:string})=>item.name).join('、'):'');}catch{this.state('编辑名单待重新核对');}});
     source.addEventListener('identity',()=>{if(!current())return;this.close();document.dispatchEvent(new Event('geekdash-identity-changed'));});
+    source.addEventListener('membership',()=>{if(current())document.dispatchEvent(new Event('geekdash-membership'));});
     source.addEventListener('unavailable',()=>{if(current())void this.disconnected();});
     source.onerror=()=>{if(current())void this.disconnected();};
   }

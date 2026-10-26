@@ -33,6 +33,7 @@ export function importExecutions(database:RuntimeDatabase,committed:(result:Json
       await assertActor(c,actor);
       const previous=(await rows(c,`SELECT ${columns} FROM import_executions WHERE batch_id=? AND actor_id=? AND operation_key=?`,[batchId,actor.id,body.idempotencyKey]))[0];
       if(previous){if(!previous.requestHash.equals(digest))failure('OPERATION_KEY_REUSED',409);return publicResult(unpack(previous));}
+      if(body.formatVersion!==2)failure('IMPORT_CLIENT_OUTDATED',410);
       const command=await service.planExecution(c,actor,batchId,body);
       // planExecution 持有批次锁，重复接收在此再查一次。
       const duplicate=(await rows(c,`SELECT ${columns} FROM import_executions WHERE batch_id=? AND actor_id=? AND operation_key=?`,[batchId,actor.id,body.idempotencyKey]))[0];
@@ -45,11 +46,12 @@ export function importExecutions(database:RuntimeDatabase,committed:(result:Json
     wake();return value;
   }
   async function step(){
-    if(stopped||process.env.GEEKDASH_IMPORT_WRITES==='disabled')return;
+    if(stopped||process.env.GEEKDASH_IMPORT_WRITES==='disabled'||process.env.GEEKDASH_BUSINESS_WRITES==='disabled')return;
     const token=randomUUID();
     const job=await database.writeTransaction(async c=>{
       const found=(await rows(c,`SELECT ${columns} FROM import_executions WHERE status='accepted' OR (status='running' AND lease_until<UTC_TIMESTAMP(3)) ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED`))[0];
       if(!found)return;
+      if(decode(found.command).formatVersion!==2)failure('IMPORT_LEGACY_EXECUTION_PENDING',503);
       await c.execute("UPDATE import_executions SET status='running',lease_token=?,lease_until=TIMESTAMPADD(SECOND,30,UTC_TIMESTAMP(3)),updated_at=UTC_TIMESTAMP(3) WHERE id=?",[token,found.id]);return unpack(found);
     });
     if(!job)return;
@@ -60,7 +62,7 @@ export function importExecutions(database:RuntimeDatabase,committed:(result:Json
       if(result.affectedRows!==1)failure('IMPORT_EXECUTION_LEASE_LOST',409);
     });
     for(const entry of job.command.entries){
-      if(stopped||process.env.GEEKDASH_IMPORT_WRITES==='disabled')break;
+      if(stopped||process.env.GEEKDASH_IMPORT_WRITES==='disabled'||process.env.GEEKDASH_BUSINESS_WRITES==='disabled')break;
       let progress=job.progress[entry.id] ??= {status:'pending'};
       if(['committed','failed'].includes(progress.status))continue;
       try {
@@ -72,7 +74,7 @@ export function importExecutions(database:RuntimeDatabase,committed:(result:Json
         }
         // 原请求体先持久化，再发送业务事务；崩溃恢复必须重放同一编号和同一内容。
         const prior=await service.executionResult(actor,entry.id,progress.body);
-        const result=prior?{outcome:'committed',result:prior}:await service.item(actor,job.batchId,entry.id,'adopt',progress.body,entry.body.idempotencyKey,execution);
+        const result=prior?{outcome:'committed',result:prior}:await service.item(actor,job.batchId,entry.id,'adopt',progress.body,entry.body.idempotencyKey,{...execution,collaborators:entry.collaborators});
         if(!('result' in result))throw new Error('IMPORT_RESULT_UNKNOWN');
         progress.status='committed';progress.result=result.result;await persist();committed(result.result);
       }catch(error){

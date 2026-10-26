@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import type { Connection, RowDataPacket } from 'mysql2/promise';
 import { connectDatabase, type DatabaseProfile } from './db.js';
+import { projectNameKey } from '../modules/project-name.js';
 
 type Column = { name: string; type: string; nullable: boolean; default: string | null; autoIncrement: boolean; charset: string | null; collation: string | null };
 type Index = { name: string; unique: boolean; columns: string[] };
@@ -9,7 +10,7 @@ type Check = { name: string; expression: string };
 type ForeignKey = { name: string; columns: string[]; parent: string; references: string[]; onUpdate: string; onDelete: string; sql: string };
 type Table = { name: string; columns: Column[]; indexes: Index[]; checks: Check[]; foreignKeys: ForeignKey[]; sql: string };
 type Manifest = { version: string; tables: Table[] };
-type DataStep = 'seed-import-sources' | 'freeze-legacy-history-source' | 'remember-import-catalog-names';
+type DataStep = 'seed-import-sources' | 'freeze-legacy-history-source' | 'remember-import-catalog-names' | 'check-project-names' | 'fill-project-name-keys' | 'remember-project-names';
 type MigrationStep = { table: string; sql?: string; create?: Table; columns?: Column[]; indexes?: Index[]; checks?: Check[]; foreignKeys?: ForeignKey[]; dropIndexes?: string[]; data?: DataStep };
 type ResolvedStep = MigrationStep & { before: Table | undefined; after: Table };
 type ActualTable = { name: string; engine: string; collation: string; columns: Column[]; indexes: Index[]; checks: Check[]; foreignKeys: Omit<ForeignKey, 'sql'>[] };
@@ -26,7 +27,7 @@ export async function loadSchema() {
   let manifest = structuredClone(foundation);
   const history = [{ version: foundation.version, checksum: createHash('sha256').update(bytes).digest() }];
   const increments: { previous: Manifest; manifest: Manifest; steps: ResolvedStep[] }[] = [];
-  for (const [version, count] of [['0002-trial-save', 3], ['0003-node-recovery', 1], ['0004-project-compatibility', 2], ['0005-check-facts', 1], ['0006-imports', 11], ['0007-import-executions', 1], ['0008-import-name-bindings', 1]] as const) {
+  for (const [version, count] of [['0002-trial-save', 3], ['0003-node-recovery', 1], ['0004-project-compatibility', 2], ['0005-check-facts', 1], ['0006-imports', 11], ['0007-import-executions', 1], ['0008-import-name-bindings', 1], ['0009-project-space', 8]] as const) {
     const bytes = await readFile(new URL('../../migrations/' + version + '.json', import.meta.url));
     const delta = JSON.parse(bytes.toString('utf8')) as { version: string; steps: MigrationStep[] };
     if (delta.version !== version || delta.steps.length !== count) fail('DB_MIGRATION_RESOURCE_INVALID');
@@ -40,7 +41,7 @@ export async function loadSchema() {
         table = structuredClone(step.create); manifest.tables.push(table);
       }
       if (!table) fail('DB_MIGRATION_RESOURCE_INVALID');
-      if (step.data && (!['seed-import-sources', 'freeze-legacy-history-source', 'remember-import-catalog-names'].includes(step.data) || step.sql || step.create)
+      if (step.data && (!['seed-import-sources', 'freeze-legacy-history-source', 'remember-import-catalog-names', 'check-project-names', 'fill-project-name-keys', 'remember-project-names'].includes(step.data) || step.sql || step.create)
         || !step.data && !step.sql) fail('DB_MIGRATION_RESOURCE_INVALID');
       for (const name of step.dropIndexes ?? []) {
         if (!table.indexes.some(index => index.name === name)) fail('DB_MIGRATION_RESOURCE_INVALID');
@@ -65,6 +66,48 @@ async function query(connection: Connection, sql: string, values: unknown[] = []
 }
 
 async function migrateImportData(connection: Connection, data: DataStep) {
+  if (data === 'check-project-names' || data === 'fill-project-name-keys') {
+    if (data === 'check-project-names' && (await query(connection, "SELECT id FROM import_executions WHERE status<>'finished' LIMIT 1")).length) fail('DB_IMPORT_EXECUTION_PENDING');
+    const projects = await query(connection, 'SELECT CAST(id AS CHAR) id,name FROM projects ORDER BY id');
+    const keys = new Map<string, string>();
+    const values = projects.map(row => {
+      let key: Buffer;
+      try { key = projectNameKey(row.name); }
+      catch { fail('DB_PROJECT_NAME_INVALID', [{ table: 'projects', object: row.id, expected: '有效项目名称', actual: '空白或超长' }]); }
+      const duplicate = keys.get(key.toString('hex'));
+      if (duplicate) fail('DB_PROJECT_NAME_DUPLICATE', [{ table: 'projects', object: 'name_key', expected: '名称唯一', actual: [duplicate, row.id] }]);
+      keys.set(key.toString('hex'), row.id);
+      return { id: row.id, key };
+    });
+    if (data === 'check-project-names') return;
+    await connection.beginTransaction();
+    try {
+      for (const { id, key } of values) await query(connection, 'UPDATE projects SET name_key=? WHERE id=? AND NOT (name_key <=> ?)', [key, id, key]);
+      const checked = await query(connection, 'SELECT CAST(id AS CHAR) id,name,name_key FROM projects');
+      if (checked.some(row => !Buffer.isBuffer(row.name_key) || !row.name_key.equals(projectNameKey(row.name)))) fail('DB_PROJECT_NAME_BACKFILL_INVALID');
+      await connection.commit();
+    } catch (error) { await connection.rollback(); throw error; }
+    return;
+  }
+  if (data === 'remember-project-names') {
+    // 只从明确记录项目名的已知保存事件承接；说明文字不参与猜测。
+    const audits = await query(connection, `SELECT CAST(a.project_id AS CHAR) projectId,a.before_json beforeValues,a.after_json afterValues
+      FROM audit_log a JOIN projects p ON p.id=a.project_id WHERE a.entity_type='project' AND a.entity_id=a.project_id
+      AND a.action IN ('project.ordinary.save','project.text.save') ORDER BY a.id`);
+    await connection.beginTransaction();
+    try {
+      for (const audit of audits) {
+        const before = typeof audit.beforeValues === 'string' ? JSON.parse(audit.beforeValues) : audit.beforeValues;
+        const after = typeof audit.afterValues === 'string' ? JSON.parse(audit.afterValues) : audit.afterValues;
+        if (typeof before?.name !== 'string' || typeof after?.name !== 'string' || before.name === after.name) continue;
+        let key: Buffer;
+        try { key = projectNameKey(before.name); } catch { continue; }
+        await query(connection, 'INSERT INTO project_name_aliases(project_id,name_key) VALUES (?,?) ON DUPLICATE KEY UPDATE project_id=project_id', [audit.projectId, key]);
+      }
+      await connection.commit();
+    } catch (error) { await connection.rollback(); throw error; }
+    return;
+  }
   if(data==='remember-import-catalog-names'){
     const adopted=await query(connection,"SELECT a.source_namespace namespace,a.target_kind kind,CAST(a.target_id AS CHAR) targetId,i.source_payload_json payload FROM import_adoptions a JOIN import_items i ON i.id=a.item_id WHERE i.source_key IS NULL AND a.target_kind NOT IN ('project','company') ORDER BY a.id");
     const names=new Map<string,{namespace:string;kind:string;key:string;targets:Set<string>}>();

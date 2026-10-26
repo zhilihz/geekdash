@@ -1,3 +1,4 @@
+import { assertProjectAccess } from './project-membership.js';
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import { businessToday, validDate } from './project-dates.js';
 import { failure, validId } from './project-save.js';
@@ -57,7 +58,8 @@ export async function checkCandidate(c: PoolConnection, id: string, project: { v
   return { changed, beforeValues, afterValues, preview: { changed, beforeValues, afterValues, original: record.original, checkedAt: record.checkedAt, actorName: record.actorName, weekStart: record.weekStart, ruleVersion: record.ruleVersion, observedVersion: record.observedVersion, resultVersion: record.resultVersion } };
 }
 export function projectChecks(database: RuntimeDatabase, clock = () => new Date()) {
-  return { read(id: string, pageSize: number, before?: string) { return database.readSnapshot(async c => {
+  return { read(id: string, pageSize: number, before?: string, accountId?:string) { return database.readSnapshot(async c => {
+    if(accountId)await assertProjectAccess(c,id,accountId);
     const [projects] = await c.query<RowDataPacket[]>('SELECT CAST(version AS CHAR) version FROM projects WHERE id=?', [id]);
     if (!projects.length) failure('PROJECT_NOT_FOUND', 404);
     const [records] = await c.query<RowDataPacket[]>({ sql: `SELECT ${checkColumns}

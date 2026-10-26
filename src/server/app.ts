@@ -11,6 +11,7 @@ import { registerPersonalState } from './routes/personal-state.js';
 import { registerNotifications } from './infrastructure/notifications.js';
 import { registerCatalog } from './routes/catalog.js';
 import { registerImports } from './routes/imports.js';
+import { registerMembership } from './routes/membership.js';
 
 export async function createApp(database?: RuntimeDatabase, auth?: AuthConfig) {
   const build = JSON.parse(await readFile(new URL('../build-info.json', import.meta.url), 'utf8'));
@@ -20,6 +21,14 @@ export async function createApp(database?: RuntimeDatabase, auth?: AuthConfig) {
     logger: { redact: ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]'] },
   });
   if (database && database.fact.version !== build.schemaVersion) throw Object.assign(new Error('BUILD_SCHEMA_VERSION_MISMATCH'), { code: 'BUILD_SCHEMA_VERSION_MISMATCH' });
+  if (process.env.GEEKDASH_BUSINESS_WRITES && !['enabled','disabled'].includes(process.env.GEEKDASH_BUSINESS_WRITES)) throw new Error('INVALID_BUSINESS_WRITES_MODE');
+  app.addHook('onRequest', async (request, reply) => {
+    const path = request.url.split('?')[0];
+    if (process.env.GEEKDASH_BUSINESS_WRITES === 'disabled' && path.startsWith('/api/') && !['GET','HEAD','OPTIONS'].includes(request.method)
+      && !path.startsWith('/api/auth/') && !path.endsWith('/query') && !path.endsWith('/preview')) {
+      return reply.code(503).header('Cache-Control','no-store').send({code:'BUSINESS_WRITES_PAUSED',outcome:'not_committed',requestId:request.id});
+    }
+  });
   if (database) {
     app.addHook('preClose', async () => { database.beginClosing(); });
     app.addHook('onClose', async () => { await database.close(); });
@@ -56,6 +65,7 @@ export async function createApp(database?: RuntimeDatabase, auth?: AuthConfig) {
   // 旧匿名回归仅在隔离 test 库运行；实际 dev 服务默认要求身份。
   if (database && (auth || database.fact.database !== 'geekdash_test')) registerIdentity(app, database, auth ?? readAuthConfig(), notifications);
   registerProjectReads(app, database, notifications);
+  registerMembership(app, database, notifications);
   registerSettings(app, database, notifications);
   registerPersonalState(app, database);
   registerCatalog(app, database, notifications);

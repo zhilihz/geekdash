@@ -14,22 +14,23 @@ setupTheme(); setupDateZone();
 const form = document.getElementById('create') as HTMLFormElement;
 const message = document.getElementById('message')!;
 document.addEventListener('geekdash-preference-status',event=>{message.textContent=(event as CustomEvent<string>).detail;});
-type Fields = Partial<EditValues> & { filingDate?: string | null; dueDate?: string | null; managerIds?:string[] };
+type Fields = Partial<EditValues> & { filingDate?: string | null; dueDate?: string | null; inviteeIds?:string[]; managerIds?:string[] };
 type Command = { idempotencyKey: string; fields: Fields; draft?: DraftRef };
 let personalDrafts: PersonalDrafts | undefined;
 let pending: Command | undefined, busy = false, identityChanged = false, leaving = false, storageFailed = false;
 let catalog: Catalog | undefined, businessDate = '', errors: Record<string, string> = {};
 let catalogLoading=false,catalogRefreshPending=false;
-let managerIds:string[]=[];
+let inviteeIds:string[]=[];
 const value: EditValues = { name: '', summary: '', marketExpectation: '', detailNote: '', summaryNote: '', statusDesc: '', chipstatNote: '', signalNote: '', signal: 'green', priority: 'mid', customerId: null, odmCustomerId: null, productLineId: null, appId: null, groupId: null, chipIds: [], tagIds: [], people: [] };
 const draft: BasicIntent = { filingDate: '', startDate: '', dueDate: '', closedOn: '', proposalDate: '', originalDueDate: '', state: 'proposal', planKind: 'reschedule', reason: '', measures: '', closureType: 'normal', closureNote: '', remainingWorkNote: '', maintenance: false };
 const key = () => `geekdash_create:${account!.id}`;
 function savedInput(){try{return sessionStorage.getItem(key());}catch{storageFailed=true;message.textContent='本页恢复存储不可用，请确认草稿同步或复制未保存内容。';return null;}}
-function fields(): Fields { return { ...Object.fromEntries(scopeFields.basic.map(key => [key, structuredClone(value[key])])), statusDesc: value.statusDesc, filingDate: draft.filingDate || null, dueDate: draft.dueDate || null, managerIds:[...managerIds] }; }
+function fields(): Fields { return { ...Object.fromEntries(scopeFields.basic.map(key => [key, structuredClone(value[key])])), statusDesc: value.statusDesc, filingDate: draft.filingDate || null, dueDate: draft.dueDate || null, inviteeIds:[...inviteeIds] }; }
 const emptyFields=JSON.stringify(fields());
 const hasInput=()=>JSON.stringify(fields())!==emptyFields;
 function restoreFields(restored:Fields){
-  managerIds=Array.isArray(restored.managerIds)?restored.managerIds.filter((id):id is string=>typeof id==='string' && id!==account!.id):[];
+  restored={...restored,inviteeIds:restored.inviteeIds??restored.managerIds};
+  inviteeIds=Array.isArray(restored.inviteeIds)?restored.inviteeIds.filter((id):id is string=>typeof id==='string' && id!==account!.id):[];
   for(const name of Object.keys(value))if(Object.hasOwn(restored,name))Object.assign(value,{[name]:structuredClone(restored[name as keyof Fields])});
   draft.filingDate=String(restored.filingDate ?? '');draft.dueDate=String(restored.dueDate ?? '');
 }
@@ -68,21 +69,21 @@ function controls() {
   syncReferencePickers();
 }
 function reference(key: string, table: string, role?: string) {
-    const ids = key==='managerIds'?managerIds:key === 'people' ? value.people.filter(person => person.role === role).map(person => person.id) : value[key as keyof EditValues];
-    const selected=Array.isArray(ids)?ids as string[]:ids?[String(ids)]:[],options=(catalog?.[table] ?? []).filter(item=>key!=='managerIds' || item.id!==account?.id);
+    const ids = key==='inviteeIds'?inviteeIds:key === 'people' ? value.people.filter(person => person.role === role).map(person => person.id) : value[key as keyof EditValues];
+    const selected=Array.isArray(ids)?ids as string[]:ids?[String(ids)]:[],options=(catalog?.[table] ?? []).filter(item=>key!=='inviteeIds' || item.id!==account?.id);
     const source=document.getElementById(`edit-${key}${role?'-'+role:''}-source`) as HTMLSelectElement|null;
     for(const id of selected)if(!options.some(item=>item.id===id))options.push({id,name:[...(source?.options ?? [])].find(item=>item.value===id)?.textContent?.replace(/（停用\/不可新增）$/,'') ?? id,enabled:0});
     return referenceSelect(key,options,selected,[],role);
 }
 function render() {
   form.innerHTML = `<section class="project-info"><h2>基本信息与项目分工</h2>${basicFields({ project: { status: 'proposal', chips: [], people: [] }, businessDate, stages: [], nodes: [], risks: [] }, value, draft, true, reference, errors, true)}</section><section class="status-editor"><h2>最新状态说明</h2><textarea id="edit-statusDesc" rows="4" aria-label="最新状态说明">${esc(value.statusDesc)}</textarea><span class="field-error">${esc(errors.statusDesc)}</span></section><div class="entry-actions"><button id="save" type="submit" class="save-btn">保存并进入项目</button><button id="cancel" type="button" class="back-btn">取消</button></div>`;
-  document.getElementById('responsibility')!.innerHTML = `<div class="field-fact">${account?esc(account.name)+'（创建人，自动负责）':'读取当前账号…'}</div><label for="edit-managerIds" class="read-label">其他项目经理（可多选）</label>${reference('managerIds','managerAccounts')}<span class="field-error" id="error-managerIds">${esc(errors.managerIds)}</span>`;
+  document.getElementById('responsibility')!.innerHTML = `<div class="field-fact">${account?'创建后项目归你，受邀者接受后加入。':'读取当前账号…'}</div><label for="edit-inviteeIds" class="read-label">邀请协作者（可选，可多选）</label>${reference('inviteeIds','managerAccounts')}<span class="field-error" id="error-inviteeIds">${esc(errors.inviteeIds)}</span>`;
   form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input[id^="edit-"],textarea[id^="edit-"]').forEach(input => {
     input.oninput = () => { const name = input.id.slice(5); if (input.dataset.basic) Object.assign(draft, { [input.dataset.basic]: input.value }); else Object.assign(value, { [name]: input.value }); delete errors[name]; const error = document.getElementById('error-' + name); if (error) error.textContent = ''; remember(); };
   });
   form.querySelectorAll<HTMLSelectElement>('select').forEach(input => input.onchange = () => {
     const name = input.id.replace(/^edit-|-source$/g, '');
-    if(name==='managerIds')managerIds=[...input.selectedOptions].map(option=>option.value);
+    if(name==='inviteeIds')inviteeIds=[...input.selectedOptions].map(option=>option.value);
     else if (name.startsWith('people-')) {
       const role = name.slice(7); value.people = [...value.people.filter(person => person.role !== role), ...[...input.selectedOptions].map(option => ({ id: option.value, role }))];
     } else Object.assign(value, { [name]: input.multiple ? [...input.selectedOptions].map(option => option.value) : input.value || null });
@@ -97,6 +98,7 @@ async function execute(confirm: boolean) {
   try {
     const result = await send<{ outcome: string; result?: { projectId: string;operationId:string;savedVersion:string;draft?:DraftRef&{instanceId:string;state:string} } }>(confirm ? '/api/projects/create-results/query' : '/api/projects', 'POST', pending, !confirm);
     if (result.outcome === 'committed') { await personalDrafts?.advance(result.result!,{kind:'create'});try{sessionStorage.removeItem(key());}catch{} pending = undefined; leaving = true; location.replace('/project-detail.html?id=' + result.result!.projectId); }
+    else if(Object.hasOwn(pending.fields,'managerIds')){restoreFields(pending.fields);pending=undefined;remember();render();message.textContent='旧创建未入库，原信息已保留。原经理选择改为邀请协作者，请核对后创建。';}
     else message.textContent = '暂未查到原创建结果；可重试原创建，不要另建重复项目。';
   } catch (error) {
     message.textContent = error instanceof SaveError && error.fields ? Object.values(error.fields).join('；') : (error as Error).message;
@@ -141,7 +143,7 @@ void requireIdentity().then(async () => {
   render();
   await loadCatalog(); if (pending) void execute(true);
   if(!hasInput() && !pending)void personalDrafts.offer(candidate?{
-    text:'本标签页：'+(readableFields(candidate,{managerIds:'项目经理'}).slice(0,140) || '有未保存的新建项目信息'),
+    text:'本标签页：'+(readableFields(candidate,{inviteeIds:'邀请协作者'}).slice(0,140) || '有未保存的新建项目信息'),
     restore:()=>{if(pending || busy || identityChanged || hasInput() || savedInput()!==saved)return false;restoreFields(candidate!);render();remember();message.textContent='底稿已恢复，点击保存才会创建正式项目。';return true;},
     discard:()=>{if(!pending && !busy && !identityChanged && !hasInput() && savedInput()===saved)sessionStorage.removeItem(key());},
   }:undefined);

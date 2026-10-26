@@ -10,11 +10,12 @@ import { failure, validId } from './project-save.js';
 import { parseImportSource, importCatalogKinds } from './import-source.js';
 import { catalogDefinition, catalogNameKey, readCatalogInTransaction, previewCatalogInTransaction, saveCatalogInTransaction, validateCatalog } from './catalog.js';
 import { normalizeImportProject, readImportProject, lockImportProject, validateImportProject, applyImportProject, writeImportHistory, type ImportProjectInput } from './project-import.js';
+import { projectNameKey } from './project-name.js';
+import { hasProjectAccess, maintenanceAccount, lockMembershipAccounts, inviteCollaborator } from './project-membership.js';
 
 type Json = Record<string, any>;
-type Comparison = { source: unknown; saved: unknown };
-type Difference = { key: string; label: string; before: unknown; after: unknown; selectable: boolean; status: 'normal'|'conflict'|'needs_choice'|'keep_online'; defaultSelected: boolean; baseline?: Comparison; members?: Difference[]; issues?: Json[] };
-type ItemCommand = { expectedBatchVersion: string; expectedReviewVersion: string; expectedVersion: string | null; idempotencyKey: string; basis?: string; selected?: string[]; keepOnline?: string[]; payload?: Json; mode?: 'new' | 'existing'; targetId?: string | null; intent?: ImportProjectInput['intent'] };
+type Difference = { key: string; label: string; before: unknown; after: unknown; selectable: boolean; status: 'normal'|'conflict'|'needs_choice'|'keep_online'; defaultSelected: boolean; members?: Difference[]; issues?: Json[] };
+type ItemCommand = { expectedBatchVersion: string; expectedReviewVersion: string; expectedVersion: string | null; idempotencyKey: string; basis?: string; selected?: string[]; keepOnline?: string[]; payload?: Json; mode?: 'new' | 'existing'; targetId?: string | null; intent?: ImportProjectInput['intent']; managerMatches?: Record<string,string> };
 const object = (v: unknown): v is Json => !!v && typeof v === 'object' && !Array.isArray(v);
 const decode = (v: unknown): any => typeof v === 'string' ? JSON.parse(v) : v;
 const uuid = (v: unknown): v is string => typeof v === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(v);
@@ -24,9 +25,9 @@ const idSort = (a: string, b: string) => BigInt(a) < BigInt(b) ? -1 : BigInt(a) 
 async function rows(c: PoolConnection, sql: string, args: unknown[] = []) { return (await c.query<RowDataPacket[]>({ sql, timeout: 4000 }, args))[0]; }
 async function lastId(c: PoolConnection): Promise<string> { return (await rows(c, 'SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0].id; }
 function operation(v: unknown) { if (!uuid(v)) failure('INVALID_IMPORT_OPERATION', 400); }
-function sourceKey(v: unknown) { if (typeof v !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,63}$/.test(v)) failure('INVALID_IMPORT_SOURCE', 400); return v as string; }
 function command(input: unknown): ItemCommand {
-  if (!object(input) || Object.keys(input).some(k => !['expectedBatchVersion','expectedReviewVersion','expectedVersion','idempotencyKey','basis','selected','keepOnline','payload','mode','targetId','intent'].includes(k))) failure('INVALID_IMPORT_COMMAND',400);
+  if (!object(input) || Object.keys(input).some(k => !['expectedBatchVersion','expectedReviewVersion','expectedVersion','idempotencyKey','basis','selected','keepOnline','payload','mode','targetId','intent','managerMatches'].includes(k))) failure('INVALID_IMPORT_COMMAND',400);
+  if(input.managerMatches!==undefined&&(!object(input.managerMatches)||Object.entries(input.managerMatches).some(([name,id])=>!name||name.length>255||!validId(id))))failure('INVALID_IMPORT_COMMAND',400);
   operation(input.idempotencyKey);
   if (!validId(input.expectedBatchVersion) || !validId(input.expectedReviewVersion) || !(input.expectedVersion == null || input.expectedVersion === '0' || validId(input.expectedVersion))
     || ['selected','keepOnline'].some(key=>input[key] !== undefined && (!Array.isArray(input[key]) || input[key].some((k:unknown) => typeof k !== 'string' || k.length > 256) || new Set(input[key]).size !== input[key].length))
@@ -63,7 +64,7 @@ async function itemResult(c: PoolConnection, actor: Actor, scope: string, itemId
   return {...result,adoptionId:adoption.id};
 }
 async function audit(c: PoolConnection, actor: Actor, action: string, type: string, id: string, before: unknown, after: unknown, requestId: string) {
-  await c.execute("INSERT INTO audit_log(actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,before_json,after_json,request_id,created_at) VALUES (?,?,'user',?,?,?,?,?,?,UTC_TIMESTAMP(3))",[actor.id,actor.name,action,type,id,JSON.stringify(before),JSON.stringify(after),requestId]);
+  await c.execute("INSERT INTO audit_log(actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,before_json,after_json,request_id,created_at) VALUES (?,?,'user',?,?,?,?,?,?,?,UTC_TIMESTAMP(3))",[actor.id,actor.name,action,type,id,type==='project'?id:null,JSON.stringify(before),JSON.stringify(after),requestId]);
 }
 const batchColumns = 'CAST(b.id AS CHAR) id,b.source_namespace sourceNamespace,CAST(b.version AS CHAR) version,CAST(b.created_by AS CHAR) uploaderId,CAST(b.current_handler_id AS CHAR) handlerId,b.mapping_json metadata,b.created_at createdAt,u.display_name handlerName,u.enabled handlerEnabled,creator.display_name uploaderName';
 async function batch(c: PoolConnection, id: string, lock = false) {
@@ -88,21 +89,13 @@ async function catalogs(c: PoolConnection) {
   return result;
 }
 async function mayEdit(c: PoolConnection, actor: Actor, b: RowDataPacket, targetId: string | null, project: boolean) {
+  if(await maintenanceAccount(c,false)===actor.id)return false;
   if (!project) return true;
   if (!targetId) return b.handlerId === actor.id && !!b.handlerEnabled;
-  return !!(await rows(c,'SELECT project_id FROM project_responsibilities WHERE project_id=? AND user_id=?',[targetId,actor.id])).length;
+  return hasProjectAccess(c,targetId,actor.id);
 }
 const labels: Record<string,string> = { name:'项目名称', status:'项目状态', statusDesc:'最新状态说明', summary:'项目简介', marketExpectation:'市场预期', detailNote:'详细说明', summaryNote:'项目简要备注', chipstatNote:'芯片备注', customerId:'客户', odmCustomerId:'ODM工厂', productLineId:'产品线', appId:'APP', groupId:'分组', chipIds:'芯片', tagIds:'标签', signal:'灯色', signalNote:'灯色说明', priority:'优先级', filingDate:'立案日期', proposalDate:'提案日期', startDate:'实际启动日期', dueDate:'预计结案日期', originalDueDate:'原始计划', closedOn:'实际结案日期', closureType:'结案类型', closureDueDate:'结案时计划', closureNote:'结案说明', remainingWorkNote:'遗留处置说明', maintenanceEnabled:'量产维护', resumeStatus:'暂缓前状态', preCloseStatus:'结案前状态', hardware_owner:'硬件负责人', software_owner:'软件负责人', participant:'参与人员', pm:'本地项目经理资料', fullName:'企业全称', shortName:'企业简称', managerText:'企业负责人文字', namePrefix:'命名前缀', contact:'联系方式', background:'背景资料', role:'岗位', appVersion:'APP版本', description:'说明', originalModel:'原型号', manufacturer:'厂商', firmwareVersion:'固件版本' };
 
-function comparisonAtoms(payload: Json, project: boolean): Json {
-  if(!project)return {...payload};
-  const atoms:Json={};
-  for(const [group,prefix]of [['fields','fields'],['people','people'],['histories','history']])for(const [key,value]of Object.entries(payload[group] ?? {}))atoms[prefix+'.'+key]=value;
-  for(const stage of payload.stages ?? [])for(const [key,value]of Object.entries(stage))if(key!=='code')atoms['stage.'+stage.code+'.'+key]=value;
-  for(const record of payload.records ?? [])for(const [key,value]of Object.entries(record.values))atoms['record.'+record.key+'.'+key]=value;
-  if(Object.hasOwn(payload,'lastCheckAt'))atoms.lastCheckAt=payload.lastCheckAt;
-  return atoms;
-}
 function catalogSource(kind:string,raw:Json):Json {
   const value={...raw};
   if(kind==='company'&&Object.hasOwn(value,'manager'))value.managerText=value.manager;
@@ -111,53 +104,17 @@ function catalogSource(kind:string,raw:Json):Json {
   if(kind==='customers'&&Array.isArray(raw.tags)&&!raw.tags.length)result.tagIds=[];
   return result;
 }
-async function comparisonBase(c:PoolConnection,b:RowDataPacket,row:RowDataPacket,targetId:string|null,bound:RowDataPacket|undefined,bindings:RowDataPacket[],payload:Json) {
-  const values:Record<string,Comparison>={},versions:string[]=[],seen=new Set<string>(),stageSeen=new Set<string>(),unchangedStageChoices:string[]=[];
-  if(!targetId||row.kind!=='company'&&(!bound||bound.targetId!==targetId))return {values,versions,unchangedStageChoices};
-  const previous=await rows(c,'SELECT CAST(a.id AS CHAR) id,a.adopted_json facts,a.history_manifest_json manifest,i.source_payload_json raw FROM import_adoptions a JOIN import_items i ON i.id=a.item_id WHERE a.source_namespace=? AND a.target_kind=? AND a.target_id=? ORDER BY a.id DESC',[b.sourceNamespace,row.kind,targetId]);
-  for(const adoption of previous) {
-    const facts=decode(adoption.facts);
-    if(row.kind!=='company'&&(facts.sourceKey!==row.sourceKey||facts.bindingAfter?.id!==bound!.id||facts.bindingAfter?.version!==bound!.version))continue;
-    versions.push(adoption.id);
-    const project=row.kind==='project',saved=project?{...facts,histories:{}}:{...facts.fields};
-    if(project)for(const stage of facts.stages ?? [])if(Object.hasOwn(stage,'state')&&!stageSeen.has(stage.code)) {
-      stageSeen.add(stage.code);
-      const index=Number(stage.code.slice(1))-1,old=decode(adoption.raw).stages?.[index],now=row.raw.stages?.[index];
-      const evidence=(value:Json)=>Object.fromEntries(['done','state','startDate'].filter(key=>Object.hasOwn(value,key)).map(key=>[key,value[key]]));
-      if(object(old)&&object(now)&&equal(evidence(old),evidence(now)))unchangedStageChoices.push(stage.code);
-    }
-    if(project)for(const kind of Object.keys(decode(adoption.manifest) ?? {}))saved.histories[kind]=(await rows(c,'SELECT source_date_text date,body text FROM legacy_project_history WHERE source_adoption_id=? AND history_kind=? ORDER BY source_sequence,id',[adoption.id,kind])).map(v=>({date:v.date ?? '',text:v.text}));
-    const after=comparisonAtoms(saved,project),frozen:Record<string,Comparison>|undefined=facts.comparisonBase;
-    let original:Json={};
-    if(!frozen) {
-      const raw=decode(adoption.raw);
-      original=comparisonAtoms(project?normalizeImportProject(raw,{child:(kind,key)=>facts.records?.find((v:Json)=>v.kind===kind&&v.sourceKey===key)?.targetId}).input:catalogSource(row.kind,raw),project);
-      // 旧记录没有冻结引用对应时，不能拿现在的映射假装当时的来源值。
-      for(const key of Object.keys(original))if(key.startsWith('record.')&&/\.(previousNodeId|nextNodeId)$/.test(key)&&typeof original[key]==='string'&&original[key].startsWith('source:'))delete original[key];
-    }
-    for(const key of new Set([...Object.keys(after),...Object.keys(frozen ?? {})])) {
-      if(seen.has(key))continue;seen.add(key);
-      if(key.startsWith('record.')) {
-        const record=payload.records?.find((value:Json)=>key.startsWith('record.'+value.key+'.'));
-        const child=record?.sourceKey&&bound?bindings.find(value=>value.kind===record.kind&&value.scope===`project:${bound.id}:${bound.version}`&&value.sourceKey===record.sourceKey):null;
-        const recorded=facts.comparisonRecords?.[record?.key],legacy=facts.records?.find((value:Json)=>value.key===record?.key);
-        if(!record?.targetId||!child||child.targetId!==record.targetId)continue;
-        if(recorded ? recorded.targetId!==child.targetId||recorded.id!==child.id||recorded.version!==child.version : legacy?.targetId!==child.targetId||child.version!=='1')continue;
-      }
-      if(frozen&&Object.hasOwn(frozen,key)&&Object.hasOwn(frozen[key],'source')&&Object.hasOwn(frozen[key],'saved'))values[key]=frozen[key];
-      else if(!frozen&&Object.hasOwn(original,key)&&Object.hasOwn(after,key))values[key]={source:original[key],saved:after[key]};
-    }
-  }
-  return {values,versions,unchangedStageChoices};
+function matchingCatalog(kind:string,payload:Json,catalog:Record<string,RowDataPacket[]>) {
+  const same=(catalog[kind]??[]).filter(value=>value.name===payload.name);
+  const compatible=same.length===1&&same[0].enabled&&Object.entries(payload).every(([key,value])=>equal(key==='tagIds'&&Array.isArray(value)?[...value].sort(idSort):value,key==='tagIds'?[...(same[0][key]??[])].sort(idSort):same[0][key]));
+  return compatible?same[0]:undefined;
 }
-function differences(payload: Json, current: Json | null, project: boolean, baseline:Record<string,Comparison>): Difference[] {
+function differences(payload: Json, current: Json | null, project: boolean): Difference[] {
   const diffs: Difference[] = [];
   const difference = (key:string,label:string,before:unknown,after:unknown,isNew=false):Difference|null=> {
     if(!isNew&&current&&equal(before,after))return null;
-    const base=baseline[key];
-    let status:Difference['status']=!current||isNew?'normal':!base?'needs_choice':equal(after,base.source)?'keep_online':equal(before,base.saved)?'normal':'conflict';
-    if(!project&&current&&status==='normal')status='needs_choice';
-    return {key,label,before:before ?? null,after,selectable:status!=='keep_online',status,defaultSelected:status==='normal',...base?{baseline:base}:{}};
+    const status:Difference['status']=!current||isNew?'normal':'needs_choice';
+    return {key,label,before:before ?? null,after,selectable:true,status,defaultSelected:status==='normal'};
   };
   const add=(key:string,label:string,before:unknown,after:unknown)=>{const value=difference(key,label,before,after);if(value)diffs.push(value);};
   const group=(key:string,label:string,before:Json|null,after:Json,isNew=false)=> {
@@ -203,25 +160,6 @@ function selectProject(payload: ImportProjectInput, selected: string[]): ImportP
   if (chosen.has('fields.statusDesc') && payload.statusEntries) input.statusEntries=payload.statusEntries;
   if (chosen.has('lastCheckAt')) input.lastCheckAt=payload.lastCheckAt;
   return input;
-}
-function freezeComparison(source:Json,adopted:Json,current:Json|null,selected:string[],kept:string[],project:boolean,childIds:Record<string,string>={}) {
-  const original=structuredClone(source);
-  if(project)for(const record of original.records ?? [])for(const field of ['previousNodeId','nextNodeId']) {
-    const edge=record.values[field];
-    if(typeof edge==='string'&&edge.startsWith('source:')) {
-      const other=original.records.find((v:Json)=>v.kind==='project_node'&&v.sourceKey===edge.slice(7));
-      if(other&&(childIds[other.key]||other.targetId))record.values[field]=childIds[other.key]??other.targetId;
-    }
-  }
-  const aligned=project&&current?{...current,records:(original.records ?? []).flatMap((record:Json)=>{const value=current.records?.find((v:Json)=>v.kind===record.kind&&v.targetId===(childIds[record.key]??record.targetId));return value?[{...value,key:record.key}]:[];})}:current;
-  const sourceAtoms=comparisonAtoms(original,project),savedAtoms=comparisonAtoms(adopted,project),online=comparisonAtoms(aligned??{},project),pairs:Record<string,Comparison>={};
-  for(const key of [...selected,...kept]) {
-    const values=kept.includes(key)?online:savedAtoms;
-    if(!Object.hasOwn(sourceAtoms,key)||!Object.hasOwn(values,key))continue;
-    if(key.startsWith('record.')&&!original.records?.some((record:Json)=>record.sourceKey&&key.startsWith('record.'+record.key+'.')))continue;
-    pairs[key]={source:sourceAtoms[key],saved:values[key]};
-  }
-  return pairs;
 }
 function validationIssues(error:unknown):Json[] {
   const known=error as {status?:number;code?:string;fields?:Record<string,string>;cause?:string;consequence?:string;requiredKeys?:string[]};
@@ -295,32 +233,45 @@ function sourceBinding(row:RowDataPacket,all:RowDataPacket[],bindings:RowDataPac
   const identity=sourceIdentity(row,all);
   return identity?bindings.find(value=>value.kind===row.kind&&value.scope===identity.scope&&value.sourceKey===identity.key):undefined;
 }
+async function collaborators(c:PoolConnection,row:RowDataPacket,all:RowDataPacket[],matches:Record<string,string>={}) {
+  const names=[...new Set((Array.isArray(row.raw.pm)?row.raw.pm:row.raw.pm==null?[]:[row.raw.pm]).flatMap((value:unknown)=>{
+    const key=object(value)?String(value.id??value.name??''):String(value);
+    const source=all.filter(item=>item.kind==='engineers'&&item.sourceKey===key);
+    const name=source.length===1?source[0].raw.name:object(value)?value.name:typeof value==='string'?value:'';
+    return typeof name==='string'&&name.trim()?[name.trim()]:[];
+  }))] as string[];
+  const accounts=await rows(c,'SELECT CAST(u.id AS CHAR) id,u.display_name name FROM users u WHERE u.enabled=1 AND NOT EXISTS(SELECT 1 FROM system_configuration s WHERE s.maintenance_user_id=u.id)');
+  return names.map(name=>{
+    const candidates=accounts.filter(account=>account.name===name).map(({id,name})=>({id,name}));
+    const targetId=matches[name]&&candidates.some(value=>value.id===matches[name])?matches[name]:candidates.length===1?candidates[0].id:null;
+    return {name,targetId,candidates,status:targetId?'matched':candidates.length?'ambiguous':'unmatched'};
+  });
+}
 async function viewItem(c: PoolConnection, actor: Actor, b: RowDataPacket, row: RowDataPacket, all: RowDataPacket[], bindings: RowDataPacket[], catalog: Record<string,RowDataPacket[]>, input?: Partial<ItemCommand>) {
   const project = row.kind === 'project', metadata = row.validation ?? {}, bound = sourceBinding(row,all,bindings);
   const stored = metadata.sourceNamespace===b.sourceNamespace ? metadata.choice : undefined;
   const choice = input?.mode ? {mode:input.mode,targetId:input.targetId ?? null} : stored;
-  const staleChoice=!input?.mode&&stored&&(Object.hasOwn(metadata,'choiceBinding')?!equal(metadata.choiceBinding,bound?{id:bound.id,version:bound.version,targetId:bound.targetId}:null):bound&&stored.targetId!==bound.targetId);
-  const targetId: string | null = row.kind==='company' ? '1' : choice ? choice.mode==='existing' ? choice.targetId : null : bound?.targetId ?? null;
+  const sourceProjectName=row.corrected?.fields?.name ?? row.raw.name;
+  const named=project&&typeof sourceProjectName==='string'&&sourceProjectName.trim()?await rows(c,'SELECT CAST(id AS CHAR) id,name FROM projects WHERE name_key=?',[projectNameKey(sourceProjectName)]):[];
+  let targetId: string | null = row.kind==='company' ? '1' : choice ? choice.mode==='existing' ? choice.targetId : null : project?named[0]?.id ?? null:null;
   if (targetId!==null && !validId(targetId)) failure('INVALID_IMPORT_TARGET',400);
-  const mode = targetId ? 'existing' : 'new';
+  let current:Json|null=project&&targetId&&await hasProjectAccess(c,targetId,actor.id)?await readImportProject(c,targetId,b.sourceNamespace):null;
   const used: unknown[] = [], issues: Json[] = [],unresolvedReferences:{path:string;itemIds:string[]}[]=[];
-  if(staleChoice)issues.push({path:'mapping',code:'IMPORT_BINDING_CHANGED',message:'这份来源的对应已被更新，请重新选择本次对应。'});
   const resolveReference = (kind: string,key: string,path='reference') => {
-    const direct = bindings.find(v=>v.kind===kind && v.scope==='' && v.sourceKey===key);
-    let id = direct?.targetId;
-    if (direct) used.push([kind,key,direct.id,direct.version,direct.targetId]);
-    if (!direct) {
-      const candidates = all.filter(v=>v.kind===kind && (v.sourceKey===key || v.raw?.name===key));
-      const resolved = candidates.map(v=> {
-        const mapping = sourceBinding(v,all,bindings);
-        const adopted = v.result?.sourceNamespace===b.sourceNamespace ? v.result : null;
-        used.push(['item',v.id,v.reviewVersion,mapping?.version ?? null,adopted?.id ?? null]);
-        return mapping?.targetId ?? adopted?.id ?? null;
-      });
-      if (resolved.length && resolved.every(v=>v && v===resolved[0])) id=resolved[0];
+    const candidates=all.filter(v=>v.kind===kind&&(v.sourceKey===key||v.raw?.name===key));
+    let id:string|undefined;
+    if(candidates.length===1) {
+      const candidate=candidates[0],adopted=candidate.result?.sourceNamespace===b.sourceNamespace?candidate.result:undefined;
+      const supplied=catalogSource(kind,candidate.raw);
+      if(kind==='customers'&&Array.isArray(candidate.raw.tags)&&candidate.raw.tags.length) {
+        const tagIds=candidate.raw.tags.map((v:unknown)=>resolveReference('tags',String(v),'tagIds'));
+        if(tagIds.every(Boolean))supplied.tagIds=tagIds;else supplied.tagIds=null;
+      }
+      const automatic=matchingCatalog(kind,supplied,catalog);
+      used.push(['item',candidate.id,candidate.reviewVersion,null,adopted?.id ?? null]);
+      id=adopted?.id ?? automatic?.id;
     }
     if (!id) {
-      const candidates=all.filter(v=>v.kind===kind&&(v.sourceKey===key||v.raw?.name===key));
       unresolvedReferences.push({path,itemIds:candidates.length===1?[candidates[0].id]:[]});
       return undefined;
     }
@@ -328,16 +279,20 @@ async function viewItem(c: PoolConnection, actor: Actor, b: RowDataPacket, row: 
     return reference ? id : undefined;
   };
   const parentScope = bound && targetId===bound.targetId ? `project:${bound.id}:${bound.version}` : null;
+  const correction=applicableCorrection(row.corrected,metadata,b.sourceNamespace,targetId);
   let payload: Json,basePayload:Json;
   if (project) {
     const normalized=normalizeImportProject(row.raw,{resolve:resolveReference,child:(kind,key)=> {
       const child=parentScope ? bindings.find(v=>v.kind===kind && v.scope===parentScope && v.sourceKey===key) : undefined;
-      used.push(['child',kind,key,child?.id ?? null,child?.version ?? null,child?.targetId ?? null]);
-      return child?.targetId;
+      const candidates=(current?.records??[]).filter((value:Json)=>value.kind===kind&&(value.sourceKey===key||value.targetId===child?.targetId));
+      used.push(['child',kind,key,child?.id ?? null,child?.version ?? null,candidates.map((value:Json)=>value.targetId)]);
+      const chosen=[...(correction?.records??[]),...(input?.payload?.records??[])].findLast((value:Json)=>value.key===kind+':'+key&&Object.hasOwn(value,'targetId'));
+      if(chosen)return chosen.targetId;
+      return candidates.length===1?candidates[0].targetId:candidates.length||child?undefined:null;
     }});
     basePayload=normalized.input;
     assertRecordIdentity(basePayload,row.corrected);assertRecordIdentity(basePayload,input?.payload);
-    payload=overlay(overlay(basePayload,applicableCorrection(row.corrected,metadata,b.sourceNamespace,targetId)),input?.payload);
+    payload=overlay(overlay(basePayload,correction),input?.payload);
     for (const problem of normalized.issues) {
       const path=problem.path.split('.');
       const value=path.reduce((v:any,k)=>v?.[k],payload);
@@ -357,24 +312,30 @@ async function viewItem(c: PoolConnection, actor: Actor, b: RowDataPacket, row: 
       else issues.push({path:'tagIds',code:'IMPORT_REFERENCE_REQUIRED',message:'请先确认客户标签的对应资料。'});
     }
     basePayload=structuredClone(payload);
-    payload={...payload,...applicableCorrection(row.corrected,metadata,b.sourceNamespace,targetId),...input?.payload};
+    payload={...payload,...correction,...input?.payload};
     if(Array.isArray(payload.tagIds))for(let index=issues.length-1;index>=0;index--)if(issues[index].path==='tagIds'&&issues[index].code==='IMPORT_REFERENCE_REQUIRED')issues.splice(index,1);
   }
   const resolvedReferences=used.slice();
   // 来源字段缺失与明确清空有不同含义；这里只比较拟采用字段。
-  const current: Json | null = targetId ? project ? await readImportProject(c,targetId,b.sourceNamespace) : catalog[row.kind]?.find(v=>v.id===targetId) ?? null : null;
-  if (targetId && !current) issues.push({code:'IMPORT_TARGET_NOT_FOUND',message:'原对应对象已不存在，请重新选择对应。'});
-  const comparison=await comparisonBase(c,b,row,targetId,bound,bindings,payload);
-  for(let index=issues.length-1;index>=0;index--)if(issues[index].code==='IMPORT_STAGE_STATE_REQUIRED'&&comparison.unchangedStageChoices.includes(issues[index].path.split('.')[1]))issues.splice(index,1);
+  if(!project&&!choice&&row.kind!=='company')targetId=matchingCatalog(row.kind,payload,catalog)?.id ?? null;
+  const canEdit=await mayEdit(c,actor,b,targetId,project),restricted=project&&!!targetId&&!canEdit;
+  if(!project)current=targetId?catalog[row.kind]?.find(v=>v.id===targetId)??null:null;
+  // 文件只写“未完成”不能覆盖线上已经知道的开始状态。
+  if(project&&current)for(const stage of payload.stages??[]) {
+    const raw=row.raw.stages?.[Number(stage.code.slice(1))-1];
+    if(stage.state==='unknown'&&raw&&!Object.hasOwn(raw,'state')&&!row.corrected?.stages?.some((v:Json)=>v.code===stage.code&&Object.hasOwn(v,'state'))&&!input?.payload?.stages?.some((v:Json)=>v.code===stage.code&&Object.hasOwn(v,'state'))) {delete stage.state;const base=basePayload.stages?.find((v:Json)=>v.code===stage.code);if(base)delete base.state;}
+  }
+  if (targetId && !current&&!restricted) issues.push({code:'IMPORT_TARGET_NOT_FOUND',message:'原对应对象已不存在，请重新选择对应。'});
   const sourceName=typeof payload.name==='string'?catalogNameKey(payload.name):'';
   const sameName=(catalog[row.kind] ?? []).filter(value=>typeof value.name==='string'&&catalogNameKey(value.name)===sourceName);
   const ambiguousSource=(metadata.issues ?? []).some((issue:Json)=>issue.severity==='error'||issue.code==='IMPORT_SOURCE_KEY_DUPLICATE')
     || all.filter(value=>value.kind===row.kind&&typeof value.raw?.name==='string'&&catalogNameKey(value.raw.name)===sourceName).length>1;
-  const automaticNew=!project&&row.kind!=='company'&&!bound&&!choice&&!!sourceName&&!sameName.length&&!ambiguousSource;
-  const needsMapping=!!staleChoice||!project&&row.kind!=='company'&&!bound&&!choice&&!automaticNew;
-  if(needsMapping&&!staleChoice)issues.push({path:'mapping',code:'IMPORT_MAPPING_REQUIRED',message:'请选择新建这份资料或对应已有资料'});
-  const diffs=differences(payload,current,project,comparison.values);
-  if (targetId && (!bound || bound.targetId!==targetId) && row.kind!=='company') diffs.unshift({key:'binding',label:'确认来源对应',before:bound?.targetId ?? null,after:targetId,selectable:true,status:'normal',defaultSelected:true});
+  const automaticNew=!project&&row.kind!=='company'&&!choice&&!!sourceName&&!sameName.length&&!ambiguousSource;
+  const needsMapping=!project&&row.kind!=='company'&&!choice&&(!targetId&&!automaticNew||ambiguousSource);
+  if(needsMapping)issues.push({path:'mapping',code:'IMPORT_MAPPING_REQUIRED',message:'这份资料有同名候选或内容不同，请只处理这处差异。'});
+  const diffs=restricted?[]:differences(payload,current,project);
+  // 已有项目一律由使用者明确选择变化，不沿旧三方基准自动采用或隐藏差异。
+  if(project&&targetId)for(const diff of [...diffs,...leaves(diffs)]){diff.defaultSelected=false;diff.selectable=true;diff.status='needs_choice';}
   for (const issue of issues) {
     const key=issue.path?.startsWith('stage.') ? issue.path.split('.').slice(0,2).join('.') : issue.path;
     const diff=diffs.find(v=>v.key===key)||leaves(diffs).find(v=>v.key===key);
@@ -390,8 +351,12 @@ async function viewItem(c: PoolConnection, actor: Actor, b: RowDataPacket, row: 
   for (const [kind,ids] of Object.entries(referenceIds)) for (const id of [...new Set(ids)].sort(idSort)) {
     const found=catalog[kind]?.find(v=>v.id===id); used.push(['reference',kind,id,found?.version ?? null,found?.enabled ?? null]);
   }
-  const canEdit=await mayEdit(c,actor,b,targetId,project);
-  const reliable=!!(bound && bound.targetId===targetId || row.kind==='company');
+  const managerMatches=Object.assign({},...all.filter(value=>value.kind==='project').map(value=>value.result?.managerMatches??{}),input?.managerMatches??{});
+  const managers=project?await collaborators(c,row,all,managerMatches):[];
+  const members=project&&targetId&&!restricted?await rows(c,'SELECT CAST(user_id AS CHAR) id FROM project_responsibilities WHERE project_id=?',[targetId]):[];
+  const requests=project&&targetId&&!restricted?await rows(c,'SELECT CAST(target_user_id AS CHAR) id FROM project_membership_requests WHERE project_id=?',[targetId]):[];
+  const pendingInvitations=canEdit?managers.filter(manager=>manager.targetId&&manager.targetId!==actor.id&&!members.some(value=>value.id===manager.targetId)&&!requests.some(value=>value.id===manager.targetId)).map(manager=>manager.name):[];
+  const reliable=!!targetId&&!restricted;
   const defaultSelected=leaves(diffs).filter(diff=>diff.defaultSelected).map(diff=>diff.key);
   const conflictKeys=leaves(diffs).filter(diff=>diff.status==='conflict'||diff.status==='needs_choice').map(diff=>diff.key);
   if(canEdit&&!issues.length&&!conflictKeys.length&&(defaultSelected.length||!targetId)) {
@@ -406,13 +371,18 @@ async function viewItem(c: PoolConnection, actor: Actor, b: RowDataPacket, row: 
   const unchanged=reliable && !diffs.length && !issues.length;
   const keptOnline=reliable && !!diffs.length && leaves(diffs).every(diff=>diff.status==='keep_online') && !issues.length;
   const classification=unchanged||keptOnline?'unchanged':issues.length||conflictKeys.length||!canEdit?'needs_attention':'ready';
-  const basis=hash([b.sourceNamespace,b.version,row.reviewVersion,targetId,bound ? [bound.id,bound.version,bound.targetId] : null,used,comparison.versions]).toString('hex');
+  const executionBasis=[b.sourceNamespace,b.version,row.reviewVersion,targetId,bound ? [bound.id,bound.version,bound.targetId] : null,used,[]];
+  const basis=hash(executionBasis).toString('hex');
   const referenceBasis=hash([resolvedReferences,
     Object.fromEntries(['customerId','odmCustomerId','productLineId','appId','groupId','chipIds','tagIds'].map(key=>[key,basePayload.fields?.[key] ?? basePayload[key]])),
     basePayload.people,(basePayload.records ?? []).map((record:Json)=>[record.key,record.targetId,record.values.previousNodeId,record.values.nextNodeId])
   ]).toString('hex');
   const adoptions=await rows(c,'SELECT CAST(id AS CHAR) id,CAST(target_id AS CHAR) targetId,CAST(version_after AS CHAR) savedVersion,adopted_json adopted,JSON_KEYS(history_manifest_json) historyKinds,created_at savedAt FROM import_adoptions WHERE item_id=? ORDER BY id DESC',[row.id]);
-  return {id:row.id,kind:row.kind,reviewVersion:row.reviewVersion,sourceKey:row.sourceKey,payload,basePayload,canEdit,canAdopt:canEdit && !unchanged && !keptOnline,targetId,expectedVersion:current?.expectedVersion ?? current?.version ?? (targetId?null:'0'),mode,diffs,issues,unresolvedReferences,unchanged,keptOnline,needsMapping,classification,defaultSelected,conflictKeys,basis,executionBasis:[b.sourceNamespace,b.version,row.reviewVersion,targetId,bound?[bound.id,bound.version,bound.targetId]:null,used,comparison.versions],referenceBasis,bindingVersion:bound?.version ?? null,previousResult:row.result ?? null,adoptions,sourceName:row.raw.name ?? row.raw.fullName ?? '',name:payload.fields?.name ?? payload.name ?? payload.fullName ?? '',target:current,candidates:project?[]:catalog[row.kind] ?? []};
+  if(project)for(const adoption of adoptions)if(!await hasProjectAccess(c,adoption.targetId,actor.id))delete adoption.adopted;
+  const candidates=project&&typeof sourceProjectName==='string'&&sourceProjectName.trim()?await rows(c,'SELECT CAST(p.id AS CHAR) id,p.name FROM project_name_aliases a JOIN projects p ON p.id=a.project_id WHERE a.name_key=? AND p.name_key<>? ORDER BY p.id',[projectNameKey(sourceProjectName),projectNameKey(sourceProjectName)]):catalog[row.kind]??[];
+  const basic=restricted?(await rows(c,'SELECT CAST(p.id AS CHAR) id,p.name,p.status,p.summary,c.name customer,pl.name productLine FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id WHERE p.id=?',[targetId]))[0]:undefined;
+  if(basic)for(const [key,join,table,column]of [['chips','project_chips','chips','chip_id'],['tags','project_tags','tags','tag_id']])basic[key]=await rows(c,`SELECT CAST(v.id AS CHAR) id,v.name FROM ${join} r JOIN ${table} v ON v.id=r.${column} WHERE r.project_id=? ORDER BY r.sort_order,v.id`,[targetId]);
+  return {id:row.id,kind:row.kind,reviewVersion:row.reviewVersion,sourceKey:row.sourceKey,payload,basePayload,managers,pendingInvitations,canEdit,restricted,canAdopt:canEdit && (pendingInvitations.length>0 || !unchanged && !keptOnline),targetId,expectedVersion:current?.expectedVersion ?? current?.version ?? (targetId?null:'0'),mode:targetId?'existing':'new',diffs,issues,unresolvedReferences,unchanged,keptOnline,needsMapping,classification,defaultSelected,conflictKeys,basis,executionBasis,referenceBasis,bindingVersion:bound?.version ?? null,previousResult:row.result ?? null,adoptions:restricted?adoptions.map(({adopted:_,...value})=>value):adoptions,sourceName:row.raw.name ?? row.raw.fullName ?? '',name:payload.fields?.name ?? payload.name ?? payload.fullName ?? '',target:current,basic,candidates};
 }
 
 async function bind(c: PoolConnection, source: string, kind: string, scope: string, key: string | null, targetId: string) {
@@ -453,12 +423,11 @@ async function receiveFile(stream: Readable, actor: Actor, key: string) {
     return {file:final,bytes,sha,parsed};
   } catch(error) { await file.close().catch(()=>{}); await unlink(temporary).catch(()=>{}); throw error; }
 }
-async function actorLock(c: PoolConnection, actor: Actor) { await rows(c,'SELECT id FROM users WHERE id=? FOR UPDATE',[actor.id]); await assertActor(c,actor); }
+async function actorLock(c: PoolConnection, actor: Actor) { await rows(c,'SELECT id FROM users WHERE id=? FOR UPDATE',[actor.id]); await assertActor(c,actor);if(await maintenanceAccount(c)===actor.id)failure('BUSINESS_ACCOUNT_REQUIRED',403); }
 async function sourceExists(c: PoolConnection, source: string, lock = false) {
   const found=(await rows(c,`SELECT source_namespace FROM import_sources WHERE source_namespace=?${lock?' FOR SHARE':''}`,[source]))[0];
   if (!found) failure('IMPORT_SOURCE_NOT_FOUND',404);
 }
-async function sources(c: PoolConnection) { return rows(c,'SELECT source_namespace sourceNamespace,name FROM import_sources ORDER BY created_at,source_namespace'); }
 function assertVersions(b: RowDataPacket, row: RowDataPacket, body: ItemCommand) {
   if (b.version!==body.expectedBatchVersion) failure('IMPORT_BATCH_VERSION_CONFLICT',409,{currentVersion:b.version});
   if (row.reviewVersion!==body.expectedReviewVersion) failure('IMPORT_REVIEW_VERSION_CONFLICT',409,{currentVersion:row.reviewVersion});
@@ -489,11 +458,17 @@ export function imports(database: RuntimeDatabase) {
     query,
     executionResult(actor:Actor,itemId:string,body:ItemCommand){return database.readSnapshot(c=>itemResult(c,actor,`user:${actor.id}:import:item:${itemId}`,itemId,body,'adopt'));},
     async planExecution(c:PoolConnection,actor:Actor,batchId:string,input:unknown) {
-      if(!object(input)||!uuid(input.idempotencyKey)||!Array.isArray(input.items)||!input.items.length||Object.keys(input).some(key=>!['idempotencyKey','items'].includes(key)))failure('INVALID_IMPORT_COMMAND',400);
+      if(!object(input)||input.formatVersion!==2||!uuid(input.idempotencyKey)||!Array.isArray(input.items)||!input.items.length||Object.keys(input).some(key=>!['formatVersion','idempotencyKey','items'].includes(key)))failure('INVALID_IMPORT_COMMAND',400);
       await actorLock(c,actor);
       const b=await batch(c,batchId,true),all=await itemRows(c,batchId),bindings=await bindingRows(c,b.sourceNamespace),catalog=await catalogs(c);
       const requested=new Map<string,ItemCommand>(),resolveReferences=new Set<string>();
       for(const value of input.items){if(!object(value)||!validId(value.id)||requested.has(value.id)||Object.keys(value).some(key=>!['id','command','resolveReferences'].includes(key))||value.resolveReferences!==undefined&&typeof value.resolveReferences!=='boolean')failure('INVALID_IMPORT_COMMAND',400);requested.set(value.id,command(value.command));if(value.resolveReferences===true)resolveReferences.add(value.id);}
+      const managerMatches:Record<string,string>={};
+      for(const body of requested.values())for(const [name,id]of Object.entries(body.managerMatches??{})){
+        if(managerMatches[name]&&managerMatches[name]!==id)failure('IMPORT_MANAGER_SELECTION_CONFLICT',422);
+        managerMatches[name]=id;
+      }
+      if(Object.keys(managerMatches).length)for(const [id,body]of requested)requested.set(id,{...body,managerMatches});
       const entries:Json[]=[],visiting=new Set<string>();
       const add=async(id:string):Promise<void>=>{
         if(entries.some(value=>value.id===id))return;
@@ -505,18 +480,19 @@ export function imports(database: RuntimeDatabase) {
         assertVersions(b,row,body);
         if(body.basis!==view.basis)failure('IMPORT_BINDING_CHANGED',409);
         if(!supplied&&(row.kind==='project'||row.kind==='company'||view.needsMapping||view.conflictKeys.length||view.issues.some(issue=>issue.code!=='IMPORT_REFERENCE_REQUIRED')))failure('IMPORT_DEPENDENCY_REQUIRED',422);
-        const dependencies:string[]=[];
+        const dependencies=new Set<string>();
         for(const reference of view.unresolvedReferences){
           if(row.kind==='project'&&!resolveReferences.has(id))continue;
           if(!view.issues.some(issue=>issue.code==='IMPORT_REFERENCE_REQUIRED'&&issue.path===reference.path))continue;
           if(reference.itemIds.length!==1)continue;
-          const dependency=reference.itemIds[0];await add(dependency);dependencies.push(dependency);
+          const dependency=reference.itemIds[0];await add(dependency);dependencies.add(dependency);
+          for(const transitive of entries.find(value=>value.id===dependency)!.dependencies)dependencies.add(transitive);
         }
-        entries.push({id,kind:row.kind,sourceKey:row.sourceKey,body,basis:view.executionBasis,dependencies,referencePaths:row.kind==='project'&&!resolveReferences.has(id)?[]:view.unresolvedReferences.map(ref=>ref.path)});visiting.delete(id);
+        entries.push({id,kind:row.kind,sourceKey:row.sourceKey,body,collaborators:view.managers.map(({name,targetId})=>({name,targetId})),basis:view.executionBasis,dependencies:[...dependencies],referencePaths:row.kind==='project'&&!resolveReferences.has(id)?[]:view.unresolvedReferences.map(ref=>ref.path)});visiting.delete(id);
       };
       // 每个项目之前只处理它依赖的资料，其余资料排在项目之后。
       for(const id of [...requested.keys()].sort((a,b)=>Number(all.find(r=>r.id===b)?.kind==='project')-Number(all.find(r=>r.id===a)?.kind==='project')))await add(id);
-      return {actorVersion:actor.version,entries};
+      return {formatVersion:2,actorVersion:actor.version,entries};
     },
     async prepareExecution(actor:Actor,batchId:string,entry:Json,completed:Json[],execution:{id:string;token:string}) {
       return database.writeTransaction(async c=>{
@@ -549,41 +525,34 @@ export function imports(database: RuntimeDatabase) {
       if(!validId(adoptionId))failure('INVALID_IMPORT_ADOPTION',400);
       const adoption=(await rows(c,'SELECT CAST(id AS CHAR) id,CAST(target_id AS CHAR) targetId,CAST(version_after AS CHAR) savedVersion,adopted_json adopted,history_manifest_json historyManifest,created_at savedAt FROM import_adoptions WHERE id=? AND item_id=?',[adoptionId,itemId]))[0];
       if(!adoption)failure('IMPORT_ADOPTION_NOT_FOUND',404);
+      if(row.kind==='project'&&!await hasProjectAccess(c,adoption.targetId,actor.id))failure('PROJECT_ACCESS_REQUIRED',403);
       const histories:Json={};for(const kind of Object.keys(decode(adoption.historyManifest) ?? {}))histories[kind]=(await rows(c,'SELECT source_date_text date,body text FROM legacy_project_history WHERE source_adoption_id=? AND history_kind=? ORDER BY source_sequence,id',[adoptionId,kind])).map(v=>({date:v.date ?? '',text:v.text}));
       return{adoption,histories};
     }); },
     list(actor:Actor) { return database.readSnapshot(async c=> {
       await assertActor(c,actor,false,new Date(),false,false);
       const values=await rows(c,`SELECT ${batchColumns},LOWER(HEX(b.source_hash)) fileHash,(SELECT COUNT(*) FROM import_items i WHERE i.batch_id=b.id AND i.item_kind='project') total,(SELECT COUNT(*) FROM import_items i WHERE i.batch_id=b.id AND i.item_kind='project' AND i.result_json IS NOT NULL) processed FROM import_batches b JOIN users u ON u.id=b.current_handler_id JOIN users creator ON creator.id=b.created_by ORDER BY b.id DESC`);
-      return {sources:await sources(c),batches:values.map(value=>({...value,name:decode(value.metadata)?.filename ?? '备份',metadata:undefined}))};
+      return {batches:values.map(value=>({...value,name:decode(value.metadata)?.filename ?? '备份',metadata:undefined}))};
     }); },
-    createSource(actor:Actor,input:unknown) {
-      if (!object(input) || Object.keys(input).some(k=>!['name','idempotencyKey'].includes(k)) || typeof input.name!=='string' || !input.name.trim() || [...input.name].length>128) failure('INVALID_IMPORT_SOURCE',400);
-      operation(input.idempotencyKey);
-      return database.writeTransaction(async c=> {
-        await actorLock(c,actor);const scope=globalScope(actor),prior=await receipt(c,actor,scope,input.idempotencyKey,input);if(prior)return{outcome:'committed',result:prior};
-        const result={sourceNamespace:'local-'+randomUUID(),name:input.name.trim()};
-        await c.execute('INSERT INTO import_sources(source_namespace,name,created_at) VALUES (?,?,UTC_TIMESTAMP(3))',[result.sourceNamespace,result.name]);
-        await remember(c,actor,scope,input.idempotencyKey,input,result);return{outcome:'committed',result};
-      });
-    },
-    async upload(actor:Actor,options:{source:string;name:string;operation:string;new?:string},stream:Readable) {
-      operation(options.operation);sourceKey(options.source);
+    async upload(actor:Actor,options:{name:string;operation:string;new?:string;source?:string},stream:Readable) {
+      operation(options.operation);if(options.source!==undefined)failure('IMPORT_CLIENT_OUTDATED',410);
+      const source='backup-account-'+actor.id;
       if (typeof options.name!=='string' || !options.name.trim() || options.name.length>255 || options.new!==undefined && options.new!=='1') failure('INVALID_IMPORT_UPLOAD',400);
-      await database.readSnapshot(async c=>{await assertActor(c,actor,false,new Date(),false,false);await sourceExists(c,options.source);});
+      await database.readSnapshot(async c=>{await assertActor(c,actor,false,new Date(),false,false);if(await maintenanceAccount(c,false)===actor.id)failure('BUSINESS_ACCOUNT_REQUIRED',403);});
       const file=await receiveFile(stream,actor,options.operation);
-      const request={source:options.source,name:options.name,hash:file.sha.toString('hex'),bytes:file.bytes,new:options.new==='1'};
+      const request={source,name:options.name,hash:file.sha.toString('hex'),bytes:file.bytes,new:options.new==='1'};
       // 已发布文件按原操作保持不可变；事务失败也不能删除另一并发重试正在登记的同一文件。
       return await database.writeTransaction(async c=> {
           await actorLock(c,actor);
           const scope=globalScope(actor),previous=await receipt(c,actor,scope,options.operation,request);if(previous)return{outcome:'committed',result:previous};
           // 同来源登记串行核对字节重复，不把重选文件自动变成新一批。
-          if (!(await rows(c,'SELECT source_namespace FROM import_sources WHERE source_namespace=? FOR UPDATE',[options.source])).length) failure('IMPORT_SOURCE_NOT_FOUND',404);
-          const same=(await rows(c,'SELECT CAST(id AS CHAR) id FROM import_batches WHERE source_namespace=? AND source_hash=? ORDER BY id DESC LIMIT 1',[options.source,file.sha]))[0];
+          // 渠道记录仅服务原文件与回执溯源，不把本地编号当作跨备份身份。
+          await c.execute("INSERT INTO import_sources(source_namespace,name,created_at) VALUES (?,'本地备份上传',UTC_TIMESTAMP(3)) ON DUPLICATE KEY UPDATE source_namespace=source_namespace",[source]);
+          const same=(await rows(c,'SELECT CAST(id AS CHAR) id FROM import_batches WHERE source_namespace=? AND source_hash=? ORDER BY id DESC LIMIT 1',[source,file.sha]))[0];
           if(same && options.new!=='1') {
             const result={batchId:same.id,reused:true};await remember(c,actor,scope,options.operation,request,result);return{outcome:'committed',result};
           }
-          await c.execute('INSERT INTO import_batches(source_hash,source_file_ref,source_bytes,source_schema_version,source_app_version,exported_at_text,source_namespace,mapping_json,created_by,current_handler_id,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(3))',[file.sha,file.file,file.bytes,String(file.parsed.version ?? 'unknown'),file.parsed.appVersion,file.parsed.exportedAt==null?null:String(file.parsed.exportedAt).slice(0,128),options.source,JSON.stringify({filename:options.name,format:file.parsed.format,issues:file.parsed.issues}),actor.id,actor.id]);
+          await c.execute('INSERT INTO import_batches(source_hash,source_file_ref,source_bytes,source_schema_version,source_app_version,exported_at_text,source_namespace,mapping_json,created_by,current_handler_id,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(3))',[file.sha,file.file,file.bytes,String(file.parsed.version ?? 'unknown'),file.parsed.appVersion,file.parsed.exportedAt==null?null:String(file.parsed.exportedAt).slice(0,128),source,JSON.stringify({filename:options.name,format:file.parsed.format,issues:file.parsed.issues}),actor.id,actor.id]);
           const batchId=await lastId(c);
           for(const item of file.parsed.items) await c.execute('INSERT INTO import_items(batch_id,item_kind,source_sequence,source_key,source_payload_json,validation_json,status) VALUES (?,?,?,?,?,?,\'pending\')',[batchId,item.kind,item.sequence,item.sourceKey,JSON.stringify(item.raw),JSON.stringify({issues:item.issues,present:item.present,originPaths:item.originPaths})]);
           const result={batchId,reused:false};await remember(c,actor,scope,options.operation,request,result);return{outcome:'committed',result};
@@ -600,9 +569,9 @@ export function imports(database: RuntimeDatabase) {
       await assertActor(c,actor,false,new Date(),false,false);const b=await batch(c,id), all=await itemRows(c,id), bindings=await bindingRows(c,b.sourceNamespace), catalog=await catalogs(c);
       const views=[];for(const row of all) {const {basePayload:_,...view}=await viewItem(c,actor,b,row,all,bindings,catalog);views.push(view);}
       const projects=views.filter(v=>v.kind==='project');
-      return {batch:{...b,metadata:undefined,name:b.metadata.filename ?? '备份',filename:b.metadata.filename ?? '备份',handlerEnabled:!!b.handlerEnabled,canEdit:b.handlerId===actor.id,canTakeover:!b.handlerEnabled && all.some(v=>v.status==='pending')},sources:await sources(c),items:projects,catalogRows:views.filter(v=>v.kind!=='project'),counts:{total:projects.length,processed:projects.filter(v=>v.previousResult).length,unchanged:projects.filter(v=>!v.previousResult&&(v.unchanged||v.keptOnline)).length,pending:projects.filter(v=>!v.previousResult&&!v.unchanged&&!v.keptOnline).length}};
+      return {batch:{...b,metadata:undefined,name:b.metadata.filename ?? '备份',filename:b.metadata.filename ?? '备份',handlerEnabled:!!b.handlerEnabled,canEdit:b.handlerId===actor.id,canTakeover:!b.handlerEnabled && all.some(v=>v.status==='pending')},items:projects,catalogRows:views.filter(v=>v.kind!=='project'),counts:{total:projects.length,processed:projects.filter(v=>v.previousResult).length,unchanged:projects.filter(v=>!v.previousResult&&(v.unchanged||v.keptOnline)).length,pending:projects.filter(v=>!v.previousResult&&!v.unchanged&&!v.keptOnline).length}};
     }); },
-    async item(actor:Actor,batchId:string,itemId:string,action:'preview'|'adopt'|'results/query',input:unknown,requestId:string,execution?:{id:string;token:string}) {
+    async item(actor:Actor,batchId:string,itemId:string,action:'preview'|'adopt'|'results/query',input:unknown,requestId:string,execution?:{id:string;token:string;collaborators?:{name:string;targetId:string|null}[]}) {
       const body=command(input),scope=`user:${actor.id}:import:item:${itemId}`;
       if(action==='results/query')return database.writeTransaction(async c=> {
         await assertActor(c,actor);await batch(c,batchId,true);
@@ -615,7 +584,9 @@ export function imports(database: RuntimeDatabase) {
       });
       const execute=async(c:PoolConnection)=> {
         const writing=action!=='preview';
+        const accounts=writing?await lockMembershipAccounts(c,[actor.id,...(execution?.collaborators??[]).flatMap(value=>value.targetId?[value.targetId]:[])]):new Map<string,RowDataPacket>();
         if(execution)await executionActor(c,actor,execution);else await assertActor(c,actor,false,new Date(),false,writing);
+        if(writing&&await maintenanceAccount(c)===actor.id)failure('BUSINESS_ACCOUNT_REQUIRED',403);
         const initial=await batch(c,batchId);
         const raw=(await itemRows(c,batchId,itemId))[0];if(!raw)failure('IMPORT_ITEM_NOT_FOUND',404);
         if(writing && raw.kind!=='project')await rows(c,'SELECT id FROM system_configuration WHERE id=1 FOR UPDATE');
@@ -656,7 +627,7 @@ export function imports(database: RuntimeDatabase) {
           }
           const {basePayload:_,...publicView}=view;return {item:publicView,...publicView,issues,effects};
         }
-        if(!selected.length&&!kept.length)failure('IMPORT_SELECTION_REQUIRED',422);
+        if(!selected.length&&!kept.length&&!(project&&view.targetId&&(view.pendingInvitations.length||Object.keys(body.managerMatches??{}).length)))failure('IMPORT_SELECTION_REQUIRED',422);
         const issues=usefulIssues(view,selected);if(issues.length)issueFailure(issues);
         if(view.targetId && body.expectedVersion!==view.expectedVersion)failure(project?'PROJECT_VERSION_CONFLICT':'CATALOG_VERSION_CONFLICT',409,{currentVersion:view.expectedVersion});
         let result:Json;
@@ -676,6 +647,15 @@ export function imports(database: RuntimeDatabase) {
           result={id:view.targetId,savedVersion:view.expectedVersion,beforeVersion:view.expectedVersion,changed:false,affectedProjects:[]};
         }
         const targetId=result.projectId ?? result.id;
+        const invitations:Json[]=[],confirmedMatches:Record<string,string>={};
+        if(project)for(const manager of execution?.collaborators??[]) {
+          const account=manager.targetId?accounts.get(manager.targetId):undefined;
+          if(!account?.enabled||account.name!==manager.name||await maintenanceAccount(c)===manager.targetId) {invitations.push({name:manager.name,status:'unmatched'});continue;}
+          const invitation=await inviteCollaborator(c,targetId,actor,manager.targetId!,false);
+          invitations.push({name:manager.name,userId:manager.targetId,...invitation});
+          if(body.managerMatches?.[manager.name]===manager.targetId)confirmedMatches[manager.name]=manager.targetId!;
+          if(invitation.created)await audit(c,actor,'project.membership.invite','project',targetId,null,{targetUserId:manager.targetId,requestId:invitation.requestId,sourceImportItemId:itemId},requestId);
+        }
         const identity=sourceIdentity(row,all);
         const parent=identity?await bind(c,b.sourceNamespace,row.kind,identity.scope,identity.key,targetId):null;
         const comparisonRecords:Json={};
@@ -687,10 +667,9 @@ export function imports(database: RuntimeDatabase) {
           if(child)comparisonRecords[record.key]={id:child.id,version:child.version,targetId:child.targetId};
         }
         const adopted=project?result.adopted:{fields:candidate};
-        const sourceComparison=freezeComparison(view.basePayload,project?{...adopted,histories:result.histories}:candidate,view.target,selected,kept,project,result.childIdMap);
         const beforeBinding=sourceBinding(row,all,bindings);
-        const frozenResult={action:'adopt',...(project?{projectId:targetId}:{id:targetId,catalogKind:row.kind}),savedVersion:result.savedVersion,beforeVersion:result.beforeVersion ?? null,adoptedCount:selected.filter(k=>k!=='binding').length,keptOnlineCount:kept.length,notAdoptedCount:leaves(view.diffs).filter(v=>!selected.includes(v.key)&&!kept.includes(v.key)&&v.status!=='keep_online').length,changed:result.changed,sourceNamespace:b.sourceNamespace,operationId:body.idempotencyKey,affectedProjects:result.affectedProjects ?? [],savedAt:new Date().toISOString()};
-        await c.execute('INSERT INTO import_adoptions(item_id,source_namespace,actor_id,review_version,target_kind,target_id,version_before,version_after,operation_key,request_hash,adopted_json,history_manifest_json,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(3))',[itemId,b.sourceNamespace,actor.id,row.reviewVersion,row.kind,targetId,result.beforeVersion ?? null,result.savedVersion,body.idempotencyKey,hash({action:'adopt',body}),JSON.stringify({...adopted,selected,keepOnline:kept,comparisonBase:sourceComparison,comparisonRecords,bindingBefore:beforeBinding?{id:beforeBinding.id,targetId:beforeBinding.targetId,version:beforeBinding.version}:null,bindingAfter:parent,sourceKey:row.sourceKey,result:frozenResult}),project?JSON.stringify(result.historyManifest ?? {}):null]);
+        const frozenResult={action:'adopt',...(project?{projectId:targetId,invitations,managerMatches:confirmedMatches}:{id:targetId,catalogKind:row.kind}),savedVersion:result.savedVersion,beforeVersion:result.beforeVersion ?? null,adoptedCount:selected.filter(k=>k!=='binding').length,keptOnlineCount:kept.length,notAdoptedCount:leaves(view.diffs).filter(v=>!selected.includes(v.key)&&!kept.includes(v.key)&&v.status!=='keep_online').length,changed:result.changed,sourceNamespace:b.sourceNamespace,operationId:body.idempotencyKey,affectedProjects:result.affectedProjects ?? [],savedAt:new Date().toISOString()};
+        await c.execute('INSERT INTO import_adoptions(item_id,source_namespace,actor_id,review_version,target_kind,target_id,version_before,version_after,operation_key,request_hash,adopted_json,history_manifest_json,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(3))',[itemId,b.sourceNamespace,actor.id,row.reviewVersion,row.kind,targetId,result.beforeVersion ?? null,result.savedVersion,body.idempotencyKey,hash({action:'adopt',body}),JSON.stringify({...adopted,selected,keepOnline:kept,comparisonRecords,bindingBefore:beforeBinding?{id:beforeBinding.id,targetId:beforeBinding.targetId,version:beforeBinding.version}:null,bindingAfter:parent,sourceKey:row.sourceKey,result:frozenResult}),project?JSON.stringify(result.historyManifest ?? {}):null]);
         const adoptionId=await lastId(c);
         if(project)await writeImportHistory(c,adoptionId,targetId,itemId,result.histories);
         const resultView={...frozenResult,adoptionId};
@@ -704,19 +683,18 @@ export function imports(database: RuntimeDatabase) {
       if(!object(input) || !validId(input.expectedVersion))failure('INVALID_IMPORT_COMMAND',400);operation(input.idempotencyKey);
       const scope=`user:${actor.id}:import:${id}:${action}`;
       if(confirm)return query(actor,input.idempotencyKey,scope,input);
-      if(action==='source')sourceKey(input.sourceNamespace);
+      if(action==='source')failure('IMPORT_CLIENT_OUTDATED',410);
       if(action==='takeover'&&(typeof input.reason!=='string'||!input.reason.trim()||input.reason.length>2000))failure('IMPORT_TAKEOVER_REASON_REQUIRED',422);
       return database.writeTransaction(async c=> {
         const before=await batch(c,id);
         for(const userId of [...new Set([actor.id,before.handlerId])].sort(idSort))await rows(c,'SELECT id FROM users WHERE id=? FOR UPDATE',[userId]);
         await assertActor(c,actor);
-        if(action==='source')await sourceExists(c,input.sourceNamespace,true);
+        if(await maintenanceAccount(c)===actor.id)failure('BUSINESS_ACCOUNT_REQUIRED',403);
         const current=await batch(c,id,true),prior=await receipt(c,actor,scope,input.idempotencyKey,input);if(prior)return{outcome:'committed',result:prior};
         if(current.version!==input.expectedVersion || before.handlerId!==current.handlerId)failure('IMPORT_BATCH_VERSION_CONFLICT',409,{currentVersion:current.version});
-        if(action==='source' && current.handlerId!==actor.id)failure('IMPORT_HANDLER_REQUIRED',403);
         if(action==='takeover' && current.handlerEnabled)failure('IMPORT_HANDLER_ACTIVE',409);
-        const after=action==='source'?{sourceNamespace:input.sourceNamespace}:{handlerId:actor.id,reason:input.reason.trim()};
-        await c.execute(`UPDATE import_batches SET ${action==='source'?'source_namespace':'current_handler_id'}=?,version=version+1 WHERE id=?`,[action==='source'?input.sourceNamespace:actor.id,id]);
+        const after={handlerId:actor.id,reason:input.reason.trim()};
+        await c.execute('UPDATE import_batches SET current_handler_id=?,version=version+1 WHERE id=?',[actor.id,id]);
         await audit(c,actor,'import.'+action,'import_batch',id,{sourceNamespace:current.sourceNamespace,handlerId:current.handlerId},after,requestId);
         const result={batchId:id,savedVersion:String(BigInt(current.version)+1n),...after};await remember(c,actor,scope,input.idempotencyKey,input,result);return{outcome:'committed',result};
       });

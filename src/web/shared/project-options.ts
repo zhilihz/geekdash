@@ -1,6 +1,6 @@
 import { syncReferencePickers } from './reference-picker';
 
-const tables:Record<string,string>={customerId:'customers',odmCustomerId:'customers',productLineId:'product_lines',appId:'apps',groupId:'project_groups',chipIds:'chips',tagIds:'tags',people:'engineers',managerIds:'managerAccounts'};
+const tables:Record<string,string>={customerId:'customers',odmCustomerId:'customers',productLineId:'product_lines',appId:'apps',groupId:'project_groups',chipIds:'chips',tagIds:'tags',people:'engineers',inviteeIds:'managerAccounts'};
 
 // 更新候选而不重建输入框；已选 option 节点也保留，供移除按钮继续引用。
 export function refreshProjectOptions(root:ParentNode,render:(key:string,table:string,role?:string)=>string){

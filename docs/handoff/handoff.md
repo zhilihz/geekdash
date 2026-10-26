@@ -1,9 +1,23 @@
 # 未完成任务交接
 
-## 当前接续（2026-10-26 P05施工启动）
+## 当前接续（2026-10-27 P05目标执行中）
+
+- 目标active：按已确认五步完成验收、main合并推送及新加坡测试部署；不恢复已取消关机任务，不代决新业务边界。
+- **命令必须指定主仓库`D:/geekwon/geekdash`**；分支`codex/p05-project-space`、main基线`64a1ad5`、HEAD设计`9b78072`，产品/脚本/文档未提交。下一步先内部检查点提交并生成干净候选；不是阶段交付。
+- 已做/未做唯一入口：[本阶段报告5～6节](../testing/reports/2026-10-26-project-space.md#5-只读恢复与现行链路回归2026-10-27补充)、[系统真相](../status/current-system-truth.md)、报告所链证据。新补映射219请求、只读恢复28请求及核心/分区/草稿/SSE/阶段/节点回归通过。原日志`p05-regression-verify-*.log`等在忽略的test-results，全部须以实际退出0核实。
+- 当前隔离库`geekdash-p05-import-space-20261026-mysql`、UUID`da55e9c7-d11f-11f1-bfe6-7232bd8e8a88`、0009，入口`test-results/p05-import-space.ps1`。已有真实数据不可当空库重复首次导入；最终使用新独立实例，数据仍放D盘。一次只能有一个验收应用消费这个库的任务。
+- 原生应用`geekdash-p05-space-ui-20261026`已停止；受控账号/合成文件在`D:/geekwon/geekdash-data/p05-import-space-20261026/ui-control/`。先前只验上传/列表；Edge调试授权仍待用户允许，不能自行批准或将DOM结果写成完整视觉验收。
+- 0008过渡源码在`C:/Users/Administrator/.codex/worktrees/p05-import-drain/geekdash`，分支`codex/p05-import-drain`、提交`164a369`；保存产物`D:/geekwon/geekdash-data/p05-drain-artifact-20261026/`。app归档返回primary checkout不能移除，未强删；它可能成为默认cwd。切换演练最终库`geekdash-p05-drain-complete-20261026-mysql`已0009，不可重跑首次0008演练。
+- 接续：固定干净候选→新独立库封口/迁移→真实文件与适用回归→原生页面→整阶段通过后合并推送/部署。旧0004/0005迁移与固定旧构建专用脚本不适用于0009，不能为通过而去掉保护。线上最后核验仍`cbb6f85`/0008，无本轮写入、迁移或部署。
+
+## 历史接续（2026-10-26 17:02 P05施工）
 
 - 用户已明确“开始实施”并继续；按既定五个内部步骤连续实施。施工分支`codex/p05-project-space`，已fetch核对最新origin/main及基线均为`64a1ad5fb320b3853147d6e777e171aa44646eb6`。
-- 已确认规则与设计成果保留；以下为启动前设计交接，历史“未授权”不再阻止本轮已批准施工。Docker启动中；当前尚未验证新迁移或业务实现。施工结果随后更新本节，不能把设计当交付。
+- 设计已提交`9b78072`；0009迁移、名称键、负责深模块、最小账号启停和读取/通知范围正在本分支实现，产品代码尚未提交。实际覆盖见[报告](../testing/reports/2026-10-26-project-space.md)和[证据](../evidence/2026-10-26-project-space-backend.json)。历史“未授权”只对应施工前时点。
+- 本地已通过：迁移8步中断恢复；旧固定库恢复后38张旧表/129次采用/12原文件保持；归属与账号链95次真实HTTP及SQL、SSE通知。尚未实现新导入完整链、前端新入口和部署切换；旧前端仍使用原协议，不能发布这个混合候选。
+- 未提交代码分布：0009、schema/runtime数据库/build、project-name/membership/core/save/actions/import/checks/records/reads、identity、notifications及其路由、3个新验证脚本；准确清单接手执行`git status --short`。本节与报告/证据为新增文档工作，无推送/合并/部署。
+- 接手环境：隔离库`geekdash-p05-space-20261026-mysql-verify`，UUID `56325048-d110-11f1-9e0f-56c57432432a`，入口忽略文件`test-results/p05-space.ps1`；恢复库`geekdash-p05-space-restore-20261026-mysql`，UUID `86cc187a-d113-11f1-b34b-a2cbc99aa662`，已升级0009，不能直接重跑要求0008的首次恢复脚本。原SQL与文件在仓库外保留。旧固定源库停止，没有改业务数据；取消的关机任务不恢复。
+- 下一步：继续计划1.3内部第3步，替换来源配置与旧自动采用规则，按名称/身份生成导入结果；同次补历史阶段unknown的读取、普通保存与明确纠错验证。之后接同一已确认前端、清退旧入口、全阶段验收，再合并main。新业务取舍仍由用户决定。
 
 ## 施工前设计交接（2026-10-26）
 

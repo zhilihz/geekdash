@@ -1,3 +1,4 @@
+import { projectNameKey } from './project-name.js';
 import { createHash } from 'node:crypto';
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { Actor } from './identity.js';
@@ -12,7 +13,7 @@ import { projectStatusEntries, type StatusChange } from './project-status-entrie
 import { importSourceKey } from './import-source.js';
 
 export type ImportRole = 'pm' | 'hardware_owner' | 'software_owner' | 'participant';
-export type ImportStage = { code: string; state?: 'locked' | 'ready' | 'active' | 'completed'; plannedDays?: number | null; note?: string; startedOn?: string | null; completedOn?: string | null; expectedEndOn?: string | null };
+export type ImportStage = { code: string; state?: 'unknown' | 'locked' | 'ready' | 'active' | 'completed'; plannedDays?: number | null; note?: string; startedOn?: string | null; completedOn?: string | null; expectedEndOn?: string | null };
 export type ImportRecordKind = 'project_node' | 'customer_node' | 'risk' | 'change' | 'schedule';
 export type ImportRecord = { key: string; kind: ImportRecordKind; sourceKey: string | null; targetId?: string | null; values: Record<string, unknown> };
 export type ImportHistoryLine = { date: string; text: string };
@@ -76,7 +77,7 @@ export function normalizeImportProject(raw: Record<string, unknown>, resolver: I
     const ids = (raw[key] as unknown[]).map(v => reference(kind, v, 'fields.' + target));
     if (ids.every(v => v !== undefined)) fields[target] = [...new Set(ids.filter(v => v !== null))];
   }
-  for (const [key, role] of [['pm', 'pm'], ['hwOwner', 'hardware_owner'], ['swOwner', 'software_owner'], ['participants', 'participant']] as const) if (own(raw, key)) {
+  for (const [key, role] of [['hwOwner', 'hardware_owner'], ['swOwner', 'software_owner'], ['participants', 'participant']] as const) if (own(raw, key)) {
     const values = Array.isArray(raw[key]) ? raw[key] as unknown[] : raw[key] === '' || raw[key] === null ? [] : [raw[key]];
     const ids = values.map(v => reference('engineers', v, 'people.' + role));
     if (ids.every(v => v !== undefined)) (input.people ??= {})[role] = [...new Set(ids.filter((v): v is string => !!v))];
@@ -91,8 +92,7 @@ export function normalizeImportProject(raw: Record<string, unknown>, resolver: I
         if (own(v, 'state')) stage.state = v.state;
         else if (v.done === true) stage.state = 'completed';
         else if (v.done === false && index > first) stage.state = 'locked';
-        else if (v.done === false && fields.status === 'closed') stage.state = 'ready';
-        else if (v.done === false) issue('stage.' + stage.code + '.state', 'IMPORT_STAGE_STATE_REQUIRED', '请确认当前阶段待开始或进行中');
+        else if (v.done === false) stage.state = 'unknown';
         for (const [source, target] of Object.entries({ days: 'plannedDays', note: 'note', startDate: 'startedOn', doneDate: 'completedOn', expectedEndDate: 'expectedEndOn' })) if (own(v, source)) {
           stage[target] = source === 'days' ? v[source] === '' || v[source] === null ? null : typeof v[source] === 'string' && /^\d+$/.test(v[source]) ? Number(v[source]) : v[source] : source === 'note' ? v[source] : dateValue(v[source]);
         }
@@ -391,6 +391,7 @@ async function prepareImportProject(c: PoolConnection, actor: Actor, input: Impo
   const next = { ...defaults, ...before?.fields, ...input.fields };
   const ordinary = Object.fromEntries(Object.entries(input.fields ?? {}).filter(([key]) => ordinaryKeys().has(key))) as SaveRequest['changes'];
   if (!id && !next.name?.trim()) failure('INVALID_PROJECT_FIELDS', 422, { fields: { name: '请填写项目名称' } });
+  if(next.name&&(await rows(c,'SELECT id FROM projects WHERE name_key=? AND id<>?',[projectNameKey(next.name),id??'0'])).length)failure('PROJECT_NAME_TAKEN',409,{fields:{name:'已有同名项目，请重新核对项目名称。'}});
   if (Object.keys(ordinary).length) validateSave({ changes: ordinary, expectedVersion: '1', idempotencyKey: context.operationKey });
   const people = { ...before?.people, ...input.people };
   if (input.people) {
@@ -408,7 +409,7 @@ async function prepareImportProject(c: PoolConnection, actor: Actor, input: Impo
       if (!ref || !ref.enabled && !retained) failure('INVALID_PROJECT_FIELDS', 422, { fields: { [key]: '资料已停用或不存在，请重新核对' } });
     }
   }
-  const baseStages = before?.stages ?? Array.from({ length: 7 }, (_, i): ImportStage => ({ code: 'S' + (i + 1), state: i ? 'locked' : 'ready', plannedDays: null, note: '', startedOn: null, completedOn: null, expectedEndOn: null }));
+  const baseStages = before?.stages ?? Array.from({ length: 7 }, (_, i): ImportStage => ({ code: 'S' + (i + 1), state: i ? 'locked' : 'unknown', plannedDays: null, note: '', startedOn: null, completedOn: null, expectedEndOn: null }));
   if (new Set((input.stages ?? []).map(v => v.code)).size !== (input.stages ?? []).length) failure('INVALID_IMPORT_STAGE', 400);
   const stageFacts = baseStages.map(stage => ({ ...stage, ...input.stages?.find(v => v.code === stage.code) }));
   validateProjectFacts(before, input, next, stageFacts, today);
@@ -436,7 +437,7 @@ export async function validateImportProject(c: PoolConnection, actor: Actor, inp
   for (const stage of candidate.changedStages) {
     const prior = candidate.baseStages.find(value => value.code === stage.code)!;
     if (stage.state !== prior.state) effects.push({ cause: `“${stageName(stage.code)}”由${stageStateName(prior.state)}改为${stageStateName(stage.state)}`,
-      consequence: `详情与项目卡片将使用这份阶段结果；${candidate.stageFacts.filter(value => value.state === 'ready' || value.state === 'active').map(value => `当前“${stageName(value.code)}”为${stageStateName(value.state)}`).join('；') || '当前七个阶段均已完成'}。` });
+      consequence: `详情与项目卡片将使用这份阶段结果；${candidate.stageFacts.filter(value => value.state === 'ready' || value.state === 'active' || value.state === 'unknown').map(value => `当前“${stageName(value.code)}”为${stageStateName(value.state)}`).join('；') || '当前七个阶段均已完成'}。` });
   }
   const beforeNodes = candidate.before?.records?.filter(record => record.kind === 'project_node') ?? [];
   const nextNodes = new Map(beforeNodes.map(record => [record.targetId ?? record.key, record]));
@@ -468,7 +469,7 @@ export async function applyImportProject(c: PoolConnection, actor: Actor, input:
   const { before, next, ordinary, baseStages, stageFacts, recordChanges, changedRecords, historyManifest, changedFields, changedRoles, changedStages, changed, beforeVersion, savedVersion, timestamp } = await prepareImportProject(c, actor, input, context, locked);
   let id = input.projectId;
   if (!id) {
-    await c.query("INSERT INTO projects (name,data_kind,created_by,source_namespace,source_key,source_import_item_id,signal_note,market_expectation,status_description,detail_note,summary_note,chipstat_note,closure_note,remaining_work_note,summary,created_at,updated_at) VALUES (?,'business',?,NULL,NULL,?,'','','','','','','','','',?,?)", [next.name, actor.id, context.itemId, timestamp, timestamp]);
+    await c.query("INSERT INTO projects (name,name_key,data_kind,created_by,source_namespace,source_key,source_import_item_id,signal_note,market_expectation,status_description,detail_note,summary_note,chipstat_note,closure_note,remaining_work_note,summary,created_at,updated_at) VALUES (?,?,'business',?,NULL,NULL,?,'','','','','','','','','',?,?)", [next.name, projectNameKey(next.name!), actor.id, context.itemId, timestamp, timestamp]);
     id = (await rows(c, 'SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0].id;
     await c.query('INSERT INTO project_responsibilities (project_id,user_id,joined_at) VALUES (?,?,?)', [id, actor.id, timestamp]);
     for (const stage of baseStages) await c.query('INSERT INTO project_stages (project_id,stage_code,state,note) VALUES (?,?,?,?)', [id, stage.code, stage.state, '']);
@@ -478,7 +479,11 @@ export async function applyImportProject(c: PoolConnection, actor: Actor, input:
     const selected = before ? changedFields : Object.keys(next).filter(key => own(columns, key) || own(factColumns, key));
     const scalar = selected.filter(key => own(columns, key) || own(factColumns, key));
     const assignments = scalar.map(key => `\`${(columns as Record<string, string>)[key] ?? (factColumns as Record<string, string>)[key]}\`=?`);
-    const params = scalar.map(key => next[key as keyof ImportProjectFields]);
+    const params: unknown[] = scalar.map(key => next[key as keyof ImportProjectFields]);
+    if (scalar.includes('name')) {
+      if (before) await c.query('INSERT INTO project_name_aliases(project_id,name_key) VALUES (?,?) ON DUPLICATE KEY UPDATE project_id=project_id', [id, projectNameKey(before.fields!.name!)]);
+      assignments.push('name_key=?'); params.push(projectNameKey(next.name!));
+    }
     if (changedFields.includes('statusDesc')) assignments.push('status_description_updated_at=NULL');
     assignments.push('version=?', 'updated_at=?');
     await c.query(`UPDATE projects SET ${assignments.join(',')} WHERE id=?`, [...params, savedVersion, timestamp, id]);

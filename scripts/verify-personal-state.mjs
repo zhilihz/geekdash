@@ -81,8 +81,9 @@ try{
   assert.equal(lateSave.result.draft.state,'preserved');assert.equal((await readDraft(a,late.clientDraftId)).payload.values.summary,'保存期间继续输入');
   assert.equal((await a.api(path)).project.summary,'即将保存');
   await saveDraft(a,{...later,expectedDraftVersion:'2',clientSequence:'3'});
-  await b.api(path+'/responsibility','POST',{expectedVersion:'3',idempotencyKey:randomUUID(),action:'join'});
-  await a.api(path+'/responsibility','POST',{expectedVersion:'4',idempotencyKey:randomUUID(),action:'leave'});
+  const invitation=await a.api(path+'/membership','POST',{action:'invite',targetUserId:users[1].id,idempotencyKey:randomUUID()});
+  await b.api(path+'/membership','POST',{action:'accept',requestId:invitation.result.requestId,idempotencyKey:randomUUID()});
+  await a.api(path+'/membership','POST',{expectedVersion:'4',idempotencyKey:randomUUID(),action:'leave'});
   assert.equal((await readDraft(a,late.clientDraftId)).state,'active');
   await saveDraft(a,{...later,expectedDraftVersion:'3',clientSequence:'4'},403);
   const latest=await readDraft(a,late.clientDraftId);await a.api('/api/personal/drafts/discard','POST',ref(latest));
@@ -145,7 +146,7 @@ try{
   fault='';if(app)await app.close();
   const ids=users.map(u=>u.id);
   if(ids.length)for(const table of ['project_drafts','user_preferences'])await c.query(`DELETE FROM ${table} WHERE user_id IN (?)`,[ids]);
-  if(projects.length){for(const table of ['audit_log','project_checks','schedule_changes','project_changes','project_risks','project_nodes','project_stages','project_people','project_chips','project_tags','project_responsibilities'])await c.query(`DELETE FROM ${table} WHERE project_id IN (?)`,[projects]);await c.query('DELETE FROM projects WHERE id IN (?)',[projects]);}
+  if(projects.length){for(const table of ['audit_log','project_checks','schedule_changes','project_changes','project_risks','project_nodes','project_stages','project_people','project_chips','project_tags','project_membership_requests','project_name_aliases','project_responsibilities'])await c.query(`DELETE FROM ${table} WHERE project_id IN (?)`,[projects]);await c.query('DELETE FROM projects WHERE id IN (?)',[projects]);}
   if(ids.length){for(const table of ['command_receipts','audit_log'])await c.query(`DELETE FROM ${table} WHERE actor_id IN (?)`,[ids]);await c.query('DELETE FROM sessions WHERE user_id IN (?)',[ids]);await c.query('DELETE FROM users WHERE id IN (?)',[ids]);}
   await c.end();
 }

@@ -1,4 +1,5 @@
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
+import { assertProjectAccess } from './project-membership.js';
 import { changeRows, riskRows, nodeRows } from './project-records.js';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 import { stageBlock, startProjectBlock, type StageFact } from './project-actions.js';
@@ -47,9 +48,10 @@ const stageExpression = "COALESCE((SELECT MIN(s.stage_code) FROM project_stages 
 const progressExpression = `ELT(1+(SELECT COUNT(*) FROM project_stages s WHERE s.project_id=p.id AND s.state='completed'),${[0, ...stages.map(stage => stage.progress)].join(',')})`;
 const stageStateExpression = "COALESCE((SELECT s.state FROM project_stages s WHERE s.project_id=p.id AND s.state<>'completed' ORDER BY s.stage_code LIMIT 1), IF((SELECT COUNT(*) FROM project_stages s WHERE s.project_id=p.id)=7,'completed','unconfigured'))";
 
-function conditions(query: ProjectQuery, includeFilters: boolean, today: string) {
+function conditions(query: ProjectQuery, includeFilters: boolean, today: string, accountId?:string) {
   const clauses: string[] = [];
   const values: unknown[] = [];
+  if(accountId){clauses.push('EXISTS(SELECT 1 FROM project_responsibilities own JOIN users owner ON owner.id=own.user_id WHERE own.project_id=p.id AND own.user_id=? AND owner.enabled=1 AND NOT EXISTS(SELECT 1 FROM system_configuration cfg WHERE cfg.maintenance_user_id=owner.id))');values.push(accountId);}
   switch (query.view ?? 'active') {
     case 'active': clauses.push("p.status='ongoing'"); break;
     case 'proposal': clauses.push("p.status IN ('proposal','paused')"); break;
@@ -119,6 +121,7 @@ async function enrich(connection: PoolConnection, projects: RowDataPacket[], inc
 }
 
 async function readDetail(connection: PoolConnection, id: string, accountId: string | undefined, now: Date, withHistory = true, statusEntries?: StatusEntry[]) {
+        if(accountId)await assertProjectAccess(connection,id,accountId);
         const todayCheck = todayCheckCondition(businessToday(now));
         const project = (await enrich(connection, await rows(connection, `SELECT ${columns},${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress,${todayCheck.sql} checkedToday,
           DATE_FORMAT(p.original_due_date,'%Y-%m-%d') originalDueDate,CAST(p.first_check_rule_version AS CHAR) firstCheckRuleVersion,
@@ -162,11 +165,37 @@ async function readDetail(connection: PoolConnection, id: string, accountId: str
 
 export function projectReads(database: RuntimeDatabase, clock = () => new Date()) {
   return {
-    sourceHistory(id: string, kind: SourceHistoryKind, sourceNamespace?: string, adoptionId?: string, before?: string) { return database.readSnapshot(connection => sourceHistory(connection, id, kind, sourceNamespace, adoptionId, before)); },
+    space(query:{search?:string;page?:number;pageSize?:number},accountId:string) {
+      return database.readSnapshot(async c=>{
+        const where=query.search?'WHERE p.name LIKE ? OR c.name LIKE ? OR pl.name LIKE ? OR EXISTS(SELECT 1 FROM project_chips pc JOIN chips chip ON chip.id=pc.chip_id WHERE pc.project_id=p.id AND chip.name LIKE ?)':'';
+        const term='%'+(query.search??'').replace(/[\\%_]/g,'\\$&')+'%',params=query.search?[term,term,term,term]:[];
+        const total=Number((await rows(c,`SELECT COUNT(*) total FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id ${where}`,params))[0].total);
+        const pageSize=query.pageSize??24,pageCount=Math.max(1,Math.ceil(total/pageSize)),page=Math.min(query.page??1,pageCount);
+        const items=await rows(c,`SELECT CAST(p.id AS CHAR) id,p.name,p.status,c.name customer,pl.name productLine,p.summary
+          FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id ${where} ORDER BY p.id DESC LIMIT ? OFFSET ?`,[...params,pageSize,(page-1)*pageSize]);
+        if(items.length) {
+          const ids=items.map(v=>v.id);
+          const chips=await rows(c,'SELECT CAST(pc.project_id AS CHAR) projectId,CAST(c.id AS CHAR) id,c.name FROM project_chips pc JOIN chips c ON c.id=pc.chip_id WHERE pc.project_id IN (?) ORDER BY pc.sort_order,c.id',[ids]);
+          const tags=await rows(c,'SELECT CAST(pt.project_id AS CHAR) projectId,CAST(t.id AS CHAR) id,t.name FROM project_tags pt JOIN tags t ON t.id=pt.tag_id WHERE pt.project_id IN (?) ORDER BY pt.sort_order,t.id',[ids]);
+          const members=await rows(c,'SELECT CAST(r.project_id AS CHAR) projectId,CAST(u.id AS CHAR) id,u.display_name name,u.enabled FROM project_responsibilities r JOIN users u ON u.id=r.user_id WHERE r.project_id IN (?) AND NOT EXISTS(SELECT 1 FROM system_configuration s WHERE s.maintenance_user_id=u.id) ORDER BY u.id',[ids]);
+          const pending=await rows(c,"SELECT CAST(project_id AS CHAR) projectId,CAST(id AS CHAR) id,kind FROM project_membership_requests WHERE project_id IN (?) AND target_user_id=? AND status='pending'",[ids,accountId]);
+          for(const item of items){
+            const own=members.filter(v=>v.projectId===item.id),member=own.some(v=>v.id===accountId&&v.enabled);
+            item.chips=chips.filter(v=>v.projectId===item.id).map(({projectId:_id,...v})=>v);
+            item.tags=tags.filter(v=>v.projectId===item.id).map(({projectId:_id,...v})=>v);
+            item.collaborators=own.length>1?own.filter(v=>!member||v.id!==accountId).map(({id,name,enabled})=>({id,name,enabled:!!enabled})):[];
+            item.member=member;item.unowned=!own.some(v=>v.enabled);
+            item.pendingRequest=pending.find(v=>v.projectId===item.id)??null;
+          }
+        }
+        return {items,pagination:{page,pageSize,total,pageCount}};
+      });
+    },
+    sourceHistory(id: string, kind: SourceHistoryKind, sourceNamespace?: string, adoptionId?: string, before?: string, accountId?:string) { return database.readSnapshot(async connection => { if(accountId)await assertProjectAccess(connection,id,accountId);return sourceHistory(connection, id, kind, sourceNamespace, adoptionId, before); }); },
     summary(accountId: string) {
       const now=clock(),today=businessToday(now);
       return database.readSnapshot(async connection=>{
-        const items=await enrich(connection,await rows(connection,`SELECT ${columns},p.summary_note summaryNote,p.chipstat_note chipstatNote,p.detail_note detailNote,${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress ${joins} ORDER BY p.id`));
+        const items=await enrich(connection,await rows(connection,`SELECT ${columns},p.summary_note summaryNote,p.chipstat_note chipstatNote,p.detail_note detailNote,${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress ${joins} WHERE EXISTS(SELECT 1 FROM project_responsibilities own JOIN users owner ON owner.id=own.user_id WHERE own.project_id=p.id AND own.user_id=? AND owner.enabled=1 AND NOT EXISTS(SELECT 1 FROM system_configuration cfg WHERE cfg.maintenance_user_id=owner.id)) ORDER BY p.id`,[accountId]));
         await enrichChecks(connection,items,{businessDate:today});
         const nodes=await rows(connection,"SELECT CAST(project_id AS CHAR) projectId,CAST(id AS CHAR) id,title,DATE_FORMAT(target_date,'%Y-%m-%d') targetDate FROM project_nodes WHERE kind='project' AND deleted_at IS NULL AND completed_on IS NULL ORDER BY project_id,sort_order,id");
         const engineers=await rows(connection,'SELECT name FROM engineers ORDER BY name,id'),engineerNames=engineers.map(item=>String(item.name));
@@ -184,8 +213,8 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
       const now = clock(), today = businessToday(now);
       return database.readSnapshot(async connection => {
         const checkStats = checkConditions();
-        const base = conditions(query, false, today);
-        const filtered = conditions(query, true, today);
+        const base = conditions(query, false, today, accountId);
+        const filtered = conditions(query, true, today, accountId);
         const deadlines = deadlineKinds.map(kind => ({ kind, ...deadlineCondition(kind, today) }));
         const todayCheck = todayCheckCondition(today);
         const statistics = [...deadlines.map(condition => ({ ...condition, key: condition.kind })), ...checkStats, { key: 'todayChecked', ...todayCheck }, { key: 'todayUnchecked', sql: 'NOT ' + todayCheck.sql, values: todayCheck.values }];
@@ -194,7 +223,8 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
         let quickRanges:Record<string,string[]>|undefined;
         let globalChecks:{total:number;todayChecked:number;todayUnchecked:number}|undefined;
         if(query.dashboard){
-          const allChecks=(await rows(connection,`SELECT COUNT(*) total,COALESCE(SUM(${todayCheck.sql}),0) todayChecked FROM projects p`,todayCheck.values))[0];
+          const personal=conditions({view:'all'},false,today,accountId);
+          const allChecks=(await rows(connection,`SELECT COUNT(*) total,COALESCE(SUM(${todayCheck.sql}),0) todayChecked FROM projects p ${personal.sql}`,[...todayCheck.values,...personal.values]))[0];
           globalChecks={total:Number(allChecks.total),todayChecked:Number(allChecks.todayChecked),todayUnchecked:Number(allChecks.total)-Number(allChecks.todayChecked)};
           const quickConditions=[{key:'total',sql:'1',values:[]},{key:'high',sql:"p.priority='high'",values:[]},...['green','yellow','red'].map(color=>({key:color,sql:`p.signal='${color}'`,values:[]})),...statistics];
           const matches=await rows(connection,`SELECT CAST(p.id AS CHAR) id,${quickConditions.map(condition=>`(${condition.sql}) AS \`${condition.key}\``).join(',')} ${joins} ${filtered.sql} ORDER BY p.id DESC`,[...quickConditions.flatMap(condition=>condition.values),...filtered.values]);

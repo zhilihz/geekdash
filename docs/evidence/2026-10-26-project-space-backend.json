@@ -1,0 +1,1783 @@
+{
+  "checkedAt": "2026-10-26T19:34:51.087039+00:00",
+  "branch": "codex/p05-project-space",
+  "base": "64a1ad5fb320b3853147d6e777e171aa44646eb6",
+  "candidate": "9b78072 with uncommitted P05 code",
+  "scope": "隔离候选实现验证；等待固定版本完整复验与原生页面验收，未合并推送部署",
+  "migration": {
+    "status": "passed",
+    "checkedAt": "2026-10-26T07:46:17.743Z",
+    "serverUuid": "56325048-d110-11f1-9e0f-56c57432432a",
+    "checks": [
+      "ECMAScript空白重名在DDL前拒绝，大小写不同保持不同项目",
+      "8步真实进程中断后续跑，38张旧表原列内容及迁移登记不变，重复迁移无变化",
+      "名称唯一与别名、unknown状态、请求外键和终态约束均真实MySQL拒绝反例；迁移不创建邀请或责任",
+      "新迁移摘要改动及旧版应用读取新结构均明确拒绝"
+    ],
+    "interruptions": [
+      {
+        "step": "check-project-names",
+        "oldRowsUnchanged": true,
+        "signal": "SIGKILL"
+      },
+      {
+        "step": "projects:2",
+        "oldRowsUnchanged": true,
+        "signal": "SIGKILL"
+      },
+      {
+        "step": "fill-project-name-keys",
+        "oldRowsUnchanged": true,
+        "signal": "SIGKILL"
+      },
+      {
+        "step": "projects:4",
+        "oldRowsUnchanged": true,
+        "signal": "SIGKILL"
+      },
+      {
+        "step": "project_name_aliases:5",
+        "oldRowsUnchanged": true,
+        "signal": "SIGKILL"
+      },
+      {
+        "step": "remember-project-names",
+        "oldRowsUnchanged": true,
+        "signal": "SIGKILL"
+      },
+      {
+        "step": "project_membership_requests:7",
+        "oldRowsUnchanged": true,
+        "signal": "SIGKILL"
+      },
+      {
+        "step": "project_stages:8",
+        "oldRowsUnchanged": true,
+        "signal": "SIGKILL"
+      }
+    ],
+    "originalRowsHash": "c5dc94c15c8450d5362d4d5e2faa7144946b9013677a7c6fd16caf6605c01a7f",
+    "structure": {
+      "database": "geekdash_test",
+      "version": "0009-project-space",
+      "checksum": "2cff897dd8ade0bfcfdd43ef2f54050443c39740eb55082ec17dc6b772a68d45",
+      "tables": 40,
+      "columns": 369,
+      "foreignKeys": 69,
+      "differences": 0
+    },
+    "scope": "独立MySQL合成存量；不代表线上恢复或完整P05验收"
+  },
+  "restore": {
+    "status": "passed",
+    "checkedAt": "2026-10-26T08:53:14.205Z",
+    "source": "本地0008固定验收库的SQL和原文件恢复副本，含已采用真实备份和合成测试；非线上快照",
+    "serverUuid": "86cc187a-d113-11f1-b34b-a2cbc99aa662",
+    "structure": {
+      "status": "verified",
+      "applied": true,
+      "database": "geekdash_test",
+      "version": "0009-project-space",
+      "checksum": "2cff897dd8ade0bfcfdd43ef2f54050443c39740eb55082ec17dc6b772a68d45",
+      "tables": 40,
+      "columns": 369,
+      "foreignKeys": 69,
+      "differences": 0
+    },
+    "oldTableHashes": {
+      "schema_migrations": {
+        "rows": 8,
+        "sha256": "a70dd04c4e7e7b887ad08ef1db3f1d51617a5114eb71085470367137e4ac6d7e"
+      },
+      "apps": {
+        "rows": 3,
+        "sha256": "cc92456e145501e98f0665c53173d66a4f623f8dd4967deb5322291ea42d6f7d"
+      },
+      "audit_log": {
+        "rows": 147,
+        "sha256": "12463bbcfa36b39bc8fa11a4f09106a5f89e5e6dc81c6b499f9b3d2bc165786c"
+      },
+      "check_rule_revisions": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "chips": {
+        "rows": 44,
+        "sha256": "adc32d6f1c67a75326bd6fd1c7923b84c3de3c81406b7e9a05eb9e36298d548d"
+      },
+      "command_receipts": {
+        "rows": 155,
+        "sha256": "1f05ded0dac2d2c008087b73117d21ef1255d15cc74c99b00e3d89efd77ddc17"
+      },
+      "customer_tags": {
+        "rows": 5,
+        "sha256": "a316c1d36d6b29394a7cee6587dd1e4c92f825e15593b215aadd71bdd68c1d64"
+      },
+      "customers": {
+        "rows": 14,
+        "sha256": "d6ee8f5c662e674fc1f39a5ae5faf352e00161b25259fec109fee100cab3a831"
+      },
+      "engineers": {
+        "rows": 22,
+        "sha256": "7fe505fa105bb768c15bd02ab5edb39ab647f08b27a74ac24316c605b34f8554"
+      },
+      "feedback_entries": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "import_batches": {
+        "rows": 11,
+        "sha256": "19914354907a2cd3a06a3d3312771a4753a8e87888e919a1ca2719cf21a64799"
+      },
+      "import_items": {
+        "rows": 282,
+        "sha256": "21838dc9225dfdae370376cd1ea0dce52ec302b2143c2e3b386177fc61402fc5"
+      },
+      "legacy_project_history": {
+        "rows": 59,
+        "sha256": "30f7771af3825bf8b3f37a7212d1197b638d36fb16cb31aad2efe95a8fea3a14"
+      },
+      "meetings": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "product_lines": {
+        "rows": 12,
+        "sha256": "654fe3836c060a76356a0bfdd14757502eb2db94cc9f092383fd8af2918b7ece"
+      },
+      "project_changes": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "project_checks": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "project_chips": {
+        "rows": 14,
+        "sha256": "13d6f63035e96dd4c90d4145339a0894daf33c37c3b0484f50e7ca7af15e7f37"
+      },
+      "project_drafts": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "project_groups": {
+        "rows": 3,
+        "sha256": "bbaf7d854b645c5a643b05ff7936938aa09eea4894b0dc4c1704b8d52fa5f5ec"
+      },
+      "project_nodes": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "project_people": {
+        "rows": 39,
+        "sha256": "0f872125006cb0e24f2e8a0c7537c4ae0f4a79b9d72e073e7b1322f7a03176bf"
+      },
+      "project_responsibilities": {
+        "rows": 30,
+        "sha256": "0bc5256880851a6e9052235f4aea3e317f61ba4a7e134246bbd364998e23c85e"
+      },
+      "project_risks": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "project_stages": {
+        "rows": 203,
+        "sha256": "32bac7d86666d8f0e413a3f8e1d73986f923200fe93199b438cdee86c1ad99cc"
+      },
+      "project_tags": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "projects": {
+        "rows": 29,
+        "sha256": "b38a75c8299678cc521b7abba200d7a4c3f11921fe2956cdb97bbab55f3c78ea"
+      },
+      "reports": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "schedule_changes": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "sessions": {
+        "rows": 9,
+        "sha256": "9b68335b8ddc3e5ad143fba3f520ed84f55d4597a4c2a010781bd61ee0896b99"
+      },
+      "system_configuration": {
+        "rows": 1,
+        "sha256": "91e55923f9d3a1961e78ca0b1c9dc38aa5e9d0c220c8174ebb05a2434b6e7b14"
+      },
+      "tags": {
+        "rows": 2,
+        "sha256": "647e42ec3418b5f3780177707bf90ba517b480adce5042f1b8de57944923726c"
+      },
+      "user_preferences": {
+        "rows": 10,
+        "sha256": "55cc53b72085e0b3bcdd40ef93f4d09ac2b907919078acf134b9d6fa6bca95e0"
+      },
+      "users": {
+        "rows": 9,
+        "sha256": "fd1934177a9acf1e6b8a44c6166ad0329759b021d3563633dee3c112cafaa2d2"
+      },
+      "import_sources": {
+        "rows": 10,
+        "sha256": "60d6b295ce49385c5cbabc04d5e38a9337fc38cc3a7c3b6360fc5e73312da9dd"
+      },
+      "import_bindings": {
+        "rows": 129,
+        "sha256": "f0be2f0d3908f928a2b844b6b5c537d69505714796419e15cc993079421d3d19"
+      },
+      "import_adoptions": {
+        "rows": 129,
+        "sha256": "479e3f477aaf025a6ffad27ac3e9df250636461f9fd7aa75760d1d9fc8bdea3f"
+      },
+      "import_executions": {
+        "rows": 22,
+        "sha256": "e4771ce44e9771167cfba04a940c193986b3457b9e39cc1b7d7863ec2db8db42"
+      }
+    },
+    "sourceFileCount": 12,
+    "sourceFilesHash": "bc792db969980a90b5491366ba39d2a5fed4f6392d94281fe5ee1b1af9b89a69",
+    "adoptionsHaveReceipts": true
+  },
+  "membership": {
+    "status": "passed",
+    "checkedAt": "2026-10-26T10:36:25.788Z",
+    "requests": 96,
+    "checks": [
+      "创建者先负责、邀请待接受不授予写权限、接受后正式保存及新请求回读一致",
+      "重复申请复用、两位经理相反决定只生效一次、非成员和维护账号没有业务越权",
+      "并发退出后仍保留一位负责人，退出者个人查询及详情立即收回，最后一人无法退出",
+      "无效邀请整次创建回滚、旧直接赋权命令拒绝、同名创建拒绝",
+      "同时认领仅一人取得责任，竞争者明确转申请；撤回不可再接受，重新申请使用新请求",
+      "编辑者和项目通知仅发当前成员；退出关闭详情订阅、失效本人邀请；原保存可确认但不泄漏业务快照",
+      "改名保留原名候选，冲突改名事务回滚并保留原名称",
+      "审计失败请求也回滚；提交回包丢失经重启原键恢复，不重复邀请",
+      "交接含所有项目、未接受邀请不算交接；停用撤会话及未接受邀请，重新启用不恢复旧请求或会话"
+    ],
+    "scope": "隔离数据库真实HTTP与SQL，含空间白名单及个人详情/历史/检查/统计/简要；含实际SSE分发及失权关闭；页面、导入新链仍需专项验收"
+  },
+  "importSynthetic": {
+    "status": "passed",
+    "checkedAt": "2026-10-26T10:36:17.920Z",
+    "requests": 80,
+    "checks": [
+      "无需来源设置，一次上传及确认后新项目、全部基础资料、初始负责关系入库；缺开始依据保留unknown，个人看板和空间新请求可用",
+      "重复备份一致无需处理；原编号改变仍按名称识别已有项目；差异默认不采用，明确选择简介后其他信息保持",
+      "备份经理唯一匹配只产生持久邀请，接受后个人读取可用；拒绝后重传不重发；同名、停用、维护及未注册姓名不自动授予权限",
+      "经理同名只在原结果确认一次，同批后续项目复用已确认账号，另一同名账号未获得请求",
+      "上传同名已有项目不授予权限，非成员只见基础信息且不能提交更新",
+      "曾用名只提示候选，不能自动合并到改名后的项目",
+      "子记录在同一项目按原编号提示候选，明确选择修正原记录；作为新增保留旧记录，原编号重用只在该行要求选择，不删除其他节点",
+      "旧当前阶段原位确认开始状态，保存后新请求读取active，未知日期保持未知，同一操作键不能改为另一个状态",
+      "退出后原导入采用详情收回；项目改名导致新候选也不能通过原采用历史读取无权的正式内容"
+    ],
+    "realBackup": null,
+    "scope": "真实HTTP与隔离MySQL；尚未验证账号停用与导入竞争、节点改对应的全部联动及原生页面，不代表阶段交付"
+  },
+  "importUi": {
+    "status": "passed",
+    "checkedAt": "2026-10-26T10:08:44.157Z",
+    "build": {
+      "revision": "9b78072acc9985644404ef05981c24285de74624",
+      "dirty": true,
+      "builtAt": "2026-10-26T10:07:22.814Z",
+      "stage": "P05-imports",
+      "schemaVersion": "0009-project-space"
+    },
+    "requests": 53,
+    "checks": [
+      "选择文件→查看新增与差异→一次确认保存两个正常项目及全部新资料；错误项目留原行，未知阶段不额外填表",
+      "错误日期原位置修正→确认导入；丢失执行响应后查原操作，只产生一次采用",
+      "同名旧项目只勾选简介→确认→独立SQL、详情和本人列表新读一致；未选说明不覆盖、勾选不收起当前差异"
+    ],
+    "limitation": "实际前端执行模型与真实HTTP/MySQL；原生像素及全部权限结果另验"
+  },
+  "spaceUi": {
+    "status": "passed",
+    "checkedAt": "2026-10-26T10:31:42.979Z",
+    "build": {
+      "revision": "9b78072acc9985644404ef05981c24285de74624",
+      "dirty": true,
+      "builtAt": "2026-10-26T10:27:20.306Z",
+      "stage": "P05-imports",
+      "schemaVersion": "0009-project-space"
+    },
+    "requests": 101,
+    "checks": [
+      "新建页多选邀请可存服务器草稿；一次创建产生两条邀请，只有创建者负责，被邀者尚不能读详情",
+      "基础空间→接受邀请（注入丢响应）→原结果核对→同一项目进入个人列表和简要；不重复责任",
+      "原阶段卡确认历史开始状态，保存后新读与SQL一致且日期仍未知；详情退出后正式读取和个人列表同步收回",
+      "维护页就地显示影响→一次确认停用→撤销旧会话、其他协作者继续管理→重新启用需新登录",
+      "原存量无负责人项目可在空间认领，随后同一ID进入本人项目"
+    ],
+    "limitation": "真实前端模块、HTTP及MySQL；原生视觉和全部切换场景另验"
+  },
+  "earlierRealBackup": {
+    "status": "passed",
+    "checkedAt": "2026-10-26T09:33:43.206Z",
+    "requests": 175,
+    "checks": [
+      "无需来源设置，一次上传及确认后新项目、全部基础资料、初始负责关系入库；缺开始依据保留unknown，个人看板和空间新请求可用",
+      "重复备份一致无需处理；原编号改变仍按名称识别已有项目；差异默认不采用，明确选择简介后其他信息保持",
+      "备份经理唯一匹配只产生持久邀请，接受后个人读取可用；拒绝后重传不重发；同名、停用、维护及未注册姓名不自动授予权限",
+      "经理同名只在原结果确认一次，同批后续项目复用已确认账号，另一同名账号未获得请求",
+      "上传同名已有项目不授予权限，非成员只见基础信息且不能提交更新",
+      "曾用名只提示候选，不能自动合并到改名后的项目",
+      "用户提供的真实备份只在隔离库完整采用35项目，逐项目新请求和独立SQL/责任关系回读"
+    ],
+    "realBackup": {
+      "projects": 35,
+      "adopted": 35,
+      "catalogs": 86
+    },
+    "scope": "真实HTTP与隔离MySQL；尚未验证歧义子记录、账号停用与导入竞争及原生页面，不代表阶段交付"
+  },
+  "updatedAt": "2026-10-26T10:39:00Z",
+  "delivery": {
+    "primaryCodeCommitted": false,
+    "mainMerged": false,
+    "pushed": false,
+    "deployed": false,
+    "transitionCommit": "164a36910048565e1148dac0d8c88173fe3842c5",
+    "transitionSourceSha256": "3ec9730a56d6d7e28dd1bffe02ccebdf97e6f12390a8cc563acf88ee19399d6b"
+  },
+  "importLatest": {
+    "status": "passed",
+    "checkedAt": "2026-10-26T11:41:35.676Z",
+    "requests": 219,
+    "checks": [
+      "无需来源设置，一次上传及确认后新项目、全部基础资料、初始负责关系入库；缺开始依据保留unknown，个人看板和空间新请求可用",
+      "重复备份一致无需处理；原编号改变仍按名称识别已有项目；差异默认不采用，明确选择简介后其他信息保持",
+      "备份经理唯一匹配只产生持久邀请，接受后个人读取可用；拒绝后重传不重发；同名、停用、维护及未注册姓名不自动授予权限",
+      "已有项目正文一致但新增经理匹配时，确认仅发协作邀请；不改项目版本或伪造业务修改历史，接受后加入，重传不重复邀请",
+      "经理同名只在原结果确认一次，同批后续项目复用已确认账号，另一同名账号未获得请求",
+      "上传同名已有项目不授予权限，非成员只见基础信息且不能提交更新",
+      "曾用名只提示候选，不能自动合并到改名后的项目",
+      "子记录在同一项目按原编号提示候选，明确选择修正原记录；作为新增保留旧记录，原编号重用只在该行要求选择，不删除其他节点",
+      "节点只采用后续完成或只撤销前置时提示因果及需同次采用的节点，失败不改版本/数据；同时明确采用成功；新循环拒绝；改为新增重新解析两端，旧链保持且新链只连新ID，重复目标拒绝",
+      "改选已有节点后按最终对应重接两端且原链保持；缺编号/重复编号只在原记录确认，明确对应后原ID更新；跨项目目标拒绝且无部分写入",
+      "旧当前阶段原位确认开始状态，保存后新请求读取active，未知日期保持未知，同一操作键不能改为另一个状态",
+      "退出后原导入采用详情收回；项目改名导致新候选也不能通过原采用历史读取无权的正式内容",
+      "旧执行已接受但保存前账号停用：项目未写入；维护账号不能接管，业务账号一次接管后只负责后续新增，旧关系保持；原账号启用不夺回批次",
+      "项目保存事务先取得账号锁：新增与责任一起提交，旧停用确认被拒绝，必须重新核对并交接新项目"
+    ],
+    "realBackup": null,
+    "scope": "真实HTTP与隔离MySQL；包含节点新增改对应/完成依赖/循环及账号停用竞争，未验证全部原生页面，不代表阶段交付"
+  },
+  "membershipLatest": {
+    "status": "passed",
+    "checkedAt": "2026-10-26T11:15:06.318Z",
+    "requests": 96,
+    "checks": [
+      "创建者先负责、邀请待接受不授予写权限、接受后正式保存及新请求回读一致",
+      "重复申请复用、两位经理相反决定只生效一次、非成员和维护账号没有业务越权",
+      "并发退出后仍保留一位负责人，退出者个人查询及详情立即收回，最后一人无法退出",
+      "无效邀请整次创建回滚、旧直接赋权命令拒绝、同名创建拒绝",
+      "同时认领仅一人取得责任，竞争者明确转申请；撤回不可再接受，重新申请使用新请求",
+      "编辑者和项目通知仅发当前成员；退出关闭详情订阅、失效本人邀请；原保存可确认但不泄漏业务快照",
+      "改名保留原名候选，冲突改名事务回滚并保留原名称",
+      "审计失败请求也回滚；提交回包丢失经重启原键恢复，不重复邀请",
+      "交接含所有项目、未接受邀请不算交接；停用撤会话及未接受邀请，重新启用不恢复旧请求或会话"
+    ],
+    "scope": "隔离数据库真实HTTP与SQL，含空间白名单及个人详情/历史/检查/统计/简要；含实际SSE分发及失权关闭；页面、导入新链仍需专项验收"
+  },
+  "importFrontendLatest": {
+    "status": "passed",
+    "checkedAt": "2026-10-26T11:05:39.225Z",
+    "build": {
+      "revision": "9b78072acc9985644404ef05981c24285de74624",
+      "dirty": true,
+      "builtAt": "2026-10-26T11:05:14.063Z",
+      "stage": "P05-imports",
+      "schemaVersion": "0009-project-space"
+    },
+    "requests": 55,
+    "checks": [
+      "选择文件→查看新增与差异→一次确认保存两个正常项目及全部新资料；错误项目留原行，未知阶段不额外填表",
+      "错误日期原位置修正→确认导入；丢失执行响应后查原操作，只产生一次采用",
+      "同名旧项目只勾选简介→确认→独立SQL、详情和本人列表新读一致；未选说明不覆盖、勾选不收起当前差异",
+      "已有项目正文相同、仅备份新增经理：原结果显示协作请求，允许取消；一次确认产生待接受邀请，未改项目版本"
+    ],
+    "limitation": "实际前端执行模型与真实HTTP/MySQL；原生像素及全部权限结果另验"
+  },
+  "spaceFrontendLatest": {
+    "status": "passed",
+    "checkedAt": "2026-10-26T11:18:32.410Z",
+    "build": {
+      "revision": "9b78072acc9985644404ef05981c24285de74624",
+      "dirty": true,
+      "builtAt": "2026-10-26T11:05:14.063Z",
+      "stage": "P05-imports",
+      "schemaVersion": "0009-project-space"
+    },
+    "requests": 101,
+    "checks": [
+      "新建页多选邀请可存服务器草稿；一次创建产生两条邀请，只有创建者负责，被邀者尚不能读详情",
+      "基础空间→接受邀请（注入丢响应）→原结果核对→同一项目进入个人列表和简要；不重复责任",
+      "原阶段卡确认历史开始状态，保存后新读与SQL一致且日期仍未知；详情退出后正式读取和个人列表同步收回",
+      "维护页就地显示影响→一次确认停用→撤销旧会话、其他协作者继续管理→重新启用需新登录",
+      "原存量无负责人项目可在空间认领，随后同一ID进入本人项目"
+    ],
+    "limitation": "真实前端模块、HTTP及MySQL；原生视觉和全部切换场景另验"
+  },
+  "transition": {
+    "status": "passed",
+    "checkedAt": "2026-10-26T11:19:57.629Z",
+    "oldBuild": {
+      "revision": "164a36910048565e1148dac0d8c88173fe3842c5",
+      "dirty": false,
+      "builtAt": "2026-10-26T11:06:08.831Z",
+      "stage": "P05-imports",
+      "schemaVersion": "0008-import-name-bindings"
+    },
+    "newBuild": {
+      "revision": "9b78072acc9985644404ef05981c24285de74624",
+      "dirty": true,
+      "builtAt": "2026-10-26T11:05:14.063Z",
+      "stage": "P05-imports",
+      "schemaVersion": "0009-project-space"
+    },
+    "requests": 19,
+    "checks": [
+      "0008旧命令持久接收后停进程；过渡产物关闭新上传/来源/执行接收，同时旧执行继续并全部提交，原操作查询可用",
+      "旧执行全部终态后迁移，38张旧表逐行摘要保持；0008应用拒绝0009；新应用读取及重放原完成结果不重复写入，未接受旧命令返回410"
+    ],
+    "scope": "隔离验收库演练；未操作线上配置，目标schema兼容回退仍须结合正式构建验证"
+  },
+  "writeRecovery": {
+    "status": "passed",
+    "checkedAt": "2026-10-26T11:38:57.779Z",
+    "build": {
+      "revision": "9b78072acc9985644404ef05981c24285de74624",
+      "dirty": true,
+      "builtAt": "2026-10-26T11:36:39.255Z",
+      "stage": "P05-imports",
+      "schemaVersion": "0009-project-space"
+    },
+    "requests": 28,
+    "checks": [
+      "0009兼容产物重启为只读：健康、登录、原详情/历史和原成功回执可用；创建、保存、归属、草稿、账号及导入写入明确未提交",
+      "只读期间持久任务保持accepted无项目；恢复同结构写入后原任务仅提交一次，原项目继续保存并由新请求回读"
+    ],
+    "scope": "隔离MySQL演练，未改变线上配置"
+  },
+  "coreRegression": {
+    "status": "passed",
+    "checks": [
+      "真实临时登录、强制改密、CSRF、改密后重新登录和旧会话撤销",
+      "新建选择真实账号：创建人自动保留、候选不泄露凭据、草稿同事务终结、受邀者接受后保存及GET/SQL回读、创建审计和重放",
+      "停用/不存在/重复/畸形经理字段拒绝且无部分项目或回执；空选择仍有创建人；双账号交叉选人并发创建完成",
+      "选择经理创建COMMIT丢响应：重启后原回执确认、重放不重复、已保存责任仍可使用",
+      "新建夹带已结案状态、已完成阶段、实际启动或结案日期均拒绝，无项目及回执；修正后沿正常创建",
+      "创建项目及七阶段、真实创建者、自动负责、重复创建对账、非负责人拒绝详情、旧直接加入协议退役和最后退出拒绝",
+      "本人加入、实名普通保存及新连接回读、回执账号隔离、统一版本冲突及实名历史",
+      "保存及创建审计故障：项目、七阶段、关系、版本和回执整体回滚",
+      "同时退出仅一个成功，提交后丢失响应、应用重建后原责任回执与持久会话接续",
+      "多个真实账号同版本并发保存仅一个成功，其他冲突可恢复",
+      "事务内拒绝已停用身份快照；旧匿名历史保留且只读确认，不伪造实名",
+      "后台请求不续期、真实前台活动续期、到期不可复活、明确退出撤销当前会话"
+    ],
+    "requests": 110,
+    "maxRequestMs": 77.725909,
+    "build": {
+      "revision": "9b78072acc9985644404ef05981c24285de74624",
+      "dirty": true,
+      "builtAt": "2026-10-26T11:05:14.063Z",
+      "stage": "P05-imports",
+      "schemaVersion": "0009-project-space"
+    }
+  },
+  "scopedRegression": {
+    "status": "passed",
+    "checks": [
+      "PRD9.1/9.4/9.6：范围与字段拒绝、无资格拒绝、旧协议无新写入；独立SQL保持",
+      "PRD9.5：完整同构字段创建、七阶段与创建者负责、简介和原备注独立；新GET/SQL、原号重放、停用资料与审计失败无孤儿项目",
+      "PRD9.4/9.6/9.7/9.20：各范围独立保存、旧PM来源保留、真实经理未改、无变化及重放不新增事实",
+      "PRD9.4/9.8/9.9：名称＋计划＋状态一次版本与三项审计；前置、改期/审计/回执故障全部回滚",
+      "PRD9.4/9.8：联合开始/计划按最终候选验证，合法组合通过、最终矛盾全部回滚",
+      "PRD9.10/DEC-134：等级纠错直接保存、解除与说明纠错保留原时间、重复/不合法动作不写、撤销解除故障回滚及重新保存",
+      "PRD9.10/DEC-134：风险文字与等级直接保存、误录删除保留原字段、故障回滚及重放不重复",
+      "PRD9.11/DEC-134：内容/理由/来源/决定直接保存，审计故障全回滚，重试与重放及新SQL/GET确认，不自动改阶段/节点/计划",
+      "PRD9.10/9.11/9.12：单条记录目标隔离、客户/项目节点隔离、节点保存后阶段预计日期新GET联动",
+      "PRD9.6/9.15：完整检查卡与详情同值；真实经理加入/退出、卡片/稳定ID筛选/团队统计联动、退出无权及最后一人保护",
+      "PRD9.1/9.4：不同范围同版本竞争仅一次成功；真实COMMIT丢响应、服务重启后查原回执和重放无重复；列表新请求消费",
+      "PRD9.4：灯色/说明真实持久字段一致；已有标签添加后明确清空，正式关联消失；最新说明可清空且不改灯色及两类备注",
+      "PRD9.6：两人同版本退出仅一次成功，最后经理拒绝且SQL不变；加入COMMIT丢响应后重启查原结果及重放，名单/版本/审计无重复",
+      "PRD9.6：已加入再确认不改版本/历史；原号重放同结果；请求夹带他人账号全部拒绝且SQL/责任名单不变",
+      "PRD9.4：新basicIntent边界、权限与旧commands互斥；名称/计划/暂缓由服务端推导一次版本，SQL/新GET/原号回执一致",
+      "PRD9.4/9.8：意图联合日期/改期/恢复按正式前态推导；三写入故障全回滚，纠错与明确清空不伪造改期",
+      "PRD9.4/9.8：未完成S1的启动全部拒绝；真实阶段动作后意图启动/结案/维护/重开复用原规则，结案后只改名称不制造结案动作",
+      "PRD9.15：新意图精确草稿随正式事务终结，回执失败回滚、COMMIT未知后重启恢复；较新底稿原样保留",
+      "PRD9.15：legacy commands与旧草稿正文仍可未知回执恢复，重放不新增；SQL哈希与旧协议公式逐字相同"
+    ],
+    "productBrowserTested": false
+  },
+  "personalStateRegression": {
+    "status": "passed",
+    "checks": [
+      "PRD9.15/SPEC007：本人隔离、新请求读回、同序号重放、迟到修订拒绝、范围白名单与UTF8容量；正式项目保持",
+      "PRD9.4/9.15：草稿终结与正式保存同事务回滚、COMMIT丢回应后重启核对、仅对应范围终结、迟到同步拒绝；同页原回执允许重基线，其他标签拒绝",
+      "PRD9.6/9.15：正式提交期间较新输入保留；旧基线可同步，退出负责后只读自己的旧稿，明确丢弃可重试",
+      "PRD9.15-10：仍有负责资格的账号丢弃草稿后，原创建重放及新修订迟到同步均DRAFT_TERMINAL；新GET和SQL确认唯一原稿保持终态/内容/版本，正式项目不变",
+      "PRD9.5/9.7/9.15：新建及阶段动作底稿与正式写入同事务终结并新请求读取",
+      "PRD9.16：偏好与设备位置独立、跨会话恢复、账号隔离、冲突不覆盖、敏感未知键拒绝",
+      "PRD9.15：剩余一个名额并发创建两稿，恰好一份成功，持久有效稿不超过100"
+    ],
+    "browserTested": false
+  },
+  "notificationsRegression": {
+    "status": "passed",
+    "checks": [
+      "PRD9.17：真实Cookie与SSE账号上下文校验；只查看不在场、非负责人拒绝、同账号双标签按人合并；登记不写审计或续会话",
+      "PRD9.17：首页无projectId真实SSE收到已有名单快照、两人变化、明确结束与编辑者断流清除；仅含项目及人员标识，不写业务",
+      "PRD9.17：保存后真实事件→另一会话新GET→独立SQL；消息只有编号/版本/操作号；冲突拒绝不发提交事件，不泄露字段输入",
+      "PRD9.17：首页同一instance从A切B清除A并展示B；迟到A的editing=false不删除B，独立新SSE确认；失权即时清除，编辑切换不改版本",
+      "PRD9.17：退出负责后立即清名单并拒绝续报；退出登录关闭该会话双标签SSE，其他账号名单更新",
+      "PRD9.17：断流后重新建立真实SSE收到连接及当前名单；旧版本写入仍由数据库拒绝",
+      "PRD9.17：缩短合成会话有效期后真实等待自然到期，服务端心跳关闭流，后续请求401；心跳不续会话",
+      "PRD9.17：关闭并重建应用后SSE进程标识变化、正式数据仍可新读；改密立即撤销原会话并关闭通知流"
+    ],
+    "realBrowser": false,
+    "publicProxy": false
+  },
+  "stageRegression": {
+    "status": "passed",
+    "checkedAt": "2026-10-26T19:25:32.848Z",
+    "checks": [
+      "白名单、身份/负责范围、前置、未开始直接完成及非法/未来日期拒绝，持久数据保持",
+      "负责人S1开始→新连接/另一账号详情与阶段状态；进度0、总体不变、原编号只执行一次及账号回执隔离",
+      "阶段更新、审计及回执实际SQL故障，阶段/解锁/项目版本/历史/回执全部回滚",
+      "S1同日完成/说明原文→只解锁S2、不启动项目/阶段；新GET/看板/历史一致，旧版本拒绝",
+      "独立进行中夹具：仅相邻日期校验；普通保存/动作同版本竞争、真实COMMIT丢回执、应用重建后会话与原结果恢复",
+      "暂缓/结案禁止推进、事务内拒绝已停用身份、未知前置日期及非法序列明确核对，不自动修复",
+      "通用七阶段与原版累计进度，全部完成仍不自动结案/检查，不改灯色/优先级/阶段评述"
+    ],
+    "requestCount": 59,
+    "measurements": [
+      {
+        "path": "/api/auth/login",
+        "status": 200,
+        "ms": 88.91442500000005
+      },
+      {
+        "path": "/api/auth/me",
+        "status": 200,
+        "ms": 8.485951
+      },
+      {
+        "path": "/api/auth/login",
+        "status": 200,
+        "ms": 52.895186999999964
+      },
+      {
+        "path": "/api/auth/me",
+        "status": 200,
+        "ms": 6.249786999999969
+      },
+      {
+        "path": "/api/auth/login",
+        "status": 200,
+        "ms": 55.014998000000105
+      },
+      {
+        "path": "/api/auth/me",
+        "status": 200,
+        "ms": 5.647230000000036
+      },
+      {
+        "path": "/api/projects",
+        "status": 200,
+        "ms": 35.10200400000008
+      },
+      {
+        "path": "/api/projects/207/audit",
+        "status": 200,
+        "ms": 8.723022000000128
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 403,
+        "ms": 11.689532999999983
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 400,
+        "ms": 4.612924000000021
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 422,
+        "ms": 10.178820000000087
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 422,
+        "ms": 12.903172999999924
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 422,
+        "ms": 5.594501000000037
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 422,
+        "ms": 8.221365999999989
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 422,
+        "ms": 12.812398999999914
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 422,
+        "ms": 12.768627000000151
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 422,
+        "ms": 12.936607000000095
+      },
+      {
+        "path": "/api/projects/207/membership",
+        "status": 200,
+        "ms": 19.005890000000136
+      },
+      {
+        "path": "/api/projects/207/membership",
+        "status": 200,
+        "ms": 14.627029999999877
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 200,
+        "ms": 13.44097399999987
+      },
+      {
+        "path": "/api/projects/207",
+        "status": 200,
+        "ms": 20.510643000000073
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 200,
+        "ms": 5.408666999999923
+      },
+      {
+        "path": "/api/projects/207/action-results/query",
+        "status": 200,
+        "ms": 4.528042000000141
+      },
+      {
+        "path": "/api/projects/207/action-results/query",
+        "status": 200,
+        "ms": 4.566134999999804
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 409,
+        "ms": 20.56241
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 422,
+        "ms": 8.194776999999931
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 422,
+        "ms": 8.474398000000065
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 503,
+        "ms": 8.36471100000017
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 503,
+        "ms": 14.575663000000077
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 503,
+        "ms": 13.644099000000097
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 200,
+        "ms": 14.730899000000136
+      },
+      {
+        "path": "/api/projects/207",
+        "status": 200,
+        "ms": 14.949212999999872
+      },
+      {
+        "path": "/api/projects/207/audit",
+        "status": 200,
+        "ms": 4.175913999999921
+      },
+      {
+        "path": "/api/projects?view=proposal&search=stage_b995bddf",
+        "status": 200,
+        "ms": 16.626552000000174
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 422,
+        "ms": 5.744605999999976
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 409,
+        "ms": 6.754648999999972
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 422,
+        "ms": 8.074165999999877
+      },
+      {
+        "path": "/api/projects/207",
+        "status": 200,
+        "ms": 19.564481999999998
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 200,
+        "ms": 11.48219999999992
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 503,
+        "ms": 12.282633000000033
+      },
+      {
+        "path": "/api/projects/207/action-results/query",
+        "status": 200,
+        "ms": 9.547719000000143
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 200,
+        "ms": 6.142162999999982
+      },
+      {
+        "path": "/api/projects/207/audit",
+        "status": 200,
+        "ms": 5.174831999999924
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 422,
+        "ms": 7.3735250000002
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 422,
+        "ms": 7.893452999999909
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 422,
+        "ms": 8.66777100000013
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 422,
+        "ms": 7.450129000000061
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 200,
+        "ms": 14.131857999999966
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 200,
+        "ms": 12.731426000000056
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 200,
+        "ms": 10.827428999999938
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 200,
+        "ms": 10.889863999999989
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 200,
+        "ms": 10.926386000000093
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 200,
+        "ms": 10.442975999999817
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 200,
+        "ms": 11.569430999999895
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 200,
+        "ms": 15.122602000000143
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 200,
+        "ms": 12.637666999999965
+      },
+      {
+        "path": "/api/projects/207/actions",
+        "status": 200,
+        "ms": 12.484114999999974
+      },
+      {
+        "path": "/api/projects/207",
+        "status": 200,
+        "ms": 15.997818000000052
+      },
+      {
+        "path": "/api/health/live",
+        "status": 200,
+        "ms": 2.4034820000001673
+      }
+    ],
+    "build": {
+      "revision": "9b78072acc9985644404ef05981c24285de74624",
+      "dirty": true,
+      "builtAt": "2026-10-26T11:36:39.255Z",
+      "stage": "P05-imports",
+      "schemaVersion": "0009-project-space"
+    },
+    "isolatedTestDatabase": true
+  },
+  "nodesRegression": {
+    "status": "passed",
+    "checkedAt": "2026-10-26T19:28:04.933Z",
+    "checks": [
+      "两类节点/风险/摘要分别保存，跨区夹带拒绝；直接前置与同范围同次完成、日期无额外顺序；明确下游集合、完成纠错与移动同值",
+      "明确旧线替换与双向残留清除、未完成前置下游纠错；新循环拒绝路径、旧循环保留后明确拆除",
+      "项目/客户字段白名单、同项目ID/阶段/临时引用与日期位置边界；旧来源保持，非法混合整份不提交",
+      "四会话同版本只一成功；旧版本/退出负责拒绝；事务内停用复核和本人原结果恢复",
+      "信息/位置/清线/置线/多节点/审计/回执写点全回滚；真实COMMIT丢确认后原会话/映射/关系/历史恢复，无业务自动联动"
+    ],
+    "requestCount": 179,
+    "measurements": [
+      {
+        "path": "/api/auth/login",
+        "status": 200,
+        "ms": 90.71340699999996
+      },
+      {
+        "path": "/api/auth/me",
+        "status": 200,
+        "ms": 7.787019999999984
+      },
+      {
+        "path": "/api/auth/login",
+        "status": 200,
+        "ms": 51.80778599999985
+      },
+      {
+        "path": "/api/auth/me",
+        "status": 200,
+        "ms": 5.531312000000071
+      },
+      {
+        "path": "/api/auth/login",
+        "status": 200,
+        "ms": 44.787328000000116
+      },
+      {
+        "path": "/api/auth/me",
+        "status": 200,
+        "ms": 4.609557999999879
+      },
+      {
+        "path": "/api/auth/login",
+        "status": 200,
+        "ms": 44.868431999999984
+      },
+      {
+        "path": "/api/auth/me",
+        "status": 200,
+        "ms": 4.730976000000055
+      },
+      {
+        "path": "/api/projects",
+        "status": 200,
+        "ms": 33.290351999999984
+      },
+      {
+        "path": "/api/projects",
+        "status": 200,
+        "ms": 15.736531000000014
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 24.32166899999993
+      },
+      {
+        "path": "/api/projects/214/membership",
+        "status": 200,
+        "ms": 15.828580999999986
+      },
+      {
+        "path": "/api/projects/214/membership",
+        "status": 200,
+        "ms": 17.810478999999987
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 16.86533200000008
+      },
+      {
+        "path": "/api/projects/214/membership",
+        "status": 200,
+        "ms": 13.322126000000026
+      },
+      {
+        "path": "/api/projects/214/membership",
+        "status": 200,
+        "ms": 15.146330000000034
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 19.32988300000011
+      },
+      {
+        "path": "/api/projects/214/membership",
+        "status": 200,
+        "ms": 14.517160999999987
+      },
+      {
+        "path": "/api/projects/214/membership",
+        "status": 200,
+        "ms": 16.695338999999876
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 23.360801000000038
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 400,
+        "ms": 5.141954999999825
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 20.227904999999964
+      },
+      {
+        "path": "/api/projects/214/save-preview",
+        "status": 200,
+        "ms": 10.106178
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 22.372071000000005
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 17.227100000000064
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 15.385447999999997
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 13.835696999999982
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 16.85061900000005
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 16.68678799999998
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 16.99082999999996
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 11.853282000000036
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 19.436469999999872
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 17.22162000000003
+      },
+      {
+        "path": "/api/projects/214/save-preview",
+        "status": 200,
+        "ms": 8.698585999999978
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 19.49881200000027
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 15.514546000000337
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 17.07600900000034
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 17.164322000000084
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 422,
+        "ms": 8.86236000000008
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 17.060545999999704
+      },
+      {
+        "path": "/api/projects/214/save-preview",
+        "status": 200,
+        "ms": 6.441223000000264
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 18.191317999999683
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 15.13263999999981
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 15.640379999999823
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 12.555917000000136
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 16.391159000000243
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 14.920838999999887
+      },
+      {
+        "path": "/api/projects/214/save-preview",
+        "status": 200,
+        "ms": 6.105768000000353
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 422,
+        "ms": 6.5135700000000725
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 27.034755000000132
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 422,
+        "ms": 8.165524000000005
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 16.36971500000027
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 400,
+        "ms": 7.152637000000141
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 17.652754000000186
+      },
+      {
+        "path": "/api/projects/214/save-preview",
+        "status": 200,
+        "ms": 7.266647999999805
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 16.32119700000021
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 15.315806000000066
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 14.285867999999937
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 14.811171000000286
+      },
+      {
+        "path": "/api/projects/214/save-preview",
+        "status": 200,
+        "ms": 7.625937000000249
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 16.64202299999988
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 16.306285000000116
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 15.26729400000022
+      },
+      {
+        "path": "/api/projects/214/save-preview",
+        "status": 200,
+        "ms": 7.820440000000417
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 14.552126000000044
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 15.322954999999638
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 18.224827000000005
+      },
+      {
+        "path": "/api/projects/214/save-preview",
+        "status": 200,
+        "ms": 8.71439700000019
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 17.552585999999792
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 17.548407999999654
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 18.209549000000152
+      },
+      {
+        "path": "/api/projects/214/save-preview",
+        "status": 200,
+        "ms": 8.5899730000001
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 16.07844699999987
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 17.260907000000316
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 18.4359800000002
+      },
+      {
+        "path": "/api/projects/214/save-preview",
+        "status": 200,
+        "ms": 6.551727999999912
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 13.183978999999908
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 18.08965100000023
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 15.965495999999803
+      },
+      {
+        "path": "/api/projects/214/save-preview",
+        "status": 200,
+        "ms": 7.509935000000041
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 14.234973999999966
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 18.296221999999943
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 19.113600000000133
+      },
+      {
+        "path": "/api/projects/214/save-preview",
+        "status": 200,
+        "ms": 7.352045999999973
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 12.333710999999766
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 422,
+        "ms": 6.491328000000067
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 18.782070000000203
+      },
+      {
+        "path": "/api/projects/214/save-preview",
+        "status": 200,
+        "ms": 7.904596000000311
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 20.796883999999864
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 15.847256000000016
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 15.662301999999727
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 14.600494000000253
+      },
+      {
+        "path": "/api/projects/214/save-preview",
+        "status": 200,
+        "ms": 9.58082000000013
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 18.89699900000005
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 14.939976999999999
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 15.427179000000251
+      },
+      {
+        "path": "/api/projects/214/save-preview",
+        "status": 422,
+        "ms": 7.217174000000341
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 422,
+        "ms": 9.202404999999999
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 20.473985000000084
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 13.000811999999769
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 16.56399999999985
+      },
+      {
+        "path": "/api/projects/214/save-preview",
+        "status": 200,
+        "ms": 10.877379999999903
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 14.838615000000118
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 14.96362599999975
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 14.343191999999817
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 422,
+        "ms": 6.3727600000001985
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 16.80292300000019
+      },
+      {
+        "path": "/api/projects/214/save-preview",
+        "status": 200,
+        "ms": 7.149335000000065
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 15.781777000000147
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 19.61201600000004
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 15.478180000000066
+      },
+      {
+        "path": "/api/projects/215",
+        "status": 200,
+        "ms": 14.253077000000303
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 15.50706799999989
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 422,
+        "ms": 6.42341099999976
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 15.919973999999911
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 400,
+        "ms": 5.049825999999939
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 15.539989999999761
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 404,
+        "ms": 5.76740000000018
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 16.541357999999946
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 404,
+        "ms": 5.711990999999671
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 22.373888999999963
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 400,
+        "ms": 7.482986999999866
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 15.188816999999744
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 400,
+        "ms": 3.733752000000095
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 13.153186000000005
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 422,
+        "ms": 2.449945000000298
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 13.168269000000237
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 400,
+        "ms": 3.426781000000119
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 11.352038999999877
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 400,
+        "ms": 1.9793110000000524
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 14.178458999999748
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 400,
+        "ms": 2.278581000000031
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 12.480923000000075
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 422,
+        "ms": 2.955500999999913
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 12.565548000000035
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 422,
+        "ms": 3.254870999999639
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 13.840657000000192
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 400,
+        "ms": 5.223300999999992
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 16.618067999999766
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 422,
+        "ms": 8.04515500000025
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 14.893122999999832
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 422,
+        "ms": 2.7538720000002286
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 15.205333999999766
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 422,
+        "ms": 2.7627470000002177
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 13.965998000000127
+      },
+      {
+        "path": "/api/projects/214/save-preview",
+        "status": 200,
+        "ms": 6.160461999999825
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 13.209616000000551
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 14.169903999999406
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 12.38552399999935
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 13.3601120000003
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 22.36006399999951
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 409,
+        "ms": 24.654128000000128
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 409,
+        "ms": 26.055975000000217
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 409,
+        "ms": 27.688601000000745
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 16.614792999999736
+      },
+      {
+        "path": "/api/projects/214/membership",
+        "status": 200,
+        "ms": 14.78721300000052
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 15.842705000000024
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 403,
+        "ms": 4.772511999999551
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 6.217007999999623
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 14.596627999999328
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 24.730273000000125
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 500,
+        "ms": 8.107050999999956
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 14.179635999999846
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 500,
+        "ms": 10.190892000000531
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 15.14360299999953
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 500,
+        "ms": 19.152168999999958
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 16.419326999999612
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 500,
+        "ms": 15.420693000000028
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 18.99420999999984
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 500,
+        "ms": 16.77454200000011
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 16.038328000000547
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 500,
+        "ms": 15.825372000000243
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 18.378528999999617
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 503,
+        "ms": 16.725820999999996
+      },
+      {
+        "path": "/api/projects/214/save-results/query",
+        "status": 200,
+        "ms": 7.356714000000466
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 28.11048699999992
+      },
+      {
+        "path": "/api/projects/214/save-results/query",
+        "status": 200,
+        "ms": 10.532846999999492
+      },
+      {
+        "path": "/api/projects/214",
+        "status": 200,
+        "ms": 18.105249000000185
+      },
+      {
+        "path": "/api/health/live",
+        "status": 200,
+        "ms": 1.4547980000006646
+      }
+    ],
+    "build": {
+      "revision": "9b78072acc9985644404ef05981c24285de74624",
+      "dirty": true,
+      "builtAt": "2026-10-26T11:36:39.255Z",
+      "stage": "P05-imports",
+      "schemaVersion": "0009-project-space"
+    },
+    "isolatedTestDatabase": true,
+    "nodeMigrationDelivered": false
+  }
+}

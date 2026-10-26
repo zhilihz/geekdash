@@ -84,7 +84,7 @@ export type ClosureCommand = { expectedVersion: string; idempotencyKey: string }
 export function isClosureCommand(value: { action: string }): value is ClosureCommand { return ['closeProject', 'reopenProject', 'setMaintenance', 'correctClosure'].includes(value.action); }
 export type ClosurePreview = { projectId: string; expectedVersion: string; changed: boolean; beforeValues: { closure: Record<string, unknown> }; afterValues: { closure: Record<string, unknown> }; remaining: { stages: Entry[]; nodes: NodeRecord[]; risks: Entry[] }; progress: number; beforeDeadline: Deadline; afterDeadline: Deadline; beforeCheck: CheckStatus; afterCheck: CheckStatus };
 export type CurrentClosure = { auditId: string | null; sourceImportItemId: string | null; actorDisplayName: string | null; createdAt: string | null; original: Record<string, unknown> | null };
-export type ProjectCommand = (StageCommand | StartCommand | CorrectionCommand | PlanCommand | LifecycleCommand | ClosureCommand | CheckCommand) & {draft?:{clientDraftId:string;draftVersion:string}};
+export type ProjectCommand = (StageCommand | StartCommand | CorrectionCommand | PlanCommand | LifecycleCommand | ClosureCommand | CheckCommand | {action:'confirmStageState';stageCode:string;state:'ready'|'active';expectedVersion:string;idempotencyKey:string}) & {draft?:{clientDraftId:string;draftVersion:string}};
 export type CorrectionPreview = { projectId: string; expectedVersion: string; stageChanges: Entry[]; beforeStages: Entry[]; progressBefore: number; progressAfter: number; reason: string; changed: boolean };
 export const actionLabels: Record<string, string> = { startStage: '开始阶段', completeStage: '完成阶段', startProject: '启动项目', correctStageFacts: '纠正实际日期', undoStageStart: '撤销误开始', undoStageComplete: '撤销误完成', rollbackStage: '真实返工回退', 'project.stage.start': '开始阶段', 'project.stage.complete': '完成阶段', 'project.start': '启动项目', 'project.ordinary.save': '保存普通信息', 'project.text.save': '保存文字', 'project.create': '创建项目', 'project.responsibility.join': '加入负责', 'project.responsibility.leave': '退出负责' };
 for (const name of ['correctStageFacts', 'undoStageStart', 'undoStageComplete', 'rollbackStage']) actionLabels['project.stage.' + name] = actionLabels[name];
@@ -100,7 +100,7 @@ Object.assign(actionLabels, { 'project.change.add': '新增需求变更', 'proje
 Object.assign(stageMessages, { INVALID_CHANGE_OPERATIONS: '需求变更修改格式无效，请核对选定字段。', CHANGE_NOT_FOUND: '未找到本项目的需求变更，请重新进入核对。', CHANGE_ORDER_EXHAUSTED: '需求变更排序已到存储上限，请联系维护人员。' });
 Object.assign(stageMessages, { INVALID_RISK_OPERATIONS: '风险修改格式无效，请重新核对。', RISK_NOT_FOUND: '未找到本项目的风险，请重新进入核对。', RISK_ALREADY_RESOLVED: '该风险已解除，可使用纠正入口修改解除说明。', RISK_NOT_RESOLVED: '该风险当前未解除，不能撤销解除。', RISK_RESOLUTION_REQUIRES_RESOLVED: '预警中的风险不能更正解除说明，请使用明确解除。', RISK_ORDER_EXHAUSTED: '风险排序已达到存储上限，请联系维护人员。' });
 Object.assign(stageMessages, { INVALID_CHECK_COMMAND: '检查请求无效，请核对结论和备注。', CHECK_REASON_REQUIRED: '请填写检查文字纠错原因。', PROJECT_CHECK_NOT_FOUND: '未找到本项目的原检查，请重新核对记录。' });
-export type Account = { id: string; name: string; mustChangePassword: boolean };
+export type Account = { id: string; name: string; mustChangePassword: boolean; isMaintenance?:boolean };
 Object.assign(stageMessages, { CORRECTION_REASON_REQUIRED: '请填写纠错或回退原因。', PROJECT_REOPEN_REQUIRED: '请先重新打开已结案项目，再改变阶段状态。', PROJECT_RESUME_REQUIRED: '请先恢复暂缓项目，再保存真实返工回退。' });
 Object.assign(stageMessages, { INVALID_PLAN_COMMAND: '计划请求无效，请核对选定字段。', PLAN_REASON_REQUIRED: '请填写调整或纠错原因。', PLAN_NOTE_REQUIRED: '原因或措施至少填写一项。', PLAN_ALREADY_SET: '已有当前计划，请使用调整计划或明确纠错。', PLAN_REQUIRED: '当前计划未定，请先确定计划。', SCHEDULE_RECORD_NOT_FOUND: '未找到本项目的这条记录，请重新核对。', SCHEDULE_RECORD_KIND_MISMATCH: '补充说明记录不能纠正为一次改期。' });
 const planLabels = { setPlan: '确定计划', reschedulePlan: '调整计划', notePlan: '补充计划说明', correctProjectDates: '纠正项目日期', correctScheduleRecord: '纠正计划历史', voidScheduleRecord: '撤销误录计划历史' };
@@ -140,7 +140,7 @@ document.addEventListener('click', event => {
 }, true);
 function clearLocalAccountState(){
   if(!account)return;
-  const prefixes=['geekdash_quick:','geekdash_summary:','geekdash_catalog:','geekdash_draft:','geekdash_page:','geekdash_create:','geekdash_project_buffer:','geekdash_stage_action:','geekdash_responsibility:','geekdash_preference:','geekdash_check:','geekdash_board_return:','geekdash_imports:'].map(prefix=>prefix+account!.id);
+  const prefixes=['geekdash_quick:','geekdash_summary:','geekdash_catalog:','geekdash_draft:','geekdash_page:','geekdash_create:','geekdash_project_buffer:','geekdash_stage_action:','geekdash_responsibility:','geekdash_preference:','geekdash_check:','geekdash_board_return:','geekdash_imports:','geekdash_membership:','geekdash_accounts:'].map(prefix=>prefix+account!.id);
   for(const name of ['localStorage','sessionStorage'] as const)try{const storage=window[name];for(const key of Object.keys(storage))if(prefixes.some(prefix=>key===prefix || key.startsWith(prefix+':')))storage.removeItem(key);}catch{/* 清理失败不重新发送旧账号数据；页面身份仍被冻结。 */}
 }
 function headers(active: boolean) {
@@ -163,10 +163,22 @@ export async function requireIdentity() {
   if(themeTouched)appearance.update({theme:document.documentElement.dataset.theme});else applyTheme(String(preference.theme ?? 'dark'));
   const toolbar = document.querySelector('.head-actions');
   if (toolbar && !document.getElementById('account-menu')) { const menu = document.createElement('details'); menu.id = 'account-menu'; menu.className = 'read-nav-menu'; const title = document.createElement('summary'); title.className = 'head-btn'; title.textContent = account.name + ' ▾'; const link = document.createElement('a'); link.className = 'head-btn'; link.href = loginUrl(true); link.textContent = '修改密码 / 退出'; menu.append(title, link); toolbar.prepend(menu); }
+  const nav=document.querySelector('.project-nav')??toolbar;
+  if(account.isMaintenance){const parent=document.getElementById('account-menu')??document.querySelector('.page-menu')??nav;if(parent&&!parent.querySelector('a[href="/accounts.html"]')){const link=document.createElement('a');link.className='head-btn';link.href='/accounts.html';link.textContent='账号管理';parent.append(link);}}
+  if(nav&&!nav.querySelector('[data-project-space]')){
+    const space=document.createElement('a');space.className='head-btn';space.dataset.projectSpace='';space.href='/project-space.html';space.textContent='项目空间';nav.append(space);
+    if(!account.isMaintenance){
+      const requests=document.createElement('a');requests.className='head-btn';requests.href='/project-space.html#requests';requests.textContent='协作请求';nav.append(requests);
+      const actorId=account.id;
+      const refresh=async()=>{try{const result=await get<{pendingCount:number}>('/api/membership-requests');if(account?.id===actorId&&!contextChanged)requests.textContent=result.pendingCount?`协作请求（${result.pendingCount}）`:'协作请求';}catch{requests.textContent='协作请求 · 待读取';}};
+      document.addEventListener('geekdash-membership',()=>{void refresh();});void refresh();
+    }
+  }
   return account;
 }
 export function setAccount(value: Account) { account = value; contextChanged = false; }
 export function notifyIdentityChange(clearCache=false) { context.postMessage(clearCache?{type:'changed',clearCache:true}:'changed');if(clearCache)clearLocalAccountState(); }
+stageMessages.BUSINESS_WRITES_PAUSED = '系统维护中，暂时只可查看。本次修改未提交，请保留输入，恢复后再保存。';
 export class SaveError extends Error {
   constructor(public code: string, public outcome: string, public fields?: Record<string, string>) {
     super(authMessages[code] ?? stageMessages[code] ?? ({ PROJECT_VERSION_CONFLICT: '项目已被他人更新，请重新进入项目。', OPERATION_KEY_REUSED: '操作编号与原请求不一致，请保留文字并核对原操作。', PROJECT_READ_ONLY: '此项目只能查看。', INVALID_PROJECT_FIELDS: '请修正标出的字段。', DATABASE_UNAVAILABLE: '数据库暂时不可用，请重试。', SAVE_ROLLED_BACK: '保存未完成，修改已保留。' } as Record<string, string>)[code] ?? '保存结果尚未确认，请确认结果或重试原操作。');
@@ -244,3 +256,7 @@ for (const [command, action, name] of [['pauseProject', 'project.pause', '暂缓
 
 Object.assign(stageMessages, { INVALID_CLOSURE_COMMAND: '结案请求无效，请核对选定字段。', CLOSURE_NOTE_REQUIRED: '请填写结案说明。', CLOSURE_REASON_REQUIRED: '请填写本次操作原因。', CLOSURE_REMAINING_REQUIRED: '仍有遗留事项，请填写处置说明。', INVALID_CLOSURE_DATE: '请核对结案日期与已知实际日期。', PROJECT_CLOSE_BLOCKED: '项目已经结案，不能重复结案。', PROJECT_CLOSED_REQUIRED: '此动作仅用于当前已结案项目。', CLOSURE_CHANGED: '当前结案已变化，请重新进入核对本次结案。', PROJECT_REOPEN_BASIS_UNKNOWN: '结案前状态或暂缓恢复依据未知，请核对来源；系统不会猜测。' });
 for (const [command, action, name] of [['closeProject', 'project.close', '结案项目'], ['reopenProject', 'project.reopen', '重新打开项目'], ['setMaintenance', 'project.maintenance', '保存维护标识'], ['correctClosure', 'project.closure.correct', '纠正当前结案']]) { actionLabels[command] = name; actionLabels[action] = name; }
+
+Object.assign(labels,{unknown:'开始状态待确认'});
+Object.assign(actionLabels,{confirmStageState:'确认历史阶段状态','project.stage.state.confirm':'确认历史阶段状态'});
+Object.assign(stageMessages,{STAGE_STATE_REVIEW_REQUIRED:'请先在阶段卡片确认历史开始状态。',PROJECT_ACCESS_REQUIRED:'当前没有本项目的协作资格，请从项目空间申请。'});

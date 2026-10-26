@@ -1,3 +1,5 @@
+import { assertProjectAccess, hasProjectAccess, visibleProjectReceipt } from './project-membership.js';
+import { projectNameKey } from './project-name.js';
 import { createHash } from 'node:crypto';
 import type { PoolConnection, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
@@ -286,7 +288,7 @@ export function projectSaves(database: RuntimeDatabase) {
       return database.readSnapshot(async connection => {
         await assertActor(connection, actor, false, new Date(), false, false);
         const current = await project(connection, id, false, true);
-        if (!(await query(connection, 'SELECT user_id FROM project_responsibilities WHERE project_id=? AND user_id=?', [id, actor.id])).length) failure('PROJECT_READ_ONLY', 403);
+        if (!await hasProjectAccess(connection,id,actor.id)) failure('PROJECT_READ_ONLY', 403);
         if (current.version !== request.expectedVersion) failure('PROJECT_VERSION_CONFLICT', 409, { currentVersion: current.version });
         await checkNodeScope(connection, id, request);
         if (!request.changes.riskOps && !request.changes.nodeOps && !request.changes.changeOps) failure('INVALID_SAVE_REQUEST', 400);
@@ -316,8 +318,8 @@ export function projectSaves(database: RuntimeDatabase) {
         const current = await project(connection, id, true, !!actor);
         // 当前锁定读在版本判断前，等待前一次提交后可读到真实回执。
         const receipt = (await query(connection, 'SELECT request_hash,response_json FROM command_receipts WHERE command_scope=? AND idempotency_key=? FOR UPDATE', [scope(id, request, actor), request.idempotencyKey]))[0];
-        if (receipt) return receiptResult(receipt, hash);
-        if (actor && !(await query(connection, 'SELECT user_id FROM project_responsibilities WHERE project_id=? AND user_id=?', [id, actor.id])).length) failure('PROJECT_READ_ONLY', 403);
+        if (receipt) {const result=receiptResult(receipt,hash);return actor?visibleProjectReceipt(connection,actor.id,result):result;}
+        if (actor && !await hasProjectAccess(connection,id,actor.id)) failure('PROJECT_READ_ONLY', 403);
         if (current.version !== request.expectedVersion) failure('PROJECT_VERSION_CONFLICT', 409, { currentVersion: current.version });
         const commands = request.basicIntent ? await basicCommands(connection, id, request) : request.commands ?? [];
         await checkNodeScope(connection, id, request);
@@ -357,7 +359,8 @@ export function projectSaves(database: RuntimeDatabase) {
         if (changed) {
           const plain = fields.filter(key => Object.hasOwn(columns, key)) as (keyof typeof columns)[];
           const timestamp = result.savedAt!.slice(0, 23).replace('T', ' ');
-          const [updated] = await connection.execute<ResultSetHeader>(`UPDATE projects SET ${plain.map(key => `\`${columns[key]}\`=?,`).join('')}${fields.includes('statusDesc') ? 'status_description_updated_at=?,' : ''}version=version+1,updated_at=? WHERE id=? AND version=?`, [...plain.map(key => values[key]), ...(fields.includes('statusDesc') ? [timestamp] : []), timestamp, id, current.version]);
+          if (fields.includes('name')) await connection.execute('INSERT INTO project_name_aliases(project_id,name_key) VALUES (?,?) ON DUPLICATE KEY UPDATE project_id=project_id', [id, projectNameKey(current.name)]);
+          const [updated] = await connection.execute<ResultSetHeader>(`UPDATE projects SET ${fields.includes('name') ? 'name_key=?,' : ''}${plain.map(key => `\`${columns[key]}\`=?,`).join('')}${fields.includes('statusDesc') ? 'status_description_updated_at=?,' : ''}version=version+1,updated_at=? WHERE id=? AND version=?`, [...(fields.includes('name') ? [projectNameKey(values.name!)] : []), ...plain.map(key => values[key]), ...(fields.includes('statusDesc') ? [timestamp] : []), timestamp, id, current.version]);
           if (updated.affectedRows !== 1) failure('PROJECT_VERSION_CONFLICT', 409);
           if (fields.includes('stagePlans')) for (const plan of values.stagePlans!) {
             if (JSON.stringify(plan) !== JSON.stringify(current.stagePlans.find((item: StagePlan) => item.code === plan.code))) await connection.execute('UPDATE project_stages SET planned_days=?,note=? WHERE project_id=? AND stage_code=?', [plan.plannedDays ?? null, plan.note ?? '', id, plan.code]);
@@ -398,15 +401,19 @@ export function projectSaves(database: RuntimeDatabase) {
     },
     confirm(id: string, request: SaveRequest, actor?: Actor) {
       return database.readSnapshot(async connection => {
+        if(actor)await assertActor(connection,actor,false,new Date(),false,false);
         const current = await project(connection, id, false, !!actor);
         let receipt = (await query(connection, 'SELECT request_hash,response_json FROM command_receipts WHERE command_scope=? AND idempotency_key=?', [scope(id, request, actor), request.idempotencyKey]))[0];
         // 旧 trial 匿名提交仅可对账，不把旧请求重放成新的实名写入。
         if (!receipt && actor && current.data_kind === 'trial') receipt = (await query(connection, 'SELECT request_hash,response_json FROM command_receipts WHERE command_scope=? AND idempotency_key=? AND actor_id IS NULL', [scope(id, request), request.idempotencyKey]))[0];
-        return receipt ? { outcome: 'committed', result: receiptResult(receipt, requestHash(id, request)) } : { outcome: 'not_found' };
+        if(!receipt)return {outcome:'not_found'};
+        const result=receiptResult(receipt,requestHash(id,request));
+        return {outcome:'committed',result:actor?await visibleProjectReceipt(connection,actor.id,result):result};
       });
     },
-    audit(id: string, pageSize: number, before?: string) {
+    audit(id: string, pageSize: number, before?: string, accountId?:string) {
       return database.readSnapshot(async connection => {
+    if(accountId)await assertProjectAccess(connection,id,accountId);
         if (!(await query(connection, 'SELECT id FROM projects WHERE id=?', [id])).length) failure('PROJECT_NOT_FOUND', 404);
         const items = await query(connection, `SELECT CAST(id AS CHAR) id,actor_display_name actorDisplayName,actor_kind actorKind,action,
           CAST(version_before AS CHAR) versionBefore,CAST(version_after AS CHAR) versionAfter,before_json beforeValues,after_json afterValues,

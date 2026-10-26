@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { hasProjectAccess, visibleProjectReceipt } from './project-membership.js';
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 import { assertActor, type Actor } from './identity.js';
@@ -15,9 +16,10 @@ export type StageFact = { code: string; state: string; startedOn: string | null;
 export type StageCommand = { action: 'startStage' | 'completeStage'; stageCode: string; actualDate: string; expectedVersion: string; idempotencyKey: string; completionNote?: string };
 export type StartCommand = { action: 'startProject'; actualDate: string; dueDate: string | null; planReason?: string; expectedVersion: string; idempotencyKey: string; configVersion?: string; ruleVersion?: string; previewWeek?: string; previewFirstCheckWeek?: string };
 export type CorrectionCommand = { action: 'correctStageFacts'; changes: { code: string; startedOn?: string | null; completedOn?: string | null }[]; reason: string; expectedVersion: string; idempotencyKey: string }
+  | { action: 'confirmStageState'; stageCode:string; state:'ready'|'active'; reason:string; expectedVersion:string; idempotencyKey:string }
   | { action: 'undoStageStart' | 'undoStageComplete' | 'rollbackStage'; stageCode: string; undoStart?: boolean; reason: string; expectedVersion: string; idempotencyKey: string };
 export type ActionCommand = (StageCommand | StartCommand | CorrectionCommand | PlanCommand | LifecycleCommand | ClosureCommand | CheckCommand) & { draft?: DraftRef };
-export const correctionActions = ['correctStageFacts', 'undoStageStart', 'undoStageComplete', 'rollbackStage'];
+export const correctionActions = ['correctStageFacts', 'confirmStageState', 'undoStageStart', 'undoStageComplete', 'rollbackStage'];
 export function validateAction(value: unknown): ActionCommand {
   if (!value || typeof value !== 'object' || Array.isArray(value)) failure('INVALID_STAGE_COMMAND', 400);
   if (Object.hasOwn(value,'draft')) {
@@ -29,12 +31,12 @@ export function validateAction(value: unknown): ActionCommand {
   if (isLifecycleCommand(value as { action: string })) return validateLifecycle(value);
   if (isPlanCommand(value as { action: string })) return validatePlan(value);
   if (correctionActions.includes((value as { action: string }).action)) {
-    const body = { ...value, ...!Object.hasOwn(value, 'reason') && (value as CorrectionCommand).action === 'correctStageFacts' ? { reason: '' } : {} } as CorrectionCommand;
-    const required = ['action', 'reason', 'expectedVersion', 'idempotencyKey', body.action === 'correctStageFacts' ? 'changes' : 'stageCode'];
+    const body = { ...value, ...!Object.hasOwn(value, 'reason') && ['correctStageFacts','confirmStageState'].includes((value as CorrectionCommand).action) ? { reason: '' } : {} } as CorrectionCommand;
+    const required = ['action', 'reason', 'expectedVersion', 'idempotencyKey', body.action === 'correctStageFacts' ? 'changes' : 'stageCode',...body.action==='confirmStageState'?['state']:[]];
     if (required.some(key => !Object.hasOwn(body, key)) || Object.keys(body).some(key => ![...required, ...(body.action === 'undoStageComplete' ? ['undoStart'] : [])].includes(key))
       || !validId(body.expectedVersion) || typeof body.idempotencyKey !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(body.idempotencyKey)
       || typeof body.reason !== 'string' || !body.reason.isWellFormed() || Buffer.byteLength(body.reason, 'utf8') > 65535) failure('INVALID_STAGE_COMMAND', 400);
-    if (body.action !== 'correctStageFacts' && !body.reason.trim()) failure('CORRECTION_REASON_REQUIRED', 422, { fields: { reason: '请填写撤销或回退原因' } });
+    if (!['correctStageFacts','confirmStageState'].includes(body.action) && !body.reason.trim()) failure('CORRECTION_REASON_REQUIRED', 422, { fields: { reason: '请填写撤销或回退原因' } });
     if (body.action === 'correctStageFacts') {
       if (!Array.isArray(body.changes) || !body.changes.length || body.changes.length > 7) failure('INVALID_STAGE_COMMAND', 400);
       for (const item of body.changes) {
@@ -45,7 +47,7 @@ export function validateAction(value: unknown): ActionCommand {
       if (new Set(body.changes.map(item => item.code)).size !== body.changes.length) failure('INVALID_STAGE_COMMAND', 400);
       return { ...body, changes: [...body.changes].sort((a, b) => a.code.localeCompare(b.code)).map(item => ({ code: item.code, ...Object.hasOwn(item, 'startedOn') ? { startedOn: item.startedOn } : {}, ...Object.hasOwn(item, 'completedOn') ? { completedOn: item.completedOn } : {} })) };
     }
-    if (typeof body.stageCode !== 'string' || !/^S[1-7]$/.test(body.stageCode) || body.undoStart !== undefined && typeof body.undoStart !== 'boolean') failure('INVALID_STAGE_COMMAND', 400);
+    if (typeof body.stageCode !== 'string' || !/^S[1-7]$/.test(body.stageCode) || 'undoStart' in body && typeof body.undoStart !== 'boolean' || body.action==='confirmStageState'&&!['ready','active'].includes(body.state)) failure('INVALID_STAGE_COMMAND', 400);
     return { ...body, ...(body.action === 'undoStageComplete' ? { undoStart: body.undoStart ?? false } : {}) };
   }
   if ((value as { action?: string }).action === 'startProject') {
@@ -74,7 +76,7 @@ export function validateAction(value: unknown): ActionCommand {
 export function validSequence(facts: StageFact[]) {
   if (facts.length !== 7 || facts.some((fact, index) => fact.code !== 'S' + (index + 1))) return false;
   const first = facts.findIndex(fact => fact.state !== 'completed');
-  return first === -1 || ['ready', 'active'].includes(facts[first].state) && facts.slice(first + 1).every(fact => fact.state === 'locked');
+  return first === -1 || ['unknown', 'ready', 'active'].includes(facts[first].state) && facts.slice(first + 1).every(fact => fact.state === 'locked');
 }
 export function startProjectBlock(project: { status: string; startDate: string | null }, facts: StageFact[], today = businessToday()) {
   if (project.status !== 'proposal') return 'PROJECT_START_BLOCKED';
@@ -91,6 +93,7 @@ export function stageBlock(status: string, facts: StageFact[], code: string, act
   if (index < 0) return 'STAGE_SEQUENCE_REVIEW_REQUIRED';
   if (status === 'proposal' && index > 0) return 'PROJECT_START_REQUIRED';
   if (facts.slice(0, index).some(fact => fact.state !== 'completed')) return 'STAGE_PREDECESSOR_INCOMPLETE';
+  if (facts[index].state === 'unknown') return 'STAGE_STATE_REVIEW_REQUIRED';
   if (facts[index].state !== (action === 'startStage' ? 'ready' : 'active')) return 'STAGE_STATE_CHANGED';
   if (action === 'startStage' && index > 0 && !facts[index - 1].completedOn || action === 'completeStage' && !facts[index].startedOn) return 'STAGE_DATE_REVIEW_REQUIRED';
   return null;
@@ -104,6 +107,12 @@ function stageCorrection(status: string, facts: StageFact[], body: CorrectionCom
       if (!target) failure('STAGE_SEQUENCE_REVIEW_REQUIRED', 422);
       Object.assign(target, change);
     }
+  } else if(body.action==='confirmStageState') {
+    if(!validSequence(facts))failure('STAGE_SEQUENCE_REVIEW_REQUIRED',422);
+    if(status==='closed')failure('PROJECT_REOPEN_REQUIRED',422);
+    const target=next.find(fact=>fact.code===body.stageCode);
+    if(target?.state!=='unknown')failure('STAGE_STATE_CHANGED',422);
+    target.state=body.state;
   } else {
     if (!validSequence(facts)) failure('STAGE_SEQUENCE_REVIEW_REQUIRED', 422);
     if (status === 'closed') failure('PROJECT_REOPEN_REQUIRED', 422);
@@ -233,7 +242,7 @@ export function projectActions(database: RuntimeDatabase, clock = () => new Date
     const {draft,...body} = input;
     const scope = `user:${actor.id}:project:${id}:actions`;
     let hash = createHash('sha256').update(JSON.stringify(isPlanCommand(body) || isLifecycleCommand(body) || isClosureCommand(body) || isCheckCommand(body) ? [id, Object.keys(body).filter(key => key !== 'idempotencyKey').sort().map(key => [key, (body as unknown as Record<string, unknown>)[key]])] : body.action === 'startProject' ? [id, body.action, body.actualDate, body.dueDate, body.planReason ?? '', body.expectedVersion, body.configVersion, body.ruleVersion, body.previewWeek, body.previewFirstCheckWeek]
-      : 'reason' in body ? [id, body.action, body.expectedVersion, body.reason, body.action === 'correctStageFacts' ? body.changes : [body.stageCode, body.undoStart ?? false]] : [id, body.action, body.stageCode, body.actualDate, body.expectedVersion, body.completionNote ?? null])).digest();
+      : 'reason' in body ? [id, body.action, body.expectedVersion, body.reason, body.action === 'correctStageFacts' ? body.changes : body.action==='confirmStageState'?[body.stageCode,body.state]:[body.stageCode, body.undoStart ?? false]] : [id, body.action, body.stageCode, body.actualDate, body.expectedVersion, body.completionNote ?? null])).digest();
     if (draft) hash = createHash('sha256').update(hash).update(JSON.stringify([draft.clientDraftId,draft.draftVersion])).digest();
     const lookup = async (c: PoolConnection, lock: boolean) => {
       const row = (await rows(c, `SELECT request_hash,response_json FROM command_receipts WHERE command_scope=? AND idempotency_key=?${lock ? ' FOR UPDATE' : ''}`, [scope, body.idempotencyKey]))[0];
@@ -241,13 +250,13 @@ export function projectActions(database: RuntimeDatabase, clock = () => new Date
       if (!row.request_hash.equals(hash)) failure('OPERATION_KEY_REUSED', 409);
       return typeof row.response_json === 'string' ? JSON.parse(row.response_json) : row.response_json;
     };
-    if (confirm) return database.readSnapshot(async c => { const result = await lookup(c, false); return result ? { outcome: 'committed', result } : { outcome: 'not_found' }; });
+    if (confirm) return database.readSnapshot(async c => { await assertActor(c,actor,false,new Date(),false,false);const result = await lookup(c, false); return result ? { outcome: 'committed', result:await visibleProjectReceipt(c,actor.id,result) } : { outcome: 'not_found' }; });
     return database.writeTransaction(async c => {
       await assertActor(c, actor);
       const project = (await rows(c, projectSql + ' FOR UPDATE', [id]))[0];
       if (!project) failure('PROJECT_NOT_FOUND', 404);
-      const prior = await lookup(c, true); if (prior) return { outcome: 'committed', result: prior };
-      if (!(await rows(c, 'SELECT user_id FROM project_responsibilities WHERE project_id=? AND user_id=?', [id, actor.id])).length) failure('PROJECT_READ_ONLY', 403);
+      const prior = await lookup(c, true); if (prior) return { outcome: 'committed', result: await visibleProjectReceipt(c,actor.id,prior) };
+      if (!await hasProjectAccess(c,id,actor.id)) failure('PROJECT_READ_ONLY', 403);
       if (project.version !== body.expectedVersion) failure('PROJECT_VERSION_CONFLICT', 409, { currentVersion: project.version });
       const now = clock();
       const savedVersion = String(BigInt(project.version) + 1n);
@@ -278,7 +287,7 @@ export function projectActions(database: RuntimeDatabase, clock = () => new Date
         await assertActor(c, actor, false, now, false, false);
         const project = (await rows(c, projectSql, [id]))[0];
         if (!project) failure('PROJECT_NOT_FOUND', 404);
-        if (!(await rows(c, 'SELECT user_id FROM project_responsibilities WHERE project_id=? AND user_id=?', [id, actor.id])).length) failure('PROJECT_READ_ONLY', 403);
+        if (!await hasProjectAccess(c,id,actor.id)) failure('PROJECT_READ_ONLY', 403);
         if (project.version !== body.expectedVersion) failure('PROJECT_VERSION_CONFLICT', 409, { currentVersion: project.version });
         if (isCheckCommand(body)) return { projectId: id, expectedVersion: project.version, ...(await checkCandidate(c, id, project as { version: string }, body, now)).preview };
         if (isClosureCommand(body)) return { projectId: id, expectedVersion: project.version, ...(await closureCandidate(c, id, project as RowDataPacket & LifecycleProject & ClosureFacts, await rows(c, stageSql, [id]) as (RowDataPacket & StageFact)[], body, now)).preview };

@@ -10,7 +10,8 @@
 2. [本轮决定及待决](decisions/decisions.md#2026-10-26-导入与项目空间重设讨论中未授权实施)：已确认和还需讨论的范围。
 3. [导入体验](product/PRD.md#921-p05导入与会议的逐行为结果)及[空间与协作](product/PRD.md#923-项目空间个人项目与协作2026-10-26设计中)：结构、操作与已知结果。
 4. [SPEC-009/014](specifications/specification.md#spec-009-导入迁移与删除恢复)：唯一业务契约；[计划1.3](implementation/execution-plan.md#13-p05完整实施设计2026-10-22)记录替换位置、五步工程展开和技术细化，按该范围连续实施。
-5. [本轮增量ERD](data/ERD.md#514-项目空间与归属请求的目标增量2026-10-26未迁移)、[模块接口落位](implementation/execution-plan.md#133-五步内部的接口与核心实现)、[旧执行切换](implementation/execution-plan.md#134-旧执行旧页面与发布切换)：具体字段、保存边界和恢复顺序；均未执行迁移或产品验证。
+5. [本轮增量ERD](data/ERD.md#514-项目空间与归属请求的目标增量2026-10-26未迁移)、[模块接口落位](implementation/execution-plan.md#133-五步内部的接口与核心实现)、[旧执行切换](implementation/execution-plan.md#134-旧执行旧页面与发布切换)：具体字段、保存边界和恢复顺序；实际隔离迁移、产品验证与尚未覆盖范围只查[本轮报告](testing/reports/2026-10-26-project-space.md)。
+6. 候选实际协议：[导入](specifications/api/imports.md)、[归属与账号](specifications/api/project-membership.md)；尚未部署，不据接口文档存在宣称阶段交付。
 
 既有产品发布查[2026-10-23报告](testing/reports/2026-10-23-p05-import-chain.md#10-通过按钮锁定修正2026-10-23)和[部署记录](operations/deployments/2026-10-23-p05-approve.md)。历史P04/P05报告保留当时结果，不作为新设计已经实现的证据。
 

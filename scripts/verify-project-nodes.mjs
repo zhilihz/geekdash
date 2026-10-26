@@ -7,6 +7,7 @@ import { openRuntimeDatabase } from '../dist/server/infrastructure/runtime-datab
 import { hashPassword, identities } from '../dist/server/modules/identity.js';
 import { projectSaves, validateSave } from '../dist/server/modules/project-save.js';
 
+async function joinProject(owner,guest,path){const request=await guest.api(path+'/membership','POST',{action:'apply',idempotencyKey:randomUUID()});await owner.api(path+'/membership','POST',{action:'accept',requestId:request.result.requestId,idempotencyKey:randomUUID()});}
 assert.equal(process.env.GEEKDASH_MIGRATION_PROBE, '1', '仅在独立测试实例执行');
 const { connection: c } = await connectDatabase('test_migrator');
 assert.equal((await c.query('SELECT @@server_uuid uuid'))[0][0].uuid, process.env.GEEKDASH_MIGRATION_PROBE_SERVER_UUID);
@@ -53,7 +54,7 @@ try {
   for (let i = 0; i < 2; i++) { const out = await a.api('/api/projects', 'POST', { idempotencyKey: randomUUID(), fields: { name: prefix + '_' + i } }); projects.push(out.result.projectId); }
   const id = projects[0], path = '/api/projects/' + id;
   const detail = () => a.api(path), save = (body, user = a, status = 200) => user.api(path, 'PATCH', body, status);
-  for (const user of clients.slice(1)) { const d = await detail(); await user.api(path + '/responsibility', 'POST', { action: 'join', expectedVersion: d.project.version, idempotencyKey: randomUUID() }); }
+  for (const user of clients.slice(1)) { const d = await detail(); await joinProject(a,user,path); }
   const version = async () => (await detail()).project.version;
   const perform = async (ops, user = a, changes = {}) => { const body = input(await version(), { ...changes, nodeOps: ops }); const before = await fresh(id); const preview = await user.api(path + '/save-preview', 'POST', body); assert.equal(preview.expectedVersion, body.expectedVersion); assert.deepEqual(await fresh(id), before, '预览不得正式写'); const result = (await save(body, user)).result; assert.equal((await detail()).project.version, result.savedVersion); return { body, result }; };
   const addNode = (title,kind='project') => ({op:'add',tempId:randomUUID(),kind,fields:kind==='project'?{title,stage:'S4',targetDate:'2020-01-01',output:'原成果保持🙂'}:{title,targetDate:null,note:'客户原备注'}});
@@ -79,8 +80,8 @@ try {
   assert.equal((await save(input(await version(),{nodeOps:[{...uncomplete,affectedIds:[B,C,K]}]}),a,400)).code,'SAVE_SCOPE_MISMATCH');
   await perform([{...uncomplete,affectedIds:[B,C]}]);d=await detail();assert(d.nodes.filter(n=>[A,B,C].includes(n.id)).every(n=>!n.completedOn&&n.output==='原成果保持🙂'&&n.targetDate==='2020-01-01'));assert.equal(d.nodes.find(n=>n.id===K).completedOn,'2020-01-01');
   await perform([{op:'complete',id:A,completedOn:'2020-01-03'},{op:'complete',id:B,completedOn:'2020-01-02'},{op:'complete',id:C,completedOn:'2020-01-01'}]);
-  assert.equal((await save(input(await version(),{nodeOps:[{op:'complete',id:A,completedOn:'2020-01-04'}]}),a,422)).code,'NODE_CORRECTION_REASON_REQUIRED');
-  await perform([{op:'complete',id:A,completedOn:'2020-01-04',reason:'完成日期原误录'}]);
+  await perform([{op:'complete',id:A,completedOn:'2020-01-04'}]);
+  await perform([{op:'complete',id:A,completedOn:'2020-01-05',reason:'完成日期原误录'}]);
   const noop=await perform([{op:'move',id:A,x:240,y:20}]);const noChange=await perform([{op:'move',id:A,x:240,y:20}]);assert.equal(noChange.result.changed,false);assert.equal(noop.result.savedVersion,noChange.result.savedVersion);
   checks.push('两类节点/风险/摘要分别保存，跨区夹带拒绝；直接前置与同范围同次完成、日期无额外顺序；明确下游集合、完成纠错与移动同值');
   const D=addNode('新的未完成前置');const addedD=await perform([D]);const DId=addedD.result.nodeIdMap[D.tempId];
@@ -102,8 +103,8 @@ try {
   await c.execute('UPDATE project_nodes SET source_key=? WHERE id=?',['明确旧节点来源',A]);await perform([{op:'correct',id:A,changes:{title:'A名称纠正',targetDate:null,output:'纠正成果'},reason:'信息误填'}]);assert.equal((await detail()).nodes.find(n=>n.id===A).sourceKey,'明确旧节点来源');
   checks.push('项目/客户字段白名单、同项目ID/阶段/临时引用与日期位置边界；旧来源保持，非法混合整份不提交');
   const v=await version(), beforeRace=await fresh(id);const race=await Promise.all(clients.map((user,i)=>save(input(v,{nodeOps:[{op:'move',id:DId,x:600+i,y:200}]}),user,[200,409])));assert.equal(race.filter(out=>out.httpStatus===200).length,1);assert.equal(race.filter(out=>out.httpStatus===409).length,3);const afterRace=await fresh(id);assert.equal(afterRace.audit_log.length-beforeRace.audit_log.length,1);
-  await b.api(path+'/responsibility','POST',{action:'leave',expectedVersion:await version(),idempotencyKey:randomUUID()});assert.equal((await save(input(await version(),{nodeOps:[{op:'move',id:A,x:1,y:1}]}),b,403)).code,'PROJECT_READ_ONLY');
-  assert.deepEqual((await save(replaced.body,b)).result,replaced.result,'退出负责仍确认本人原结果');
+  await b.api(path+'/membership','POST',{action:'leave',expectedVersion:await version(),idempotencyKey:randomUUID()});assert.equal((await save(input(await version(),{nodeOps:[{op:'move',id:A,x:1,y:1}]}),b,403)).code,'PROJECT_READ_ONLY');
+  const oldResult=(await save(replaced.body,b)).result;assert.equal(oldResult.operationId,replaced.result.operationId);assert.equal(oldResult.savedVersion,replaced.result.savedVersion);assert.equal(oldResult.accessLost,true);assert.deepEqual(oldResult.values,{});assert(!Object.hasOwn(oldResult,'nodes'),'退出后只确认提交事实，不返回节点正文');
   const captured=await identities(runtime).resolve(clients[3].token);await c.execute('UPDATE users SET enabled=0 WHERE id=?',[users[3].id]);await assert.rejects(projectSaves(runtime).save(id,validateSave(input(await version(),{nodeOps:[{op:'move',id:A,x:1,y:1}]})),randomUUID(),captured),e=>e.code==='AUTH_REQUIRED');
   checks.push('四会话同版本只一成功；旧版本/退出负责拒绝；事务内停用复核和本人原结果恢复');
   for(const point of ['UPDATE projects','INSERT INTO project_nodes','UPDATE project_nodes SET previous_node_id','UPDATE project_nodes SET stage_id','INSERT INTO audit_log','INSERT INTO command_receipts']) {
@@ -116,7 +117,7 @@ try {
   const build=(await a.api('/api/health/live')).build;await mkdir('test-results',{recursive:true});await writeFile('test-results/project-nodes-check.json',JSON.stringify({status:'passed',checkedAt:new Date().toISOString(),checks,requestCount:measurements.length,measurements,build,isolatedTestDatabase:true,nodeMigrationDelivered:false},null,2)+'\n');console.log(JSON.stringify({status:'passed',groups:checks.length,requestCount:measurements.length}));
 } finally {
   if (app) await app.close();
-  for (const id of projects) { await c.execute('UPDATE project_nodes SET previous_node_id=NULL,next_node_id=NULL WHERE project_id=?',[id]); for (const table of ['project_nodes', 'project_risks', 'audit_log', 'project_stages', 'project_responsibilities']) await c.execute('DELETE FROM ' + table + ' WHERE project_id=?', [id]); await c.execute("DELETE FROM command_receipts WHERE command_scope LIKE CONCAT('user:%:project:',?,':%')", [id]); await c.execute('DELETE FROM projects WHERE id=?', [id]); }
+  for (const id of projects) { await c.execute('UPDATE project_nodes SET previous_node_id=NULL,next_node_id=NULL WHERE project_id=?',[id]); for (const table of ['project_nodes', 'project_risks', 'audit_log', 'project_stages', 'project_responsibilities']) await c.execute('DELETE FROM ' + table + ' WHERE project_id=?', [id]); await c.execute("DELETE FROM command_receipts WHERE command_scope LIKE CONCAT('user:%:project:',?,':%')", [id]); await c.execute('DELETE FROM project_membership_requests WHERE project_id=?',[id]); await c.execute('DELETE FROM project_name_aliases WHERE project_id=?',[id]); await c.execute('DELETE FROM projects WHERE id=?', [id]); }
   for (const user of users) { await c.execute('DELETE FROM command_receipts WHERE actor_id=?', [user.id]); await c.execute('DELETE FROM audit_log WHERE actor_id=?', [user.id]); await c.execute('DELETE FROM sessions WHERE user_id=?', [user.id]); await c.execute('DELETE FROM users WHERE id=?', [user.id]); }
   await c.end();
 }

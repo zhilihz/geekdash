@@ -37,11 +37,14 @@ try{
   const db=await openRuntimeDatabase('test_app');app=await createApp(db,{origin:'http://localhost',secure:false});origin=await app.listen({host:'127.0.0.1',port:0});
   const a=client(),b=client();await a.login(0);await b.login(1);
   const created=await a.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix}}),id=created.result.projectId,path='/api/projects/'+id;projects.push(id);
-  const s1=await stream(a,users[0],id),s2=await stream(a,users[0],id),sb=await stream(b,users[1],id);
+  await b.api('/api/events?'+new URLSearchParams({accountId:users[1],instanceId:randomUUID(),projectId:id}),'GET',undefined,403);
+  async function joinB(){const invite=await a.api(path+'/membership','POST',{action:'invite',targetUserId:users[1],idempotencyKey:randomUUID()});await b.api(path+'/membership','POST',{action:'accept',requestId:invite.result.requestId,idempotencyKey:randomUUID()});}
+  await joinB();
+  const s1=await stream(a,users[0],id),s2=await stream(a,users[0],id);let sb=await stream(b,users[1],id);
   await waitFor(()=>lastEditors(sb)?.length===0,'只查看不登记编辑');
   await b.api('/api/events?'+new URLSearchParams({accountId:users[0],instanceId:randomUUID(),projectId:id}),'GET',undefined,409);
   const editor=(s,editing)=>({projectId:id,instanceId:s.instanceId,editing});
-  await b.api('/api/editing','POST',editor(sb,true),403);
+  await b.api('/api/editing','POST',editor(sb,false));
   const auditBefore=(await c.query('SELECT COUNT(*) n FROM audit_log WHERE project_id=?',[id]))[0][0].n;
   const seenBefore=(await c.query('SELECT token_hash,last_seen_at FROM sessions WHERE user_id=? ORDER BY token_hash',[users[0]]))[0];
   await a.api('/api/editing','POST',editor(s1,true));await a.api('/api/editing','POST',editor(s2,true));
@@ -50,11 +53,10 @@ try{
   assert.equal((await c.query('SELECT COUNT(*) n FROM audit_log WHERE project_id=?',[id]))[0][0].n,auditBefore);
   assert.deepEqual((await c.query('SELECT token_hash,last_seen_at FROM sessions WHERE user_id=? ORDER BY token_hash',[users[0]]))[0],seenBefore);
   checks.push('PRD9.17：真实Cookie与SSE账号上下文校验；只查看不在场、非负责人拒绝、同账号双标签按人合并；登记不写审计或续会话');
-  const home=await stream(b,users[1]);
+  let home=await stream(b,users[1]);
   await waitFor(()=>editorIds(home,id)?.join()===users[0],'首页无projectId订阅收到既有编辑者快照');
   assert.deepEqual(lastEditors(home,id),[{id:users[0],name:'通知验证0'}]);
   assert.deepEqual(Object.keys(home.events.find(event=>event.event==='editors').data).sort(),['projectId','users']);
-  await b.api(path+'/responsibility','POST',{action:'join',expectedVersion:created.result.savedVersion,idempotencyKey:randomUUID()});
   await b.api('/api/editing','POST',editor(sb,true));await waitFor(()=>lastEditors(s1)?.length===2,'两名实际编辑者');
   await waitFor(()=>editorIds(home,id)?.join()===users.slice().sort().join(),'首页收到后续两名编辑者');
   await a.api('/api/editing','POST',editor(s2,false));
@@ -77,10 +79,14 @@ try{
   await new Promise(resolve=>setTimeout(resolve,100));assert(!sb.events.some(event=>event.data.operationId===rejected));
   assert(!JSON.stringify(sb.events).includes('旧版本拒绝'));assert(!JSON.stringify(sb.events).includes(prefix+'新名称'));
   checks.push('PRD9.17：保存后真实事件→另一会话新GET→独立SQL；消息只有编号/版本/操作号；冲突拒绝不发提交事件，不泄露字段输入');
-  await b.api(path+'/responsibility','POST',{action:'leave',expectedVersion:saved.result.savedVersion,idempotencyKey:randomUUID()});
+  await b.api(path+'/membership','POST',{action:'leave',expectedVersion:saved.result.savedVersion,idempotencyKey:randomUUID()});
   await waitFor(()=>lastEditors(s1)?.length===1,'退出责任后清编辑名单');
-  await waitFor(()=>editorIds(home,id)?.join()===users[0],'首页同步清除已失负责资格的编辑者');
+  await waitFor(()=>sb.closed&&home.events.some(event=>event.event==='membership'),'退出后详情流关闭、本人首页收到重读通知');
+  assert(!(await b.api('/api/projects?view=all')).items.some(item=>item.id===id),'重读后无权项目退出本人卡片');
   await b.api('/api/editing','POST',editor(sb,true),403);
+  await b.api(path,'GET',undefined,403);
+  home.controller.abort();await home.done;home=await stream(a,users[0]);
+  await joinB();sb=await stream(b,users[1],id);
   const second=await a.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+'第二项目'}}),secondId=second.result.projectId;projects.push(secondId);
   const homeEditor=await stream(a,users[0]);
   await a.api('/api/editing','POST',editor(s2,false));
@@ -90,7 +96,7 @@ try{
   await a.api('/api/editing','POST',{projectId:secondId,instanceId:homeEditor.instanceId,editing:true});
   await waitFor(()=>editorIds(home,id)?.length===0 && editorIds(home,secondId)?.join()===users[0],'同实例切B后A清空、B显示');
   await a.api('/api/editing','POST',editor(homeEditor,false));
-  const freshSecond=await stream(b,users[1],secondId);
+  const freshSecond=await stream(a,users[0],secondId);
   await waitFor(()=>editorIds(freshSecond,secondId)?.join()===users[0],'迟到A结束请求后新订阅仍读到B编辑事实');
   assert.equal((await a.api('/api/projects/'+secondId)).project.version,second.result.savedVersion,'切换编辑对象不改项目版本');
   await a.api('/api/editing','POST',{projectId:secondId,instanceId:homeEditor.instanceId,editing:false});
@@ -99,7 +105,7 @@ try{
   await waitFor(()=>editorIds(home,id)?.join()===users[0],'恢复A编辑用于退出会话核对');
   checks.push('PRD9.17：首页同一instance从A切B清除A并展示B；迟到A的editing=false不删除B，独立新SSE确认；失权即时清除，编辑切换不改版本');
   await a.api('/api/auth/logout','POST',{});await waitFor(()=>s1.closed && s2.closed,'退出会话关闭全部对应流');
-  await waitFor(()=>lastEditors(sb)?.length===0 && editorIds(home,id)?.length===0,'退出后详情及首页名单清空');assert(s1.events.some(event=>event.event==='identity'));
+  await waitFor(()=>lastEditors(sb)?.length===0 && home.closed,'退出后其他成员名单清空、本人首页流关闭');assert(s1.events.some(event=>event.event==='identity'));
   checks.push('PRD9.17：退出负责后立即清名单并拒绝续报；退出登录关闭该会话双标签SSE，其他账号名单更新');
   sb.controller.abort();await sb.done;
   const again=await stream(b,users[1],id);assert.deepEqual(lastEditors(again) ?? [],[]);again.controller.abort();await again.done;
@@ -122,6 +128,6 @@ try{
   await writeFile('test-results/notifications.json',JSON.stringify({status:'passed',checks,realBrowser:false,publicProxy:false},null,2));console.log(JSON.stringify({status:'passed',checks:checks.length}));
 }finally{
   for(const item of streams)item.controller.abort();await Promise.allSettled(streams.map(item=>item.done));if(app)await app.close();
-  if(projects.length){for(const table of ['audit_log','project_stages','project_responsibilities','project_people','project_chips','project_tags'])await c.query(`DELETE FROM ${table} WHERE project_id IN (?)`,[projects]);await c.query('DELETE FROM projects WHERE id IN (?)',[projects]);}
+  if(projects.length){for(const table of ['audit_log','project_stages','project_responsibilities','project_people','project_chips','project_tags','project_membership_requests','project_name_aliases'])await c.query(`DELETE FROM ${table} WHERE project_id IN (?)`,[projects]);await c.query('DELETE FROM projects WHERE id IN (?)',[projects]);}
   if(users.length){for(const table of ['audit_log','command_receipts'])await c.query(`DELETE FROM ${table} WHERE actor_id IN (?)`,[users]);await c.query('DELETE FROM sessions WHERE user_id IN (?)',[users]);await c.query('DELETE FROM users WHERE id IN (?)',[users]);}await c.end();
 }

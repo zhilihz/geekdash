@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GeekDash · 项目空间</title></head>
+<body class="space-page"><main class="page"><header class="board-header"><a class="board-brand" href="/">GeekDash</a><h1>项目空间</h1><div class="head-actions"><a class="head-btn" href="/">我的项目</a><a class="head-btn" href="/imports.html">导入项目</a><div class="view-switch theme-switch"><button data-theme="dark">深色</button><button data-theme="light">浅色</button><button data-theme="warm">暖色</button></div></div></header>
+<section class="toolbar-panel"><label class="read-label" for="space-search">查找项目</label><input id="space-search" type="search" maxlength="255" placeholder="项目名称 / 客户 / 产品线 / 芯片"><p class="read-label">这里展示全部项目的基本资料。认领或加入协作后，在我的项目中管理。</p></section>
+<p id="space-message" role="status" aria-live="polite"></p><p id="space-total"></p><section class="grid" id="space-cards" aria-label="项目基础资料"></section><div class="read-pagination"><button class="head-btn" id="space-previous">上一页</button><span id="space-page"></span><button class="head-btn" id="space-next">下一页</button></div>
+<section id="requests" class="space-requests" aria-labelledby="request-heading"><h2 id="request-heading">协作请求</h2><p id="request-message" role="status"></p><div id="request-list"></div><button class="head-btn" id="request-more" hidden>查看更早的请求</button></section>
+</main><script type="module" src="/project-space.ts"></script></body></html>

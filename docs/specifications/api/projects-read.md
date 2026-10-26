@@ -1,5 +1,7 @@
 # 项目只读 API
 
+2026-10-26 P05候选（0009，未部署）：列表、检查统计、筛选候选、驾驶舱、简要、详情、历史及项目通知均按当前启用业务账号的正式成员关系读取；无关项目只通过基础项目空间投影查看。维护账号无业务读取特权，详情无资格403。下述历史“全部正式项目”现指本人有权范围，不再指全库；空间及请求协议见[项目归属](project-membership.md)。
+
 日期：2026-10-20核对检查事实投影；来源src/server/modules/projects.ts、project-checks.ts及routes/projects.ts。当前业务查询要求可信登录，身份协议归[项目主干](project-core.md)；以下是读取协议，部署状态归系统真相，不能由本文推导。业务语义引用SPEC-002/004/005/014/018。
 
 2026-10-16 P04-02本地候选补充（基线f07450e+未提交改动，结构0004，未部署）：dashboard=1的items另含独立summary，既有summaryNote保留；详情project同样新增summary。stages.expectedEndOn由有效项目节点的最晚target_date投影，nodeCount及undatedNodeCount分别为有效项目节点总数及无目标日数量；无可用日期返回null，不回退旧独立阶段计划。risks及结案剩余风险排除deleted_at非空行。验证与旧值保留范围见[P04-02报告](../../testing/reports/2026-10-16-p04-02-compatibility.md)；前端消费仍待后续步骤。

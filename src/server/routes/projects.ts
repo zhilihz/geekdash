@@ -15,6 +15,13 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
   const core = database ? projectCore(database) : undefined;
   const checks = database ? projectChecks(database) : undefined;
   const actions = database ? projectActions(database) : undefined;
+  app.get<{Querystring:{search?:string;page?:number;pageSize?:number}}>('/api/project-space',{
+    schema:{querystring:{type:'object',additionalProperties:false,properties:{search:{type:'string',maxLength:255},page:{type:'integer',minimum:1,maximum:1000000},pageSize:{type:'integer',minimum:1,maximum:100}}}},
+  },request=>{
+    if(!request.actor)throw Object.assign(new Error('AUTH_REQUIRED'),{code:'AUTH_REQUIRED',status:401});
+    if(!reads)throw Object.assign(new Error('DATABASE_UNAVAILABLE'),{code:'DATABASE_UNAVAILABLE',status:503});
+    return reads.space(request.query,request.actor.id);
+  });
   app.get<{ Params: { id: string }; Querystring: { kind: 'mixed' | 'status_description'; source?: string; adoption?: string; before?: string } }>('/api/projects/:id/source-history', {
     schema: { querystring: { type: 'object', additionalProperties: false, required: ['kind'], properties: { kind: { type: 'string', enum: ['mixed', 'status_description'] }, source: { type: 'string', minLength: 1, maxLength: 64 }, adoption: { type: 'string', pattern: '^(legacy|[1-9][0-9]{0,19})$' }, before: { type: 'string', pattern: '^[1-9][0-9]{0,19}$' } } } },
   }, (request, reply) => {
@@ -22,7 +29,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
     if (!request.actor) return reply.code(401).send({ code: 'AUTH_REQUIRED' });
     if (!validId(request.params.id) || request.query.adoption && request.query.adoption !== 'legacy' && !validId(request.query.adoption) || request.query.before && !validId(request.query.before)) return reply.code(400).send({ code: 'INVALID_CURSOR_OR_PROJECT' });
     if (!reads) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE' });
-    return reads.sourceHistory(request.params.id, request.query.kind, request.query.source, request.query.adoption, request.query.before);
+    return reads.sourceHistory(request.params.id, request.query.kind, request.query.source, request.query.adoption, request.query.before, request.actor.id);
   });
   app.get('/api/project-summary',{schema:{querystring:{type:'object',additionalProperties:false,properties:{}}}},request=>{
     if(!request.actor)throw Object.assign(new Error('AUTH_REQUIRED'),{code:'AUTH_REQUIRED',status:401});
@@ -36,7 +43,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
     if (!request.actor) return reply.code(401).send({ code: 'AUTH_REQUIRED' });
     if (!validId(request.params.id) || request.query.before && !validId(request.query.before)) return reply.code(400).send({ code: 'INVALID_CURSOR_OR_PROJECT' });
     if (!database) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE' });
-    return deletedNodes(database, request.params.id, request.query.pageSize ?? 20, request.query.before, request.query.kind);
+    return deletedNodes(database, request.params.id, request.query.pageSize ?? 20, request.query.before, request.query.kind, request.actor.id);
   });
   async function actionHandler(request: import('fastify').FastifyRequest<{ Params: { id: string }; Body: unknown }>, reply: import('fastify').FastifyReply, confirm: boolean) {
     if (!request.actor) return reply.code(401).send({ code: 'AUTH_REQUIRED', outcome: 'not_committed' });
@@ -59,7 +66,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
     const id = request.params.id;
     if (id !== undefined && !validId(id)) return reply.code(400).send({ code: 'INVALID_PROJECT_ID', outcome: 'not_committed' });
     if (!core) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE', outcome: 'not_committed' });
-    const result = await core.run(request.actor, validateCore(request.body, !id), id, request.id, confirm);
+    const result = await core.run(request.actor, validateCore(request.body, !id, confirm), id, request.id, confirm);
     if(result.outcome==='committed')notifications?.projectChanged(result.result);
     return { ...result, requestId: request.id };
   }
@@ -71,7 +78,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
     reply.header('Cache-Control', 'no-store');
     if (!saves) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE' });
     try { return await saves.options(); }
-    catch (error) { app.log.warn({ code: (error as { code?: string }).code }, '项目候选资料未能读取'); return reply.code(503).send({ code: 'PROJECT_OPTIONS_UNAVAILABLE' }); }
+    catch (error) { const known=error as {status?:number;code?:string}; if(known.status)return reply.code(known.status).send({code:known.code}); app.log.warn({ code: (error as { code?: string }).code }, '项目候选资料未能读取'); return reply.code(503).send({ code: 'PROJECT_OPTIONS_UNAVAILABLE' }); }
   });
   // 不接受浏览器提供的身份、范围或额外业务字段；错误响应不回显正文。
   async function saveHandler(request: { params: { id: string }; body: unknown; id: string; actor?: import('../modules/identity.js').Actor }, reply: import('fastify').FastifyReply, confirm: boolean) {
@@ -114,7 +121,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
     reply.header('Cache-Control', 'no-store');
     if (!validId(request.params.id) || request.query.before && !validId(request.query.before)) return reply.code(400).send({ code: 'INVALID_CURSOR_OR_PROJECT' });
     if (!saves) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE' });
-    try { return await saves.audit(request.params.id, request.query.pageSize ?? 20, request.query.before); }
+    try { return await saves.audit(request.params.id, request.query.pageSize ?? 20, request.query.before, request.actor?.id); }
     catch (error) { const failure = error as { status?: number; code?: string }; return reply.code(failure.status ?? 503).send({ code: failure.code ?? 'AUDIT_UNAVAILABLE' }); }
   });
   app.get<{ Params: { id: string }; Querystring: { pageSize?: number; before?: string } }>('/api/projects/:id/checks', {
@@ -124,7 +131,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
     if (!request.actor) return reply.code(401).send({ code: 'AUTH_REQUIRED' });
     if (!validId(request.params.id) || request.query.before && !validId(request.query.before)) return reply.code(400).send({ code: 'INVALID_CURSOR_OR_PROJECT' });
     if (!checks) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE' });
-    return checks.read(request.params.id, request.query.pageSize ?? 20, request.query.before);
+    return checks.read(request.params.id, request.query.pageSize ?? 20, request.query.before, request.actor?.id);
   });
   const properties: Record<string, unknown> = {};
   for (const key of ['search', 'customer', 'productLine', 'odmFactory', 'app', 'group', 'chip', 'tags', 'owner']) properties[key] = { type: 'string', maxLength: 255 };
@@ -145,7 +152,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
     reply.header('Cache-Control', 'no-store');
     if (!reads) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE' });
     try { return await reads.list(request.query, request.actor?.id); }
-    catch (error) { app.log.warn({ code: (error as { code?: string }).code }, '项目查询未完成'); return reply.code(503).send({ code: 'PROJECT_READ_UNAVAILABLE' }); }
+    catch (error) { const known=error as {status?:number;code?:string}; if(known.status)return reply.code(known.status).send({code:known.code}); app.log.warn({ code: (error as { code?: string }).code }, '项目查询未完成'); return reply.code(503).send({ code: 'PROJECT_READ_UNAVAILABLE' }); }
   });
   app.get<{ Params: { id: string } }>('/api/projects/:id', {
     schema: { params: { type: 'object', required: ['id'], properties: { id: { type: 'string', pattern: '^[1-9][0-9]{0,19}$' } } } },
@@ -156,6 +163,6 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
     try {
       const result = await reads.detail(request.params.id, request.actor?.id);
       return result ?? reply.code(404).send({ code: 'PROJECT_NOT_FOUND' });
-    } catch (error) { app.log.warn({ code: (error as { code?: string }).code }, '项目详情未完成'); return reply.code(503).send({ code: 'PROJECT_READ_UNAVAILABLE' }); }
+    } catch (error) { const known=error as {status?:number;code?:string}; if(known.status)return reply.code(known.status).send({code:known.code}); app.log.warn({ code: (error as { code?: string }).code }, '项目详情未完成'); return reply.code(503).send({ code: 'PROJECT_READ_UNAVAILABLE' }); }
   });
 }

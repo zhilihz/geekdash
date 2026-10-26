@@ -2,6 +2,8 @@ import { argon2, createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 import { failure } from './project-save.js';
+import { lockMembershipAccounts, lockMembershipProject, maintenanceAccount, invalidateMembershipRequests } from './project-membership.js';
+import { canonical } from './personal-state.js';
 
 export const digest = (value: string) => createHash('sha256').update(value).digest();
 export type Actor = { id: string; name: string; version: string; mustChangePassword: boolean; tokenHash: Buffer; csrfHash: Buffer };
@@ -50,7 +52,68 @@ async function audit(c: PoolConnection, actor: { id: string; name: string }, act
 }
 export function identities(database: RuntimeDatabase, now = () => new Date()) {
   const dummy = '$argon2id$v=19$m=19456,t=2,p=1$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+  async function requireMaintenance(c:PoolConnection,actor:Actor,lock=false) {
+    await assertActor(c,actor,false,now(),false,lock);
+    if(await maintenanceAccount(c,lock)!==actor.id)failure('MAINTENANCE_REQUIRED',403);
+  }
+  async function accountImpact(c:PoolConnection,id:string) {
+    const user=(await rows(c,'SELECT CAST(id AS CHAR) id,login_name loginName,display_name name,enabled,CAST(version AS CHAR) version FROM users WHERE id=?',[id]))[0];
+    if(!user)failure('ACCOUNT_NOT_FOUND',404);
+    const owned=await rows(c,`SELECT CAST(p.id AS CHAR) id,p.name,CAST(p.version AS CHAR) version FROM projects p
+      JOIN project_responsibilities r ON r.project_id=p.id WHERE r.user_id=? ORDER BY p.id`,[id]);
+    const members=owned.length?await rows(c,`SELECT CAST(r.project_id AS CHAR) projectId,CAST(r.user_id AS CHAR) id,u.enabled FROM project_responsibilities r JOIN users u ON u.id=r.user_id WHERE r.project_id IN (?) ORDER BY r.project_id,r.user_id`,[owned.map(v=>v.id)]):[];
+    const requests=await rows(c,`SELECT CAST(r.id AS CHAR) id,CAST(r.project_id AS CHAR) projectId,p.name projectName,r.kind,CAST(r.initiator_id AS CHAR) initiatorId,CAST(r.target_user_id AS CHAR) targetUserId
+      FROM project_membership_requests r JOIN projects p ON p.id=r.project_id WHERE r.status='pending' AND (r.target_user_id=? OR (r.kind='invitation' AND r.initiator_id=?)) ORDER BY r.id`,[id,id]);
+    const unhanded=owned.filter(p=>!members.some(m=>m.projectId===p.id&&m.id!==id&&m.enabled));
+    const token=digest(canonical({user,owned,members,requests})).toString('hex');
+    return {user,owned,members,requests,unhanded,token};
+  }
   return {
+    accountRole(actor:Actor) {
+      return database.readSnapshot(async c=>({isMaintenance:(await rows(c,'SELECT maintenance_user_id FROM system_configuration WHERE maintenance_user_id=?',[actor.id])).length>0}));
+    },
+    accounts(actor:Actor) {
+      return database.readSnapshot(async c=>{
+        await requireMaintenance(c,actor);
+        return {items:await rows(c,'SELECT CAST(id AS CHAR) id,login_name loginName,display_name name,enabled,CAST(version AS CHAR) version FROM users ORDER BY id'),maintenanceId:actor.id};
+      });
+    },
+    accountImpact(actor:Actor,id:string) {
+      return database.readSnapshot(async c=>{await requireMaintenance(c,actor);if(id===actor.id)failure('MAINTENANCE_ACCOUNT_PROTECTED',422);const value=await accountImpact(c,id);return {account:value.user,unhandedProjects:value.unhanded,affectedRequests:value.requests,impactToken:value.token};});
+    },
+    accountState(actor:Actor,id:string,body:{enabled:boolean;expectedVersion:string;impactToken:string;idempotencyKey:string},requestId:string,confirm=false) {
+      const scope=`user:${actor.id}:account:${id}:state`,hash=digest(canonical(body));
+      const lookup=async(c:PoolConnection,lock=false)=>{
+        const prior=(await rows(c,`SELECT request_hash,response_json FROM command_receipts WHERE command_scope=? AND idempotency_key=?${lock?' FOR UPDATE':''}`,[scope,body.idempotencyKey]))[0];
+        if(!prior)return null;if(!prior.request_hash.equals(hash))failure('OPERATION_KEY_REUSED',409);
+        return typeof prior.response_json==='string'?JSON.parse(prior.response_json):prior.response_json;
+      };
+      if(confirm)return database.readSnapshot(async c=>{await requireMaintenance(c,actor);const result=await lookup(c);return result?{outcome:'committed',result}:{outcome:'not_found'};});
+      return database.writeTransaction(async c=>{
+        const before=await accountImpact(c,id);
+        const projectIds=[...new Set([...before.owned.map(p=>p.id),...before.requests.map(r=>r.projectId)])].sort((a,b)=>BigInt(a)<BigInt(b)?-1:1);
+        const related=projectIds.length?await rows(c,'SELECT CAST(user_id AS CHAR) id FROM project_responsibilities WHERE project_id IN (?)',[projectIds]):[];
+        const users=await lockMembershipAccounts(c,[actor.id,id,...related.map(v=>v.id)]);
+        await requireMaintenance(c,actor,true);
+        if(id===actor.id)failure('MAINTENANCE_ACCOUNT_PROTECTED',422);
+        for(const projectId of projectIds)await lockMembershipProject(c,projectId,users);
+        const prior=await lookup(c,true);if(prior)return {outcome:'committed',result:prior};
+        const value=await accountImpact(c,id);
+        if(value.user.version!==body.expectedVersion||value.token!==body.impactToken)failure('ACCOUNT_IMPACT_CHANGED',409);
+        if(!body.enabled&&value.unhanded.length)failure('ACCOUNT_HANDOFF_REQUIRED',422);
+        const changed=!!value.user.enabled!==body.enabled;
+        if(changed) {
+          if(value.user.version==='18446744073709551615')failure('ACCOUNT_VERSION_EXHAUSTED',422);
+          await c.execute('UPDATE users SET enabled=?,version=version+1,updated_at=? WHERE id=?',[Number(body.enabled),now(),id]);
+          await c.execute('UPDATE sessions SET revoked_at=? WHERE user_id=? AND revoked_at IS NULL',[now(),id]);
+          if(!body.enabled)await invalidateMembershipRequests(c,id,'account_disabled');
+          await c.execute("INSERT INTO audit_log(actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,before_json,after_json,request_id,created_at) VALUES (?,?,'user','identity.account.state','user',?,?,?,?,?)",[actor.id,actor.name,id,JSON.stringify({enabled:!!value.user.enabled,version:value.user.version}),JSON.stringify({enabled:body.enabled,version:String(BigInt(value.user.version)+1n),invalidatedRequestIds:body.enabled?[]:value.requests.map(v=>v.id)}),requestId,now()]);
+        }
+        const result={accountId:id,enabled:body.enabled,version:String(BigInt(value.user.version)+(changed?1n:0n)),changed,operationId:body.idempotencyKey};
+        await c.execute('INSERT INTO command_receipts(actor_id,command_scope,idempotency_key,request_hash,response_code,response_json,committed_at) VALUES (?,?,?,?,200,?,?)',[actor.id,scope,body.idempotencyKey,hash,JSON.stringify(result),now()]);
+        return {outcome:'committed',result};
+      });
+    },
     async login(loginName: string, password: string, requestId: string, oldToken?: string) {
       const account = await database.readSnapshot(async c => (await rows(c, `SELECT ${accountColumns} FROM users WHERE login_name=?`, [loginName]))[0]);
       const valid = await verifyPassword(password, account?.passwordHash ?? dummy);

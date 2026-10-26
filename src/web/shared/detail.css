@@ -1269,3 +1269,5 @@ html, body {
 
 
 
+
+.project-collaboration{display:flex;align-items:center;gap:16px;justify-content:space-between;margin-top:12px}.project-collaboration>.page-menu{margin-left:auto}.collaboration-actions{display:grid;gap:10px;min-width:220px;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:8px}.collaboration-actions select{font:inherit;color:var(--text);background:var(--bg-soft);border:1px solid var(--border);border-radius:6px;padding:8px}.stage-choice select{font:inherit;color:var(--text);background:var(--bg-soft);border:1px solid var(--border);padding:8px;border-radius:6px}

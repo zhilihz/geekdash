@@ -61,10 +61,10 @@ export function parseImportSource(input: Uint8Array | string): ParsedImportSourc
       const raw: Record<string, unknown> = object(entry) ? structuredClone(entry) : { $invalidSource: entry };
       if (!object(entry)) entryIssues.push(issue('IMPORT_ITEM_INVALID', entryPath, '该条目不是对象，请在原卡纠正后采用。', 'error'));
       let sourceKey = kind === 'company' ? null : keys[index];
-      if (kind !== 'company' && sourceKey === null) entryIssues.push(issue('IMPORT_SOURCE_KEY_MISSING', `${entryPath}.id`, kind==='project'?'来源编号缺失或无效，本项目需要明确对应，不建立永久来源绑定。':'资料没有有效来源编号；采用后记住同一来源的原名称对应，改名或重名时重新确认。'));
+      if (kind !== 'company' && sourceKey === null) entryIssues.push(issue('IMPORT_SOURCE_KEY_MISSING', `${entryPath}.id`, '原编号缺失或无效，项目仍按名称识别；原始内容保留。'));
       if (sourceKey !== null && counts.get(sourceKey)! > 1) {
         sourceKey = null;
-        entryIssues.push(issue('IMPORT_SOURCE_KEY_DUPLICATE', `${entryPath}.id`, '同类来源编号重复，保留每条内容并分别确认对应。'));
+        entryIssues.push(issue('IMPORT_SOURCE_KEY_DUPLICATE', `${entryPath}.id`, '同类原编号重复，不将该编号作为可靠对应依据；项目仍按名称识别。'));
       }
       items.push({ kind, sequence: index + 1, sourceKey, raw, present: Object.keys(raw), issues: entryIssues });
     });

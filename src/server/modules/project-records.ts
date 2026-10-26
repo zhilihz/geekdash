@@ -1,3 +1,4 @@
+import { assertProjectAccess } from './project-membership.js';
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { Actor } from './identity.js';
 import { failure, validId } from './project-save.js';
@@ -247,8 +248,9 @@ export async function nodeRows(connection: PoolConnection, id: string, deletedId
   const rows = await query(connection, `SELECT ${nodeColumns} FROM project_nodes n LEFT JOIN project_stages s ON s.id=n.stage_id WHERE n.project_id=? AND (n.deleted_at IS NULL${deletedIds.length ? ' OR n.id IN (' + deletedIds.map(() => '?').join(',') + ')' : ''}) ORDER BY n.sort_order,n.id`, [id, ...deletedIds]) as Node[];
   return numericPositions(rows);
 }
-export function deletedNodes(database: RuntimeDatabase, id: string, pageSize: number, before?: string, kind?: 'project' | 'customer') {
+export function deletedNodes(database: RuntimeDatabase, id: string, pageSize: number, before?: string, kind?: 'project' | 'customer', accountId?:string) {
   return database.readSnapshot(async connection => {
+    if(accountId)await assertProjectAccess(connection,id,accountId);
     const projects = await query(connection, 'SELECT CAST(version AS CHAR) version FROM projects WHERE id=?', [id]);
     if (!projects.length) failure('PROJECT_NOT_FOUND', 404);
     const rows = numericPositions(await query(connection, `SELECT ${nodeColumns} FROM project_nodes n LEFT JOIN project_stages s ON s.id=n.stage_id WHERE n.project_id=? AND n.deleted_at IS NOT NULL${kind ? ' AND n.kind=?' : ''}${before ? ' AND n.id<?' : ''} ORDER BY n.id DESC LIMIT ?`, [id, ...kind ? [kind] : [], ...before ? [before] : [], pageSize + 1]) as Node[]);

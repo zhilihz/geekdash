@@ -65,7 +65,17 @@ export function registerIdentity(app: FastifyInstance, database: RuntimeDatabase
     const value = await identity.login(request.body.loginName, request.body.password, request.id, cookie(request, cookieName));
     cookies(reply, value.token, value.csrf); return { status: 'authenticated', accountId: value.accountId };
   });
-  app.get('/api/auth/me', request => ({ account: { id: request.actor!.id, name: request.actor!.name, mustChangePassword: request.actor!.mustChangePassword } }));
+  app.get('/api/auth/me', async request => ({ account: { id: request.actor!.id, name: request.actor!.name, mustChangePassword: request.actor!.mustChangePassword,...await identity.accountRole(request.actor!) } }));
+  app.get('/api/accounts',request=>identity.accounts(request.actor!));
+  const accountParams={type:'object',additionalProperties:false,required:['id'],properties:{id:{type:'string',pattern:'^[1-9][0-9]{0,19}$'}}};
+  app.get<{Params:{id:string}}>('/api/accounts/:id/impact',{schema:{params:accountParams}},request=>identity.accountImpact(request.actor!,request.params.id));
+  for(const confirm of [false,true])app.post<{Params:{id:string};Body:{enabled:boolean;expectedVersion:string;impactToken:string;idempotencyKey:string}}>(confirm?'/api/accounts/:id/state-results/query':'/api/accounts/:id/state',{
+    bodyLimit:4096,schema:{params:accountParams,...schema({enabled:{type:'boolean'},expectedVersion:{type:'string',pattern:'^[1-9][0-9]{0,19}$'},impactToken:{type:'string',pattern:'^[a-f0-9]{64}$'},idempotencyKey:{type:'string',pattern:'^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$'}})},
+  },async request=>{
+    const result=await identity.accountState(request.actor!,request.params.id,request.body,request.id,confirm);
+    if(result.outcome==='committed'&&result.result.changed)notifications?.accountChanged(result.result.accountId);
+    return {...result,requestId:request.id};
+  });
   app.post<{ Body: { currentPassword: string; newPassword: string; confirmPassword: string } }>('/api/auth/password', { bodyLimit: 4096, schema: schema({ currentPassword: password, newPassword: password, confirmPassword: password }) }, async (request, reply) => {
     if (request.body.newPassword !== request.body.confirmPassword) failure('PASSWORD_CONFIRM_MISMATCH', 422);
     limit('password:' + request.actor!.id, 20);

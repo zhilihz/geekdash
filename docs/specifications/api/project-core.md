@@ -1,6 +1,6 @@
 # E03 项目主干与最小身份 API
 
-日期：2026-10-09；对应 E03-W09～W12 源码，部署构建版本见验收报告与系统真相。行为权威为 SPEC-001/002/014，字段字典为 ERD；本文记录实际协议。
+日期：2026-10-26候选更新，0009未部署；最小身份沿E03-W09～W12，归属接口已替换，部署构建版本见系统真相。行为权威为SPEC-001/002/014，字段字典为ERD。
 
 ## 身份入口
 
@@ -22,10 +22,10 @@
 |---|---|---|
 | POST /api/projects | idempotencyKey、fields（name 必填，marketExpectation/detailNote/summaryNote 可选；P04-02本地候选另接受独立summary，未部署） | committed；result 包含 projectId/savedVersion/operationId/changed/responsible；新建测试项目、七阶段、创建者责任、审计及回执同事务 |
 | POST /api/projects/create-results/query | 原创建正文 | committed 或 not_found；只读确认 |
-| POST /api/projects/:id/responsibility | expectedVersion、idempotencyKey、action（join/leave） | committed；只修改当前本人关系，变化共用项目版本 |
+| POST /api/projects/:id/responsibility | 旧直接加入/退出协议 | 已退役410；新归属协议见project-membership.md |
 | POST /api/projects/:id/responsibility-results/query | 原责任变更正文 | committed 或 not_found；只读确认 |
 
-项目 ID/版本均为十进制字符串，幂等编号为小写 UUID v4；不同账号的回执作用域独立。普通字段协议沿 project-save.md，新增服务器可信账号和事务内负责资格校验；旧 trial 匿名结果只可确认，不能匿名重放。详情增加 createdBy、responsible 与 join/leave/editOrdinary 能力，名单与项目在同一短快照中读取；创建后从提案视图消费。
+项目ID/版本均为十进制字符串，幂等编号为小写UUID v4；不同账号的回执作用域独立。普通字段协议沿project-save.md；旧trial匿名结果只可确认，不能匿名重放。新建可携带`inviteeIds`，创建人先负责，受邀者接受后加入；`managerIds`仅供旧结果查询，不接受新写。详情只向当前成员返回，名单与项目同快照读取；创建后进入本人提案范围。完整协议见[项目归属](project-membership.md)。
 
 ## 失败
 

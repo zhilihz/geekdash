@@ -2,7 +2,7 @@
 
 对应代码：`src/server/routes/imports.ts`、`modules/imports.ts`、`modules/project-import.ts`。本文件描述P05施工中的实际协议；固定发布版本及通过范围查系统真相和P05报告。业务规则只维护于[SPEC-009](../specification.md#spec-009-导入迁移与删除恢复)。
 
-**协议版本**：本轮持久执行代码使用`0008-import-name-bindings`；部署是否完成以系统真相为准。旧独立review/adopt HTTP写入口返回410，只保留原结果与来源读取。
+**协议版本**：本轮候选使用`0009-project-space`、执行命令`formatVersion:2`；尚未部署，准确版本以系统真相为准。旧来源设置及独立review/adopt写入口返回410，只保留原结果与来源读取。
 
 ## 身份与文件
 
@@ -11,8 +11,8 @@
 | 方法与路径 | 输入 | 返回用途 |
 |---|---|---|
 | `GET /api/imports` | 无 | `sources`和`batches`，每批明确返回`total/processed`，继续原批次 |
-| `POST /api/imports/sources` | `name,idempotencyKey` | 登记逻辑来源，返回`sourceNamespace` |
-| `POST /api/imports/upload` | 查询`source,name,operation`；可选`new=1`；文件正文 | 返回`batchId,reused`。重复内容默认继续既有批次；明确另开才建立另一批 |
+| `POST /api/imports/sources` | 旧协议 | 410 `IMPORT_CLIENT_OUTDATED`；不新建来源 |
+| `POST /api/imports/upload` | 查询`name,operation`；可选`new=1`；文件正文 | 返回`batchId,reused`。无需填写来源；重复内容默认继续既有批次，明确另开才建立另一批 |
 | `POST /api/imports/results/query` | `idempotencyKey` | 查询原上传或来源登记结果，不重复执行 |
 | `GET /api/imports/:batchId` | 批次ID | 同快照的批次、资料行、项目卡、差异、权限、版本和计数 |
 
@@ -22,11 +22,13 @@
 
 公共正文：`expectedBatchVersion,expectedReviewVersion,expectedVersion,idempotencyKey`；写入还带服务端返回的`basis`。`selected`是明确选择的差异键；`payload`仅表达本次纠正，未提供的内容保持。目标选择使用`mode`及`targetId`；有关生命周期的必要意图使用`intent`。账号、来源、资料和项目实际权限均由服务端重新核验。
 
-DEC-151收敛后的候选还返回`classification=ready|needs_attention|unchanged`、`defaultSelected`、`conflictKeys`、`keptOnline`及`needsMapping`。每条差异的`status=normal|conflict|needs_choice|keep_online`说明处理类别，阶段或子记录用`members`保留同一事项的字段差异；默认采用键只含正常更新的实际成员，不携带同对象未选字段。只读候选校验通过才列入`ready`，保存时仍重新核验。
+候选返回`classification=ready|needs_attention|unchanged`、`defaultSelected`、`conflictKeys`、`keptOnline`及`needsMapping`。本轮按SPEC-009名称规则识别目标：新增项目默认选择，已有项目实际差异默认不选择。每条差异的`status=normal|conflict|needs_choice|keep_online`说明处理类别，阶段或子记录用`members`保留同一事项的字段差异；不携带同对象未选字段。只读候选校验通过才列入`ready`，保存时仍重新核验。
+
+`pendingInvitations`为候选仍需发出协作邀请的显示名称。正文一致但有待邀请对象时仍可确认该项目；`selected=[]`只创建邀请，不伪造正文修改或推进项目版本。`managerMatches`随单次执行集中确认存在歧义的备份经理；已加入或已有请求不自动重邀。准确身份和接受规则引用SPEC-014。
 
 `unresolvedReferences`列出未解引用的路径及本批次对应资料卡`itemIds`。客户端可将依赖已确认资料或DEC-153明确新资料的项目列为等待资料的候选；服务器冻结依赖并在资料成功后重新校验，只对本次自身资料写入造成的变化更新依据，外部变化仍报冲突。没有依赖该资料的正常项目可独立继续。
 
-`keepOnline`为本次明确保留线上内容的差异键，与`selected`不能重叠；全部保留时允许`selected=[]`，在同一事务记录决定及原回执，项目无实际修改时不推进业务版本。`payload`随执行命令一次修正入库，旧`review`不再接受写入；已有待审纠正仍可读取。没有对应的项目默认拟新增，未知共享资料仍需显式选择`mode/targetId`，不按同名自动配对。
+`keepOnline`为本次明确保留线上内容的差异键，与`selected`不能重叠；全部保留时允许`selected=[]`，在同一事务记录决定及原回执，项目无实际修改时不推进业务版本。`payload`随执行命令一次修正入库，旧`review`不再接受写入；已有待审纠正仍可读取。没有对应的项目默认拟新增。共享资料按同类别、精确名称、唯一启用且已提供内容兼容复用，明确新资料自动建立；停用、多候选或内容冲突才原位确认，已有资料不自动覆盖。
 
 读取与预览中的`referenceBasis`表示来源自动解析所得的引用依据，未叠加本次人工修改。客户端用它区分本人修改与外部对应改变；它只用于页面重新核对，不能替代写入时的`basis`、实际版本或权限校验。
 
@@ -45,7 +47,7 @@ DEC-151收敛后的候选还返回`classification=ready|needs_attention|unchange
 
 ## 一次提交与自动接续
 
-`POST /api/imports/:batchId/executions`接收`{idempotencyKey,items:[{id,command,resolveReferences?}]}`，正文上限16MiB。`command`为上述原子项正文；`resolveReferences:true`明确允许完成本项目缺失但已明确的资料关联，未选择时不扩大所选范围。接收事务冻结依赖、输入、版本和原子操作号，返回202及执行记录；一次批次只能有一个未结束执行，同键同正文返回原执行，同键不同正文409。
+`POST /api/imports/:batchId/executions`接收`{formatVersion:2,idempotencyKey,items:[{id,command,resolveReferences?}]}`，正文上限16MiB。`command`为上述原子项正文；`resolveReferences:true`明确允许完成本项目缺失但已明确的资料关联，未选择时不扩大所选范围。接收事务冻结依赖、输入、版本和原子操作号，返回202及执行记录；一次批次只能有一个未结束执行，同键同正文返回原执行，同键不同正文409。旧已完成命令可按原正文重放查询，未被接受的旧格式命令410。
 
 `GET /api/imports/:batchId/executions`读取该批最新执行；`?operation=<UUID>`读取当前账号的指定执行。返回`id,batchId,actorId,operationId,status,items,operationIds`，不返回冻结命令或个人凭据。
 
@@ -62,7 +64,9 @@ DEC-151收敛后的候选还返回`classification=ready|needs_attention|unchange
 
 ## 批次接续与正式项目读取
 
-`POST /api/imports/:batchId/source`使用`expectedVersion,sourceNamespace,idempotencyKey`；`POST /api/imports/:batchId/takeover`使用`expectedVersion,reason,idempotencyKey`。各自追加`/results/query`查询原操作。接管只在当前处理人停用时按SPEC-009处理；原上传者和过去采用不变。
+`POST /api/imports/:batchId/source`已退役410；原`/source/results/query`保留查询。`POST /api/imports/:batchId/takeover`使用`expectedVersion,reason,idempotencyKey`，追加`/results/query`查询原操作。接管只在当前处理人停用时由启用业务账号按SPEC-009处理，维护账号不具有业务接管资格；原上传者和过去采用不变，后续新增项目由当前处理人先负责。
+
+正式采用正文须逐次核验其目标项目的当前读取资格；换候选目标不能获得原无权项目快照。退出后原操作可确认成功事实，项目正文和完整采用历史不再返回。
 
 `GET /api/projects/:id/source-history`按`kind=mixed|status_description`、可选`source`、`adoption`、`before`读取正式项目的来源历史。每页最多50个版本，返回`nextCursor`；旧版本选择不修改当前默认版本。该接口沿用正式项目读取权限。
 
@@ -78,4 +82,4 @@ DEC-151收敛后的候选还返回`classification=ready|needs_attention|unchange
 | `outcome=unknown` | 保留原操作号及正文，查询原结果；不生成替代操作 |
 | 成功后列表读取失败 | 保留成功结果与正式对象入口，单独重试读取 |
 
-部署恢复环境`GEEKDASH_IMPORT_WRITES=disabled`禁止导入写入，仍允许原结果查询、来源读取和预览；普通项目能力沿原协议。实际恢复验证属于运维与测试记录，不由本协议宣称完成。
+部署接收关口`GEEKDASH_IMPORT_ACCEPTING=disabled`禁止新导入变更和命令接收，不停止已接受执行；`GEEKDASH_IMPORT_WRITES=disabled`同时暂停导入执行。全业务只读恢复由`GEEKDASH_BUSINESS_WRITES=disabled`控制。三者用途与恢复顺序归运维；实际验证不由本协议宣称完成。

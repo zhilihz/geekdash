@@ -7,6 +7,7 @@ import { openRuntimeDatabase } from '../dist/server/infrastructure/runtime-datab
 import { hashPassword, identities } from '../dist/server/modules/identity.js';
 import { projectActions, validateAction } from '../dist/server/modules/project-actions.js';
 
+async function joinProject(owner,guest,path){const request=await guest.api(path+'/membership','POST',{action:'apply',idempotencyKey:randomUUID()});await owner.api(path+'/membership','POST',{action:'accept',requestId:request.result.requestId,idempotencyKey:randomUUID()});}
 assert.equal(process.env.GEEKDASH_MIGRATION_PROBE, '1', '仅在独立测试实例执行');
 const { connection: c } = await connectDatabase('test_migrator');
 assert.equal((await c.query('SELECT @@server_uuid uuid'))[0][0].uuid, process.env.GEEKDASH_MIGRATION_PROBE_SERVER_UUID);
@@ -54,7 +55,7 @@ async function fresh(id) {
     return { p, stages };
   } finally { await connection.end(); }
 }
-async function create(user) { const result = await user.api('/api/projects', 'POST', { idempotencyKey: randomUUID(), fields: { name: prefix, summaryNote: '原版项目基础' } }); projects.push(result.result.projectId); return result.result.projectId; }
+async function create(user) { const result = await user.api('/api/projects', 'POST', { idempotencyKey: randomUUID(), fields: { name: prefix + randomUUID().slice(0,5), summaryNote: '原版项目基础' } }); projects.push(result.result.projectId); return result.result.projectId; }
 try {
   const hash = await hashPassword(password);
   for (let index = 0; index < 3; index++) { const loginName = prefix + '_' + index; await c.execute('INSERT INTO users (login_name,password_hash,display_name,must_change_password,created_at,updated_at) VALUES (?,?,?,0,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))', [loginName, hash, '阶段合成账号' + index]); users.push({ loginName, id: (await c.query('SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0][0].id }); }
@@ -76,7 +77,7 @@ try {
     assert.deepEqual(await fresh(id), inconsistent);
     await c.execute('UPDATE project_stages SET started_on=NULL WHERE project_id=? AND stage_code=?', [id, code]);
   }
-  await b.api(path + '/responsibility', 'POST', { expectedVersion: '1', idempotencyKey: randomUUID(), action: 'join' });
+  await joinProject(a,b,path);
   const startBody = command('2'); const started = await a.api(actionPath, 'POST', startBody);
   assert.equal(started.result.savedVersion, '3'); let detail = await b.api(path);
   assert.equal(detail.stages[0].state, 'active'); assert.equal(detail.project.progress, '0'); assert.equal(detail.project.stageState, 'active'); assert.equal(detail.project.status, 'proposal');
@@ -98,7 +99,7 @@ try {
   const board = await a.api('/api/projects?view=proposal&search=' + prefix); assert.equal(board.items.find(p => p.id === id).stageState, 'ready');
   await a.api(actionPath, 'POST', command('4', 'startStage', 'S2'), 422);
   await b.api(actionPath, 'POST', command('3', 'completeStage'), 409);
-  assert.equal((await fresh(id)).p.audits, '4'); checks.push('S1同日完成/说明原文→只解锁S2、不启动项目/阶段；新GET/看板/历史一致，旧版本拒绝');
+  assert.equal((await fresh(id)).p.audits, '5', '创建、申请、接受、开始、完成各自保留历史'); checks.push('S1同日完成/说明原文→只解锁S2、不启动项目/阶段；新GET/看板/历史一致，旧版本拒绝');
   // 专用test库的进行中夹具；这不是尚未施工的“启动项目”API验收。
   await c.execute("UPDATE projects SET status='ongoing',started_on='2026-10-09' WHERE id=?", [id]);
   await a.api(actionPath, 'POST', command('4', 'startStage', 'S2', '2020-01-01'), 422);
@@ -130,7 +131,7 @@ try {
 } finally {
   if (app) await app.close();
   if (serve && users.length) { const additional = (await c.query('SELECT CAST(id AS CHAR) id FROM projects WHERE created_by IN (' + users.map(() => '?').join(',') + ')', users.map(u => u.id)))[0]; for (const item of additional) if (!projects.includes(item.id)) projects.push(item.id); }
-  for (const id of projects) { await c.execute('DELETE FROM command_receipts WHERE command_scope LIKE ?', ['user:%:project:' + id + ':%']); await c.execute('DELETE FROM audit_log WHERE project_id=?', [id]); await c.execute('DELETE FROM project_responsibilities WHERE project_id=?', [id]); await c.execute('DELETE FROM project_stages WHERE project_id=?', [id]); await c.execute('DELETE FROM projects WHERE id=?', [id]); }
+  for (const id of projects) { await c.execute('DELETE FROM command_receipts WHERE command_scope LIKE ?', ['user:%:project:' + id + ':%']); await c.execute('DELETE FROM audit_log WHERE project_id=?', [id]); await c.execute('DELETE FROM project_responsibilities WHERE project_id=?', [id]); await c.execute('DELETE FROM project_stages WHERE project_id=?', [id]); await c.execute('DELETE FROM project_membership_requests WHERE project_id=?',[id]); await c.execute('DELETE FROM project_name_aliases WHERE project_id=?',[id]); await c.execute('DELETE FROM projects WHERE id=?', [id]); }
   for (const user of users) { await c.execute('DELETE FROM command_receipts WHERE actor_id=?', [user.id]); await c.execute('DELETE FROM audit_log WHERE actor_id=?', [user.id]); await c.execute('DELETE FROM sessions WHERE user_id=?', [user.id]); await c.execute('DELETE FROM users WHERE id=?', [user.id]); }
   await c.end();
 }
