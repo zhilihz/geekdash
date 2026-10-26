@@ -76,7 +76,11 @@ try{
   await wait(async()=>(await b.api('/api/projects/'+project.id)).stages[0].state==='active');
   await wait(()=>!detail.d.querySelector('[data-confirm-state=S1]'));
   const stage=(await c.query('SELECT state,started_on,completed_on FROM project_stages WHERE project_id=? AND stage_code=\'S1\'',[project.id]))[0][0];assert.equal(stage.started_on,null);assert.equal(stage.completed_on,null);
+  const detailStorageSet=detail.w.Storage.prototype.setItem;detail.w.Storage.prototype.setItem=function(key,value){if(key.startsWith('geekdash_responsibility:'))throw new detail.w.DOMException('blocked','QuotaExceededError');return detailStorageSet.call(this,key,value);};
+  detail.click('#responsibility-save');await wait(()=>detail.d.getElementById('message').textContent.includes('本次未发送修改'));assert.equal((await c.query('SELECT user_id FROM project_responsibilities WHERE project_id=?',[project.id]))[0].length,2);assert(!detail.d.getElementById('responsibility-save').disabled);detail.w.Storage.prototype.setItem=detailStorageSet;
+  const detailStorageRemove=detail.w.Storage.prototype.removeItem;detail.w.Storage.prototype.removeItem=function(key){if(key.startsWith('geekdash_responsibility:'))throw new detail.w.DOMException('blocked','SecurityError');return detailStorageRemove.call(this,key);};
   detail.click('#responsibility-save');await wait(async()=>!(await b.api('/api/projects?view=all')).items.some(row=>row.id===project.id));
+  await wait(()=>!detail.d.querySelector('#responsibility-confirm'));assert(!detail.d.getElementById('message').textContent.includes('blocked'));detail.w.Storage.prototype.removeItem=detailStorageRemove;
   await b.api('/api/projects/'+project.id,undefined,403);assert.equal((await c.query('SELECT user_id FROM project_responsibilities WHERE project_id=?',[project.id]))[0].length,1);await detail.close();
   checks.push('原阶段卡确认历史开始状态，保存后新读与SQL一致且日期仍未知；详情退出后正式读取和个人列表同步收回');
   // 接续后续账号交接验证，退出者重新申请、由现任成员接受。

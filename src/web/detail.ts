@@ -837,6 +837,10 @@ async function executeStage(confirm: boolean) {
 type ResponsibilityCommand = { expectedVersion: string; idempotencyKey: string; action: 'join' | 'leave'; protocol?:2 };
 let responsibilityPending: ResponsibilityCommand | undefined;
 const responsibilityKey = () => `geekdash_responsibility:${account!.id}:${id}`;
+function forgetResponsibility() {
+  responsibilityPending = undefined;
+  try { sessionStorage.removeItem(responsibilityKey()); } catch { /* 清理失败不改变已确认的操作结果。 */ }
+}
 function responsibilityControls() {
   if (!snapshot || !document.getElementById('responsibility')) return;
   const members=snapshot.responsible??[],others=members.filter(user=>user.id!==account?.id);
@@ -854,8 +858,9 @@ function responsibilityControls() {
       if (choice === 'keep') { persist(); if(!await personalDrafts?.sync()){note('草稿尚未全部同步，请先重试或复制内容，再变更负责范围。',true);return;} candidate = { format: 2, baseVersion: editBaseVersion, values: structuredClone(values!), basicDraft: basicDraft && structuredClone(basicDraft), changeDraft, riskDraft, nodeDraft, nodeRestoreExtras }; }
       else { if(!await discardPersonal())return;candidate = undefined; sessionStorage.removeItem(bufferKey); }
     }
-    responsibilityPending = { expectedVersion: snapshot.project.version, idempotencyKey: crypto.randomUUID(), action: 'leave',protocol:2 };
-    try { sessionStorage.setItem(responsibilityKey(), JSON.stringify(responsibilityPending)); } catch { note('恢复存储不可用，请保留页面至结果确认。', true); }
+    const command: ResponsibilityCommand = { expectedVersion: snapshot.project.version, idempotencyKey: crypto.randomUUID(), action: 'leave',protocol:2 };
+    try { sessionStorage.setItem(responsibilityKey(), JSON.stringify(command)); } catch { note('本机无法保留原操作，本次未发送修改。请恢复浏览器存储后重试。', true); return; }
+    responsibilityPending = command;
     await changeResponsibility(false);
   };
   for (const [name, confirm] of [['responsibility-confirm', true], ['responsibility-retry', false]] as const) { const button = document.getElementById(name) as HTMLButtonElement | null; if (button) { button.disabled = inFlight; button.onclick = () => { void changeResponsibility(confirm); }; } }
@@ -872,12 +877,12 @@ async function changeResponsibility(confirm: boolean) {
     const {protocol,...body}=responsibilityPending;
     const path=protocol===2?(confirm?'membership-results/query':'membership'):'responsibility-results/query';
     const response=await send<{outcome:string}>(`/api/projects/${id}/${path}`,'POST',body,protocol===2&&!confirm);
-    if(response.outcome==='committed'){responsibilityPending=undefined;sessionStorage.removeItem(responsibilityKey());committed=true;}
-    else if(protocol!==2){responsibilityPending=undefined;sessionStorage.removeItem(responsibilityKey());note('旧操作未入库，请在当前项目空间申请或认领。');}
+    if(response.outcome==='committed'){committed=true;forgetResponsibility();}
+    else if(protocol!==2){forgetResponsibility();note('旧操作未入库，请在当前项目空间申请或认领。');}
     else note('原操作尚未完成，可在此重试。',true);
   } catch (error) {
     note((error as Error).message, true);
-    if (error instanceof SaveError && error.outcome === 'not_committed') { responsibilityPending = undefined; sessionStorage.removeItem(responsibilityKey()); if (error.code === 'PROJECT_VERSION_CONFLICT') stale = true; }
+    if (error instanceof SaveError && error.outcome === 'not_committed') { forgetResponsibility(); if (error.code === 'PROJECT_VERSION_CONFLICT') stale = true; }
   } finally { inFlight = false; controls(); }
   if(committed){leaving=true;location.assign('/project-space.html');}
 }
