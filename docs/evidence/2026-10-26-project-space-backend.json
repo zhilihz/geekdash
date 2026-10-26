@@ -1,9 +1,9 @@
 {
-  "checkedAt": "2026-10-26T19:47:41.317136+00:00",
+  "checkedAt": "2026-10-26T20:27:34.667369+00:00",
   "branch": "codex/p05-project-space",
   "base": "64a1ad5fb320b3853147d6e777e171aa44646eb6",
-  "candidate": "9b78072 with uncommitted P05 code",
-  "scope": "固定候选11项回归通过，原生页面尚未完成；非整阶段交付",
+  "candidate": "ac4f3521ce46b71267a73cf04fc1ceb0fd362244",
+  "scope": "本地固定候选与部分原生页面已验证；施工分支已推送，完整原生及整阶段交付尚未完成",
   "migration": {
     "status": "passed",
     "checkedAt": "2026-10-26T07:46:17.743Z",
@@ -3320,5 +3320,324 @@
       ],
       "stopReason": "扩展filechooser要求文件URL访问权限；原生Windows工具随后因不能可靠确定浏览器URL停止本轮电脑操作。未更改权限或绕过限制。"
     }
+  },
+  "pageAndReleasePreparation": {
+    "build": {
+      "revision": "ac4f3521ce46b71267a73cf04fc1ceb0fd362244",
+      "dirty": false,
+      "builtAt": "2026-10-26T20:05:22.667Z",
+      "stage": "P05-imports",
+      "schemaVersion": "0009-project-space"
+    },
+    "backendAndMigrationTrees": {
+      "src/server": "3b457f8ec3737a5aefa432c822b964e199623cb4",
+      "migrations": "ce64df3b3328afc8c6559e82afe9f7fcd1a85a35"
+    },
+    "unchangedFromImportAndDrainCandidate": "61cf7de",
+    "spaceUiAfterExitFix": {
+      "status": "passed",
+      "checkedAt": "2026-10-26T20:05:47.862Z",
+      "build": {
+        "revision": "ac4f3521ce46b71267a73cf04fc1ceb0fd362244",
+        "dirty": false,
+        "builtAt": "2026-10-26T20:05:22.667Z",
+        "stage": "P05-imports",
+        "schemaVersion": "0009-project-space"
+      },
+      "requests": 105,
+      "checks": [
+        "新建页多选邀请可存服务器草稿；一次创建产生两条邀请，只有创建者负责，被邀者尚不能读详情",
+        "基础空间→接受邀请（注入丢响应）→原结果核对→同一项目进入个人列表和简要；不重复责任",
+        "原阶段卡确认历史开始状态，保存后新读与SQL一致且日期仍未知；详情退出后正式读取和个人列表同步收回",
+        "浏览器操作记录写入失败不发送修改且原按钮可重试；清理失败不否定已成功操作",
+        "维护页就地显示影响→一次确认停用→撤销旧会话、其他协作者继续管理→重新启用需新登录",
+        "原存量无负责人项目可在空间认领，随后同一ID进入本人项目"
+      ],
+      "limitation": "真实前端模块、HTTP及MySQL；原生视觉和全部切换场景另验"
+    },
+    "nativeReadback": {
+      "checkedAt": "2026-10-26T20:11:54.879Z",
+      "isolated": true,
+      "projects": [
+        {
+          "id": "77",
+          "name": "P05 页面链路验收 f2faa2ef",
+          "version": "4",
+          "summary": "固定候选原生验收：基本资料保存后用于卡片与项目空间。",
+          "status_description": "本次仅同步项目经理填写的进展：结构样件待核对。"
+        },
+        {
+          "id": "216",
+          "name": "P05 原生协作验收 20261027",
+          "version": "1",
+          "summary": "合成项目：验证创建邀请、接受后个人可见、退出与最小启停。",
+          "status_description": ""
+        }
+      ],
+      "stages": [
+        {
+          "stage_code": "S1",
+          "state": "completed",
+          "started_on": null,
+          "completed_on": null
+        },
+        {
+          "stage_code": "S2",
+          "state": "active",
+          "started_on": null,
+          "completed_on": null
+        }
+      ],
+      "members": [
+        {
+          "project_id": "77",
+          "user_id": "46"
+        },
+        {
+          "project_id": "216",
+          "user_id": "46"
+        }
+      ],
+      "requests": [
+        {
+          "project_id": "160",
+          "kind": "application",
+          "status": "withdrawn",
+          "initiator_id": "46",
+          "target_user_id": "46"
+        },
+        {
+          "project_id": "216",
+          "kind": "invitation",
+          "status": "pending",
+          "initiator_id": "46",
+          "target_user_id": "199"
+        }
+      ],
+      "audit": [
+        {
+          "project_id": "77",
+          "action": "project.import",
+          "version_before": null,
+          "version_after": "1"
+        },
+        {
+          "project_id": "77",
+          "action": "project.ordinary.save",
+          "version_before": "1",
+          "version_after": "2"
+        },
+        {
+          "project_id": "77",
+          "action": "project.ordinary.save",
+          "version_before": "2",
+          "version_after": "3"
+        },
+        {
+          "project_id": "77",
+          "action": "project.stage.confirmStageState",
+          "version_before": "3",
+          "version_after": "4"
+        },
+        {
+          "project_id": "216",
+          "action": "project.create",
+          "version_before": null,
+          "version_after": "1"
+        }
+      ]
+    },
+    "nativeVerified": [
+      "分别保存状态说明与基本资料，保留另一分区输入；刷新后均可读取",
+      "项目空间只显示基础字段，本人项目有进入入口；非本人项目申请、撤回及请求计数可读",
+      "原阶段卡确认进行中，SQL保持未知实际日期",
+      "原生新建项目邀请合成账号，创建成功后只有创建者负责，邀请为pending",
+      "390×844实际视口无横向溢出，暖色继承，搜索框复用看板样式"
+    ],
+    "nativeUnverified": [
+      "固定版本文件选择及上传全过程",
+      "受邀者原生接受、退出、维护账号启停的连续页面链"
+    ],
+    "browserBlockers": [
+      "扩展文件选择器要求Allow access to file URLs，已向用户提出具体权限处理",
+      "JS confirm接受及随后标签读取出现Emulation.setFocusEmulationEnabled超时；未确认退出成功"
+    ],
+    "imageReadback": {
+      "checkedAt": "2026-10-26T20:13:29.098Z",
+      "live": {
+        "status": "alive",
+        "stage": "P05-imports",
+        "build": {
+          "revision": "ac4f3521ce46b71267a73cf04fc1ceb0fd362244",
+          "dirty": false,
+          "builtAt": "2026-10-26T20:05:22.667Z",
+          "stage": "P05-imports",
+          "schemaVersion": "0009-project-space"
+        }
+      },
+      "ready": {
+        "status": "ready"
+      },
+      "isolated": true,
+      "businessWrites": "disabled",
+      "transport": "container loopback HTTP"
+    },
+    "package": {
+      "directory": "D:\\geekwon\\geekdash-data\\transport\\p05-project-space-ac4f3521ce46",
+      "manifest": {
+        "preparedAt": "2026-10-26T20:11:24.886399+00:00",
+        "status": "candidate_not_released",
+        "build": {
+          "revision": "ac4f3521ce46b71267a73cf04fc1ceb0fd362244",
+          "dirty": false,
+          "builtAt": "2026-10-26T20:05:22.667Z",
+          "stage": "P05-imports",
+          "schemaVersion": "0009-project-space"
+        },
+        "image": "geekdash-foundation:p05-ac4f352",
+        "imageId": "sha256:d95e6f4fd98def4608f73f6ad2bb986649c32e1f9e683133c6eccccfcb5eed8a",
+        "platform": "linux/amd64",
+        "migrationFrom": "0008-import-name-bindings",
+        "schemaVersion": "0009-project-space",
+        "archives": {
+          "source.tar": {
+            "bytes": 52131840,
+            "sha256": "258e912344049c1c172d5e46e244c76f00d6061ddb503fe6a6359bc2dcfe8d2c"
+          },
+          "image.tar.gz": {
+            "bytes": 85637740,
+            "sha256": "236e44587a4d318f081831db52a34b92d024bb2576a475c7e7881016be1b2265"
+          }
+        },
+        "migrationSha256": {
+          "0001-foundation.json": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+          "0002-trial-save.json": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695",
+          "0003-node-recovery.json": "4a5b38bd7c84ea230d9d2b1b0b7f93c575107f20c5df9968109901c09296e578",
+          "0004-project-compatibility.json": "98ea64154f89c74ca08274f0d74be2998616d9b4ae4749fc9f544fb80f160e8a",
+          "0005-check-facts.json": "1b70d74c3ff84fdcc8f5587e2ab2007d20801e33b8e9f8720894a43458e40fb8",
+          "0006-imports.json": "08e1941425e3f57b5586b0c01f7b124f24074cd9c064b413109ca8345b837811",
+          "0007-import-executions.json": "6c0c71ccf5c0744a7e21e7ad5b3937592570deaddf3ddef193734a86aa780b6a",
+          "0008-import-name-bindings.json": "3bd4b83963cd35418a14d209b4d15dc69f603c391d89a488562352f9b5dd52a6",
+          "0009-project-space.json": "2cff897dd8ade0bfcfdd43ef2f54050443c39740eb55082ec17dc6b772a68d45"
+        },
+        "nativeAcceptance": "incomplete",
+        "mergedMain": false,
+        "deployed": false
+      },
+      "releaseSha256": "b87252d00d040e3eb1d6173b08a7b50928a0327d4b4aecd23332749502de4d07"
+    },
+    "serverReadOnlyPreflight": {
+      "status": "passed",
+      "checkedAt": "2026-10-26T19:58:36.252925+00:00",
+      "build": {
+        "revision": "cbb6f857f52d643a114d8cd5cf11d26b37f1ec16",
+        "dirty": false,
+        "builtAt": "2026-10-23T10:09:50.576Z",
+        "stage": "P05-imports",
+        "schemaVersion": "0008-import-name-bindings"
+      },
+      "appImage": "sha256:01df6802612bd0d42cfab030111a662b689856ae705432f228f8a24a053c6756",
+      "mysqlId": "73bbcc0a1bdee606eac91a7971ae70cf6ceb023a9e8ec17ea55c47c5708d9ad1",
+      "mysqlStartedAt": "2026-10-15T07:49:02.710263277Z",
+      "diskFreeBytes": 10969042944,
+      "memoryAvailableBytes": 808718336,
+      "nginxSiteExists": true,
+      "readOnly": true
+    },
+    "serverReadOnlyInventory": {
+      "checkedAt": "2026-10-26T20:10:46.729Z",
+      "readOnly": true,
+      "projects": 42,
+      "duplicateIdGroups": [],
+      "blankIds": [],
+      "counts": {
+        "project_responsibilities": 55,
+        "users": 5,
+        "import_batches": 6,
+        "import_adoptions": 103,
+        "command_receipts": 324
+      },
+      "jobs": [
+        {
+          "status": "finished",
+          "count": "2"
+        }
+      ],
+      "active": []
+    },
+    "remoteProductCheckpoint": "ac4f3521ce46b71267a73cf04fc1ceb0fd362244",
+    "remoteMain": "64a1ad5fb320b3853147d6e777e171aa44646eb6",
+    "mergedMain": false,
+    "deployed": false
+  },
+  "transitionPackage": {
+    "directory": "D:\\geekwon\\geekdash-data\\transport\\p05-drain-ef4af152aac8",
+    "manifest": {
+      "preparedAt": "2026-10-26T20:35:34.740549+00:00",
+      "status": "transition_candidate_not_deployed",
+      "revision": "ef4af152aac868ef394ce171f75541048aec00a5",
+      "build": {
+        "revision": "ef4af152aac868ef394ce171f75541048aec00a5",
+        "dirty": false,
+        "builtAt": "2026-10-26T20:34:22.001Z",
+        "stage": "P05-imports",
+        "schemaVersion": "0008-import-name-bindings"
+      },
+      "image": "geekdash-foundation:p05-drain-ef4af15",
+      "imageId": "sha256:a5d71b58a02203712b2d2532372355d99f5aaae2fffa22fceb381a76fa036450",
+      "platform": "linux/amd64",
+      "schemaVersion": "0008-import-name-bindings",
+      "archives": {
+        "source.tar": {
+          "bytes": 51834880,
+          "sha256": "e43cc25a9435de1029cb445bcd319d99d89aca954626bd6704b6de6c56671ef1"
+        },
+        "image.tar.gz": {
+          "bytes": 85622469,
+          "sha256": "771aff4c9c70b8d341dbe45727ea835dd0412e9693d6c0f4e9f3ae3684e9d661"
+        }
+      },
+      "backendAndMigrationTreesUnchangedFrom": "164a369",
+      "trees": {
+        "src/server": "3e8ed0182a46e34bf06c84b2444c39f4cd588a3a",
+        "migrations": "120dcfc17b4518a3421a9e40a50d9fd1937d9f9f"
+      },
+      "purpose": "停止接收新的导入命令，继续完成已接受的0008原命令",
+      "mergedMain": false,
+      "deployed": false
+    },
+    "releaseSha256": "70784e9b7979d294cd4237881d6278e950f5dcf5b11daaa9f2b33cd989c96073",
+    "resolvedAppEnvironment": {
+      "GEEKDASH_IMPORT_ACCEPTING": "disabled",
+      "GEEKDASH_IMPORT_WRITES": "enabled"
+    },
+    "composeImage": "geekdash-foundation:p05-drain-ef4af15",
+    "rejectedPreviousPackage": {
+      "revision": "164a36910048565e1148dac0d8c88173fe3842c5",
+      "reason": "Compose没有向app注入GEEKDASH_IMPORT_ACCEPTING，不能用作实际封口部署",
+      "deployed": false
+    }
+  },
+  "remainingAcceptance": {
+    "checkedAt": "2026-10-26T20:32:00.193258+00:00",
+    "status": "incomplete",
+    "nativeAppRevision": "ac4f3521ce46b71267a73cf04fc1ceb0fd362244",
+    "nativeAppHealth": {
+      "live": 200,
+      "ready": 200
+    },
+    "oldNativeTabs": "closed by session cleanup",
+    "currentTab": "1064373031",
+    "nativeAccountBeforeLogout": "46",
+    "logoutOutcome": "unknown; confirmation handling times out",
+    "fileUpload": "not attempted; extension file URL permission pending",
+    "pending": [
+      "native upload to personal projects",
+      "native invitation accept, exit, account enable/disable",
+      "stage acceptance and main merge",
+      "server backups, migration, deployment and public readback"
+    ],
+    "mainMerged": false,
+    "serverDeployed": false
   }
 }
