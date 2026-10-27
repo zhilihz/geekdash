@@ -191,8 +191,16 @@
     "readOnly": true
   },
   "nativePublic": {
-    "status": "not_completed",
-    "reason": "Edge debugger unattached; reconnected by user but tab read still timed out",
+    "status": "partially_verified",
+    "checkedAt": "2026-10-27T03:09:45Z",
+    "homepageRead": true,
+    "visibleAccount": "business01",
+    "visibleCheckCount": 37,
+    "visibleActiveCount": 7,
+    "collaboratorsAndSpaceEntryVisible": true,
+    "spaceNavigationRequested": true,
+    "spaceReadAndScreenshot": "not verified: Page.getFrameTree and screenshot timed out after reload",
+    "businessWritesThisAttempt": false,
     "localEvidence": "2026-10-26-project-space-backend.json#nativeAcceptance"
   },
   "scope": {
