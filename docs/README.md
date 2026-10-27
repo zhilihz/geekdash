@@ -4,6 +4,8 @@
 
 ## 本轮阅读入口
 
+2026-10-27新增修正讨论：先读[DEC-167/168](decisions/decisions.md#2026-10-27-现有页面与操作统一修正)、[PRD9.25](product/PRD.md#925-现有页面与操作统一修正2026-10-27已确认未实施)、[ERD5.15](data/ERD.md#515-多值资料与统一操作的结构影响dec-167168待详细收敛)及[计划1.2](implementation/execution-plan.md#12-p04完整实施计划2026-10-15)的修正输入；设计与现行运行状态分开。下方为既有P05交付来源。
+
 当前P05导入、项目空间与个人范围的实施、测试发布及公网人工验收入口已齐备。当前版本和准确已验/未验范围只查[系统真相](status/current-system-truth.md)、[报告12节](testing/reports/2026-10-26-project-space.md#12-公网人工验收与阶段收口2026-10-27)及[本次部署](operations/deployments/2026-10-27-project-space.md)，下列设计入口不另存任务进度。
 
 1. [交接](handoff/handoff.md)与[系统真相](status/current-system-truth.md)：接手位置、实际运行与未测边界。
