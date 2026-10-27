@@ -1,10 +1,11 @@
 {
   "status": "passed",
-  "prefix": "experience_eb9f68d4",
+  "prefix": "experience_2c35b1f6",
   "checks": [
     "10位随机邀请码三类字符；注册账号与会话同事务，随后新请求已登录；管理员默认无项目经理资格",
     "勾选兼任可创建和负责项目；已负责项目阻止取消；退出后可取消；直接调用加入接口仍拒绝",
     "个人改名拒绝；管理员改名新请求回读，首次匹配姓名、账号ID和项目归属保持",
+    "忽略资料可恢复、重新忽略并查回执；非处理人和旧项版本被拒绝；恢复未采用资料不反向改变已入库项目。多人项目分别计入双方、空范围无虚假人数",
     "单独横线按空值；忽略资料可重试、新请求解除待导入引用；两个项目实际入库并出现在详情和个人看板；未创建被忽略资料",
     "详情/卡片任务草稿保存与新请求回读一致，不推进正式项目版本",
     "任务原说明逐行保留且同文不合并；整页任务与简介原子保存；重试不重复；完成/重开/删除/无变化/旧版本冲突；新请求简要与驾驶舱消费",
@@ -21,7 +22,7 @@
     "stage": "P05-project-editing",
     "schemaVersion": "0014-project-tasks"
   },
-  "httpRequests": 88,
+  "httpRequests": 103,
   "schema": {
     "version": "0014-project-tasks",
     "tables": 48,
@@ -106,5 +107,20 @@
     "taskTextCases": 14,
     "summaryDateAndExport": "passed",
     "liveBrowserExecuted": false
+  },
+  "sourceAudit": {
+    "sourceFiles": 105,
+    "entryCount": 20,
+    "staticImportEdges": 384,
+    "reachable": 105,
+    "unreachedCandidates": [],
+    "limits": "Static imports and known build entries only; not exhaustive dynamic event or CSS selector proof.",
+    "basisRevision": "5ba3b4c38bc784e0b576ca76dd21814cc6bf6939",
+    "retainedCompatibility": [
+      "legacy import write routes return 410 only",
+      "successful execution receipts and source history remain readable",
+      "unified task projects reject legacy statusDesc writes",
+      "applied migrations remain immutable"
+    ]
   }
 }

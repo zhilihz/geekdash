@@ -14,13 +14,14 @@ const uuid = (await c.query('SELECT @@server_uuid id'))[0][0].id;
 assert.equal(uuid, process.env.GEEKDASH_MIGRATION_PROBE_SERVER_UUID);
 assert.notEqual(uuid, '3b7588d1-d1c1-11f1-9430-de9c3ef7caac');
 const prefix = 'experience_' + randomUUID().slice(0, 8), password = 'Test123!abc';
-let app, origin;
+let app, origin, httpRequests=0;
 const checks = [];
 const mixed=normalizeImportProject({id:1,statusDesc:'1、同文\n2、同文',tasks:[{id:'old',text:'原任务'}]});assert.equal(mixed.input.tasks.length,3);assert.equal(new Set(mixed.input.tasks.map(t=>t.id)).size,3);assert.equal(mixed.input.fields.statusDesc,undefined);
 function client() {
   let cookie = '', csrf = '', account;
   return {
     async request(path, method = 'GET', body, expected = 200, binary = false) {
+      httpRequests++;
       const response = await fetch(origin + path, { method, headers: { Cookie: cookie, Origin: 'http://localhost', 'Content-Type': binary ? 'application/octet-stream' : 'application/json', 'X-GeekDash-Request': '1', 'X-GeekDash-CSRF': csrf, ...account ? { 'X-GeekDash-Account': account.id } : {} }, ...body ? { body: JSON.stringify(body) } : {} });
       for (const value of response.headers.getSetCookie()) { const part = value.split(';')[0]; if (part.startsWith('geekdash_dev=')) cookie = part; if (part.startsWith('geekdash_dev_csrf=')) csrf = part.split('=')[1]; }
       const result = await response.json();
@@ -58,6 +59,11 @@ try {
   const blocked = await admin.request(`/api/accounts/${user.id}/edit`, 'POST', { ...edit, isProjectManager: false, expectedVersion: user.version, idempotencyKey: randomUUID() }, 422);
   assert.equal(blocked.code, 'PROJECT_MEMBERSHIP_REMAINS');
   await member.request(`/api/projects/${project.projectId}/membership`, 'POST', { action: 'join', idempotencyKey: randomUUID() });
+  const sharedCounts=await member.request('/api/projects?view=all&dashboard=1&search='+encodeURIComponent(prefix));
+  assert.equal(sharedCounts.stats.total,1);
+  assert.deepEqual(sharedCounts.dashboard.managers.map(row=>[row.id,row.count]).sort(),[[registered.accountId,1],[created.accountId,1]].sort());
+  const emptyCounts=await member.request('/api/projects?view=all&dashboard=1&search='+encodeURIComponent(prefix+'-none'));
+  assert.equal(emptyCounts.stats.total,0);assert.deepEqual(emptyCounts.dashboard.managers,[]);
   const current = await second.request('/api/projects/' + project.projectId);
   await second.request(`/api/projects/${project.projectId}/membership`, 'POST', { action: 'leave', expectedVersion: current.project.version, idempotencyKey: randomUUID() });
   await admin.request(`/api/accounts/${user.id}/edit`, 'POST', { ...edit, isProjectManager: false, expectedVersion: user.version, idempotencyKey: randomUUID() });
@@ -83,6 +89,17 @@ try {
   assert.equal(batch.catalogRows.find(i => i.id === item.id).ignored, true);
   assert.equal(batch.items[1].issues.some(i => i.code === 'IMPORT_REFERENCE_REQUIRED'), false,JSON.stringify({issues:batch.items[1].issues,references:batch.items[1].unresolvedReferences,catalogs:batch.catalogRows.map(i=>({name:i.payload.name,ignored:i.ignored,id:i.id}))}));
   assert.deepEqual(batch.items[1].payload.fields.customerIds, []);
+  let ignoredRow=batch.catalogRows.find(row=>row.id===item.id);
+  const restore={ignored:false,expectedBatchVersion:batch.batch.version,expectedReviewVersion:ignoredRow.reviewVersion,idempotencyKey:randomUUID()};
+  assert.equal((await admin.request(`/api/imports/${batchId}/items/${item.id}/ignore`,'POST',restore,403)).code,'IMPORT_HANDLER_REQUIRED');
+  assert.equal((await member.request(`/api/imports/${batchId}/items/${item.id}/ignore`,'POST',{...restore,expectedReviewVersion:ignore.expectedReviewVersion,idempotencyKey:randomUUID()},409)).code,'IMPORT_REVIEW_VERSION_CONFLICT');
+  await member.request(`/api/imports/${batchId}/items/${item.id}/ignore`,'POST',restore);
+  batch=await member.request('/api/imports/'+batchId);ignoredRow=batch.catalogRows.find(row=>row.id===item.id);
+  assert.equal(ignoredRow.ignored,false);assert(batch.items[1].unresolvedReferences.length>0);
+  const ignoreAgain={...ignore,expectedBatchVersion:batch.batch.version,expectedReviewVersion:ignoredRow.reviewVersion,idempotencyKey:randomUUID()};
+  await member.request(`/api/imports/${batchId}/items/${item.id}/ignore`,'POST',ignoreAgain);
+  assert.equal((await member.request(`/api/imports/${batchId}/items/${item.id}/ignore/results/query`,'POST',ignoreAgain)).outcome,'committed');
+  batch=await member.request('/api/imports/'+batchId);assert.deepEqual(batch.items[1].payload.fields.customerIds,[]);
   const chosen = batch.items.map(item => ({ id: item.id, command: { expectedBatchVersion: batch.batch.version, expectedReviewVersion: item.reviewVersion, expectedVersion: item.expectedVersion, idempotencyKey: randomUUID(), basis: item.basis, selected: item.defaultSelected }, resolveReferences: true }));
   const execution = { formatVersion: 2, idempotencyKey: randomUUID(), items: chosen };
   await member.request(`/api/imports/${batchId}/executions`, 'POST', execution, 202);
@@ -92,6 +109,11 @@ try {
   for (const item of batch.items) { const detail = await member.request('/api/projects/' + item.previousResult.projectId); assert.deepEqual(detail.project.customerIds, []); }
   const board = await member.request('/api/projects?view=all'); assert(board.items.some(p => p.name === prefix + '空客户项目'));
   assert.equal(Number((await c.query('SELECT COUNT(*) n FROM customers WHERE name=?', [prefix + '待忽略客户']))[0][0].n), 0);
+  const savedProjects=await Promise.all(batch.items.map(row=>member.request('/api/projects/'+row.previousResult.projectId)));
+  ignoredRow=batch.catalogRows.find(row=>row.id===item.id);
+  await member.request(`/api/imports/${batchId}/items/${item.id}/ignore`,'POST',{...restore,expectedBatchVersion:batch.batch.version,expectedReviewVersion:ignoredRow.reviewVersion,idempotencyKey:randomUUID()});
+  for(const prior of savedProjects){const again=await member.request('/api/projects/'+prior.project.id);assert.equal(again.project.version,prior.project.version);assert.deepEqual(again.project.customerIds,prior.project.customerIds);}
+  checks.push('忽略资料可恢复、重新忽略并查回执；非处理人和旧项版本被拒绝；恢复未采用资料不反向改变已入库项目。多人项目分别计入双方、空范围无虚假人数');
   checks.push('单独横线按空值；忽略资料可重试、新请求解除待导入引用；两个项目实际入库并出现在详情和个人看板；未创建被忽略资料');
 
   let detail = await member.request('/api/projects/' + project.projectId);
@@ -116,6 +138,9 @@ try {
   await save({taskOps:[{op:'reopen',id:first},{op:'delete',id:added}]});detail=await member.request('/api/projects/'+project.projectId);assert(detail.project.statusDesc.includes('修正进展'));assert(!detail.project.statusDesc.includes('下一步'));assert(detail.project.tasks.find(t=>t.id===added).deletedAt);
   await save({taskOps:[{op:'edit',id:first,text:'修正进展 @工程师'}]});fresh=await member.request('/api/projects/'+project.projectId);assert.equal(fresh.project.version,detail.project.version);
   const summary=await member.request('/api/project-summary');assert.equal(summary.items.find(p=>p.id===project.projectId).statusDesc,detail.project.statusDesc);
+  const inspection=await member.request('/api/projects?view=all&details=checks&search='+encodeURIComponent(prefix));
+  const inspected=inspection.items.find(row=>row.id===project.projectId).inspection.project;
+  assert.equal(inspected.statusDesc,detail.project.statusDesc);assert.deepEqual(inspected.tasks,detail.project.tasks);
   const dashboard=await member.request('/api/projects?view=all&dashboard=1');assert(dashboard.dashboard.managers.some(manager=>manager.id===registered.accountId&&manager.count>=3));assert(dashboard.dashboard.distributions.progress.length);
   checks.push('任务原说明逐行保留且同文不合并；整页任务与简介原子保存；重试不重复；完成/重开/删除/无变化/旧版本冲突；新请求简要与驾驶舱消费');
   const beforeBulk=structuredClone(detail.project.tasks),ops=bulkTaskOperations(beforeBulk,detail.project.statusDesc.replace('修正进展','整栏修改进展')+'\n新增整栏任务');
@@ -158,5 +183,5 @@ try {
   const ownDashboard=await member.request('/api/projects?view=all&dashboard=1');assert(!ownDashboard.items.some(p=>p.id===adopted.result.projectId));
   const filteredTasks=await member.request('/api/projects?view=all&taskOwner=工程师');assert(filteredTasks.items.some(p=>p.id===project.projectId));
   checks.push('只用首次登记姓名给出可加入项目提示；管理员改名不改匹配名；未加入仍不能读取详情或进入个人统计；任务人员筛选消费未完成任务');
-  console.log(JSON.stringify({ status: 'passed', prefix, checks }));
+  console.log(JSON.stringify({ status: 'passed', prefix, httpRequests, checks }));
 } finally { if (app) await app.close(); await c.end(); }
