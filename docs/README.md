@@ -4,7 +4,7 @@
 
 ## 本轮阅读入口
 
-当前P05导入、项目空间与个人范围已按DEC-157～166实现并测试部署；公网原生补验仍待接续。当前版本和准确已验/未验范围只查[系统真相](status/current-system-truth.md)及[本次部署](operations/deployments/2026-10-27-project-space.md)，下列设计入口不另存任务进度。
+当前P05导入、项目空间与个人范围的实施、测试发布及公网人工验收入口已齐备。当前版本和准确已验/未验范围只查[系统真相](status/current-system-truth.md)、[报告12节](testing/reports/2026-10-26-project-space.md#12-公网人工验收与阶段收口2026-10-27)及[本次部署](operations/deployments/2026-10-27-project-space.md)，下列设计入口不另存任务进度。
 
 1. [交接](handoff/handoff.md)与[系统真相](status/current-system-truth.md)：接手位置、实际运行与未测边界。
 2. [本轮决定及待决](decisions/decisions.md#2026-10-26-导入与项目空间重设讨论中未授权实施)：已确认和还需讨论的范围。
