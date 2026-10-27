@@ -4,7 +4,7 @@
 
 - 实际根目录D:/geekwon/geekdash；分支codex/project-use-unified-save，施工起点138d674。ambient C盘旧worktree不是当前代码。保留既有0010～0012成果，本轮增加0013/0014；准确未提交及远端状态必须先git status/log核对。
 - 本地http://127.0.0.1:41870/已运行0014候选，构建2026-10-27T15:05:30.023Z；固定产物test-results/live-0014，editing-ui.mjs只引用它。用户正在此库真实使用，不能清库、重放真实导入或执行合成验证；此前清理已完成，后来数据是用户重新导入的成果。
-- 当前代码、隔离69次HTTP/SQL、新旧数据摘要及未覆盖范围归[本轮报告](../testing/reports/2026-10-27-experience.md)；加密备份/迁移/运行入口归[本地部署记录](../operations/deployments/2026-10-27-experience-local.md)。现存根目录修改清单以Git为准，涵盖账号、导入、任务、共同界面、迁移和文档；不因文件多而丢弃旧工作。
+- 当前代码、隔离73次HTTP/SQL、新旧数据摘要及未覆盖范围归[本轮报告](../testing/reports/2026-10-27-experience.md)；加密备份/迁移/运行入口归[本地部署记录](../operations/deployments/2026-10-27-experience-local.md)。现存根目录修改清单以Git为准，涵盖账号、导入、任务、共同界面、迁移和文档；不因文件多而丢弃旧工作。
 - 接着完成1056整栏任务编辑/删行身份匹配、内容更新时间范围筛选，沿PRD9.28及执行计划1.2既定范围；这是尚未补齐的功能，不是性能优化。任务日期和删除历史不可补造，整栏匹配有歧义保留输入并让用户逐条修正。
 - 验证只能在独立experience库：UUID a1a789ef-d20c-11f1-ae8f-5a10ad40a0fd、test-results/experience.ps1、scripts/verify-experience-accounts.mjs。用户库UUID 3b7588d1-d1c1-11f1-9430-de9c3ef7caac及editing.ps1禁止合成测试。前后端构建和HTTP连通性可由助手执行，真实页面操作全部由用户验收。
 - 账号兼任已实施：管理员在账号管理同行勾选；新管理员默认管理资格，旧账号保留业务资格；取消前必须退出负责项目。已验证，勿重复做另一套角色表。首次匹配姓名与当前显示名分离，匹配仅提示，不授权。

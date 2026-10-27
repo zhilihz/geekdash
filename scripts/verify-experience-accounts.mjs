@@ -99,6 +99,13 @@ try {
   detail=await member.request('/api/projects/'+project.projectId);assert.equal(detail.project.tasks.length,3);assert.equal(new Set(detail.project.tasks.map(t=>t.id)).size,3);
   const oldVersion=detail.project.version,first=detail.project.tasks[0].id,added=randomUUID();
   const body={scope:'project',changes:{summary:'任务共同保存',taskOps:[{op:'edit',id:first,text:'修正进展 @工程师'},{op:'complete',id:first},{op:'add',id:added,text:'下一步'}]},expectedVersion:oldVersion,idempotencyKey:randomUUID()};
+  for(const scope of ['project','status']){
+    const clientDraftId=randomUUID(),changes=scope==='project'?body.changes:{taskOps:body.changes.taskOps};
+    const draft=await member.request('/api/personal/drafts/save','POST',{clientDraftId,projectId:project.projectId,formKind:scope,baseVersion:oldVersion,expectedDraftVersion:'0',clientSequence:'1',payload:{schemaVersion:1,instanceId:randomUUID(),values:changes,submission:{scope,changes}}});
+    const reloaded=await member.request('/api/personal/drafts?clientDraftId='+clientDraftId);assert.deepEqual(reloaded.items[0].payload.values.taskOps,body.changes.taskOps);assert.equal(draft.draftVersion,'1');
+  }
+  assert.equal((await member.request('/api/projects/'+project.projectId)).project.version,oldVersion);
+  checks.push('详情/卡片任务草稿保存与新请求回读一致，不推进正式项目版本');
   await member.request('/api/projects/'+project.projectId,'PATCH',body);await member.request('/api/projects/'+project.projectId,'PATCH',body);
   detail=await member.request('/api/projects/'+project.projectId);assert.equal(detail.project.summary,'任务共同保存');assert.equal(detail.project.tasks.length,4);assert(detail.project.tasks.find(t=>t.id===first).completedAt);assert(!detail.project.statusDesc.includes('修正进展'));assert(detail.project.statusDesc.includes('下一步'));
   assert.equal((await save({summary:'不得写入',taskOps:[{op:'edit',id:added,text:''}]},422)).code,'INVALID_PROJECT_FIELDS');

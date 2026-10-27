@@ -5,7 +5,7 @@
 ## 验证结论与环境
 
 - 构建及前后端类型检查通过；前后端noUnusedLocals/noUnusedParameters检查通过。
-- `scripts/verify-experience-accounts.mjs`在独立MySQL执行69次HTTP请求，合成前缀experience_c841b0ff；直接SQL和新请求读取核验写入结果。
+- `scripts/verify-experience-accounts.mjs`在独立MySQL执行73次HTTP请求，合成前缀experience_43fe55e4；直接SQL和新请求读取核验写入结果。
 - 验收库UUID为a1a789ef-d20c-11f1-ae8f-5a10ad40a0fd，与用户41870的数据库隔离；脚本有环境和UUID保护，未在用户数据上执行合成测试。
 - 0013/0014首次及重复迁移验证通过，最终48表、414列、84外键，结构差异0。用户库仅执行已备份后的增量迁移，原46张业务表所有旧列摘要保持。
 - 脱敏结果见[证据](../../evidence/2026-10-27-experience.json)，本地运行交付见[部署记录](../../operations/deployments/2026-10-27-experience-local.md)。
