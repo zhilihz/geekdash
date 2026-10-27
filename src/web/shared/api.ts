@@ -259,4 +259,5 @@ for (const [command, action, name] of [['closeProject', 'project.close', '结案
 
 Object.assign(labels,{unknown:'开始状态待确认'});
 Object.assign(actionLabels,{confirmStageState:'确认历史阶段状态','project.stage.state.confirm':'确认历史阶段状态'});
-Object.assign(stageMessages,{STAGE_STATE_REVIEW_REQUIRED:'请先在阶段卡片确认历史开始状态。',PROJECT_ACCESS_REQUIRED:'当前没有本项目的协作资格，请从项目空间申请。'});
+stageMessages.STAGE_STATE_REVIEW_REQUIRED='请先在阶段卡片确认历史开始状态。';
+Object.assign(authMessages,{PROJECT_ACCESS_REQUIRED:'当前没有本项目的协作资格，请从项目空间申请。',BUSINESS_ACCOUNT_REQUIRED:'此操作需要业务账号。'});

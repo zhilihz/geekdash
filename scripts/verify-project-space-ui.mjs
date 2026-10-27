@@ -82,6 +82,7 @@ try{
   detail.click('#responsibility-save');await wait(async()=>!(await b.api('/api/projects?view=all')).items.some(row=>row.id===project.id));
   await wait(()=>!detail.d.querySelector('#responsibility-confirm'));assert(!detail.d.getElementById('message').textContent.includes('blocked'));detail.w.Storage.prototype.removeItem=detailStorageRemove;
   await b.api('/api/projects/'+project.id,undefined,403);assert.equal((await c.query('SELECT user_id FROM project_responsibilities WHERE project_id=?',[project.id]))[0].length,1);await detail.close();
+  const departedDetail=page(b,'project-detail','?id='+project.id);await wait(()=>departedDetail.d.getElementById('message').textContent.includes('协作资格'));assert(departedDetail.d.getElementById('detail-panel').hidden);assert(departedDetail.d.querySelector('a[href="/project-space.html"]'));assert(!departedDetail.d.getElementById('message').textContent.includes('服务器暂时无法读取'));await departedDetail.close();
   checks.push('原阶段卡确认历史开始状态，保存后新读与SQL一致且日期仍未知；详情退出后正式读取和个人列表同步收回');
   // 接续后续账号交接验证，退出者重新申请、由现任成员接受。
   const application=(await b.api('/api/projects/'+project.id+'/membership',{action:'apply',idempotencyKey:randomUUID()})).result.requestId;
