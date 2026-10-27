@@ -1,0 +1,204 @@
+{
+  "finalize": {
+    "status": "passed",
+    "step": "finalize",
+    "completed": {
+      "prepare": "2026-10-27T02:22:20.534941+00:00",
+      "drain": "2026-10-27T02:22:56.750247+00:00",
+      "backup": "2026-10-27T02:24:26.377804+00:00",
+      "migrate": "2026-10-27T02:28:18.638507+00:00",
+      "readonly": "2026-10-27T02:28:53.911710+00:00",
+      "enable": "2026-10-27T02:32:04.845493+00:00",
+      "finalize": "2026-10-27T02:53:02.150657+00:00"
+    },
+    "backup": {
+      "directory": "/var/backups/geekdash/pre-p05-space-4ebd37744342",
+      "files": {
+        "databases.sql.gz": {
+          "bytes": 209206,
+          "sha256": "25857b70a77ba0525e05d290a88074ba0029000c32dde8bdadd210ec18708f52"
+        },
+        "files.tar.gz": {
+          "bytes": 67458,
+          "sha256": "9b80f8a8540b57fbebf3a1d6c4fc9eb48de9e8cff3c80725685d1cb98319014c"
+        },
+        "baseline.json": {
+          "bytes": 20945,
+          "sha256": "ed7b99a70ac1e39369eb840ff1ec29c16707bf5aae50ff2f4dcc40857c6e16f9"
+        },
+        "files.json": {
+          "bytes": 846,
+          "sha256": "f0072dd4605350b47ed5dfa4a23136e74175167090456435238878e4e13850c0"
+        },
+        "full.tar": {
+          "bytes": 307200,
+          "sha256": "e050dfe4ab63e533d4d3007837b78fa2c538bee3a8ab2ce1d018010dfa31e06d"
+        },
+        "full.aes256gcm": {
+          "bytes": 307200,
+          "sha256": "b0adaa2a6cecef2e7ba0f6bab284d34ac275d1750ee3eaf63a858c59505ccce3"
+        }
+      },
+      "completeBothDatabases": true,
+      "sourceFilesPreserved": true
+    },
+    "originalTablesPreserved": {
+      "geekdash_dev": 38,
+      "geekdash_test": 38
+    },
+    "currentRelease": "/opt/geekdash/releases/4ebd377443426e4a00c59b41319c0f37bd127abb",
+    "statePath": "/opt/geekdash/incoming/4ebd377443426e4a00c59b41319c0f37bd127abb/p05-space27-state.json"
+  },
+  "offsite": {
+    "checkedAt": "2026-10-27T02:27:01.233205+00:00",
+    "encryptedPath": "D:\\geekwon\\geekdash-data\\backups\\pre-p05-space-4ebd37744342\\full.aes256gcm",
+    "encryptedSha256": "b0adaa2a6cecef2e7ba0f6bab284d34ac275d1750ee3eaf63a858c59505ccce3",
+    "decryptedSha256": "e050dfe4ab63e533d4d3007837b78fa2c538bee3a8ab2ce1d018010dfa31e06d",
+    "authenticatedDecryption": true,
+    "allArchiveMembersMatched": true,
+    "plaintextWrittenLocally": false
+  },
+  "public-read": {
+    "status": "passed",
+    "checkedAt": "2026-10-27T02:31:09.241208+00:00",
+    "build": {
+      "revision": "4ebd377443426e4a00c59b41319c0f37bd127abb",
+      "dirty": false,
+      "builtAt": "2026-10-27T01:33:23.497Z",
+      "stage": "P05-imports",
+      "schemaVersion": "0009-project-space"
+    },
+    "requests": 10,
+    "authenticated": true,
+    "oldProjectsReadable": true,
+    "importsReadable": true,
+    "projectSpaceReadable": true,
+    "writesBlocked": true
+  },
+  "public-write": {
+    "status": "passed",
+    "checkedAt": "2026-10-27T02:32:57.059710+00:00",
+    "build": {
+      "revision": "4ebd377443426e4a00c59b41319c0f37bd127abb",
+      "dirty": false,
+      "builtAt": "2026-10-27T01:33:23.497Z",
+      "stage": "P05-imports",
+      "schemaVersion": "0009-project-space"
+    },
+    "requests": 15,
+    "actorId": "2",
+    "projectId": "46",
+    "batchId": "7",
+    "executionId": "3",
+    "projectAndChipCommitted": true,
+    "personalBoardSpaceSummaryRead": true,
+    "detailRead": true,
+    "repeatReturnedOriginalBatch": true,
+    "fileSha256": "2af8f26497794e87a911ed4b8052a1cfbca8f8758335de65aa20e444a558772a",
+    "realBusinessAdopted": false
+  },
+  "public-assets": {
+    "status": "passed",
+    "checkedAt": "2026-10-27T02:35:03.987215+00:00",
+    "revision": "4ebd377443426e4a00c59b41319c0f37bd127abb",
+    "pages": 11,
+    "assets": 30,
+    "verified": [
+      "accounts.html",
+      "data-manage.html",
+      "imports.html",
+      "index.html",
+      "login.html",
+      "project-checks.html",
+      "project-detail.html",
+      "project-new.html",
+      "project-space.html",
+      "project-status-summary.html",
+      "settings.html",
+      "assets/accounts-Biss3Efo.js",
+      "assets/api-BlqHeACC.css",
+      "assets/api-CyJOkE7f.js",
+      "assets/board--tiOEAnK.css",
+      "assets/data-manage-B-p44TYa.js",
+      "assets/data-manage-Bk-2UBJj.css",
+      "assets/detail-rMyi-PKT.css",
+      "assets/imports-BKqjNxqr.css",
+      "assets/imports-Dhg2TtzQ.js",
+      "assets/index-CfE3arPX.js",
+      "assets/index-qaE9AgNN.css",
+      "assets/login-D9KYl3tU.css",
+      "assets/login-Dgqn4Lhw.js",
+      "assets/membership-CCDRyYYW.js",
+      "assets/notifications-5f5EyBHv.js",
+      "assets/project-checks-BINqBaQ2.js",
+      "assets/project-checks-Bz2hpst1.css",
+      "assets/project-detail-BxEbiiZ2.js",
+      "assets/project-new-NyiDL6s9.js",
+      "assets/project-options-DIIeYoud.js",
+      "assets/project-space-CMXG3BM2.js",
+      "assets/project-space-C_sJFG77.css",
+      "assets/project-status-summary-BCj6m17I.css",
+      "assets/project-status-summary-HwI3L3gq.js",
+      "assets/reference-picker-CjjHA-vc.css",
+      "assets/reference-picker-tnaMVvjX.js",
+      "assets/settings-BHt4i45y.js",
+      "assets/status-mentions-BEKWmcfs.js",
+      "assets/status-mentions-C7V-HnNg.css",
+      "assets/status-text-BNq_eLYk.js"
+    ]
+  },
+  "sql": {
+    "status": "passed",
+    "checkedAt": "2026-10-27T02:51:13.191374+00:00",
+    "projectId": "46",
+    "batchId": "7",
+    "executionId": "3",
+    "checks": {
+      "project": true,
+      "uniqueName": true,
+      "responsibility": true,
+      "chip": true,
+      "unknownStage": true,
+      "execution": true,
+      "adoption": true
+    },
+    "storedFileMatches": true,
+    "oldFilesPreserved": 6,
+    "oldAdoptionsAndReviewItemsUnchanged": true
+  },
+  "final-read": {
+    "status": "passed",
+    "checkedAt": "2026-10-27T02:53:54.083321+00:00",
+    "build": {
+      "revision": "4ebd377443426e4a00c59b41319c0f37bd127abb",
+      "dirty": false,
+      "builtAt": "2026-10-27T01:33:23.497Z",
+      "stage": "P05-imports",
+      "schemaVersion": "0009-project-space"
+    },
+    "ready": "ready",
+    "currentRelease": "/opt/geekdash/releases/4ebd377443426e4a00c59b41319c0f37bd127abb",
+    "imageId": "sha256:974e1e8d31e9438a7cc97369f940c55a2f69dc6342fed4b5972b1df50106ba4d",
+    "appHealth": "healthy",
+    "mysqlId": "73bbcc0a1bdee606eac91a7971ae70cf6ceb023a9e8ec17ea55c47c5708d9ad1",
+    "mysqlStartedAt": "2026-10-15T07:49:02.710263277Z",
+    "nginxPreserved": true,
+    "otherRunningContainers": 17,
+    "otherHealthSummary": {
+      "healthy": 9,
+      "no_healthcheck": 8
+    },
+    "readOnly": true
+  },
+  "nativePublic": {
+    "status": "not_completed",
+    "reason": "Edge debugger unattached; reconnected by user but tab read still timed out",
+    "localEvidence": "2026-10-26-project-space-backend.json#nativeAcceptance"
+  },
+  "scope": {
+    "userRealPendingImportsAdopted": false,
+    "meetingImplemented": false,
+    "fullAccountAdministrationImplemented": false,
+    "version": "4ebd377443426e4a00c59b41319c0f37bd127abb"
+  }
+}

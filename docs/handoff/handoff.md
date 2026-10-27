@@ -1,13 +1,13 @@
 # 未完成任务交接
 
-## 当前接续（2026-10-27 10:10 P05本地验收收口）
+## 当前接续（2026-10-27 10:53 已发布，公网原生补验待续）
 
-- 目标active，尚未完成部署；所有命令显式使用`D:/geekwon/geekdash`。分支`codex/p05-project-space`，基线远端main `64a1ad5`，产品HEAD `4ebd377`，clean构建01:33:23Z、0009。本轮文档/证据变动待提交，接手先核Git，不能在app默认过渡worktree修改主候选。
-- 当前成果及准确测试边界归[报告10节](../testing/reports/2026-10-26-project-space.md#10-原生关键链验收完成2026-10-27-1010)和[系统真相](../status/current-system-truth.md)。原生关键链已通过，文件访问权限用户已关闭；旧浏览器阻塞已解除，不重复请求权限或重测已过链路。代码新增仅共享GET保留权限错误及其前端反例，未改变后端和迁移。
-- 原生41868连接`geekdash-p05-import-space-20261026-mysql`，UUID da55e9c7-d11f-11f1-bfe6-7232bd8e8a88；合成账号199已退出项目216并负责新导入217/218，200维护；163停用后已恢复启用。当前原生页accounts.html登录200，刷新状态已核。受控凭据在仓库外ui-control，不输出。独立固定回归库`geekdash-p05-fixed-20261027-mysql`，UUID724bf9a4-d174-11f1-92c0-1e5ebc35de72；库均非空，不重跑初始迁移/真实首次导入，不共享worker。
-- 下一步：4ebd377最终镜像已封存于`D:/geekwon/geekdash-data/transport/p05-project-space-4ebd37744342/`，容器健康及build已验（ac4f352旧包不作最终版本）。完成文档检查后提交合并推送main；再按[既定切换入口](../operations/release-maintenance.md#p05项目空间切换与0009兼容恢复)执行服务器旧执行收口、双库/文件/配置备份、0009增量迁移、只读核对和开放合成验收。服务器仍是最后只读确认cbb6f85/0008，不能把本地验收写成发布。
-- 0008过渡包`D:/geekwon/geekdash-data/transport/p05-drain-ef4af152aac8/`，分支codex/p05-import-drain已推送ef4af15；Compose实际接收disabled/执行enabled已验。旧164a369包已REJECTED，不能部署；不合并0008临时代码到0009，不强删primary worktree。
-- 用户已按DEC-166确认本次测试发布D盘加密副本位置，迁移前下载并解密核摘要；正式长期Q-008/011/016边界不冒充已落实。用户真实未完成批次保持原结果，不代为采用；取消的关机任务不恢复。原始日志仅test-results，脱敏证据进docs/evidence；测试结果、发布记录分别维护。
+- 目标仍active；实际源码、测试与发布事实归[报告11节](../testing/reports/2026-10-26-project-space.md#11-服务器发布与公网回验2026-10-27)、[系统真相](../status/current-system-truth.md)和[部署记录](../operations/deployments/2026-10-27-project-space.md)。产品4ebd377已随ff3869f合并推送main，服务器0009、current指针与实际镜像一致。不要重做迁移、备份或重新提交同一导入。
+- 当前文档收尾分支`codex/p05-release-record`，基线main ff3869f。未提交文件仅本轮部署记录/证据、报告、真相、交接、导航、使用说明、API状态及更新记录；接手重核`git status --short`。显式工作目录`D:/geekwon/geekdash`，不要在app默认0008过渡worktree修改主项目。
+- 已完成本地原生文件选择/重复、接受/退出、最小启停；临时文件URL权限用户已关闭，不重复开启。公网业务回验批7/执行3/项目46由business02负责，合成数据；真实批1～6原条目/采用与旧文件保持，不代用户确认。
+- 剩余：公网原生补验与最终文档合并。Edge原验收标签1064373240在project-space.html#requests；新验收标签1064373257在首页，创建曾超时但库存确认存在，不再重复新建。用户10:47确认已连接后，旧标签仍debugger unattached、新页读取超时；必须重新观察，不能把工具故障归因产品。无需再上传，优先只读空间中的合成项目及已有个人项目。用户其他标签不动。
+- 发布步骤已全部完成；`test-results/p05-space27-*.json`保存本机私有回执，脱敏发布摘要已入docs/evidence。服务器状态`/opt/geekdash/incoming/4ebd377443426e4a00c59b41319c0f37bd127abb/p05-space27-state.json`已含finalize。双库/文件/配置备份与D盘加密副本见部署记录；解密凭据仓库外，不输出。后续恢复只用0009兼容流程，不启动旧0008应用。
+- 若原生仍不可用，保留准确未验边界并推送本轮记录，不宣布整个目标完成。最终证据齐备后更新本节及目标；不恢复取消的关机任务，不启动P06/会议/新规则。原本地验收库、文件及账号入口见报告10节；不重置数据或恢复已停用权限。
 
 ## 历史接续（2026-10-26 17:02 P05施工）
 

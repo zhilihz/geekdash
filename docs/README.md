@@ -1,17 +1,17 @@
 # GeekDash 文档目录
 
-导航更新：2026-10-26。项目仓库：[zhilihz/geekdash](https://github.com/zhilihz/geekdash)。全部项目文档在本目录；协作与分类规则只维护于根目录[AGENTS.md](../AGENTS.md)。
+导航更新：2026-10-27。项目仓库：[zhilihz/geekdash](https://github.com/zhilihz/geekdash)。全部项目文档在本目录；协作与分类规则只维护于根目录[AGENTS.md](../AGENTS.md)。
 
 ## 本轮阅读入口
 
-当前为2026-10-26导入、项目空间与个人范围重设讨论，已确认DEC-157～165，最小账号启停已纳入同一阶段，**用户已明确开始实施**。旧冲突要求已从现行设计移除，不能继续沿旧P05执行计划施工。
+当前P05导入、项目空间与个人范围已按DEC-157～166实现并测试部署；公网原生补验仍待接续。当前版本和准确已验/未验范围只查[系统真相](status/current-system-truth.md)及[本次部署](operations/deployments/2026-10-27-project-space.md)，下列设计入口不另存任务进度。
 
 1. [交接](handoff/handoff.md)与[系统真相](status/current-system-truth.md)：接手位置、实际运行与未测边界。
 2. [本轮决定及待决](decisions/decisions.md#2026-10-26-导入与项目空间重设讨论中未授权实施)：已确认和还需讨论的范围。
 3. [导入体验](product/PRD.md#921-p05导入与会议的逐行为结果)及[空间与协作](product/PRD.md#923-项目空间个人项目与协作2026-10-26设计中)：结构、操作与已知结果。
 4. [SPEC-009/014](specifications/specification.md#spec-009-导入迁移与删除恢复)：唯一业务契约；[计划1.3](implementation/execution-plan.md#13-p05完整实施设计2026-10-22)记录替换位置、五步工程展开和技术细化，按该范围连续实施。
 5. [本轮增量ERD](data/ERD.md#514-项目空间与归属请求的目标增量2026-10-26未迁移)、[模块接口落位](implementation/execution-plan.md#133-五步内部的接口与核心实现)、[旧执行切换](implementation/execution-plan.md#134-旧执行旧页面与发布切换)：具体字段、保存边界和恢复顺序；实际隔离迁移、产品验证与尚未覆盖范围只查[本轮报告](testing/reports/2026-10-26-project-space.md)。
-6. 候选实际协议：[导入](specifications/api/imports.md)、[归属与账号](specifications/api/project-membership.md)；尚未部署，不据接口文档存在宣称阶段交付。
+6. 实际协议：[导入](specifications/api/imports.md)、[归属与账号](specifications/api/project-membership.md)；已部署的准确版本及验证边界查系统真相，不据协议文档存在替代验收。
 
 既有产品发布查[2026-10-23报告](testing/reports/2026-10-23-p05-import-chain.md#10-通过按钮锁定修正2026-10-23)和[部署记录](operations/deployments/2026-10-23-p05-approve.md)。历史P04/P05报告保留当时结果，不作为新设计已经实现的证据。
 

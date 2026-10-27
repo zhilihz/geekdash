@@ -1,6 +1,6 @@
 # 项目归属与最小账号维护接口
 
-2026-10-26候选代码，schema `0009-project-space`，未部署。来源为`routes/membership.ts`、`routes/projects.ts`、`routes/identity.ts`及对应深模块；业务唯一权威为SPEC-014，页面行为为PRD9.23/9.24。
+对应2026-10-27已部署产品`4ebd377`，schema `0009-project-space`；实际验证范围见系统真相。来源为`routes/membership.ts`、`routes/projects.ts`、`routes/identity.ts`及对应深模块；业务唯一权威为SPEC-014，页面行为为PRD9.23/9.24。
 
 所有ID/版本是十进制字符串，操作号为UUID v4。沿用会话、同源、CSRF和账号上下文；客户端传账号ID不等于取得该身份。
 

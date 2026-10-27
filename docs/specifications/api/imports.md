@@ -1,8 +1,8 @@
 # 导入接口
 
-对应代码：`src/server/routes/imports.ts`、`modules/imports.ts`、`modules/project-import.ts`。本文件描述P05施工中的实际协议；固定发布版本及通过范围查系统真相和P05报告。业务规则只维护于[SPEC-009](../specification.md#spec-009-导入迁移与删除恢复)。
+对应代码：`src/server/routes/imports.ts`、`modules/imports.ts`、`modules/project-import.ts`。本文件描述P05的实际协议；固定发布版本及通过范围查系统真相和P05报告。业务规则只维护于[SPEC-009](../specification.md#spec-009-导入迁移与删除恢复)。
 
-**协议版本**：本轮候选使用`0009-project-space`、执行命令`formatVersion:2`；尚未部署，准确版本以系统真相为准。旧来源设置及独立review/adopt写入口返回410，只保留原结果与来源读取。
+**协议版本**：已部署产品`4ebd377`使用`0009-project-space`、执行命令`formatVersion:2`；准确运行与验证范围以系统真相为准。旧来源设置及独立review/adopt写入口返回410，只保留原结果与来源读取。
 
 ## 身份与文件
 
