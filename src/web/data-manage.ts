@@ -4,9 +4,9 @@ import './shared/catalog.css';
 import { get,send,requireIdentity,account,esc,SaveError,setupTheme } from './shared/api';
 import { ProjectNotifications } from './shared/notifications';
 
-const kinds: Record<string,string>={customers:'客户',engineers:'工程师',productLines:'产品线',apps:'APP',tags:'项目标签',company:'企业信息',groups:'项目分组',chips:'核心芯片'};
+const kinds: Record<string,string>={odmFactories:'ODM 工厂',customers:'客户',engineers:'工程师',productLines:'产品线',apps:'APP',tags:'项目标签',company:'企业信息',groups:'项目分组',chips:'核心芯片'};
 const fields: Record<string,Record<string,string>>={
-  customers:{name:'客户名称',contact:'主要联系人',tagIds:'客户标签',background:'客户背景信息'},engineers:{name:'工程师姓名',role:'业务角色'},productLines:{name:'产品线名称'},apps:{name:'APP名称',appVersion:'APP版本',description:'描述'},tags:{name:'标签名称'},company:{fullName:'企业全称',shortName:'企业简称',managerText:'负责人信息',namePrefix:'名称前缀'},groups:{name:'分组名称'},chips:{name:'芯片名称',originalModel:'原始型号',manufacturer:'厂商',firmwareVersion:'资料固件版本'},
+  odmFactories:{name:'工厂名称',contact:'主要联系人',background:'工厂资料'},customers:{name:'客户名称',contact:'主要联系人',tagIds:'客户标签',background:'客户背景信息'},engineers:{name:'工程师姓名',role:'业务角色'},productLines:{name:'产品线名称'},apps:{name:'APP名称',appVersion:'APP版本',description:'描述'},tags:{name:'标签名称'},company:{fullName:'企业全称',shortName:'企业简称',managerText:'负责人信息',namePrefix:'名称前缀'},groups:{name:'分组名称'},chips:{name:'芯片名称',originalModel:'原始型号',manufacturer:'厂商',firmwareVersion:'资料固件版本'},
 };
 type Values=Record<string,string|boolean|string[]>;
 type Item=Values & {id:string;version:string;enabled:boolean};
@@ -138,6 +138,7 @@ document.addEventListener('geekdash-identity-changed',()=>{frozen=true;message.t
 window.addEventListener('focus',()=>{if(account)void refreshCatalog();});
 void requireIdentity().then(async()=>{
   try{pending=JSON.parse(sessionStorage.getItem(storageKey())??'null')??undefined;}catch{message.textContent='原保存恢复信息无法读取，请保留原页面。';}
+  const requestedKind=new URLSearchParams(location.search).get('kind');if(requestedKind&&Object.hasOwn(kinds,requestedKind))kind=requestedKind;
   if(pending){kind=pending.kind;editing=true;values=pending.body.changes;render();await save(true);}else await load();
   new ProjectNotifications(()=>{},()=>{void refreshCatalog();},text=>{if(text)message.textContent=text;},undefined,undefined,event=>{if(event.resource==='catalog' && (event.kind===kind || kind==='customers' && event.kind==='tags'))void refreshCatalog();});
 }).catch(error=>{message.textContent=explain(error);});

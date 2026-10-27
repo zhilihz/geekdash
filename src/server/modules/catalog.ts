@@ -7,6 +7,7 @@ import { canonical } from './personal-state.js';
 
 const definitions: Record<string, { table: string; fields: Record<string, [string, number]> }> = {
   customers: { table: 'customers', fields: { name: ['name',255], contact: ['contact',65535], background: ['background',65535] } },
+  odmFactories: { table: 'customers', fields: { name: ['name',255], contact: ['contact',65535], background: ['background',65535] } },
   engineers: { table: 'engineers', fields: { name: ['name',255], role: ['role',64] } },
   productLines: { table: 'product_lines', fields: { name: ['name',255] } },
   apps: { table: 'apps', fields: { name: ['name',255], appVersion: ['app_version',64], description: ['description',65535] } },
@@ -51,7 +52,7 @@ async function configuration(c: PoolConnection, actor: Actor, lock = false) {
 }
 async function rows(c: PoolConnection, kind: string, id?: string, lock = false) {
   const def=definition(kind);
-  const [items]=await c.query<RowDataPacket[]>(`SELECT CAST(id AS CHAR) id,CAST(version AS CHAR) version,${Object.entries(def.fields).map(([key,[column]]) => `COALESCE(\`${column}\`,'') \`${key}\``).join(',')}${kind === 'company' ? '' : ',enabled'} FROM ${def.table}${id ? ' WHERE id=?' : ''} ORDER BY id${lock ? ' FOR UPDATE' : ''}`,id ? [id] : []);
+  const [items]=await c.query<RowDataPacket[]>(`SELECT CAST(id AS CHAR) id,CAST(version AS CHAR) version,${Object.entries(def.fields).map(([key,[column]]) => `COALESCE(\`${column}\`,'') \`${key}\``).join(',')}${kind === 'company' ? '' : ',enabled'} FROM ${def.table}${id ? ' WHERE id=?' : ''}${kind === 'odmFactories' ? (id ? ' AND ' : ' WHERE ') + '(is_odm=1 OR EXISTS(SELECT 1 FROM project_odm_factories l WHERE l.customer_id=customers.id))' : kind === 'customers' ? (id ? ' AND ' : ' WHERE ') + 'is_customer=1' : ''} ORDER BY id${lock ? ' FOR UPDATE' : ''}`,id ? [id] : []);
   for (const item of items) {
     if (kind !== 'company') item.enabled=!!item.enabled;
     if (kind === 'customers') { const [tags]=await c.query<RowDataPacket[]>('SELECT CAST(tag_id AS CHAR) id FROM customer_tags WHERE customer_id=? ORDER BY sort_order,tag_id',[item.id]); item.tagIds=tags.map(tag=>tag.id); }
@@ -60,10 +61,12 @@ async function rows(c: PoolConnection, kind: string, id?: string, lock = false) 
 }
 async function references(c: PoolConnection, kind: string, id: string) {
   const conditions: Record<string,string> = {
-    customers:'p.customer_id=? OR p.odm_customer_id=?', productLines:'p.product_line_id=?', apps:'p.app_id=?', groups:'p.group_id=?',
-    chips:'EXISTS (SELECT 1 FROM project_chips r WHERE r.project_id=p.id AND r.chip_id=?)',
+    customers:'EXISTS(SELECT 1 FROM project_customers l WHERE l.project_id=p.id AND l.customer_id=?) OR EXISTS(SELECT 1 FROM project_odm_factories l WHERE l.project_id=p.id AND l.customer_id=?)',
+    odmFactories:'EXISTS(SELECT 1 FROM project_customers l WHERE l.project_id=p.id AND l.customer_id=?) OR EXISTS(SELECT 1 FROM project_odm_factories l WHERE l.project_id=p.id AND l.customer_id=?)',
+    productLines:'EXISTS(SELECT 1 FROM project_product_lines l WHERE l.project_id=p.id AND l.product_line_id=?)', apps:'EXISTS(SELECT 1 FROM project_apps l WHERE l.project_id=p.id AND l.app_id=?)', groups:'EXISTS(SELECT 1 FROM project_group_links l WHERE l.project_id=p.id AND l.group_id=?)',
+    chips:'EXISTS (SELECT 1 FROM project_chip_selections r WHERE r.project_id=p.id AND r.chip_id=?)',
     engineers:'EXISTS (SELECT 1 FROM project_people r WHERE r.project_id=p.id AND r.engineer_id=?)',
-    tags:'EXISTS (SELECT 1 FROM project_tags r WHERE r.project_id=p.id AND r.tag_id=?) OR EXISTS (SELECT 1 FROM customer_tags r WHERE r.tag_id=? AND (r.customer_id=p.customer_id OR r.customer_id=p.odm_customer_id))',
+    tags:'EXISTS (SELECT 1 FROM project_tags r WHERE r.project_id=p.id AND r.tag_id=?) OR EXISTS (SELECT 1 FROM customer_tags r WHERE r.tag_id=? AND (EXISTS(SELECT 1 FROM project_customers l WHERE l.project_id=p.id AND l.customer_id=r.customer_id) OR EXISTS(SELECT 1 FROM project_odm_factories l WHERE l.project_id=p.id AND l.customer_id=r.customer_id)))',
   };
   if (kind === 'company') return { projects:[] as RowDataPacket[], customers:[] as RowDataPacket[] };
   const condition=conditions[kind];
@@ -119,6 +122,7 @@ export async function saveCatalogInTransaction(c: PoolConnection, actor: Actor, 
       savedVersion=String(BigInt(before!.version)+1n);
       await c.execute(`UPDATE ${def.table} SET ${columns.map(column=>column+'=?').join(',')},version=version+1,updated_at=?${kind === 'company' ? ',updated_by=?' : ''} WHERE id=?`,[...values,at,...kind === 'company' ? [actor.id] : [],id]);
     } else {
+      if (kind === 'odmFactories') { columns.push('is_customer','is_odm'); values.push(false,true); }
       await c.execute(`INSERT INTO ${def.table} (${columns.join(',')},created_at,updated_at) VALUES (${columns.map(()=>'?').join(',')},?,?)`,[...values,at,at]);
       id=(await c.query<RowDataPacket[]>('SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0][0].id;
     }

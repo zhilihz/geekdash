@@ -1,0 +1,29 @@
+{
+  "version": "0013-account-capabilities",
+  "steps": [
+    {
+      "table": "users",
+      "sql": "ALTER TABLE users ADD COLUMN is_project_manager tinyint NOT NULL DEFAULT 1, ADD COLUMN registration_name varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL",
+      "columns": [
+        {
+          "name": "is_project_manager",
+          "type": "tinyint",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "registration_name",
+          "type": "varchar(128)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "utf8mb4",
+          "collation": "utf8mb4_0900_ai_ci"
+        }
+      ]
+    }
+  ]
+}

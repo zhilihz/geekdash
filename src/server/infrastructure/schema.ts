@@ -10,7 +10,7 @@ type Check = { name: string; expression: string };
 type ForeignKey = { name: string; columns: string[]; parent: string; references: string[]; onUpdate: string; onDelete: string; sql: string };
 type Table = { name: string; columns: Column[]; indexes: Index[]; checks: Check[]; foreignKeys: ForeignKey[]; sql: string };
 type Manifest = { version: string; tables: Table[] };
-type DataStep = 'seed-import-sources' | 'freeze-legacy-history-source' | 'remember-import-catalog-names' | 'check-project-names' | 'fill-project-name-keys' | 'remember-project-names';
+type DataStep = 'initialize-administrators' | 'expand-project-references' | 'retire-membership-requests' | 'seed-import-sources' | 'freeze-legacy-history-source' | 'remember-import-catalog-names' | 'check-project-names' | 'fill-project-name-keys' | 'remember-project-names';
 type MigrationStep = { table: string; sql?: string; create?: Table; columns?: Column[]; indexes?: Index[]; checks?: Check[]; foreignKeys?: ForeignKey[]; dropIndexes?: string[]; data?: DataStep };
 type ResolvedStep = MigrationStep & { before: Table | undefined; after: Table };
 type ActualTable = { name: string; engine: string; collation: string; columns: Column[]; indexes: Index[]; checks: Check[]; foreignKeys: Omit<ForeignKey, 'sql'>[] };
@@ -27,7 +27,7 @@ export async function loadSchema() {
   let manifest = structuredClone(foundation);
   const history = [{ version: foundation.version, checksum: createHash('sha256').update(bytes).digest() }];
   const increments: { previous: Manifest; manifest: Manifest; steps: ResolvedStep[] }[] = [];
-  for (const [version, count] of [['0002-trial-save', 3], ['0003-node-recovery', 1], ['0004-project-compatibility', 2], ['0005-check-facts', 1], ['0006-imports', 11], ['0007-import-executions', 1], ['0008-import-name-bindings', 1], ['0009-project-space', 8]] as const) {
+  for (const [version, count] of [['0002-trial-save', 3], ['0003-node-recovery', 1], ['0004-project-compatibility', 2], ['0005-check-facts', 1], ['0006-imports', 11], ['0007-import-executions', 1], ['0008-import-name-bindings', 1], ['0009-project-space', 8], ['0010-project-editing', 9], ['0011-accounts-check-settings', 4], ['0012-account-management', 2], ['0013-account-capabilities', 1], ['0014-project-tasks', 2]] as const) {
     const bytes = await readFile(new URL('../../migrations/' + version + '.json', import.meta.url));
     const delta = JSON.parse(bytes.toString('utf8')) as { version: string; steps: MigrationStep[] };
     if (delta.version !== version || delta.steps.length !== count) fail('DB_MIGRATION_RESOURCE_INVALID');
@@ -41,7 +41,7 @@ export async function loadSchema() {
         table = structuredClone(step.create); manifest.tables.push(table);
       }
       if (!table) fail('DB_MIGRATION_RESOURCE_INVALID');
-      if (step.data && (!['seed-import-sources', 'freeze-legacy-history-source', 'remember-import-catalog-names', 'check-project-names', 'fill-project-name-keys', 'remember-project-names'].includes(step.data) || step.sql || step.create)
+      if (step.data && (!['initialize-administrators', 'expand-project-references', 'retire-membership-requests', 'seed-import-sources', 'freeze-legacy-history-source', 'remember-import-catalog-names', 'check-project-names', 'fill-project-name-keys', 'remember-project-names'].includes(step.data) || step.sql || step.create)
         || !step.data && !step.sql) fail('DB_MIGRATION_RESOURCE_INVALID');
       for (const name of step.dropIndexes ?? []) {
         if (!table.indexes.some(index => index.name === name)) fail('DB_MIGRATION_RESOURCE_INVALID');
@@ -66,6 +66,44 @@ async function query(connection: Connection, sql: string, values: unknown[] = []
 }
 
 async function migrateImportData(connection: Connection, data: DataStep) {
+  if (data === 'initialize-administrators') {
+    await connection.beginTransaction();
+    try {
+      await query(connection,'UPDATE users u JOIN system_configuration s ON s.maintenance_user_id=u.id SET u.is_admin=1');
+      const config=await query(connection,'SELECT maintenance_user_id id FROM system_configuration WHERE id=1');
+      const applied=await query(connection,"SELECT id FROM audit_log WHERE action='migration.0011.check-policy' LIMIT 1");
+      if(config.length && !applied.length){
+        await query(connection,"INSERT INTO check_rule_revisions(deadline_weekday,effective_week,saved_at,saved_by,frequency) VALUES (5,DATE_SUB(DATE(UTC_TIMESTAMP()+INTERVAL 8 HOUR),INTERVAL WEEKDAY(DATE(UTC_TIMESTAMP()+INTERVAL 8 HOUR)) DAY),UTC_TIMESTAMP(3),?,'weekly')",[config[0].id]);
+        await query(connection,"INSERT INTO audit_log(actor_kind,actor_display_name,action,entity_type,entity_id,before_json,after_json,request_id,created_at) VALUES ('system','数据库迁移','migration.0011.check-policy','check_rule',LAST_INSERT_ID(),'null','{\"frequency\":\"weekly\",\"deadlineWeekday\":5}','migration-0011',UTC_TIMESTAMP(3))");
+      }
+      await connection.commit();
+    } catch(error){await connection.rollback();throw error;}
+    return;
+  }
+  if (data === 'retire-membership-requests') {
+    await query(connection, "UPDATE project_membership_requests SET status='invalidated',resolved_at=UTC_TIMESTAMP(3),resolved_by=NULL,resolution_code='direct_join_replaced' WHERE status='pending'");
+    return;
+  }
+  if (data === 'expand-project-references') {
+    await connection.beginTransaction();
+    try {
+      for (const [table, reference, oldColumn] of [
+        ['project_customers','customer_id','customer_id'], ['project_odm_factories','customer_id','odm_customer_id'],
+        ['project_product_lines','product_line_id','product_line_id'], ['project_apps','app_id','app_id'], ['project_group_links','group_id','group_id'],
+      ]) {
+        await query(connection, `INSERT INTO ${table}(project_id,${reference},sort_order) SELECT p.id,p.${oldColumn},0 FROM projects p WHERE p.${oldColumn} IS NOT NULL AND NOT EXISTS(SELECT 1 FROM ${table} l WHERE l.project_id=p.id AND l.${reference}=p.${oldColumn})`);
+        const [check] = await query(connection, `SELECT COUNT(*) invalid FROM projects p WHERE p.${oldColumn} IS NOT NULL AND NOT EXISTS(SELECT 1 FROM ${table} l WHERE l.project_id=p.id AND l.${reference}=p.${oldColumn})`);
+        if (Number(check.invalid)) fail('DB_PROJECT_REFERENCE_BACKFILL_INVALID');
+      }
+      await query(connection, "UPDATE customers c SET is_odm=1 WHERE EXISTS(SELECT 1 FROM project_odm_factories l WHERE l.customer_id=c.id)");
+      await query(connection, "INSERT INTO project_chip_selections(project_id,selection_id,chip_id,note,sort_order) SELECT p.project_id,CONCAT('legacy:',p.chip_id),p.chip_id,'',p.sort_order FROM project_chips p WHERE NOT EXISTS(SELECT 1 FROM project_chip_selections n WHERE n.project_id=p.project_id AND n.selection_id=CONCAT('legacy:',p.chip_id))");
+      const [check] = await query(connection, "SELECT COUNT(*) invalid FROM project_chips p WHERE NOT EXISTS(SELECT 1 FROM project_chip_selections n WHERE n.project_id=p.project_id AND n.selection_id=CONCAT('legacy:',p.chip_id) AND n.chip_id=p.chip_id AND n.sort_order=p.sort_order AND n.note='')");
+      if (Number(check.invalid)) fail('DB_PROJECT_REFERENCE_BACKFILL_INVALID');
+      await connection.commit();
+    } catch (error) { await connection.rollback(); throw error; }
+    return;
+  }
+
   if (data === 'check-project-names' || data === 'fill-project-name-keys') {
     if (data === 'check-project-names' && (await query(connection, "SELECT id FROM import_executions WHERE status<>'finished' LIMIT 1")).length) fail('DB_IMPORT_EXECUTION_PENDING');
     const projects = await query(connection, 'SELECT CAST(id AS CHAR) id,name FROM projects ORDER BY id');

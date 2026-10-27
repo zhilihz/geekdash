@@ -1424,3 +1424,13 @@ header .head-actions { display: flex; gap: 8px; align-items: center; flex-wrap: 
 .progress-layout .card-top, .progress-layout .card-stage { grid-column: 1 / -1; }
 .progress-layout .card-info { display: none; }
 @media (max-width: 700px) { .progress-layout .card, .latest-row { grid-template-columns: 1fr; } .latest-row small { grid-column: 1; } .team-row { grid-template-columns: 60px 1fr 24px; } }
+
+.board-stat-line { display:flex; align-items:center; gap:1rem; overflow-x:auto; white-space:nowrap; }
+.board-stat-line .stats { display:flex; flex-wrap:nowrap; flex:none; }
+.distribution-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; }
+.distribution-options { display:flex; flex-wrap:wrap; gap:1rem; }
+.distribution-options label { display:inline-flex; align-items:center; gap:.4rem; cursor:pointer; }
+.distribution-options input { width:auto; }
+.distribution-charts { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr)); gap:1rem; }
+.distribution-charts h3 { margin:0 0 1rem; }
+.board-distribution-track i { background:var(--accent,#c97924); }

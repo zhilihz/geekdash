@@ -6,7 +6,7 @@ export type SummarySnapshot={items:SummaryProject[];businessDate:string;captured
 export const summaryColumns={customer:'客户',group:'分组',name:'项目名称',chips:'核心芯片',status:'项目最新状态',engineers:'负责人',note:'备注',chipNote:'芯片备注',stage:'当前阶段',node:'关键节点',dueDate:'预计结案日期',delay:'是否延期'};
 export type SummaryColumn=keyof typeof summaryColumns;
 export const defaultColumns=Object.keys(summaryColumns).filter(key=>key!=='chipNote') as SummaryColumn[];
-export const summaryFilterTitles={customer:'客户',productLine:'产品线',odmFactory:'ODM 工厂',app:'配套 APP',status:'项目状态',priority:'优先级',signal:'信号灯',stage:'项目阶段',progress:'进度',chip:'芯片',tags:'项目标签',group:'分组',assignment:'分工人员',owner:'状态提及人员',deadline:'计划结果'};
+export const summaryFilterTitles={customer:'客户',productLine:'产品线',odmFactory:'ODM 工厂',app:'配套 APP',status:'项目状态',priority:'优先级',signal:'信号灯',stage:'项目阶段',progress:'进度',chip:'芯片',tags:'项目标签',group:'分组',assignment:'分工人员',owner:'任务负责人',deadline:'计划结果'};
 export type SummaryFilter=keyof typeof summaryFilterTitles;
 export type SummaryFilters=Partial<Record<SummaryFilter,string[]>> & {search?:string};
 export type SummarySort='customer'|'group'|'chip'|'stage'|'dueDate';
@@ -15,7 +15,7 @@ export function summaryValue(project:SummaryProject,column:SummaryColumn):string
     case 'customer':return project.customer || '未指定客户';
     case 'group':return project.projectGroup || '未分组';
     case 'name':return project.name;
-    case 'chips':return project.chips.map(chip=>chip.name).join('、');
+    case 'chips':return project.chips.map(chip=>chip.name+(chip.note?'（'+chip.note+'）':'')).join('、');
     case 'status':return statusText(project);
     case 'engineers':return project.statusOwners.join('、');
     case 'note':return project.summaryNote;
@@ -32,6 +32,7 @@ function filterChoices(project:SummaryProject,kind:SummaryFilter):[string,string
   if(kind==='chip' || kind==='tags')return (kind==='chip'?project.chips:project.tags).map(item=>[item.id,item.name]);
   if(kind==='assignment')return [...project.managers.map(person=>['user:'+person.id,person.name] as [string,string]),...project.people.filter(person=>person.role!=='pm').map(person=>['engineer:'+person.id,person.name] as [string,string])];
   if(kind==='owner')return project.statusOwners.map(name=>[name,name]);
+  if(['customer','productLine','odmFactory','app','group'].includes(kind)){const values=project[(kind+'Items') as keyof SummaryProject] as {id:string;name:string}[]|undefined;if(values?.length)return values.map(item=>[item.name,item.name]);}
   if(kind==='group'){const value=project.projectGroup || '未分组';return [[value,value]];}
   if(kind==='deadline')return [[project.deadline.kind,deadlineNames[project.deadline.kind]]];
   const value=String(project[kind] ?? '');

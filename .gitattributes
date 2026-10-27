@@ -3,6 +3,12 @@ docs/evidence/diagrams/*.dot text eol=lf
 docs/evidence/diagrams/*.mmd text eol=lf
 docs/evidence/diagrams/*.json text eol=lf
 /migrations/*.json text eol=lf
+# These migrations were applied with CRLF before their first commit; preserve their registered bytes.
+/migrations/0010-project-editing.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/migrations/0011-accounts-check-settings.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/migrations/0012-account-management.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/migrations/0013-account-capabilities.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/migrations/0014-project-tasks.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 /deploy/*.py text eol=lf
 /deploy/*.sh text eol=lf
 /deploy/*.yml text eol=lf

@@ -7,23 +7,24 @@ import { failure, validId, validateSave, textColumns, columns, referenceFields, 
 import { requireDate, businessToday } from './project-dates.js';
 import { finishDraft, validateDraftRef, type DraftRef } from './personal-state.js';
 import { stages } from './projects.js';
-import { assertBusinessActor, maintenanceAccount, inviteCollaborator } from './project-membership.js';
+import { assertBusinessActor } from './project-membership.js';
 type CreateFields = SaveRequest['changes'] & { filingDate?: string | null; dueDate?: string | null; inviteeIds?: string[]; managerIds?: string[] };
-const createKeys = [...Object.keys(textColumns), 'priority', 'customerId', 'odmCustomerId', 'productLineId', 'appId', 'groupId', 'chipIds', 'people', 'tagIds', 'statusDesc', 'filingDate', 'dueDate', 'inviteeIds', 'managerIds'];
+const createKeys = [...Object.keys(textColumns), 'priority', 'customerIds', 'odmFactoryIds', 'productLineIds', 'appIds', 'groupIds', 'chipSelections', 'people', 'tagIds', 'statusDesc', 'filingDate', 'dueDate', 'inviteeIds', 'managerIds'];
+const legacyCreateKeys=[...Object.keys(textColumns),'priority','customerId','odmCustomerId','productLineId','appId','groupId','chipIds','people','tagIds','statusDesc','filingDate','dueDate','inviteeIds','managerIds'];
 type Command = { draft?: DraftRef; idempotencyKey: string; expectedVersion?: string; fields?: CreateFields; action?: 'join' | 'leave' };
 export function validateCore(value: unknown, create: boolean, legacy = false): Command {
   if (!value || typeof value !== 'object' || Array.isArray(value)) failure('INVALID_COMMAND', 400);
   const body = value as Command;
   const names = create ? ['idempotencyKey', 'fields', ...Object.hasOwn(body,'draft') ? ['draft'] : []] : ['idempotencyKey', 'expectedVersion', 'action'];
   if (Object.keys(body).length !== names.length || Object.keys(body).some(key => !names.includes(key)) || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(body.idempotencyKey ?? '')) failure('INVALID_COMMAND', 400);
-  if (!legacy && body.fields && Object.hasOwn(body.fields, 'managerIds')) failure('CREATE_PROTOCOL_CHANGED', 409);
+  if (!legacy && body.fields && (Object.hasOwn(body.fields, 'managerIds') || Object.hasOwn(body.fields, 'inviteeIds'))) failure('CREATE_PROTOCOL_CHANGED', 409);
   if (body.draft !== undefined) validateDraftRef(body.draft);
   if (create) {
-    if (!body.fields || typeof body.fields !== 'object' || Array.isArray(body.fields) || Object.keys(body.fields).some(key => !createKeys.includes(key))) failure('INVALID_COMMAND', 400);
+    if (!body.fields || typeof body.fields !== 'object' || Array.isArray(body.fields) || Object.keys(body.fields).some(key => !(legacy?legacyCreateKeys:createKeys).includes(key))) failure('INVALID_COMMAND', 400);
     const { filingDate, dueDate, inviteeIds, managerIds: _legacyManagers, ...fields } = body.fields;
     if (inviteeIds !== undefined && (!Array.isArray(inviteeIds) || inviteeIds.some(id => !validId(id)))) failure('INVALID_PROJECT_FIELDS', 422, { fields: { inviteeIds: '请选择有效的协作者账号' } });
     if (inviteeIds && new Set(inviteeIds).size !== inviteeIds.length) failure('INVALID_PROJECT_FIELDS', 422, { fields: { inviteeIds: '协作者不能重复选择' } });
-    const input = validateSave({ idempotencyKey: body.idempotencyKey, expectedVersion: '1', changes: fields });
+    const input = validateSave({ idempotencyKey: body.idempotencyKey, expectedVersion: '1', changes: fields },legacy);
     if (!Object.hasOwn(input.changes, 'name') || input.changes.people?.some(person => person.role === 'pm')) failure('INVALID_COMMAND', 400);
     for (const [key, value] of Object.entries({ filingDate, dueDate })) if (value !== undefined && value !== null) requireDate(value, key);
   } else if (!validId(body.expectedVersion) || !['join', 'leave'].includes(body.action ?? '')) failure('INVALID_COMMAND', 400);
@@ -33,7 +34,7 @@ async function rows(c: PoolConnection, sql: string, values: unknown[] = []) { re
 export function projectCore(database: RuntimeDatabase) {
   async function run(actor: Actor, body: Command, id: string | undefined, requestId: string, confirm: boolean) {
     const scope = `user:${actor.id}:project:${id ?? 'new'}:${id ? 'responsibility' : 'create'}`;
-    const hash = createHash('sha256').update(JSON.stringify([id ?? null, body.expectedVersion ?? null, body.action ?? null, body.fields ? createKeys.filter(key => Object.hasOwn(body.fields!, key)).map(key => [key, body.fields![key as keyof CreateFields]]) : null, ...body.draft ? [body.draft] : []])).digest();
+    const hash = createHash('sha256').update(JSON.stringify([id ?? null, body.expectedVersion ?? null, body.action ?? null, body.fields ? (Object.keys(body.fields!).some(key=>['customerId','odmCustomerId','productLineId','appId','groupId','chipIds'].includes(key))?legacyCreateKeys:createKeys).filter(key => Object.hasOwn(body.fields!, key)).map(key => [key, body.fields![key as keyof CreateFields]]) : null, ...body.draft ? [body.draft] : []])).digest();
     const lookup = async (c: PoolConnection, lock: boolean) => {
       const row = (await rows(c, `SELECT request_hash,response_json FROM command_receipts WHERE command_scope=? AND idempotency_key=?${lock ? ' FOR UPDATE' : ''}`, [scope, body.idempotencyKey]))[0];
       if (!row) return null;
@@ -43,23 +44,18 @@ export function projectCore(database: RuntimeDatabase) {
     if (id && !confirm) failure('MEMBERSHIP_PROTOCOL_CHANGED', 410);
     if (confirm) return database.readSnapshot(async c => { await assertActor(c,actor,false,new Date(),false,false);const result = await lookup(c, false); return result ? { outcome: 'committed', result } : { outcome: 'not_found' }; });
     return database.writeTransaction(async c => {
-      const managers: RowDataPacket[] = [];
-      // 多账号相互选择时也按同一顺序取锁，随后才锁操作者会话。
-      const inviteeIds = [...new Set([actor.id, ...(body.fields!.inviteeIds ?? [])])].sort((a,b) => BigInt(a) < BigInt(b) ? -1 : 1);
-      for (const managerId of inviteeIds) managers.push(...await rows(c, 'SELECT CAST(id AS CHAR) id,display_name name,enabled FROM users WHERE id=? FOR UPDATE', [managerId]));
+      await rows(c, 'SELECT id FROM users WHERE id=? FOR UPDATE',[actor.id]);
       await assertBusinessActor(c, actor);
-      const maintenance = await maintenanceAccount(c);
       // 同一账号的新建命令序列化，唯一回执先于 INSERT 项目。
       const previous = await lookup(c, true); if (previous) return { outcome: 'committed', result: previous };
       const fields = body.fields!;
-      if ((fields.inviteeIds ?? []).some(managerId => !managers.some(manager => manager.id === managerId && manager.enabled && manager.id !== maintenance))) failure('INVALID_PROJECT_FIELDS', 422, { fields: { inviteeIds: '所选协作者已停用或不存在，请重新选择' } });
       const date = businessToday(new Date());
       if (fields.filingDate && fields.filingDate > date) failure('INVALID_PROJECT_DATE', 422, { fields: { filingDate: '立案日期不能晚于今天' } });
       const locked = await lockReferences(c, fields);
       const errors: Record<string, string> = {};
       for (const [key, table] of Object.entries(referenceFields)) {
         const value = fields[key as keyof CreateFields];
-        const ids = key === 'people' ? fields.people?.map(person => person.id) ?? [] : Array.isArray(value) ? value as string[] : typeof value === 'string' ? [value] : [];
+        const ids = key === 'chipSelections' ? fields.chipSelections?.map(item => item.chipId) ?? [] : key === 'people' ? fields.people?.map(person => person.id) ?? [] : Array.isArray(value) ? value as string[] : typeof value === 'string' ? [value] : [];
         if (ids.some(id => !locked[table]?.some(row => row.id === id && row.enabled))) errors[key] = '所选资料已停用或不存在，请重新选择';
       }
       if (Object.keys(errors).length) failure('INVALID_PROJECT_FIELDS', 422, { fields: errors });
@@ -77,12 +73,11 @@ export function projectCore(database: RuntimeDatabase) {
       await replaceLinks(c, id!, fields, true);
       for (const stage of stages) await c.execute('INSERT INTO project_stages (project_id,stage_code,state,note) VALUES (?,?,?,?)', [id!, stage.code, stage.code === 'S1' ? 'ready' : 'locked', '']);
       await c.execute('INSERT INTO project_responsibilities (project_id,user_id,joined_at) VALUES (?,?,UTC_TIMESTAMP(3))', [id!, actor.id]);
-      for (const manager of managers) if (manager.id !== actor.id) await inviteCollaborator(c, id!, actor, manager.id);
       const version = '1';
       const result = { draft: await finishDraft(c, actor, body.draft, id!, 'create', null, version, {fields: body.fields}), projectId: id, savedVersion: version, operationId: body.idempotencyKey, changed: true, responsible: true };
       const {inviteeIds: _selectedManagers, ...createdFields} = body.fields ?? {};
       await c.execute(`INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,version_before,version_after,before_json,after_json,request_id,created_at)
-        VALUES (?,?,'user',?,'project',?,?,?,?,?,?,?,UTC_TIMESTAMP(3))`, [actor.id, actor.name, 'project.create', id!, id!, null, version, 'null', JSON.stringify({ ...await displayValues(c, createdFields), createdBy: actor.id, managers: managers.filter(manager => manager.id === actor.id).map(({id,name}) => ({id,name})), invited: managers.filter(manager => manager.id !== actor.id).map(({id,name}) => ({id,name})) }), requestId]);
+        VALUES (?,?,'user',?,'project',?,?,?,?,?,?,?,UTC_TIMESTAMP(3))`, [actor.id, actor.name, 'project.create', id!, id!, null, version, 'null', JSON.stringify({ ...await displayValues(c, createdFields), createdBy: actor.id, managers: [{id:actor.id,name:actor.name}] }), requestId]);
       await c.execute('INSERT INTO command_receipts (actor_id,command_scope,idempotency_key,request_hash,response_code,response_json,committed_at) VALUES (?,?,?,?,200,?,UTC_TIMESTAMP(3))', [actor.id, scope, body.idempotencyKey, hash, JSON.stringify(result)]);
       return { outcome: 'committed', result };
     });

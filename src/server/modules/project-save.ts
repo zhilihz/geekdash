@@ -1,3 +1,5 @@
+import { validateTaskOps,taskCandidate,writeTasks,type TaskOperation } from './project-tasks.js';
+import { expandLegacyReferences, readProjectReferences, writeProjectReferences, type ProjectReferences, type ChipSelection } from './project-references.js';
 import { assertProjectAccess, hasProjectAccess, visibleProjectReceipt } from './project-membership.js';
 import { projectNameKey } from './project-name.js';
 import { createHash } from 'node:crypto';
@@ -11,19 +13,20 @@ import { validateChangeOps, changeCandidate, writeChanges, type ChangeOperation,
 import { businessToday, requireDate } from './project-dates.js';
 
 export const textColumns = { name: 'name', marketExpectation: 'market_expectation', detailNote: 'detail_note', summaryNote: 'summary_note', summary: 'summary' } as const;
-export const columns = { ...textColumns, signalNote: 'signal_note', chipstatNote: 'chipstat_note', statusDesc: 'status_description', signal: 'signal', priority: 'priority', customerId: 'customer_id', odmCustomerId: 'odm_customer_id', productLineId: 'product_line_id', appId: 'app_id', groupId: 'group_id' } as const;
-export const referenceFields = { customerId: 'customers', odmCustomerId: 'customers', productLineId: 'product_lines', appId: 'apps', groupId: 'project_groups', chipIds: 'chips', tagIds: 'tags', people: 'engineers' } as const;
-const collections = ['chipIds', 'tagIds', 'people'] as const;
+export const columns = { ...textColumns, signalNote: 'signal_note', chipstatNote: 'chipstat_note', statusDesc: 'status_description', signal: 'signal', priority: 'priority' } as const;
+export const referenceFields = { customerIds: 'customers', odmFactoryIds: 'customers', productLineIds: 'product_lines', appIds: 'apps', groupIds: 'project_groups', chipSelections: 'chips', tagIds: 'tags', people: 'engineers' } as const;
+const collections = ['customerIds', 'odmFactoryIds', 'productLineIds', 'appIds', 'groupIds', 'chipSelections', 'tagIds', 'people'] as const;
 const roles = ['pm', 'hardware_owner', 'software_owner', 'participant'];
 type Person = { id: string; role: string };
 type StagePlan = { code: string; plannedDays?: number | null; note?: string };
 export type TextValues = Record<keyof typeof textColumns, string>;
-type Values = TextValues & { signalNote: string; chipstatNote: string; statusDesc: string; signal: string; priority: string; customerId: string | null; odmCustomerId: string | null; productLineId: string | null; appId: string | null; groupId: string | null; chipIds: string[]; tagIds: string[]; people: Person[]; stagePlans?: StagePlan[]; riskOps?: RiskOperation[]; nodeOps?: NodeOperation[]; changeOps?: ChangeOperation[] };
+type Values = TextValues & ProjectReferences & { signalNote: string; chipstatNote: string; statusDesc: string; signal: string; priority: string; tagIds: string[]; people: Person[]; stagePlans?: StagePlan[]; riskOps?: RiskOperation[]; nodeOps?: NodeOperation[]; changeOps?: ChangeOperation[]; taskOps?:TaskOperation[] };
 type Field = keyof Values;
-const keys = [...Object.keys(columns), ...collections, 'stagePlans', 'riskOps', 'nodeOps', 'changeOps'] as Field[];
+const keys = [...Object.keys(columns), ...collections, 'stagePlans', 'riskOps', 'nodeOps', 'changeOps', 'taskOps'] as Field[];
 export const scopeFields = {
-  basic: ['name', 'summary', 'marketExpectation', 'detailNote', 'priority', 'customerId', 'odmCustomerId', 'productLineId', 'appId', 'groupId', 'chipIds', 'tagIds', 'people'],
-  status: ['statusDesc'], tags: ['tagIds'], signal: ['signal', 'signalNote'], summaryNote: ['summaryNote'], chipstatNote: ['chipstatNote'],
+  project: keys,
+  basic: ['name', 'summary', 'marketExpectation', 'detailNote', 'priority', 'customerIds', 'odmFactoryIds', 'productLineIds', 'appIds', 'groupIds', 'chipSelections', 'tagIds', 'people'],
+  status: ['statusDesc','taskOps'], tags: ['tagIds'], signal: ['signal', 'signalNote'], summaryNote: ['summaryNote'], chipstatNote: ['chipstatNote'],
   stage: ['stagePlans'], risk: ['riskOps'], change: ['changeOps'], customerNode: ['nodeOps'], projectNodes: ['nodeOps'],
 } satisfies Record<string, string[]>;
 export type SaveScope = keyof typeof scopeFields;
@@ -42,7 +45,14 @@ export function validId(value: unknown): value is string {
   return typeof value === 'string' && /^[1-9][0-9]{0,19}$/.test(value) && BigInt(value) <= 18446744073709551615n;
 }
 function object(value: unknown): value is Record<string, unknown> { return value !== null && typeof value === 'object' && !Array.isArray(value); }
-export function validateSave(value: unknown): SaveRequest {
+const legacyReferenceKeys=['customerId','odmCustomerId','productLineId','appId','groupId','chipIds'];
+export function validateSave(value: unknown, legacy = false): SaveRequest {
+  if(object(value)&&object(value.changes)&&legacyReferenceKeys.some(key=>Object.hasOwn(value.changes as object,key))){
+    if(!legacy)failure('SAVE_PROTOCOL_CHANGED',409);
+    const original=value.changes;
+    const checked=validateSave({...value,changes:expandLegacyReferences(original)});
+    return {...checked,changes:original};
+  }
   if (!object(value) || Object.keys(value).some(key => !['expectedVersion', 'idempotencyKey', 'changes', 'scope', 'target', 'commands', 'basicIntent', 'draft'].includes(key)) || !validId(value.expectedVersion) || typeof value.idempotencyKey !== 'string'
     || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value.idempotencyKey)
     || !object(value.changes) || !Object.keys(value.changes).length && !Array.isArray(value.commands) && !object(value.basicIntent)) failure('INVALID_SAVE_REQUEST', 400);
@@ -50,6 +60,7 @@ export function validateSave(value: unknown): SaveRequest {
   const fields: Record<string, string> = {};
   for (const [key, text] of Object.entries(value.changes)) {
     if (!keys.includes(key as Field)) failure('INVALID_SAVE_REQUEST', 400);
+    if (key === 'taskOps') { validateTaskOps(text); continue; }
     if (key === 'changeOps') { validateChangeOps(text); continue; }
     if (key === 'nodeOps') { validateNodeOps(text); continue; }
     if (key === 'riskOps') { validateRiskOps(text); continue; }
@@ -71,6 +82,9 @@ export function validateSave(value: unknown): SaveRequest {
           if (key === 'people') {
             if (!object(item) || Object.keys(item).length !== 2 || !validId(item.id) || typeof item.role !== 'string' || !roles.includes(item.role)) failure('INVALID_SAVE_REQUEST', 400);
             identities.push(item.id + ':' + item.role);
+          } else if (key === 'chipSelections') {
+            if (!object(item) || Object.keys(item).length !== 3 || typeof item.selectionId !== 'string' || !/^(?:[a-f0-9-]{36}|legacy:[1-9][0-9]{0,19})$/.test(item.selectionId) || !validId(item.chipId) || typeof item.note !== 'string' || !item.note.isWellFormed() || Buffer.byteLength(item.note, 'utf8') > 65535) failure('INVALID_SAVE_REQUEST', 400);
+            identities.push(item.selectionId);
           } else { if (!validId(item)) failure('INVALID_SAVE_REQUEST', 400); identities.push(item); }
         }
         if (new Set(identities).size !== identities.length) fields[key] = '同一关联不能重复选择';
@@ -97,6 +111,18 @@ function validateScope(value: Record<string, unknown>) {
   if (typeof value.scope !== 'string' || !Object.hasOwn(scopeFields, value.scope)) failure('INVALID_SAVE_SCOPE', 400);
   const kind = value.scope as SaveScope, changes = value.changes as SaveRequest['changes'];
   if (Object.keys(changes).some(key => !(scopeFields[kind] as string[]).includes(key))) failure('SAVE_SCOPE_MISMATCH', 400);
+  if (kind === 'project') {
+    if (Object.hasOwn(value, 'target') || changes.people?.some(person => person.role === 'pm')) failure('SAVE_SCOPE_MISMATCH', 400);
+    if (Object.hasOwn(value, 'basicIntent')) validateBasicIntent(value.basicIntent);
+    if (Object.hasOwn(value, 'commands')) {
+      if (!Array.isArray(value.commands)) failure('INVALID_SAVE_REQUEST', 400);
+      value.commands = value.commands.map(item => {
+        if (!object(item) || ['expectedVersion','idempotencyKey','draft'].some(key => Object.hasOwn(item,key)) || ['saveCheck','correctCheck'].includes(String(item.action))) failure('INVALID_SAVE_REQUEST', 400);
+        return validateAction({ ...item, expectedVersion: value.expectedVersion, idempotencyKey: value.idempotencyKey });
+      });
+    }
+    return;
+  }
   const record = ['risk', 'change', 'customerNode'].includes(kind);
   if (kind === 'stage') {
     if (typeof value.target !== 'string' || !/^S[1-7]$/.test(value.target) || changes.stagePlans?.length !== 1 || changes.stagePlans[0].code !== value.target) failure('SAVE_SCOPE_MISMATCH', 400);
@@ -206,7 +232,8 @@ async function query(connection: PoolConnection, sql: string, values: unknown[] 
   return (await connection.query<RowDataPacket[]>({ sql, timeout: 3000 }, values))[0];
 }
 function requestHash(id: string, request: SaveRequest) {
-  const changes = Object.fromEntries(keys.filter(key => Object.hasOwn(request.changes, key)).map(key => [key, key === 'people' ? request.changes.people!.map(person => ({ id: person.id, role: person.role })) : request.changes[key]]));
+  const hashKeys=(legacyReferenceKeys.some(key=>Object.hasOwn(request.changes,key))?[...Object.keys(columns),...legacyReferenceKeys,'tagIds','people','stagePlans','riskOps','nodeOps','changeOps']:keys) as Field[];
+  const changes = Object.fromEntries(hashKeys.filter(key => Object.hasOwn(request.changes, key)).map(key => [key, key === 'people' ? request.changes.people!.map(person => ({ id: person.id, role: person.role })) : request.changes[key]]));
   if (request.scope) {
     const canonical = (value: unknown): unknown => Array.isArray(value) ? value.map(canonical) : object(value) ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
     return createHash('sha256').update(JSON.stringify(canonical([id, request.scope, request.target ?? null, request.expectedVersion, changes, request.commands ?? [], ...request.basicIntent ? [{ basicIntent: request.basicIntent }] : [], ...request.draft ? [request.draft] : []]))).digest();
@@ -220,20 +247,21 @@ function receiptResult(receipt: RowDataPacket, hash: Buffer): SaveResult {
   return typeof receipt.response_json === 'string' ? JSON.parse(receipt.response_json) : receipt.response_json;
 }
 async function project(connection: PoolConnection, id: string, locked: boolean, authenticated = false) {
-  const row = (await query(connection, `SELECT CAST(id AS CHAR) id,CAST(version AS CHAR) version,data_kind,
+  const row = (await query(connection, `SELECT CAST(id AS CHAR) id,CAST(version AS CHAR) version,data_kind,tasks_unified tasksUnified,
     ${Object.entries(columns).map(([key, column]) => `${column.endsWith('_id') ? `CAST(\`${column}\` AS CHAR)` : `\`${column}\``} \`${key}\``).join(',')} FROM projects WHERE id=?${locked ? ' FOR UPDATE' : ''}`, [id]))[0];
   if (!row) failure('PROJECT_NOT_FOUND', 404);
   if (!authenticated && row.data_kind !== 'trial') failure('PROJECT_READ_ONLY', 403);
   return row;
 }
 async function linkedValues(connection: PoolConnection, id: string) {
-  const chipIds = (await query(connection, 'SELECT CAST(chip_id AS CHAR) id FROM project_chips WHERE project_id=? ORDER BY sort_order,chip_id', [id])).map(row => row.id);
+  const references = await readProjectReferences(connection, id);
   const tagIds = (await query(connection, 'SELECT CAST(tag_id AS CHAR) id FROM project_tags WHERE project_id=? ORDER BY sort_order,tag_id', [id])).map(row => row.id);
   const people = (await query(connection, 'SELECT CAST(engineer_id AS CHAR) id,role FROM project_people WHERE project_id=? ORDER BY sort_order,engineer_id,role', [id])).map(row => ({ id: row.id, role: row.role }));
-  return { chipIds, tagIds, people };
+  return { ...references, tagIds, people };
 }
 function idsOf(key: string, value: unknown): string[] {
-  return key === 'people' ? (value as Person[]).map(person => person.id) : Array.isArray(value) ? value : value === null ? [] : [value as string];
+  if (value == null) return [];
+  return key === 'chipSelections' ? (value as ChipSelection[]).map(item => item.chipId) : key === 'people' ? (value as Person[]).map(person => person.id) : Array.isArray(value) ? value : value === null ? [] : [value as string];
 }
 export async function lockReferences(connection: PoolConnection, changes: SaveRequest['changes']) {
   const ids: Record<string, Set<string>> = {};
@@ -248,12 +276,13 @@ export async function lockReferences(connection: PoolConnection, changes: SaveRe
   return locked;
 }
 export async function replaceLinks(connection: PoolConnection, id: string, changes: SaveRequest['changes'], preserveLegacyPm: boolean) {
-  for (const key of collections) if (Object.hasOwn(changes, key)) {
-    const table = key === 'chipIds' ? 'project_chips' : key === 'tagIds' ? 'project_tags' : 'project_people';
+  await writeProjectReferences(connection, id, changes);
+  for (const key of ['tagIds', 'people'] as const) if (Object.hasOwn(changes, key)) {
+    const table = key === 'tagIds' ? 'project_tags' : 'project_people';
     await connection.execute(`DELETE FROM ${table} WHERE project_id=?${key === 'people' && preserveLegacyPm ? " AND role<>'pm'" : ''}`, [id]);
     for (const [order, item] of (changes[key] as (string | Person)[]).entries()) {
       if (key === 'people') await connection.execute('INSERT INTO project_people (project_id,engineer_id,role,sort_order) VALUES (?,?,?,?)', [id, (item as Person).id, (item as Person).role, order]);
-      else await connection.execute(`INSERT INTO ${table} (project_id,${key === 'chipIds' ? 'chip_id' : 'tag_id'},sort_order) VALUES (?,?,?)`, [id, item, order]);
+      else await connection.execute(`INSERT INTO ${table} (project_id,tag_id,sort_order) VALUES (?,?,?)`, [id, item, order]);
     }
   }
 }
@@ -266,7 +295,7 @@ export async function displayValues(connection: PoolConnection, values: Partial<
     if (!ids.length) continue;
     const rows = await query(connection, `SELECT CAST(id AS CHAR) id,name FROM ${table} WHERE id IN (${ids.map(() => '?').join(',')})`, ids);
     const named = (id: string) => ({ id, name: rows.find(row => row.id === id)?.name ?? id });
-    display[key] = key === 'people' ? (value as Person[]).map(person => ({ ...named(person.id), role: person.role })) : Array.isArray(value) ? ids.map(named) : named(ids[0]);
+    display[key] = key === 'chipSelections' ? (value as ChipSelection[]).map(item => ({ ...named(item.chipId), selectionId: item.selectionId, note: item.note })) : key === 'people' ? (value as Person[]).map(person => ({ ...named(person.id), role: person.role })) : Array.isArray(value) ? ids.map(named) : named(ids[0]);
   }
   return display;
 }
@@ -303,11 +332,13 @@ export function projectSaves(database: RuntimeDatabase) {
       return database.readSnapshot(async connection => {
         const result: Record<string, RowDataPacket[]> = {};
         for (const table of [...new Set(Object.values(referenceFields))].sort()) result[table] = await query(connection, `SELECT CAST(id AS CHAR) id,name,enabled${table === 'chips' ? ',original_model originalModel,manufacturer,firmware_version firmwareVersion' : ''} FROM ${table} ORDER BY name,${table}.id`);
+        result.odmFactories = await query(connection, 'SELECT CAST(c.id AS CHAR) id,c.name,c.enabled FROM customers c WHERE c.is_odm=1 OR EXISTS(SELECT 1 FROM project_odm_factories l WHERE l.customer_id=c.id) ORDER BY c.name,c.id');
+        result.customers = await query(connection, 'SELECT CAST(id AS CHAR) id,name,enabled FROM customers WHERE is_customer=1 ORDER BY name,id');
         result.managerAccounts = await query(connection, 'SELECT CAST(id AS CHAR) id,display_name name,enabled FROM users WHERE enabled=1 ORDER BY display_name,id');
         return { ...result, businessDate: businessToday() };
       });
     },
-    save(id: string, request: SaveRequest, requestId: string, actor?: Actor) {
+    save(id: string, request: SaveRequest, requestId: string, actor?: Actor, preview = false) {
       if (request.scope && !actor) failure('AUTH_REQUIRED', 401);
       const hash = requestHash(id, request);
       return database.writeTransaction(async connection => {
@@ -321,21 +352,30 @@ export function projectSaves(database: RuntimeDatabase) {
         if (receipt) {const result=receiptResult(receipt,hash);return actor?visibleProjectReceipt(connection,actor.id,result):result;}
         if (actor && !await hasProjectAccess(connection,id,actor.id)) failure('PROJECT_READ_ONLY', 403);
         if (current.version !== request.expectedVersion) failure('PROJECT_VERSION_CONFLICT', 409, { currentVersion: current.version });
-        const commands = request.basicIntent ? await basicCommands(connection, id, request) : request.commands ?? [];
+        const basic = request.basicIntent ? await basicCommands(connection, id, request) : [];
+        const explicit = request.commands ?? [];
+        const firstStage = (command: ActionCommand) => 'stageCode' in command && command.stageCode === 'S1';
+        // 同次保存先完成S1再启动项目，结案/暂缓消费前面已保存的阶段与节点事实。
+        const ending = (command: ActionCommand) => ['closeProject','pauseProject','setMaintenance'].includes(command.action);
+        const commands = [...basic.filter(command=>command.action!=='startProject'&&!ending(command)), ...explicit.filter(firstStage), ...basic.filter(command=>command.action==='startProject'), ...explicit.filter(command=>!firstStage(command)), ...basic.filter(ending)];
         await checkNodeScope(connection, id, request);
-        if ((request.changes.riskOps || request.changes.nodeOps || request.changes.changeOps) && !actor) failure('AUTH_REQUIRED', 401);
+        if ((request.changes.riskOps || request.changes.nodeOps || request.changes.changeOps || request.changes.taskOps) && !actor) failure('AUTH_REQUIRED', 401);
         const savedAt = new Date().toISOString();
+        if(request.changes.taskOps&&Object.hasOwn(request.changes,'statusDesc'))failure('TASK_INPUT_CONFLICT',422);
+        if(current.tasksUnified&&Object.hasOwn(request.changes,'statusDesc'))failure('TASK_PROTOCOL_CHANGED',409);
+        const tasks=request.changes.taskOps?await taskCandidate(connection,id,request.changes.taskOps,savedAt):undefined;
         const change = request.changes.changeOps ? await changeCandidate(connection, id, request.changes.changeOps, actor!, savedAt) : undefined;
         const risk = request.changes.riskOps ? await riskCandidate(connection, id, request.changes.riskOps, actor!, savedAt) : undefined;
         const node = request.changes.nodeOps ? await nodeCandidate(connection, id, request.changes.nodeOps, savedAt) : undefined;
         if (extended) Object.assign(current, await linkedValues(connection, id));
-        if (request.scope === 'basic') current.people = (current.people as Person[]).filter(person => person.role !== 'pm');
+        if (request.scope === 'basic' || request.scope === 'project') current.people = (current.people as Person[]).filter(person => person.role !== 'pm');
         let effective = request.changes;
         if (request.changes.stagePlans) {
           current.stagePlans = await query(connection, 'SELECT stage_code code,planned_days plannedDays,note FROM project_stages WHERE project_id=? ORDER BY stage_code', [id]);
           if (current.stagePlans.length !== 7) failure('STAGE_SEQUENCE_REVIEW_REQUIRED', 422);
           effective = { ...request.changes, stagePlans: current.stagePlans.map((item: StagePlan) => ({ ...item, ...request.changes.stagePlans!.find(change => change.code === item.code) })) };
         }
+        if(tasks)effective={...effective,statusDesc:tasks.description};
         const errors: Record<string, string> = {};
         for (const [key, table] of Object.entries(referenceFields)) if (Object.hasOwn(request.changes, key)) {
           const previous = new Set(key === 'people' ? (current.people as Person[]).map(person => person.id + ':' + person.role) : idsOf(key, current[key]));
@@ -346,16 +386,23 @@ export function projectSaves(database: RuntimeDatabase) {
           }
         }
         if (Object.keys(errors).length) failure('INVALID_PROJECT_FIELDS', 422, { fields: errors });
-        const fields = keys.filter(key => key !== 'riskOps' && key !== 'nodeOps' && key !== 'changeOps' && Object.hasOwn(effective, key) && JSON.stringify(effective[key]) !== JSON.stringify(current[key]));
+        const fields = keys.filter(key => key !== 'riskOps' && key !== 'nodeOps' && key !== 'changeOps' && key !== 'taskOps' && Object.hasOwn(effective, key) && JSON.stringify(effective[key]) !== JSON.stringify(current[key]));
+        const timestamp=savedAt.slice(0,23).replace('T',' '), nextVersion=String(BigInt(current.version)+1n);
+        if (current.version === '18446744073709551615' && (fields.length || risk?.events.length || node?.events.length || change?.events.length || tasks?.changed || commands.length)) failure('PROJECT_VERSION_EXHAUSTED',422);
+        const records: Partial<SaveResult> = {};
+        if(tasks?.changed)await writeTasks(connection,id,tasks.after);
+        if (risk) Object.assign(records, await writeRisks(connection,id,risk,actor!,current.version,nextVersion,requestId,timestamp));
+        if (node) Object.assign(records, await writeNodes(connection,id,node,actor!,current.version,nextVersion,requestId,timestamp));
+        if (change) Object.assign(records, await writeChanges(connection,id,change,actor!,current.version,nextVersion,requestId,timestamp));
         const effects: Awaited<ReturnType<typeof applyAction>>[] = [];
         // 已校验的命令共同决定最终日期；中途旧日期不应误拒绝合法的联合纠正。
         const combinedDates = Object.assign({}, ...commands.map(command => command.action === 'correctProjectDates' ? command.changes : command.action === 'setPlan' || command.action === 'reschedulePlan' ? { dueDate: command.dueDate } : {}));
         for (const command of commands) effects.push(await applyAction(connection, actor!, id, command, new Date(savedAt), combinedDates));
-        const changed = fields.length > 0 || !!risk?.events.length || !!node?.events.length || !!change?.events.length || effects.some(effect => effect.changed);
+        const changed = fields.length > 0 || !!risk?.events.length || !!node?.events.length || !!change?.events.length || !!tasks?.changed || effects.some(effect => effect.changed);
         if (changed && current.version === '18446744073709551615') failure('PROJECT_VERSION_EXHAUSTED', 422);
-        const values = Object.fromEntries((extended ? keys : Object.keys(textColumns) as Field[]).filter(key => key !== 'riskOps' && key !== 'nodeOps' && key !== 'changeOps' && (key !== 'stagePlans' || request.changes.stagePlans)).map(key => [key, Object.hasOwn(effective, key) ? effective[key] : current[key]])) as Values;
+        const values = Object.fromEntries((extended ? keys : Object.keys(textColumns) as Field[]).filter(key => key !== 'riskOps' && key !== 'nodeOps' && key !== 'changeOps' && key !== 'taskOps' && (key !== 'stagePlans' || request.changes.stagePlans)).map(key => [key, Object.hasOwn(effective, key) ? effective[key] : current[key]])) as Values;
         const result: SaveResult = { baseVersion: current.version, projectId: id, operationId: request.idempotencyKey, changed,
-          savedVersion: changed ? String(BigInt(current.version) + 1n) : current.version, values, savedAt: changed ? savedAt : null };
+          savedVersion: changed ? nextVersion : current.version, values, savedAt: changed ? savedAt : null, ...records, ...tasks?{tasks:tasks.after}:{} };
         if (changed) {
           const plain = fields.filter(key => Object.hasOwn(columns, key)) as (keyof typeof columns)[];
           const timestamp = result.savedAt!.slice(0, 23).replace('T', ' ');
@@ -365,16 +412,15 @@ export function projectSaves(database: RuntimeDatabase) {
           if (fields.includes('stagePlans')) for (const plan of values.stagePlans!) {
             if (JSON.stringify(plan) !== JSON.stringify(current.stagePlans.find((item: StagePlan) => item.code === plan.code))) await connection.execute('UPDATE project_stages SET planned_days=?,note=? WHERE project_id=? AND stage_code=?', [plan.plannedDays ?? null, plan.note ?? '', id, plan.code]);
           }
-          await replaceLinks(connection, id, Object.fromEntries(collections.filter(key => fields.includes(key)).map(key => [key, values[key]])), request.scope === 'basic');
-          if (risk) Object.assign(result, await writeRisks(connection, id, risk, actor!, current.version, result.savedVersion, requestId, timestamp));
-          if (node) Object.assign(result, await writeNodes(connection, id, node, actor!, current.version, result.savedVersion, requestId, timestamp));
-          if (change) Object.assign(result, await writeChanges(connection, id, change, actor!, current.version, result.savedVersion, requestId, timestamp));
+          await replaceLinks(connection, id, Object.fromEntries(collections.filter(key => fields.includes(key)).map(key => [key, values[key]])), request.scope === 'basic' || request.scope === 'project');
           const beforeDisplay = extended ? await displayValues(connection, current as Values) : current;
           const afterDisplay = extended ? await displayValues(connection, values) : values;
           if (extended) result.display = afterDisplay;
-          const before = Object.fromEntries(fields.map(key => [key, beforeDisplay[key]]));
-          const after = Object.fromEntries(fields.map(key => [key, afterDisplay[key]]));
-          if (fields.length) await connection.execute(`INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,version_before,version_after,before_json,after_json,request_id,created_at)
+          const auditedFields=tasks?fields.filter(key=>key!=='statusDesc'):fields;
+          const before = Object.fromEntries(auditedFields.map(key => [key, beforeDisplay[key]]));
+          const after = Object.fromEntries(auditedFields.map(key => [key, afterDisplay[key]]));
+          if(tasks?.changed)await connection.execute("INSERT INTO audit_log(actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,version_before,version_after,before_json,after_json,request_id,created_at) VALUES (?,?,'user','project.tasks.save','project',?,?,?,?,?,?,?,?)",[actor!.id,actor!.name,id,id,current.version,nextVersion,JSON.stringify({statusDesc:current.statusDesc,tasks:tasks.before}),JSON.stringify({statusDesc:tasks.description,tasks:tasks.after}),requestId,timestamp]);
+          if (auditedFields.length) await connection.execute(`INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,version_before,version_after,before_json,after_json,request_id,created_at)
             VALUES (?,?,?,?,'project',?,?,?,?,?,?,?,?)`, [actor?.id ?? null, actor?.name ?? '未认证操作', actor ? 'user' : 'anonymous', extended ? 'project.ordinary.save' : 'project.text.save', id, id, current.version, result.savedVersion, JSON.stringify(before), JSON.stringify(after), requestId, timestamp]);
           for (const effect of effects.filter(effect => effect.changed)) await connection.execute(`INSERT INTO audit_log (actor_id,actor_display_name,actor_kind,action,entity_type,entity_id,project_id,version_before,version_after,before_json,after_json,request_id,created_at)
             VALUES (?,?,'user',?,?,?,?,?,?,?,?,?,?)`, [actor!.id, actor!.name, effect.action, effect.entity.type, effect.entity.id, id, current.version, result.savedVersion, JSON.stringify(effect.beforeValues), JSON.stringify(effect.afterValues), requestId, timestamp]);
@@ -388,16 +434,16 @@ export function projectSaves(database: RuntimeDatabase) {
           const allowed = scopeFields[request.scope] as string[];
           result.values = Object.fromEntries(Object.entries(result.values).filter(([key]) => allowed.includes(key)));
           if (result.display) result.display = Object.fromEntries(Object.entries(result.display).filter(([key]) => allowed.includes(key)));
-          if (result.values.stagePlans) result.values.stagePlans = result.values.stagePlans.filter(plan => plan.code === request.target);
-          if (result.risks) result.risks = result.risks.filter(row => row.id === (result.riskIdMap?.[request.target!] ?? request.target));
-          if (result.changes) result.changes = result.changes.filter(row => row.id === (result.changeIdMap?.[request.target!] ?? request.target));
-          if (result.nodes) result.nodes = result.nodes.filter(row => request.scope === 'projectNodes' ? row.kind === 'project' : row.id === (result.nodeIdMap?.[request.target!] ?? request.target));
+          if (result.values.stagePlans && request.scope !== 'project') result.values.stagePlans = result.values.stagePlans.filter(plan => plan.code === request.target);
+          if (result.risks && request.scope !== 'project') result.risks = result.risks.filter(row => row.id === (result.riskIdMap?.[request.target!] ?? request.target));
+          if (result.changes && request.scope !== 'project') result.changes = result.changes.filter(row => row.id === (result.changeIdMap?.[request.target!] ?? request.target));
+          if (result.nodes && request.scope !== 'project') result.nodes = result.nodes.filter(row => request.scope === 'projectNodes' ? row.kind === 'project' : row.id === (result.nodeIdMap?.[request.target!] ?? request.target));
           if (effects.length) result.actions = effects.map(effect => ({ action: effect.action, ...effect.details }));
         }
         if (request.draft && actor) result.draft = await finishDraft(connection, actor, request.draft, id, request.scope!, current.version, result.savedVersion, { scope: request.scope, ...request.target ? { target: request.target } : {}, changes: request.changes, ...request.commands ? { commands: request.commands.map(({expectedVersion, idempotencyKey, ...command}) => command) } : {}, ...request.basicIntent ? { basicIntent: request.basicIntent } : {} });
         await connection.execute('INSERT INTO command_receipts (actor_id,command_scope,idempotency_key,request_hash,response_code,response_json,committed_at) VALUES (?,?,?,?,?,?,UTC_TIMESTAMP(3))', [actor?.id ?? null, scope(id, request, actor), request.idempotencyKey, hash, 200, JSON.stringify(result)]);
         return result;
-      });
+      }, preview);
     },
     confirm(id: string, request: SaveRequest, actor?: Actor) {
       return database.readSnapshot(async connection => {

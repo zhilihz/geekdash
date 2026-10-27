@@ -1,4 +1,4 @@
-export const importCatalogKinds = ['customers', 'engineers', 'productLines', 'apps', 'tags', 'groups', 'chips', 'company'] as const;
+export const importCatalogKinds = ['customers', 'odmFactories', 'engineers', 'productLines', 'apps', 'tags', 'groups', 'chips', 'company'] as const;
 export type ImportCatalogKind = typeof importCatalogKinds[number];
 export type ImportSourceKind = 'project' | ImportCatalogKind;
 export type ImportSourceIssue = { code: string; path: string; message: string; severity: 'warning' | 'error' };
@@ -21,6 +21,8 @@ function json(text: string): unknown {
   return JSON.parse(text, (_key, value: unknown, context?: { source?: string }) =>
     typeof value === 'number' && (!Number.isFinite(value) || Number.isInteger(value) && !Number.isSafeInteger(value)) && context?.source ? context.source : value);
 }
+
+export const emptyImportReference = (value: unknown) => value === null || value === '' || typeof value === 'string' && (!value.trim() || value.trim() === '-');
 
 export function importSourceKey(value: unknown): string | null {
   if (typeof value === 'number') return Number.isSafeInteger(value) && value > 0 ? String(value) : null;
@@ -100,7 +102,8 @@ export function parseImportSource(input: Uint8Array | string): ParsedImportSourc
     named.set(key, [...named.get(key) ?? [], item]);
   }
   const reference = (kind: ImportCatalogKind, name: unknown, path: string) => {
-    if (typeof name !== 'string' || !name.trim()) return;
+    if (name && typeof name === 'object' && !Array.isArray(name)) name=(name as Record<string,unknown>).name;
+    if (typeof name !== 'string' || emptyImportReference(name)) return;
     const key = JSON.stringify([kind, name]), candidates = named.get(key);
     if (candidates) { for (const candidate of candidates) (candidate.originPaths ??= []).push(path); return; }
     const sequence = (sequences.get(kind) ?? 0) + 1; sequences.set(kind, sequence);
@@ -108,9 +111,9 @@ export function parseImportSource(input: Uint8Array | string): ParsedImportSourc
       raw: { name, $sourceNameOnly: true, $sourceReferences: [path] }, present: ['name'], originPaths: [path], issues: [] };
     items.push(item); named.set(key, [item]); derived.add(item);
   };
-  const references: [string, ImportCatalogKind][] = [['customer', 'customers'], ['odmFactory', 'customers'], ['productLine', 'productLines'],
+  const references: [string, ImportCatalogKind][] = [['customer', 'customers'], ['odmFactory', 'odmFactories'], ['productLine', 'productLines'],
     ['app', 'apps'], ['group', 'groups'], ['pm', 'engineers'], ['hwOwner', 'engineers'], ['swOwner', 'engineers'],
-    ['participants', 'engineers'], ['chips', 'chips'], ['tags', 'tags']];
+    ['participants', 'engineers'], ['chipSelections', 'chips'], ['chips', 'chips'], ['tags', 'tags']];
   for (const item of items.filter(row => row.kind === 'project')) for (const [field, kind] of references) {
     const value = item.raw[field];
     for (const [index, name] of (Array.isArray(value) ? value : [value]).entries()) reference(kind, name, `projects[${item.sequence - 1}].${field}${Array.isArray(value) ? `[${index}]` : ''}`);

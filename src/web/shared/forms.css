@@ -1,6 +1,14 @@
-form.detail-section { display: grid; gap: 20px; margin: 24px 0; }
-form.detail-section label { display: grid; gap: 8px; color: var(--text-dim); font-size: 13px; }
-form.detail-section input, form.detail-section textarea { box-sizing: border-box; width: 100%; padding: 12px; color: var(--text); background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px; font: inherit; }
-form.detail-section textarea { min-height: 110px; resize: vertical; }
-form.detail-section button { justify-self: start; }
+:is(form.detail-section, .ui-form) { display: grid; gap: 20px; margin: 24px 0; }
+:is(form.detail-section, .ui-form) label { display: grid; gap: 8px; color: var(--text-dim); font-size: 13px; }
+:is(form.detail-section, .ui-form) input:not([type="checkbox"]):not([type="radio"]), :is(form.detail-section, .ui-form) :is(select, textarea) { box-sizing: border-box; width: 100%; padding: 12px; color: var(--text); background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px; font: inherit; }
+:is(form.detail-section, .ui-form) textarea { min-height: 110px; resize: vertical; }
+:is(form.detail-section, .ui-form) button { justify-self: start; }
 form[hidden] { display: none; }
+
+.password-input{display:flex;align-items:center;gap:8px}.password-input input{min-width:0;flex:1}.password-toggle{flex:none;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg-soft);color:var(--text);cursor:pointer}
+
+.ui-form label { display:grid;gap:8px; }
+.ui-form :is(input,select,textarea):focus-visible { outline:2px solid var(--accent);outline-offset:2px; }
+.ui-form input[readonly] { color:var(--text-dim); }
+.auth-panel > :is(button[type="submit"],a.back-btn) { width:100%;box-sizing:border-box;justify-self:stretch;min-height:42px; }
+.auth-panel > button[type="submit"] { background:var(--accent-dim);border-color:var(--accent-dim);color:#fff; }

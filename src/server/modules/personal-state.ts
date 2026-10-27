@@ -11,7 +11,7 @@ export function canonical(value: unknown): string {
   const sorted = (v: unknown): unknown => Array.isArray(v) ? v.map(sorted) : object(v) ? Object.fromEntries(Object.keys(v).sort().map(key => [key, sorted(v[key])])) : v;
   return JSON.stringify(sorted(value));
 }
-const nestedKeys = new Set('id role code plannedDays note op tempId kind fields changes content level resolved resolution reason correctionReason source decision title stage targetDate output startedOn completedOn previousNodeId nextNodeId x y from to removeEdges replaceEdges affectedIds filingDate startDate dueDate closedOn proposalDate originalDueDate state planKind measures closureType closureNote remainingWorkNote maintenance clearDates action stageCode actualDate completionNote undoStart configVersion ruleVersion previewWeek previewFirstCheckWeek planReason closureAuditId enabled auditId recordId checkId conclusion currentDueDate oldDate newDate'.split(' '));
+const nestedKeys = new Set('selectionId chipId id role code plannedDays note op tempId kind fields changes content level resolved resolution reason correctionReason source decision title stage targetDate output startedOn completedOn previousNodeId nextNodeId x y from to removeEdges replaceEdges affectedIds filingDate startDate dueDate closedOn proposalDate originalDueDate state planKind measures closureType closureNote remainingWorkNote maintenance clearDates action stageCode actualDate completionNote undoStart configVersion ruleVersion previewWeek previewFirstCheckWeek planReason closureAuditId enabled auditId recordId checkId conclusion currentDueDate oldDate newDate'.split(' '));
 function tree(value: unknown, depth = 0) {
   if (depth > 12) failure('INVALID_PERSONAL_STATE', 400);
   if (typeof value === 'string' && !value.isWellFormed()) failure('INVALID_PERSONAL_STATE', 400);
@@ -20,7 +20,7 @@ function tree(value: unknown, depth = 0) {
   else if (value !== null && !['string','number','boolean'].includes(typeof value)) failure('INVALID_PERSONAL_STATE', 400);
 }
 const createFields = () => [...scopeFields.basic, 'statusDesc', 'tagIds', 'filingDate', 'dueDate', 'inviteeIds', 'managerIds'];
-export type DraftPayload = { schemaVersion: 1; instanceId: string; target?: string; values?: Record<string, unknown>; intent?: Record<string, unknown>; record?: Record<string, unknown>; command?: Record<string, unknown>; submission?: Record<string, unknown> };
+export type DraftPayload = { schemaVersion: 1; instanceId: string; target?: string; values?: Record<string, unknown>; intent?: Record<string, unknown>; record?: Record<string, unknown>; command?: Record<string, unknown>; submission?: Record<string, unknown>; editors?: Record<string, unknown> };
 export type DraftWrite = { clientDraftId: string; projectId: string | null; formKind: string; baseVersion: string | null; expectedDraftVersion: string; clientSequence: string; payload: DraftPayload; rebaseOperationId?: string };
 export type DraftRef = { clientDraftId: string; draftVersion: string };
 export function validateDraftRef(value: unknown): DraftRef {
@@ -28,11 +28,12 @@ export function validateDraftRef(value: unknown): DraftRef {
   return value as DraftRef;
 }
 function payload(kind: string, value: unknown): asserts value is DraftPayload {
-  if (!object(value) || value.schemaVersion !== 1 || !uuid(value.instanceId) || Object.keys(value).some(key => !['schemaVersion','instanceId','target','values','intent','record','command','submission'].includes(key))) failure('INVALID_PERSONAL_STATE', 400);
+  if (!object(value) || value.schemaVersion !== 1 || !uuid(value.instanceId) || Object.keys(value).some(key => !['schemaVersion','instanceId','target','values','intent','record','command','submission','editors'].includes(key))) failure('INVALID_PERSONAL_STATE', 400);
   if (value.target !== undefined && !validId(value.target) && !uuid(value.target) && !/^S[1-7]$/.test(String(value.target))) failure('INVALID_PERSONAL_STATE', 400);
   const allowed = kind === 'create' ? createFields() : Object.hasOwn(scopeFields, kind) ? scopeFields[kind as keyof typeof scopeFields] as string[] : [];
   if (value.values !== undefined) { if (!object(value.values) || Object.keys(value.values).some(key => !allowed.includes(key))) failure('INVALID_PERSONAL_STATE', 400); Object.values(value.values).forEach(item => tree(item)); }
-  if (value.intent !== undefined) { if (kind !== 'basic' && kind !== 'create' || !object(value.intent)) failure('INVALID_PERSONAL_STATE', 400); tree(value.intent); }
+  if (value.intent !== undefined) { if (kind !== 'project' && kind !== 'basic' && kind !== 'create' || !object(value.intent)) failure('INVALID_PERSONAL_STATE', 400); tree(value.intent); }
+  if (value.editors !== undefined) { if (kind !== 'project' || !object(value.editors) || Object.keys(value.editors).some(key => !['risk','change','node','nodeExtras','action'].includes(key))) failure('INVALID_PERSONAL_STATE',400); Object.values(value.editors).forEach(item=>tree(item)); }
   if (value.record !== undefined) { if (!['risk','change','customerNode','projectNodes'].includes(kind) || !object(value.record)) failure('INVALID_PERSONAL_STATE', 400); tree(value.record); }
   if (value.command !== undefined) { if (kind !== 'action' || !object(value.command)) failure('INVALID_PERSONAL_STATE', 400); tree(value.command); }
   if (value.submission !== undefined) {
@@ -42,8 +43,8 @@ function payload(kind: string, value: unknown): asserts value is DraftPayload {
     if (kind !== 'action' && (!object(fields) || Object.keys(fields).some(key => !allowed.includes(key)))) failure('INVALID_PERSONAL_STATE', 400);
     if (fields) Object.values(fields).forEach(item => tree(item));
     if (kind === 'create' ? Object.keys(submission).some(key => key !== 'fields') : kind === 'action' ? Object.keys(submission).some(key => key !== 'command') : submission.scope !== kind || submission.target !== value.target) failure('INVALID_PERSONAL_STATE', 400);
-    if (submission.commands !== undefined) { if (kind !== 'basic') failure('INVALID_PERSONAL_STATE', 400); tree(submission.commands); }
-    if (submission.basicIntent !== undefined) { if (kind !== 'basic' || submission.commands !== undefined || !object(submission.basicIntent)) failure('INVALID_PERSONAL_STATE', 400); tree(submission.basicIntent); }
+    if (submission.commands !== undefined) { if (kind !== 'basic' && kind !== 'project') failure('INVALID_PERSONAL_STATE', 400); tree(submission.commands); }
+    if (submission.basicIntent !== undefined) { if (!['basic','project'].includes(kind) || kind==='basic' && submission.commands !== undefined || !object(submission.basicIntent)) failure('INVALID_PERSONAL_STATE', 400); tree(submission.basicIntent); }
     if (submission.command !== undefined) tree(submission.command);
   }
   if (Buffer.byteLength(canonical(value), 'utf8') > 1048576) failure('DRAFT_TOO_LARGE', 413);
@@ -62,7 +63,7 @@ async function editable(c: PoolConnection, actor: Actor, id: string) {
 }
 const preferenceKeys: Record<string, string[]> = {
   appearance: ['theme','layout','visibleFilters'], 'summary-layout': ['columns','hiddenColumns','showStatus','showNotes','showChipNotes'],
-  board: ['view','filters','sort','page','anchor','scrollY','filtersOpen'], checks: ['view','filters','page','anchor','scrollY','expanded'],
+  board: ['view','filters','sort','page','anchor','scrollY','filtersOpen','distributions'], checks: ['view','filters','page','anchor','scrollY','expanded'],
   summary: ['filters','sort','rowOrder','hiddenRows','scrollY','anchor','filtersOpen'], detail: ['projectId','tab','expanded','scrollY','viewport'],
   imports: ['batchId','sourceNamespace','sourceName','view','search','activeItemId','catalogItemId','cards','pendingUpload','pendingBatch','executions'],
 };
@@ -82,6 +83,7 @@ function preferenceValue(scope: string, value: unknown) {
   for (const [key, item] of Object.entries(value)) {
     if (key === 'schemaVersion') continue;
     if (key==='page' && (typeof item!=='number' || !Number.isSafeInteger(item) || item<1) || key==='scrollY' && (typeof item!=='number' || !Number.isFinite(item) || item<0)) failure('INVALID_PERSONAL_STATE',400);
+    if(key==='distributions' && (!Array.isArray(item)||item.some(v=>!['stage','productLine','customer','status','priority','signal'].includes(String(v))))) failure('INVALID_PERSONAL_STATE',400);
     if (['filtersOpen','showStatus','showNotes','showChipNotes'].includes(key) && typeof item!=='boolean') failure('INVALID_PERSONAL_STATE',400);
     if (key==='view' && (typeof item!=='string' || !['active','proposal','closed','maintenance','all'].includes(item))) failure('INVALID_PERSONAL_STATE',400);
     if (scope==='summary' && key==='sort' && (typeof item!=='string' || !['customer','group','chip','stage','dueDate'].includes(item))) failure('INVALID_PERSONAL_STATE',400);

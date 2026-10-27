@@ -1,0 +1,35 @@
+{
+  "version": "0012-account-management",
+  "steps": [
+    {
+      "table": "users",
+      "sql": "ALTER TABLE users ADD COLUMN deleted_at datetime(3) NULL DEFAULT NULL",
+      "columns": [
+        {
+          "name": "deleted_at",
+          "type": "datetime(3)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ]
+    },
+    {
+      "table": "registration_invites",
+      "sql": "ALTER TABLE registration_invites ADD COLUMN code_value varchar(32) CHARACTER SET ascii COLLATE ascii_bin NULL DEFAULT NULL",
+      "columns": [
+        {
+          "name": "code_value",
+          "type": "varchar(32)",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        }
+      ]
+    }
+  ]
+}

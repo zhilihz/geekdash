@@ -1271,3 +1271,9 @@ html, body {
 
 
 .project-collaboration{display:flex;align-items:center;gap:16px;justify-content:space-between;margin-top:12px}.project-collaboration>.page-menu{margin-left:auto}.collaboration-actions{display:grid;gap:10px;min-width:220px;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:8px}.collaboration-actions select{font:inherit;color:var(--text);background:var(--bg-soft);border:1px solid var(--border);border-radius:6px;padding:8px}.stage-choice select{font:inherit;color:var(--text);background:var(--bg-soft);border:1px solid var(--border);padding:8px;border-radius:6px}
+
+#risk-edit button[type="submit"],#change-edit button[type="submit"],#node-edit button[type="submit"],#stage-form button[type="submit"],#correction-edit button[type="submit"],#plan-edit button[type="submit"],#lifecycle-edit button[type="submit"] { display:none; }
+.project-title-row #save-project { flex:none; margin-left:auto; align-self:center; }
+.ref-pill,.selected-tag { display:inline-flex; align-items:center; justify-content:center; }
+
+.project-exit{padding:24px 32px;border-top:1px solid var(--border);display:flex;gap:12px;justify-content:flex-end}.project-exit:empty{display:none}

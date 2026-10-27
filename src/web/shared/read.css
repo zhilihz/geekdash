@@ -1,3 +1,4 @@
+@import './forms.css';
 :root { --font-ui: "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif; --control-radius: 6px; }
 html, body { font-family: var(--font-ui); }
 button, input, select, textarea { font-family: inherit; }
@@ -76,7 +77,10 @@ body:has(#project-notice:not([hidden])) .draft-recovery { display: none; }
 
 .read-nav-menu { position: relative; display: inline-block; }
 .read-nav-menu summary { cursor: pointer; list-style: none; }
-.read-nav-menu[open] > a { position: absolute; right: 0; top: 100%; min-width: 180px; z-index: 20; background: var(--card); margin-top: 6px; }
+.read-nav-menu .account-options { position:absolute; right:0; top:100%; min-width:200px; max-width:calc(100vw - 32px); z-index:100; margin-top:8px; padding:8px; display:grid; gap:4px; background:var(--card); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px #0003; }
+.read-nav-menu:not([open]) .account-options { display:none; }
+.read-nav-menu .account-options > a { position:static; display:block; margin:0; white-space:nowrap; text-align:left; padding:10px 14px; border:0; }
+.read-nav-menu .account-options > a:hover,.read-nav-menu .account-options > a:focus-visible { background:var(--bg-soft); }
 
 .entry-page { max-width: 880px; }
 .entry-panel { padding: 24px; }
@@ -122,3 +126,20 @@ form[data-inline="true"] .edit-actions > .node-del { margin-left: auto; min-heig
 .impact-chain li { position: relative; margin: 8px 0; color: var(--text-dim); }
 .impact-chain li::before { content: "→"; position: absolute; left: -15px; color: var(--accent); }
 .impact-chain p { margin: 6px 0; }
+
+#account-menu { margin-left:auto; position:relative; }
+#account-menu[open] { z-index:110; }
+.profile-form { max-width:40rem; margin:2rem auto; padding:1.5rem; }
+.profile-form label { display:block; margin:1rem 0; }
+.profile-form input { display:block; width:100%; margin-top:.5rem; }
+
+.board-header{position:sticky;top:0;z-index:120;background:var(--bg);padding-block:16px;margin-top:0}.board-header .head-actions{margin-left:auto}.account-lists{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.invite-table{width:100%;border-collapse:collapse}.invite-table th,.invite-table td{text-align:left;padding:12px;border-bottom:1px solid var(--border)}.invite-table code{overflow-wrap:anywhere}.account-row-actions{display:flex;gap:8px;flex-wrap:wrap}@media(max-width:760px){.account-lists{grid-template-columns:1fr}.invite-scroll{overflow-x:auto}}
+
+.primary-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.primary-nav [aria-current=page]{border-color:var(--accent);color:var(--accent)}
+
+.board-header { display:flex;align-items:center;flex-wrap:wrap;gap:20px;padding:12px 0 18px;margin-bottom:20px;border-bottom:1px solid var(--border); }
+.board-header .board-brand { color:var(--text);font-size:24px;font-weight:700;text-decoration:none; }
+.board-header h1 { font-size:22px;line-height:1.4;margin:0; }
+.board-header > .head-actions { margin-left:auto; }
+
+.account-edit-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}.account-role-option{display:flex!important;align-items:center;gap:10px}.account-role-option input{width:auto}.account-role-option+ .read-label{margin-top:8px}

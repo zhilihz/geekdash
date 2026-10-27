@@ -42,6 +42,7 @@ try {
       const [config] = await connection.query<RowDataPacket[]>('SELECT maintenance_user_id FROM system_configuration WHERE id=1 FOR UPDATE');
       if (config.length && String(config[0].maintenance_user_id) !== maintenance[0].id) throw new Error('MAINTENANCE_TARGET_MISMATCH');
       if (!config.length) await connection.execute("INSERT INTO system_configuration (id,maintenance_user_id,full_name,short_name,manager_text,name_prefix,updated_by,updated_at) VALUES (1,?,'','','','',?,UTC_TIMESTAMP(3))", [maintenance[0].id, maintenance[0].id]);
+      await connection.execute('UPDATE users SET is_admin=1 WHERE id=?',[maintenance[0].id]);
       await connection.commit();
       console.log(JSON.stringify({ status: 'verified', environment, database, accounts: names, credentials: 'controlled_file', existingAccounts: existing.length }));
     } catch (error) { await connection.rollback(); throw error; }

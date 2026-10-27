@@ -1,6 +1,6 @@
 import { account, SaveError, send } from './api';
 
-export type MembershipCommand = { action:'claim'|'apply'|'invite'|'accept'|'reject'|'withdraw'|'leave'; targetUserId?:string; requestId?:string; expectedVersion?:string; idempotencyKey?:string };
+export type MembershipCommand = { action:'join'|'claim'|'apply'|'invite'|'accept'|'reject'|'withdraw'|'leave'; targetUserId?:string; requestId?:string; expectedVersion?:string; idempotencyKey?:string };
 type Result = {outcome:string;result?:{projectId:string;status:string;changed:boolean;savedVersion:string;operationId:string}};
 const active=new Set<string>();
 function forget(key:string){try{localStorage.removeItem(key);}catch{/* 原成功可再次按同一操作核对；清理失败不改写成功结果。 */}}

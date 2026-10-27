@@ -57,7 +57,7 @@ pwsh -NoProfile -File scripts/database.ps1 run --rm --no-deps dbtool npm run db:
 
 db:check 只证明四个技术目标/授权，不证明业务结构。migrate/verify 默认 dev_migrator，测试库显式指定 test_migrator；CLI 不接受任意库名/上传 SQL。首次空数据目录由官方镜像初始化两套空库及其各两个技术身份；已有数据目录不重新执行初始化或自动轮换密码。已有完整配置不覆盖，部分配置停止并要求受控修复。
 
-离线 scripts/generate-initial-schema.mjs 曾用于生成首版 JSON，禁止为改字段而删除并重新生成已应用资源。该文件 LF 由 .gitattributes 固定；完整资源字节 SHA-256 包含 SQL 和期望结构。已交付链为0001-foundation、0002-trial-save、0003-node-recovery；P04候选另支持0004-project-compatibility，实际环境版本查系统真相。已登记资源不可改写，新增版本在实施分支增加资源及含数据升级验证。
+离线 scripts/generate-initial-schema.mjs 曾用于生成首版 JSON，禁止为改字段而删除并重新生成已应用资源。该文件 LF 由 .gitattributes 固定；完整资源字节 SHA-256 包含 SQL 和期望结构。已交付链为0001-foundation、0002-trial-save、0003-node-recovery；P04候选另支持0004-project-compatibility，实际环境版本查系统真相。已登记资源不可改写，新增版本在实施分支增加资源及含数据升级验证。 0010～0014在首次提交前已按CRLF字节执行，现用.gitattributes逐文件-text固定其已登记字节，禁止Git自动转行尾导致摘要漂移；其他新增迁移仍按LF创建，首次应用前先核Git暂存字节与构建资源完全一致。
 
 P04增量的只读核对入口为`npm run db:compatibility -- <dev_migrator或test_migrator>`，需在相应网络和只读凭据挂载的数据库工具容器内运行；输出旧备注来源待核对、旧阶段计划与节点投影差异、旧pm引用，不输出备注原文，也不改数据。结构未达到候选0004时拒绝执行。该工具不代替备份和入库审查。
 

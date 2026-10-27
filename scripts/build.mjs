@@ -24,24 +24,25 @@ try {
   execFileSync(process.execPath, ['node_modules/typescript/bin/tsc', '-p', 'tsconfig.server.json'], { stdio: 'inherit' });
   execFileSync(process.execPath, ['node_modules/vite/bin/vite.js', 'build'], { stdio: 'inherit' });
   await cp(new URL('../migrations/', import.meta.url), new URL('migrations/', candidate), { recursive: true });
-  const schemaVersion = JSON.parse(await readFile(new URL('migrations/0009-project-space.json', candidate), 'utf8')).version;
-  if (schemaVersion !== '0009-project-space') throw new Error('迁移资源目标版本无效');
+  const schemaVersion = JSON.parse(await readFile(new URL('migrations/0014-project-tasks.json', candidate), 'utf8')).version;
+  if (schemaVersion !== '0014-project-tasks') throw new Error('迁移资源目标版本无效');
   await access(new URL('server/start.js', candidate));
   const html = await readFile(new URL('web/index.html', candidate), 'utf8');
   const checksHtml = await readFile(new URL('web/project-checks.html', candidate), 'utf8');
   const importsHtml = await readFile(new URL('web/imports.html', candidate), 'utf8');
-  const assets = [...new Set([html, checksHtml, importsHtml].flatMap(markup => [...markup.matchAll(/(?:src|href)="(\/assets\/[^"?#]+)"/g)].map(match => match[1])))];
+  const profileHtml = await readFile(new URL('web/profile.html', candidate), 'utf8');
+  const assets = [...new Set([html, checksHtml, importsHtml, profileHtml].flatMap(markup => [...markup.matchAll(/(?:src|href)="(\/assets\/[^"?#]+)"/g)].map(match => match[1])))];
   if (!assets.some(path => path.endsWith('.js')) || !assets.some(path => path.endsWith('.css'))) {
     throw new Error('前端脚本或样式产物缺失');
   }
   for (const asset of assets) await access(new URL(`web${asset}`, candidate));
-  const build = { revision, dirty: dirty === 'true', builtAt: new Date().toISOString(), stage: 'P05-imports', schemaVersion };
+  const build = { revision, dirty: dirty === 'true', builtAt: new Date().toISOString(), stage: 'P05-project-editing', schemaVersion };
   await writeFile(new URL('build-info.json', candidate), JSON.stringify(build, null, 2) + '\n');
   const { createApp } = await import(new URL('server/app.js', candidate));
   const app = await createApp();
   try {
     const origin = await app.listen({ host: '127.0.0.1', port: 0 });
-    for (const path of ['/', '/GeekDash.html', '/project-detail.html', '/project-checks.html', '/imports.html', '/api/health/live', ...assets]) {
+    for (const path of ['/', '/GeekDash.html', '/project-detail.html', '/project-checks.html', '/imports.html', '/profile.html', '/password.html', '/register.html', '/accounts.html', '/settings.html', '/api/health/live', ...assets]) {
       const response = await fetch(origin + path, { signal: AbortSignal.timeout(5000) });
       if (!response.ok) throw new Error(`候选产物 HTTP 核验失败：${path}`);
       await response.arrayBuffer();

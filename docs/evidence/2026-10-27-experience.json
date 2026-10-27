@@ -1,0 +1,60 @@
+{
+  "status": "passed",
+  "prefix": "experience_c841b0ff",
+  "checks": [
+    "10位随机邀请码三类字符；注册账号与会话同事务，随后新请求已登录；管理员默认无项目经理资格",
+    "勾选兼任可创建和负责项目；已负责项目阻止取消；退出后可取消；直接调用加入接口仍拒绝",
+    "个人改名拒绝；管理员改名新请求回读，首次匹配姓名、账号ID和项目归属保持",
+    "单独横线按空值；忽略资料可重试、新请求解除待导入引用；两个项目实际入库并出现在详情和个人看板；未创建被忽略资料",
+    "任务原说明逐行保留且同文不合并；整页任务与简介原子保存；重试不重复；完成/重开/删除/无变化/旧版本冲突；新请求简要与驾驶舱消费",
+    "1056任务实际导入保留完成/删除与历史日期；大小写ID分别存储；不重复追加statusDesc；同次重试不增任务",
+    "只用首次登记姓名给出可加入项目提示；管理员改名不改匹配名；未加入仍不能读取详情或进入个人统计；任务人员筛选消费未完成任务"
+  ],
+  "verification": "HTTP/MySQL only; human UI acceptance pending",
+  "build": {
+    "revision": "138d674eb2ffa4d3cc0ecca142ca8cb951591406",
+    "dirty": true,
+    "builtAt": "2026-10-27T15:05:30.023Z",
+    "stage": "P05-project-editing",
+    "schemaVersion": "0014-project-tasks"
+  },
+  "httpRequests": 69,
+  "schema": {
+    "version": "0014-project-tasks",
+    "tables": 48,
+    "columns": 414,
+    "foreignKeys": 84,
+    "differences": 0
+  },
+  "localRelease": {
+    "port": 41870,
+    "oldBusinessTableCount": 46,
+    "oldColumnsPreserved": true,
+    "encryptedBackupRoundtripVerified": true,
+    "fullRestoreExecuted": false
+  },
+  "notVerified": [
+    "真实页面与导出文件由用户验收",
+    "服务器未发布本轮代码"
+  ],
+  "notImplemented": [
+    "1056整栏任务编辑/删行匹配",
+    "内容更新时间范围筛选"
+  ],
+  "migrationSourceRuntimeAndGitIdentical": {
+    "0001-foundation.json": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+    "0002-trial-save.json": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695",
+    "0003-node-recovery.json": "4a5b38bd7c84ea230d9d2b1b0b7f93c575107f20c5df9968109901c09296e578",
+    "0004-project-compatibility.json": "98ea64154f89c74ca08274f0d74be2998616d9b4ae4749fc9f544fb80f160e8a",
+    "0005-check-facts.json": "1b70d74c3ff84fdcc8f5587e2ab2007d20801e33b8e9f8720894a43458e40fb8",
+    "0006-imports.json": "08e1941425e3f57b5586b0c01f7b124f24074cd9c064b413109ca8345b837811",
+    "0007-import-executions.json": "6c0c71ccf5c0744a7e21e7ad5b3937592570deaddf3ddef193734a86aa780b6a",
+    "0008-import-name-bindings.json": "3bd4b83963cd35418a14d209b4d15dc69f603c391d89a488562352f9b5dd52a6",
+    "0009-project-space.json": "ae13b1b36fadacea3f46542b4033d2b181e0732e8dc09bbdb62d10d0de670a43",
+    "0010-project-editing.json": "89201582d29696fee578f7923929cb721384971437d55cc30ba693c83441158e",
+    "0011-accounts-check-settings.json": "52400ef47adabd3eed96a62f15b82354b0b3f3a1730278e06561b69d6d6a81d2",
+    "0012-account-management.json": "34bd7c1c319a1e4a1311c41bb91a42f60043c7361a58cd890d7c4b93c86ebaac",
+    "0013-account-capabilities.json": "e19a0e0fd521dccd643be9e930feae346885aa7150e51e04508a3b774960ef1d",
+    "0014-project-tasks.json": "ea8ab833aa7044dc346c4bb1adc08d8a1a0315822238cfd7e6fe43e1f8fdd191"
+  }
+}

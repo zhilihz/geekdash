@@ -1,0 +1,128 @@
+{
+  "version": "0014-project-tasks",
+  "steps": [
+    {
+      "table": "projects",
+      "sql": "ALTER TABLE projects ADD COLUMN tasks_unified tinyint NOT NULL DEFAULT 0",
+      "columns": [
+        {
+          "name": "tasks_unified",
+          "type": "tinyint",
+          "nullable": false,
+          "default": "0",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ]
+    },
+    {
+      "table": "project_tasks",
+      "sql": "CREATE TABLE `project_tasks` (`project_id` bigint unsigned NOT NULL,`task_key` varchar(128) COLLATE utf8mb4_bin NOT NULL,`content` text NOT NULL,`created_at_text` varchar(128) NOT NULL DEFAULT '',`updated_at_text` varchar(128) NOT NULL DEFAULT '',`completed_at_text` varchar(128) NOT NULL DEFAULT '',`deleted_at_text` varchar(128) NOT NULL DEFAULT '',`sort_order` int unsigned NOT NULL,PRIMARY KEY (`project_id`,`task_key`),CONSTRAINT `fk_project_tasks_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci",
+      "create": {
+        "name": "project_tasks",
+        "columns": [
+          {
+            "name": "project_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "task_key",
+            "type": "varchar(128)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_bin"
+          },
+          {
+            "name": "content",
+            "type": "text",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci"
+          },
+          {
+            "name": "created_at_text",
+            "type": "varchar(128)",
+            "nullable": false,
+            "default": "",
+            "autoIncrement": false,
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci"
+          },
+          {
+            "name": "updated_at_text",
+            "type": "varchar(128)",
+            "nullable": false,
+            "default": "",
+            "autoIncrement": false,
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci"
+          },
+          {
+            "name": "completed_at_text",
+            "type": "varchar(128)",
+            "nullable": false,
+            "default": "",
+            "autoIncrement": false,
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci"
+          },
+          {
+            "name": "deleted_at_text",
+            "type": "varchar(128)",
+            "nullable": false,
+            "default": "",
+            "autoIncrement": false,
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci"
+          },
+          {
+            "name": "sort_order",
+            "type": "int unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          }
+        ],
+        "indexes": [
+          {
+            "name": "PRIMARY",
+            "unique": true,
+            "columns": [
+              "project_id",
+              "task_key"
+            ]
+          }
+        ],
+        "checks": [],
+        "foreignKeys": [
+          {
+            "name": "fk_project_tasks_project_id",
+            "columns": [
+              "project_id"
+            ],
+            "parent": "projects",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `project_tasks` ADD CONSTRAINT `fk_project_tasks_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          }
+        ],
+        "sql": "CREATE TABLE `project_tasks` (`project_id` bigint unsigned NOT NULL,`task_key` varchar(128) COLLATE utf8mb4_bin NOT NULL,`content` text NOT NULL,`created_at_text` varchar(128) NOT NULL DEFAULT '',`updated_at_text` varchar(128) NOT NULL DEFAULT '',`completed_at_text` varchar(128) NOT NULL DEFAULT '',`deleted_at_text` varchar(128) NOT NULL DEFAULT '',`sort_order` int unsigned NOT NULL,PRIMARY KEY (`project_id`,`task_key`),CONSTRAINT `fk_project_tasks_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+      }
+    }
+  ]
+}

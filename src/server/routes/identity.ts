@@ -41,7 +41,7 @@ export function registerIdentity(app: FastifyInstance, database: RuntimeDatabase
   });
   app.addHook('preHandler', async request => {
     const path = request.url.split('?')[0];
-    if (!path.startsWith('/api/') || path.startsWith('/api/health/') || path === '/api/auth/login') return;
+    if (!path.startsWith('/api/') || path.startsWith('/api/health/') || ['/api/auth/login','/api/auth/register'].includes(path)) return;
     const token = cookie(request, cookieName);
     if (!token) failure('AUTH_REQUIRED', 401);
     const active = request.headers['x-geekdash-active'] === '1';
@@ -65,14 +65,29 @@ export function registerIdentity(app: FastifyInstance, database: RuntimeDatabase
     const value = await identity.login(request.body.loginName, request.body.password, request.id, cookie(request, cookieName));
     cookies(reply, value.token, value.csrf); return { status: 'authenticated', accountId: value.accountId };
   });
+  app.post<{Body:{loginName:string;name:string;password:string;inviteCode:string}}>('/api/auth/register',{bodyLimit:4096,schema:schema({loginName:{type:'string',pattern:'^[a-z0-9][a-z0-9_-]{2,63}$'},name:{type:'string',minLength:1,maxLength:128},password,inviteCode:{type:'string',pattern:'^(?:[A-Za-z0-9]{10}|[A-Za-z0-9_-]{32})$'}})},async (request,reply)=>{
+    source(request);limit('register:'+request.ip,20);const value=await identity.register(request.body,request.id,cookie(request,cookieName));cookies(reply,value.token,value.csrf);return {status:value.status,accountId:value.accountId};
+  });
+  app.get('/api/accounts/invites',request=>identity.invites(request.actor!));
+  app.post<{Body:{role:'business'|'admin';idempotencyKey:string}}>('/api/accounts/invites',{bodyLimit:2048,schema:schema({role:{type:'string',enum:['business','admin']},idempotencyKey:{type:'string',pattern:'^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$'}})},request=>identity.createInvite(request.actor!,request.body.role,request.body.idempotencyKey,request.id));
+  app.post<{Params:{id:string}}>('/api/accounts/invites/:id/revoke',{schema:{params:{type:'object',required:['id'],properties:{id:{type:'string',pattern:'^[1-9][0-9]{0,19}$'}}}}},request=>identity.revokeInvite(request.actor!,request.params.id,request.id));
   app.get('/api/auth/me', async request => ({ account: { id: request.actor!.id, name: request.actor!.name, mustChangePassword: request.actor!.mustChangePassword,...await identity.accountRole(request.actor!) } }));
+  app.get('/api/profile',request=>identity.profile(request.actor!));
+  for (const confirm of [false,true]) app.post<{Body:{name:string;expectedVersion:string;idempotencyKey:string}}>(confirm?'/api/profile/results/query':'/api/profile', {bodyLimit:4096}, async request=>{
+    const result=await identity.profileSave(request.actor!,request.body,request.id,confirm);
+    if(result.outcome==='committed')notifications?.profileChanged(result.result.accountId,result.result.name,result.result.savedVersion);
+    return {...result,requestId:request.id};
+  });
   app.get('/api/accounts',request=>identity.accounts(request.actor!));
   const accountParams={type:'object',additionalProperties:false,required:['id'],properties:{id:{type:'string',pattern:'^[1-9][0-9]{0,19}$'}}};
+  for(const confirm of [false,true])app.post<{Params:{id:string};Body:{loginName:string;name:string;isProjectManager:boolean;expectedVersion:string;idempotencyKey:string}}>(confirm?'/api/accounts/:id/edit-results/query':'/api/accounts/:id/edit',{
+    bodyLimit:4096,schema:{params:accountParams,...schema({loginName:{type:'string',pattern:'^[a-z0-9][a-z0-9_-]{2,63}$'},name:{type:'string',minLength:1,maxLength:128},isProjectManager:{type:'boolean'},expectedVersion:{type:'string',pattern:'^[1-9][0-9]{0,19}$'},idempotencyKey:{type:'string',pattern:'^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$'}})},
+  },async request=>{const result=await identity.accountEdit(request.actor!,request.params.id,request.body,request.id,confirm);if(result.outcome==='committed'&&result.result.changed)notifications?.accountChanged(result.result.accountId);return {...result,requestId:request.id};});
   app.get<{Params:{id:string}}>('/api/accounts/:id/impact',{schema:{params:accountParams}},request=>identity.accountImpact(request.actor!,request.params.id));
-  for(const confirm of [false,true])app.post<{Params:{id:string};Body:{enabled:boolean;expectedVersion:string;impactToken:string;idempotencyKey:string}}>(confirm?'/api/accounts/:id/state-results/query':'/api/accounts/:id/state',{
+  for(const deleting of [false,true])for(const confirm of [false,true])app.post<{Params:{id:string};Body:{enabled:boolean;expectedVersion:string;impactToken:string;idempotencyKey:string}}>(deleting?(confirm?'/api/accounts/:id/delete-results/query':'/api/accounts/:id/delete'):(confirm?'/api/accounts/:id/state-results/query':'/api/accounts/:id/state'),{
     bodyLimit:4096,schema:{params:accountParams,...schema({enabled:{type:'boolean'},expectedVersion:{type:'string',pattern:'^[1-9][0-9]{0,19}$'},impactToken:{type:'string',pattern:'^[a-f0-9]{64}$'},idempotencyKey:{type:'string',pattern:'^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$'}})},
   },async request=>{
-    const result=await identity.accountState(request.actor!,request.params.id,request.body,request.id,confirm);
+    const result=await identity.accountState(request.actor!,request.params.id,{...request.body,...deleting?{enabled:false,deleted:true}:{}},request.id,confirm);
     if(result.outcome==='committed'&&result.result.changed)notifications?.accountChanged(result.result.accountId);
     return {...result,requestId:request.id};
   });

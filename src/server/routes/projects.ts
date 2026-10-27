@@ -15,8 +15,8 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
   const core = database ? projectCore(database) : undefined;
   const checks = database ? projectChecks(database) : undefined;
   const actions = database ? projectActions(database) : undefined;
-  app.get<{Querystring:{search?:string;page?:number;pageSize?:number}}>('/api/project-space',{
-    schema:{querystring:{type:'object',additionalProperties:false,properties:{search:{type:'string',maxLength:255},page:{type:'integer',minimum:1,maximum:1000000},pageSize:{type:'integer',minimum:1,maximum:100}}}},
+  app.get<{Querystring:{search?:string;tags?:string[];customer?:string[];productLine?:string[];chip?:string[];page?:number;pageSize?:number}}>('/api/project-space',{
+    schema:{querystring:{type:'object',additionalProperties:false,properties:{search:{type:'string',maxLength:255},tags:{type:'array',items:{type:'string',maxLength:255}},...Object.fromEntries(['customer','productLine','chip'].map(key=>[key,{type:'array',items:{type:'string',maxLength:255},maxItems:100}])),page:{type:'integer',minimum:1,maximum:1000000},pageSize:{type:'integer',minimum:1,maximum:100}}}},
   },request=>{
     if(!request.actor)throw Object.assign(new Error('AUTH_REQUIRED'),{code:'AUTH_REQUIRED',status:401});
     if(!reads)throw Object.assign(new Error('DATABASE_UNAVAILABLE'),{code:'DATABASE_UNAVAILABLE',status:503});
@@ -86,7 +86,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
     if (!validId(request.params.id)) return reply.code(400).send({ code: 'INVALID_PROJECT_ID' });
     if (!saves) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE', outcome: 'not_committed' });
     try {
-      const input: SaveRequest = validateSave(request.body);
+      const input: SaveRequest = validateSave(request.body,confirm);
       if (request.actor && !input.scope && !confirm) {
         const prior = await saves.confirm(request.params.id, input, request.actor);
         if (prior.outcome === 'committed' && prior.result) { notifications?.projectChanged(prior.result); return { ...prior, requestId: request.id }; }
@@ -113,7 +113,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
     if (!saves) return reply.code(503).send({ code: 'DATABASE_UNAVAILABLE', outcome: 'not_committed' });
     const input = validateSave(request.body);
     if (!input.scope) return reply.code(409).send({ code: 'SAVE_PROTOCOL_CHANGED', outcome: 'not_committed' });
-    return saves.preview(request.params.id, input, request.actor);
+    return input.scope === 'project' ? saves.save(request.params.id, input, request.id, request.actor, true) : saves.preview(request.params.id, input, request.actor);
   });
   app.get<{ Params: { id: string }; Querystring: { pageSize?: number; before?: string } }>('/api/projects/:id/audit', {
     schema: { querystring: { type: 'object', additionalProperties: false, properties: { pageSize: { type: 'integer', minimum: 1, maximum: 100 }, before: { type: 'string', pattern: '^[1-9][0-9]{0,19}$' } } } },
@@ -134,7 +134,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
     return checks.read(request.params.id, request.query.pageSize ?? 20, request.query.before, request.actor?.id);
   });
   const properties: Record<string, unknown> = {};
-  for (const key of ['search', 'customer', 'productLine', 'odmFactory', 'app', 'group', 'chip', 'tags', 'owner']) properties[key] = { type: 'string', maxLength: 255 };
+  for (const key of ['search', 'customer', 'productLine', 'odmFactory', 'app', 'group', 'chip', 'tags', 'owner', 'taskOwner']) properties[key] = { type: 'string', maxLength: 255 };
   properties.view = { type: 'string', enum: ['active', 'proposal', 'closed', 'maintenance', 'all'] };
   properties.dashboard = { type: 'string', enum: ['1'] };
   properties.details = { type: 'string', enum: ['checks'] };
@@ -142,11 +142,13 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
   properties.priority = { type: 'string', enum: ['high', 'mid', 'low'] };
   properties.signal = { type: 'string', enum: ['green', 'yellow', 'red'] };
   properties.deadline = { type: 'string', enum: deadlineKinds };
+  properties.checkCycle = { type: 'string', enum: ['unchecked', 'checked'] };
   properties.checkToday = { type: 'string', enum: ['unchecked', 'checked'] };
   properties.stage = { type: 'string', enum: ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'completed', 'unconfigured'] };
   properties.progress = { type: 'string', enum: ['0', '5', '10', '20', '60', '80', '90', '100'] };
   properties.page = { type: 'integer', minimum: 1, maximum: 1000000 };
   properties.pageSize = { type: 'integer', minimum: 1, maximum: 100 };
+  for(const key of ['customer','productLine','odmFactory','app','group','chip','tags','owner','taskOwner','status','priority','signal','deadline','stage','progress'])properties[key]={type:'array',items:properties[key],maxItems:100};
   const options = { schema: { querystring: { type: 'object', additionalProperties: false, properties } } };
   app.get<{ Querystring: ProjectQuery }>('/api/projects', options, async (request, reply) => {
     reply.header('Cache-Control', 'no-store');

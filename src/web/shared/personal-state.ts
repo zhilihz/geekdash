@@ -2,20 +2,21 @@ import { account, get, send, SaveError, esc, label, actionLabels, type SaveScope
 import { readableFields } from './history';
 
 export type DraftRef = { clientDraftId: string; draftVersion: string };
-export type DraftData = { values?: Record<string, unknown>; intent?: Record<string, unknown>; record?: Record<string, unknown>; command?: Record<string, unknown>; submission?: Record<string, unknown> };
+export type DraftData = { values?: Record<string, unknown>; intent?: Record<string, unknown>; record?: Record<string, unknown>; command?: Record<string, unknown>; submission?: Record<string, unknown>; editors?: Record<string,unknown> };
 export type PersonalDraft = DraftRef & { projectId: string | null; formKind: SaveScope | 'create' | 'action'; baseVersion: string | null; clientSequence: string; state: string; updatedAt: string; payload: DraftData & { schemaVersion: 1; instanceId: string; target?: string } };
 type Write = Omit<PersonalDraft,'draftVersion'|'state'|'updatedAt'> & { expectedDraftVersion: string; rebaseOperationId?: string };
 type Slot = { desired: Write; confirmed?: PersonalDraft; pending?: Write; firstAt: number; timer?: ReturnType<typeof setTimeout>; running?: Promise<void>; blocked?: boolean; localStored?: boolean };
 const ordered = (value:unknown):unknown => Array.isArray(value)?value.map(ordered):value && typeof value==='object'?Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b)).map(([key,item])=>[key,ordered(item)])):value;
 const equal = (a: unknown,b: unknown) => JSON.stringify(ordered(a)) === JSON.stringify(ordered(b));
-const names: Record<string,string> = {basic:'基本信息与分工',status:'最新状态说明',tags:'项目标签',signal:'灯色与说明',stage:'阶段工期与评述',risk:'风险',change:'需求变更',customerNode:'客户节点',projectNodes:'项目节点与Flow',create:'新建项目',action:'项目动作',summaryNote:'状态简要备注',chipstatNote:'芯片备注'};
+const emptyProject = (data:DraftData) => !Object.keys(data.values??{}).length && !data.intent && !Object.keys(data.editors??{}).length && !(data.submission?.commands as unknown[]|undefined)?.length;
+const names: Record<string,string> = {project:'项目整页修改',basic:'基本信息与分工',status:'最新状态说明',tags:'项目标签',signal:'灯色与说明',stage:'阶段工期与评述',risk:'风险',change:'需求变更',customerNode:'客户节点',projectNodes:'项目节点与Flow',create:'新建项目',action:'项目动作',summaryNote:'状态简要备注',chipstatNote:'芯片备注'};
 export function draftText(row:PersonalDraft) {
   const payload=row.payload, fields={...payload.record,...payload.command,...payload.values,...payload.intent};
   const titles={reason:'原因',correctionReason:'纠正原因',actualDate:'实际日期',stageCode:'阶段',managerIds:'项目经理',maintenance:'结案后维护',code:'阶段',...row.formKind==='basic'?{state:'项目状态'}:{}};
   if(typeof fields.stageCode==='string')fields.stageCode=label(fields.stageCode);
   if(typeof fields.maintenance==='boolean')fields.maintenance=fields.maintenance?'开启':'关闭';
   const action=typeof fields.action==='string'?actionLabels[fields.action]:undefined;
-  return [action,readableFields(fields,titles)].filter(Boolean).join('\n');
+  return [action,readableFields(fields,titles),...Object.entries(payload.editors??{}).map(([key,value])=>({risk:'风险输入',change:'需求变更输入',node:'节点输入',nodeExtras:'节点联动',action:'阶段与状态输入'}[key])+': '+readableFields(value as Record<string,unknown>,titles))].filter(Boolean).join('\n');
 }
 const messages: Record<string,string> = {DRAFT_CAPACITY_REACHED:'个人草稿已满，请在草稿列表明确丢弃不需要的内容。',DRAFT_TOO_LARGE:'本份草稿过大，请复制或导出后精简输入。',DRAFT_VERSION_CONFLICT:'这份草稿已有新修订，请先核对草稿列表。',DRAFT_TERMINAL:'这份草稿已提交或丢弃，请核对后继续。',DRAFT_BASE_CHANGED:'草稿基线需要重新核对，现有输入保留。',INVALID_PERSONAL_STATE:'这份草稿的格式需要核对，输入仍在本页。'};
 
@@ -123,8 +124,9 @@ export class PersonalDrafts {
   private updateStatus(){this.button.title=this.status;this.button.setAttribute('aria-label','个人草稿：'+this.status);const node=this.dialog.querySelector('[data-draft-status]');if(node)node.textContent=this.status;}
   capture(kind:PersonalDraft['formKind'],target:string|undefined,baseVersion:string|null,data:DraftData) {
     if(this.stopped || !this.context().editable)return;
-    this.recovery?.remove();
     const key=this.key(kind,target), old=this.slots.get(key);
+    if(kind==='project' && emptyProject(data) && !old)return;
+    this.recovery?.remove();
     const payload={schemaVersion:1 as const,instanceId:this.instanceId,...target?{target}:{},...structuredClone(data)};
     if(old && equal(old.desired.payload,payload) && old.desired.baseVersion===baseVersion)return;
     const slot:Slot=old ?? {desired:{clientDraftId:crypto.randomUUID(),projectId:this.projectId,formKind:kind,baseVersion,expectedDraftVersion:'0',clientSequence:'1',payload},firstAt:Date.now()};
@@ -137,6 +139,22 @@ export class PersonalDrafts {
   private async flush(key:string):Promise<void>{
     const slot=this.slots.get(key);if(!slot || this.stopped || slot.blocked)return;
     clearTimeout(slot.timer);if(slot.running){await slot.running;return this.flush(key);}
+    if(slot.desired.formKind==='project' && emptyProject(slot.desired.payload) && !slot.pending){
+      const empty=structuredClone(slot.desired.payload);
+      slot.running=(async()=>{
+        try{
+          if(slot.confirmed)await send('/api/personal/drafts/discard','POST',{clientDraftId:slot.confirmed.clientDraftId,draftVersion:slot.confirmed.draftVersion});
+          this.slots.delete(key);try{localStorage.removeItem(this.localKey(slot.desired.clientDraftId));}catch{}
+          this.status='没有未保存的修改';
+          if(!equal(empty,slot.desired.payload)){
+            const {schemaVersion,instanceId,target,...data}=slot.desired.payload;
+            this.capture('project',target,slot.desired.baseVersion,data);
+          }
+        }catch{this.status='取消后的草稿清理尚未确认，可在个人草稿重试。';}
+        finally{slot.running=undefined;this.updateStatus();}
+      })();
+      await slot.running;return;
+    }
     if(!slot.pending && slot.confirmed && equal(slot.confirmed.payload,slot.desired.payload) && slot.confirmed.baseVersion===slot.desired.baseVersion)return;
     slot.pending ??= {...structuredClone(slot.desired),expectedDraftVersion:slot.confirmed?.draftVersion ?? '0',clientSequence:slot.confirmed ? String(BigInt(slot.confirmed.clientSequence)+1n) : '1'};
     this.store(slot);

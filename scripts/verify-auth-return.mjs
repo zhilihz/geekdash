@@ -36,9 +36,9 @@ function client() {
     const data = await response.json(); assert.equal(response.status, 200, data.code); if (path === '/api/auth/login') actorId = data.accountId; if (path === '/api/auth/me') actorId = data.account.id; return data;
   } };
 }
-function page(user, path, login = false, detail = false) {
-  let url = new URL(path, origin); const navigations = [];
-  const dom = new JSDOM(login ? readFileSync('src/web/login.html', 'utf8') : detail ? readFileSync('src/web/project-detail.html', 'utf8') : '<div class="head-actions"></div><textarea id="input">尚未保存的业务输入</textarea><a id="login" href="/login.html" hidden>登录</a>', { url: url.href, cookieJar: user.jar });
+function page(user, path, login = false, detail = false, beforeLoad) {
+  let url = new URL(path, origin); const navigations = [], passwordPage = url.pathname === '/password.html';
+  const dom = new JSDOM(login ? readFileSync(passwordPage ? 'src/web/password.html' : 'src/web/login.html', 'utf8') : detail ? readFileSync('src/web/project-detail.html', 'utf8') : '<div class="head-actions"></div><textarea id="input">尚未保存的业务输入</textarea><a id="login" href="/login.html" hidden>登录</a>', { url: url.href, cookieJar: user.jar });
   views.push(dom); const w = dom.window, location = { replace(target) { navigations.push(target); } };
   for (const key of ['origin', 'pathname', 'search', 'href']) Object.defineProperty(location, key, { get: () => url[key], ...(key === 'href' ? { set: target => navigations.push(target) } : {}) });
   dom.confirm = true; dom.requestsRunning = 0; dom.draftWrites = []; w.performance.getEntriesByType = () => []; w.scrollTo = () => {}; w.__GEEKDASH_STAGES__ = stages;
@@ -63,7 +63,8 @@ function page(user, path, login = false, detail = false) {
     const code = ts.transpileModule(readFileSync(path, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.CommonJS } }).outputText;
     vm.runInContext('(function(require,exports,module){' + code + '\n})', context, { filename: path })(name => load(resolve(dirname(path), name)), module.exports, module); return module.exports;
   }
-  if (login) load('src/web/login.ts');
+  beforeLoad?.(dom);
+  if (login) load(passwordPage ? 'src/web/password.ts' : 'src/web/login.ts');
   if (detail) load('src/web/detail.ts');
   return { dom, location, navigations, load, get api() { return load('src/web/shared/api.ts'); }, async submit(id, fields) {
     const form = w.document.getElementById(id); for (const [key, value] of Object.entries(fields)) form.querySelector(`[name="${key}"]`).value = value;
@@ -96,23 +97,30 @@ try {
   const b = client(), wrong = page(b, loginHref, true); await wrong.submit('login', { loginName: users[1].loginName, password }); assert.equal(wrong.navigations.at(-1), '/');
   const invalid = page(client(), '/login.html?returnTo=https%3A%2F%2Foutside.invalid%2F', true); await invalid.submit('login', { loginName: users[0].loginName, password }); assert.equal(invalid.navigations.at(-1), '/');
   checks.push('不同账号不消费原任务上下文，非法目标登录成功后回首页');
-  const first = page(client(), helper.loginTarget('/project-new.html'), true);
-  await first.submit('login', { loginName: users[2].loginName, password }); assert.equal(first.navigations.length, 0); assert.equal(first.dom.window.document.getElementById('password').hidden, false); assert.equal(new URLSearchParams(first.location.search).get('returnAccount'), users[2].id);
-  await first.submit('password', { currentPassword: password, newPassword, confirmPassword: newPassword }); assert.equal(first.navigations.length, 0);
-  await first.submit('login', { loginName: users[2].loginName, password: newPassword }); assert.equal(first.navigations.at(-1), '/project-new.html');
+  const firstClient = client(), first = page(firstClient, helper.loginTarget('/project-new.html'), true);
+  await first.submit('login', { loginName: users[2].loginName, password });
+  assert.equal(new URL(first.navigations.at(-1), origin).pathname, '/password.html');
+  const firstPassword = page(firstClient, first.navigations.at(-1), true);
+  await waitFor(() => !firstPassword.dom.window.document.getElementById('password-form').hidden, '首次改密独立页');
+  await firstPassword.submit('password-form', { currentPassword: password, newPassword, confirmPassword: newPassword });
+  const firstLogin = page(firstClient, firstPassword.dom.window.document.getElementById('password-login').getAttribute('href'), true);
+  await firstLogin.submit('login', { loginName: users[2].loginName, password: newPassword }); assert.equal(firstLogin.navigations.at(-1), '/project-new.html');
   const changed = (await c.query('SELECT must_change_password,version FROM users WHERE id=?', [users[2].id]))[0][0]; assert.equal(Number(changed.must_change_password), 0); assert.equal(String(changed.version), '2');
-  for (const storage of [first.dom.window.localStorage, first.dom.window.sessionStorage]) assert.equal(Object.values(storage).some(value => value.includes(password) || value.includes(newPassword)), false);
-  checks.push('首次临时密码认证→实际改密→重新登录保持原新建目标，独立SQL核对改密事实，密码不进入本机草稿');
+  for (const storage of [firstPassword.dom.window.localStorage, firstPassword.dom.window.sessionStorage]) assert.equal(Object.values(storage).some(value => value.includes(password) || value.includes(newPassword)), false);
+  checks.push('首次临时密码认证→独立改密页→重新登录保持原新建目标，SQL核对改密事实，密码不进入本机草稿');
   const already = page(a, loginHref, true); await waitFor(() => already.navigations.length, '已有有效会话返回原任务'); assert.equal(already.navigations.at(-1), helper.workTarget(target));
-  const settings = page(a, loginHref + '&change=1', true); await waitFor(() => !settings.dom.window.document.getElementById('password').hidden, '账号设置页'); assert.equal(settings.navigations.length, 0); assert.equal(settings.dom.window.document.getElementById('back').getAttribute('href'), helper.workTarget(target));
+  const settings = page(a, loginHref + '&change=1', true); await waitFor(() => settings.navigations.length, '旧改密入口跳转');
+  assert.equal(new URL(settings.navigations.at(-1), origin).pathname, '/password.html');
+  const settingsPassword = page(a, settings.navigations.at(-1), true); await waitFor(() => !settingsPassword.dom.window.document.getElementById('password-form').hidden, '独立改密页');
+  assert.equal(settingsPassword.navigations.length, 0); assert.equal(settingsPassword.dom.window.document.getElementById('password-back').getAttribute('href'), '/profile.html');
   assert.equal(requests.some(item => item.path.startsWith('/api/projects')), false);
-  checks.push('已有有效会话直接回工作；主动打开改密仍留设置并提供原页返回；整条身份恢复不发送任何业务保存');
+  checks.push('已有有效会话直接回工作；主动打开改密跳转独立页面并保留登录后的原页目标；整条身份恢复不发送任何业务保存');
 
   const made = await a.api('/api/projects', { idempotencyKey: randomUUID(), fields: { name: prefix + '退出恢复' } }); projects.push(made.result.projectId);
   const detail = page(a, '/project-detail.html?id=' + made.result.projectId, false, true), $ = selector => detail.dom.window.document.querySelector(selector);
   await waitFor(() => $('#edit-statusDesc') && !$('#reload').disabled && !detail.dom.requestsRunning, '详情及账号菜单就绪');
   detail.dom.rejectDrafts = true; $('#edit-statusDesc').value = '退出前未提交的业务说明'; $('#edit-statusDesc').dispatchEvent(new detail.dom.window.Event('input', { bubbles: true }));
-  const openMenu = () => { const event = new detail.dom.window.MouseEvent('click', { bubbles: true, cancelable: true }); assert.equal($('.top-sticky .page-menu a').dispatchEvent(event), false, '账号菜单必须进入现有离开保护'); };
+  const openMenu = () => { const event = new detail.dom.window.MouseEvent('click', { bubbles: true, cancelable: true }); assert.equal($('#account-menu a[href="/login.html?logout=1"]').dispatchEvent(event), false, '账号菜单必须进入现有离开保护'); };
   openMenu(); await waitFor(() => $('[data-choice="cancel"]'), '账号菜单显示未保存处理'); $('[data-choice="cancel"]').click();
   assert.equal($('#edit-statusDesc').value, '退出前未提交的业务说明'); assert.equal(detail.navigations.length, 0);
   openMenu(); await waitFor(() => $('[data-choice="keep"]'), '再次进入账号菜单'); detail.dom.rejectDrafts = false; $('[data-choice="keep"]').click();
@@ -121,39 +129,39 @@ try {
   const preserved = (await a.api('/api/personal/drafts?projectId=' + made.result.projectId)).items;
   assert(preserved.some(item => item.payload.values?.statusDesc === '退出前未提交的业务说明'));
   assert.equal((await a.api('/api/projects/' + made.result.projectId)).project.statusDesc, '');
-  const exit = page(a, detail.navigations.at(-1), true); await waitFor(() => !exit.dom.window.document.getElementById('logout').hidden, '账号页可退出');
-  const cacheKey = 'geekdash_draft:' + users[0].id + ':exit-check'; exit.dom.window.localStorage.setItem(cacheKey, '本人合成恢复内容');
+  const cacheKey = 'geekdash_draft:' + users[0].id + ':exit-check';
   const logoutCount = () => requests.filter(item => item.path === '/api/auth/logout' && item.method === 'POST').length;
-  const priorLogout = logoutCount(); exit.dom.confirm = false; exit.dom.window.document.getElementById('logout').click();
-  assert.equal(logoutCount(), priorLogout); assert.equal(exit.dom.window.localStorage.getItem(cacheKey), '本人合成恢复内容');
-  exit.dom.confirm = true; exit.dom.window.document.getElementById('logout').click(); await waitFor(() => exit.navigations.length && !exit.dom.requestsRunning, '明确退出成功');
+  const priorLogout = logoutCount();
+  const exit = page(a, detail.navigations.at(-1), true, false, dom => dom.window.localStorage.setItem(cacheKey, '本人合成恢复内容'));
+  await waitFor(() => exit.navigations.length && !exit.dom.requestsRunning, '退出动作一次完成');
+  assert.equal(logoutCount(), priorLogout + 1); assert.equal(exit.navigations.at(-1), '/login.html');
   assert.equal(exit.dom.window.localStorage.getItem(cacheKey), null); assert.equal((await a.fetch('/api/auth/me')).status, 401);
   await a.api('/api/auth/login', { loginName: users[0].loginName, password });
   assert((await a.api('/api/personal/drafts?projectId=' + made.result.projectId)).items.some(item => item.payload.values?.statusDesc === '退出前未提交的业务说明'));
-  checks.push('账号菜单先处理未同步输入：取消保留本页，保留后实际同步云稿再进入账号页；取消退出不撤会话，明确退出清本机而云稿可重新登录读取，正式说明未提交');
+  checks.push('账号菜单先处理未同步输入：取消保留本页，保留后实际同步云稿再退出；一次退出清本机而云稿可重新登录读取，正式说明未提交');
 
-  const passwordPage = page(a, '/login.html?change=1', true); await waitFor(() => !passwordPage.dom.window.document.getElementById('password').hidden, '改密未知夹具就绪');
+  const passwordPage = page(a, '/password.html', true); await waitFor(() => !passwordPage.dom.window.document.getElementById('password-form').hidden, '改密未知夹具就绪');
   const previousSession = client(); await previousSession.api('/api/auth/login', { loginName: users[0].loginName, password });
   const userVersion = String((await c.query('SELECT version FROM users WHERE id=?', [users[0].id]))[0][0].version);
   passwordPage.dom.dropPath = '/api/auth/password'; const passwordCount = requests.filter(item => item.path === '/api/auth/password').length;
-  await passwordPage.submit('password', { currentPassword: password, newPassword, confirmPassword: newPassword });
-  assert.match(passwordPage.dom.window.document.getElementById('message').textContent, /改密结果待确认.*用新密码正常登录核对/); assert.equal(passwordPage.dom.window.document.getElementById('login').hidden, false);
+  await passwordPage.submit('password-form', { currentPassword: password, newPassword, confirmPassword: newPassword });
+  assert.match(passwordPage.dom.window.document.getElementById('password-message').textContent, /保存结果尚未确认.*用新密码登录核对/); assert.equal(passwordPage.dom.window.document.getElementById('password-login').hidden, false);
   assert.equal(requests.filter(item => item.path === '/api/auth/password').length, passwordCount + 1); assert.equal(passwordPage.navigations.length, 0);
   assert.equal((await previousSession.fetch('/api/auth/me')).status, 401); assert.equal(String((await c.query('SELECT version FROM users WHERE id=?', [users[0].id]))[0][0].version), String(BigInt(userVersion) + 1n));
-  await passwordPage.submit('login', { loginName: users[0].loginName, password: newPassword }); assert.equal(passwordPage.navigations.at(-1), '/');
+  const passwordLogin = page(a, passwordPage.dom.window.document.getElementById('password-login').getAttribute('href'), true);
+  await passwordLogin.submit('login', { loginName: users[0].loginName, password: newPassword }); assert.equal(passwordLogin.navigations.at(-1), '/profile.html');
   for (const storage of [passwordPage.dom.window.localStorage, passwordPage.dom.window.sessionStorage]) assert.equal(Object.values(storage).some(value => value.includes(password) || value.includes(newPassword)), false);
   checks.push('真实改密提交后丢回应：仅提示待确认并开放正常登录，不自动再改密；旧会话失效、SQL账号仅推进一版，新密码正常认证可继续，口令不入恢复存储');
 
-  const uncertainExit = page(a, '/login.html?change=1', true); await waitFor(() => !uncertainExit.dom.window.document.getElementById('logout').hidden, '退出未知夹具就绪');
-  uncertainExit.dom.dropPath = '/api/auth/logout'; const beforeUnknownExit = logoutCount(); uncertainExit.dom.window.document.getElementById('logout').click();
-  await waitFor(() => !uncertainExit.dom.window.document.getElementById('logout').disabled && !uncertainExit.dom.requestsRunning, '退出未知反馈');
-  assert.match(uncertainExit.dom.window.document.getElementById('message').textContent, /结果未确认时不要认为已经退出/); assert.equal(uncertainExit.navigations.length, 0); assert.equal(logoutCount(), beforeUnknownExit + 1);
+  const beforeUnknownExit = logoutCount();
+  const uncertainExit = page(a, '/login.html?logout=1', true, false, dom => { dom.dropPath = '/api/auth/logout'; });
+  await waitFor(() => uncertainExit.navigations.length && !uncertainExit.dom.requestsRunning, '丢回应后新请求核对退出');
+  assert.equal(uncertainExit.navigations.at(-1), '/login.html'); assert.equal(logoutCount(), beforeUnknownExit + 1);
   assert.equal((await a.fetch('/api/auth/me')).status, 401);
-  const verifyExit = page(a, '/login.html?change=1', true); await waitFor(() => !verifyExit.dom.requestsRunning, '重读核对实际退出');
-  assert.equal(verifyExit.dom.window.document.getElementById('login').hidden, false); assert.equal(verifyExit.dom.window.document.getElementById('password').hidden, true);
+  const verifyExit = page(a, '/login.html', true); await waitFor(() => !verifyExit.dom.requestsRunning, '退出后正常登录');
   await verifyExit.submit('login', { loginName: users[0].loginName, password: newPassword }); assert.equal((await a.api('/api/auth/me')).account.id, users[0].id);
   assert((await a.api('/api/personal/drafts?projectId=' + made.result.projectId)).items.some(item => item.payload.values?.statusDesc === '退出前未提交的业务说明'));
-  checks.push('真实退出提交后丢回应：不宣称已退出、不自动重复请求；新身份请求及重新打开账号页确认401后正常登录，原账号云稿仍可读取且不混入其他账号');
+  checks.push('真实退出提交后丢回应：不重复提交，以新身份请求确认401后返回登录，云稿仍可读取');
   await mkdir('test-results', { recursive: true }); await writeFile('test-results/auth-return.json', JSON.stringify({ status: 'passed', checks, requests: requests.length, realBrowserNavigation: false }, null, 2)); console.log(JSON.stringify({ status: 'passed', groups: checks.length, requests: requests.length }));
 } finally {
   for (const view of views) view.window.close(); if (app) await app.close();

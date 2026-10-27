@@ -1,0 +1,559 @@
+{
+  "version": "0010-project-editing",
+  "steps": [
+    {
+      "table": "customers",
+      "sql": "ALTER TABLE customers ADD COLUMN is_customer tinyint NOT NULL DEFAULT 1, ADD COLUMN is_odm tinyint NOT NULL DEFAULT 0",
+      "columns": [
+        {
+          "name": "is_customer",
+          "type": "tinyint",
+          "nullable": false,
+          "default": "1",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "is_odm",
+          "type": "tinyint",
+          "nullable": false,
+          "default": "0",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ]
+    },
+    {
+      "table": "project_customers",
+      "sql": "CREATE TABLE `project_customers` (`project_id` bigint unsigned NOT NULL, `customer_id` bigint unsigned NOT NULL, `sort_order` int unsigned NOT NULL, PRIMARY KEY (`project_id`,`customer_id`), KEY `idx_reference_project` (`customer_id`,`project_id`), CONSTRAINT `fk_project_customers_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT, CONSTRAINT `fk_project_customers_customer_id` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci",
+      "create": {
+        "name": "project_customers",
+        "columns": [
+          {
+            "name": "project_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "customer_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "sort_order",
+            "type": "int unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          }
+        ],
+        "indexes": [
+          {
+            "name": "PRIMARY",
+            "unique": true,
+            "columns": [
+              "project_id",
+              "customer_id"
+            ]
+          },
+          {
+            "name": "idx_reference_project",
+            "unique": false,
+            "columns": [
+              "customer_id",
+              "project_id"
+            ]
+          }
+        ],
+        "checks": [],
+        "foreignKeys": [
+          {
+            "name": "fk_project_customers_project_id",
+            "columns": [
+              "project_id"
+            ],
+            "parent": "projects",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `project_customers` ADD CONSTRAINT `fk_project_customers_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          },
+          {
+            "name": "fk_project_customers_customer_id",
+            "columns": [
+              "customer_id"
+            ],
+            "parent": "customers",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `project_customers` ADD CONSTRAINT `fk_project_customers_customer_id` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          }
+        ],
+        "sql": "CREATE TABLE `project_customers` (`project_id` bigint unsigned NOT NULL, `customer_id` bigint unsigned NOT NULL, `sort_order` int unsigned NOT NULL, PRIMARY KEY (`project_id`,`customer_id`), KEY `idx_reference_project` (`customer_id`,`project_id`), CONSTRAINT `fk_project_customers_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT, CONSTRAINT `fk_project_customers_customer_id` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+      }
+    },
+    {
+      "table": "project_odm_factories",
+      "sql": "CREATE TABLE `project_odm_factories` (`project_id` bigint unsigned NOT NULL, `customer_id` bigint unsigned NOT NULL, `sort_order` int unsigned NOT NULL, PRIMARY KEY (`project_id`,`customer_id`), KEY `idx_reference_project` (`customer_id`,`project_id`), CONSTRAINT `fk_project_odm_factories_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT, CONSTRAINT `fk_project_odm_factories_customer_id` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci",
+      "create": {
+        "name": "project_odm_factories",
+        "columns": [
+          {
+            "name": "project_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "customer_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "sort_order",
+            "type": "int unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          }
+        ],
+        "indexes": [
+          {
+            "name": "PRIMARY",
+            "unique": true,
+            "columns": [
+              "project_id",
+              "customer_id"
+            ]
+          },
+          {
+            "name": "idx_reference_project",
+            "unique": false,
+            "columns": [
+              "customer_id",
+              "project_id"
+            ]
+          }
+        ],
+        "checks": [],
+        "foreignKeys": [
+          {
+            "name": "fk_project_odm_factories_project_id",
+            "columns": [
+              "project_id"
+            ],
+            "parent": "projects",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `project_odm_factories` ADD CONSTRAINT `fk_project_odm_factories_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          },
+          {
+            "name": "fk_project_odm_factories_customer_id",
+            "columns": [
+              "customer_id"
+            ],
+            "parent": "customers",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `project_odm_factories` ADD CONSTRAINT `fk_project_odm_factories_customer_id` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          }
+        ],
+        "sql": "CREATE TABLE `project_odm_factories` (`project_id` bigint unsigned NOT NULL, `customer_id` bigint unsigned NOT NULL, `sort_order` int unsigned NOT NULL, PRIMARY KEY (`project_id`,`customer_id`), KEY `idx_reference_project` (`customer_id`,`project_id`), CONSTRAINT `fk_project_odm_factories_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT, CONSTRAINT `fk_project_odm_factories_customer_id` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+      }
+    },
+    {
+      "table": "project_product_lines",
+      "sql": "CREATE TABLE `project_product_lines` (`project_id` bigint unsigned NOT NULL, `product_line_id` bigint unsigned NOT NULL, `sort_order` int unsigned NOT NULL, PRIMARY KEY (`project_id`,`product_line_id`), KEY `idx_reference_project` (`product_line_id`,`project_id`), CONSTRAINT `fk_project_product_lines_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT, CONSTRAINT `fk_project_product_lines_product_line_id` FOREIGN KEY (`product_line_id`) REFERENCES `product_lines` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci",
+      "create": {
+        "name": "project_product_lines",
+        "columns": [
+          {
+            "name": "project_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "product_line_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "sort_order",
+            "type": "int unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          }
+        ],
+        "indexes": [
+          {
+            "name": "PRIMARY",
+            "unique": true,
+            "columns": [
+              "project_id",
+              "product_line_id"
+            ]
+          },
+          {
+            "name": "idx_reference_project",
+            "unique": false,
+            "columns": [
+              "product_line_id",
+              "project_id"
+            ]
+          }
+        ],
+        "checks": [],
+        "foreignKeys": [
+          {
+            "name": "fk_project_product_lines_project_id",
+            "columns": [
+              "project_id"
+            ],
+            "parent": "projects",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `project_product_lines` ADD CONSTRAINT `fk_project_product_lines_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          },
+          {
+            "name": "fk_project_product_lines_product_line_id",
+            "columns": [
+              "product_line_id"
+            ],
+            "parent": "product_lines",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `project_product_lines` ADD CONSTRAINT `fk_project_product_lines_product_line_id` FOREIGN KEY (`product_line_id`) REFERENCES `product_lines` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          }
+        ],
+        "sql": "CREATE TABLE `project_product_lines` (`project_id` bigint unsigned NOT NULL, `product_line_id` bigint unsigned NOT NULL, `sort_order` int unsigned NOT NULL, PRIMARY KEY (`project_id`,`product_line_id`), KEY `idx_reference_project` (`product_line_id`,`project_id`), CONSTRAINT `fk_project_product_lines_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT, CONSTRAINT `fk_project_product_lines_product_line_id` FOREIGN KEY (`product_line_id`) REFERENCES `product_lines` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+      }
+    },
+    {
+      "table": "project_apps",
+      "sql": "CREATE TABLE `project_apps` (`project_id` bigint unsigned NOT NULL, `app_id` bigint unsigned NOT NULL, `sort_order` int unsigned NOT NULL, PRIMARY KEY (`project_id`,`app_id`), KEY `idx_reference_project` (`app_id`,`project_id`), CONSTRAINT `fk_project_apps_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT, CONSTRAINT `fk_project_apps_app_id` FOREIGN KEY (`app_id`) REFERENCES `apps` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci",
+      "create": {
+        "name": "project_apps",
+        "columns": [
+          {
+            "name": "project_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "app_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "sort_order",
+            "type": "int unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          }
+        ],
+        "indexes": [
+          {
+            "name": "PRIMARY",
+            "unique": true,
+            "columns": [
+              "project_id",
+              "app_id"
+            ]
+          },
+          {
+            "name": "idx_reference_project",
+            "unique": false,
+            "columns": [
+              "app_id",
+              "project_id"
+            ]
+          }
+        ],
+        "checks": [],
+        "foreignKeys": [
+          {
+            "name": "fk_project_apps_project_id",
+            "columns": [
+              "project_id"
+            ],
+            "parent": "projects",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `project_apps` ADD CONSTRAINT `fk_project_apps_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          },
+          {
+            "name": "fk_project_apps_app_id",
+            "columns": [
+              "app_id"
+            ],
+            "parent": "apps",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `project_apps` ADD CONSTRAINT `fk_project_apps_app_id` FOREIGN KEY (`app_id`) REFERENCES `apps` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          }
+        ],
+        "sql": "CREATE TABLE `project_apps` (`project_id` bigint unsigned NOT NULL, `app_id` bigint unsigned NOT NULL, `sort_order` int unsigned NOT NULL, PRIMARY KEY (`project_id`,`app_id`), KEY `idx_reference_project` (`app_id`,`project_id`), CONSTRAINT `fk_project_apps_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT, CONSTRAINT `fk_project_apps_app_id` FOREIGN KEY (`app_id`) REFERENCES `apps` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+      }
+    },
+    {
+      "table": "project_group_links",
+      "sql": "CREATE TABLE `project_group_links` (`project_id` bigint unsigned NOT NULL, `group_id` bigint unsigned NOT NULL, `sort_order` int unsigned NOT NULL, PRIMARY KEY (`project_id`,`group_id`), KEY `idx_reference_project` (`group_id`,`project_id`), CONSTRAINT `fk_project_group_links_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT, CONSTRAINT `fk_project_group_links_group_id` FOREIGN KEY (`group_id`) REFERENCES `project_groups` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci",
+      "create": {
+        "name": "project_group_links",
+        "columns": [
+          {
+            "name": "project_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "group_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "sort_order",
+            "type": "int unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          }
+        ],
+        "indexes": [
+          {
+            "name": "PRIMARY",
+            "unique": true,
+            "columns": [
+              "project_id",
+              "group_id"
+            ]
+          },
+          {
+            "name": "idx_reference_project",
+            "unique": false,
+            "columns": [
+              "group_id",
+              "project_id"
+            ]
+          }
+        ],
+        "checks": [],
+        "foreignKeys": [
+          {
+            "name": "fk_project_group_links_project_id",
+            "columns": [
+              "project_id"
+            ],
+            "parent": "projects",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `project_group_links` ADD CONSTRAINT `fk_project_group_links_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          },
+          {
+            "name": "fk_project_group_links_group_id",
+            "columns": [
+              "group_id"
+            ],
+            "parent": "project_groups",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `project_group_links` ADD CONSTRAINT `fk_project_group_links_group_id` FOREIGN KEY (`group_id`) REFERENCES `project_groups` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          }
+        ],
+        "sql": "CREATE TABLE `project_group_links` (`project_id` bigint unsigned NOT NULL, `group_id` bigint unsigned NOT NULL, `sort_order` int unsigned NOT NULL, PRIMARY KEY (`project_id`,`group_id`), KEY `idx_reference_project` (`group_id`,`project_id`), CONSTRAINT `fk_project_group_links_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT, CONSTRAINT `fk_project_group_links_group_id` FOREIGN KEY (`group_id`) REFERENCES `project_groups` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+      }
+    },
+    {
+      "table": "project_chip_selections",
+      "sql": "CREATE TABLE `project_chip_selections` (`project_id` bigint unsigned NOT NULL, `selection_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL, `chip_id` bigint unsigned NOT NULL, `note` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL, `sort_order` int unsigned NOT NULL, PRIMARY KEY (`project_id`,`selection_id`), KEY `idx_chip_id_project_id` (`chip_id`,`project_id`), CONSTRAINT `fk_project_chip_selections_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT, CONSTRAINT `fk_project_chip_selections_chip_id` FOREIGN KEY (`chip_id`) REFERENCES `chips` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci",
+      "create": {
+        "name": "project_chip_selections",
+        "columns": [
+          {
+            "name": "project_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "selection_id",
+            "type": "varchar(64)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci"
+          },
+          {
+            "name": "chip_id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "note",
+            "type": "text",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": "utf8mb4",
+            "collation": "utf8mb4_0900_ai_ci"
+          },
+          {
+            "name": "sort_order",
+            "type": "int unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          }
+        ],
+        "indexes": [
+          {
+            "name": "PRIMARY",
+            "unique": true,
+            "columns": [
+              "project_id",
+              "selection_id"
+            ]
+          },
+          {
+            "name": "idx_chip_id_project_id",
+            "unique": false,
+            "columns": [
+              "chip_id",
+              "project_id"
+            ]
+          }
+        ],
+        "checks": [],
+        "foreignKeys": [
+          {
+            "name": "fk_project_chip_selections_project_id",
+            "columns": [
+              "project_id"
+            ],
+            "parent": "projects",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `project_chip_selections` ADD CONSTRAINT `fk_project_chip_selections_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          },
+          {
+            "name": "fk_project_chip_selections_chip_id",
+            "columns": [
+              "chip_id"
+            ],
+            "parent": "chips",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE `project_chip_selections` ADD CONSTRAINT `fk_project_chip_selections_chip_id` FOREIGN KEY (`chip_id`) REFERENCES `chips` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          }
+        ],
+        "sql": "CREATE TABLE `project_chip_selections` (`project_id` bigint unsigned NOT NULL, `selection_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL, `chip_id` bigint unsigned NOT NULL, `note` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL, `sort_order` int unsigned NOT NULL, PRIMARY KEY (`project_id`,`selection_id`), KEY `idx_chip_id_project_id` (`chip_id`,`project_id`), CONSTRAINT `fk_project_chip_selections_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT, CONSTRAINT `fk_project_chip_selections_chip_id` FOREIGN KEY (`chip_id`) REFERENCES `chips` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+      }
+    },
+    {
+      "table": "projects",
+      "data": "expand-project-references"
+    },
+    {
+      "table": "project_membership_requests",
+      "data": "retire-membership-requests"
+    }
+  ]
+}

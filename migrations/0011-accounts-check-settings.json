@@ -1,0 +1,184 @@
+{
+  "version": "0011-accounts-check-settings",
+  "steps": [
+    {
+      "table": "registration_invites",
+      "sql": "CREATE TABLE registration_invites (id bigint unsigned NOT NULL AUTO_INCREMENT,code_hash binary(32) NOT NULL,role varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,created_by bigint unsigned NOT NULL,created_at datetime(3) NOT NULL,expires_at datetime(3) NOT NULL,revoked_at datetime(3) NULL DEFAULT NULL,PRIMARY KEY(id),UNIQUE KEY uk_code_hash(code_hash),KEY idx_created_by(created_by),CONSTRAINT fk_registration_invites_creator FOREIGN KEY(created_by) REFERENCES users(id) ON UPDATE RESTRICT ON DELETE RESTRICT) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci",
+      "create": {
+        "name": "registration_invites",
+        "columns": [
+          {
+            "name": "id",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": true,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "code_hash",
+            "type": "binary(32)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "role",
+            "type": "varchar(16)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": "ascii",
+            "collation": "ascii_bin"
+          },
+          {
+            "name": "created_by",
+            "type": "bigint unsigned",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "created_at",
+            "type": "datetime(3)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "expires_at",
+            "type": "datetime(3)",
+            "nullable": false,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          },
+          {
+            "name": "revoked_at",
+            "type": "datetime(3)",
+            "nullable": true,
+            "default": null,
+            "autoIncrement": false,
+            "charset": null,
+            "collation": null
+          }
+        ],
+        "indexes": [
+          {
+            "name": "PRIMARY",
+            "unique": true,
+            "columns": [
+              "id"
+            ]
+          },
+          {
+            "name": "uk_code_hash",
+            "unique": true,
+            "columns": [
+              "code_hash"
+            ]
+          },
+          {
+            "name": "idx_created_by",
+            "unique": false,
+            "columns": [
+              "created_by"
+            ]
+          }
+        ],
+        "checks": [],
+        "foreignKeys": [
+          {
+            "name": "fk_registration_invites_creator",
+            "columns": [
+              "created_by"
+            ],
+            "parent": "users",
+            "references": [
+              "id"
+            ],
+            "onUpdate": "RESTRICT",
+            "onDelete": "RESTRICT",
+            "sql": "ALTER TABLE registration_invites ADD CONSTRAINT fk_registration_invites_creator FOREIGN KEY (created_by) REFERENCES users(id) ON UPDATE RESTRICT ON DELETE RESTRICT"
+          }
+        ],
+        "sql": "CREATE TABLE registration_invites (id bigint unsigned NOT NULL AUTO_INCREMENT,code_hash binary(32) NOT NULL,role varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,created_by bigint unsigned NOT NULL,created_at datetime(3) NOT NULL,expires_at datetime(3) NOT NULL,revoked_at datetime(3) NULL DEFAULT NULL,PRIMARY KEY(id),UNIQUE KEY uk_code_hash(code_hash),KEY idx_created_by(created_by),CONSTRAINT fk_registration_invites_creator FOREIGN KEY(created_by) REFERENCES users(id) ON UPDATE RESTRICT ON DELETE RESTRICT) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+      }
+    },
+    {
+      "table": "users",
+      "sql": "ALTER TABLE users ADD COLUMN is_admin tinyint NOT NULL DEFAULT 0, ADD COLUMN registration_invite_id bigint unsigned NULL DEFAULT NULL, ADD KEY idx_registration_invite_id(registration_invite_id), ADD CONSTRAINT fk_users_registration_invite FOREIGN KEY(registration_invite_id) REFERENCES registration_invites(id) ON UPDATE RESTRICT ON DELETE RESTRICT",
+      "columns": [
+        {
+          "name": "is_admin",
+          "type": "tinyint",
+          "nullable": false,
+          "default": "0",
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        },
+        {
+          "name": "registration_invite_id",
+          "type": "bigint unsigned",
+          "nullable": true,
+          "default": null,
+          "autoIncrement": false,
+          "charset": null,
+          "collation": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_registration_invite_id",
+          "unique": false,
+          "columns": [
+            "registration_invite_id"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_users_registration_invite",
+          "columns": [
+            "registration_invite_id"
+          ],
+          "parent": "registration_invites",
+          "references": [
+            "id"
+          ],
+          "onUpdate": "RESTRICT",
+          "onDelete": "RESTRICT",
+          "sql": "ALTER TABLE users ADD CONSTRAINT fk_users_registration_invite FOREIGN KEY(registration_invite_id) REFERENCES registration_invites(id) ON UPDATE RESTRICT ON DELETE RESTRICT"
+        }
+      ]
+    },
+    {
+      "table": "check_rule_revisions",
+      "sql": "ALTER TABLE check_rule_revisions ADD COLUMN frequency varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'weekly'",
+      "columns": [
+        {
+          "name": "frequency",
+          "type": "varchar(16)",
+          "nullable": false,
+          "default": "weekly",
+          "autoIncrement": false,
+          "charset": "ascii",
+          "collation": "ascii_bin"
+        }
+      ]
+    },
+    {
+      "table": "users",
+      "data": "initialize-administrators"
+    }
+  ]
+}

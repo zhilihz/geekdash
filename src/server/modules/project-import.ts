@@ -1,3 +1,5 @@
+import { sourceTasks,readTasks,writeTasks,taskDescription,textTaskOperations,taskCandidate,type ProjectTask } from './project-tasks.js';
+import { projectReferences, readProjectReferences } from './project-references.js';
 import { projectNameKey } from './project-name.js';
 import { createHash } from 'node:crypto';
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
@@ -10,7 +12,7 @@ import { scheduleRecords } from './project-plans.js';
 import type { StatusEntry } from './project-status-entries.js';
 import { localCheckMarks, recordSourceFacts, originalRecordTimes, statusSourceBaselines } from './project-source-history.js';
 import { projectStatusEntries, type StatusChange } from './project-status-entries.js';
-import { importSourceKey } from './import-source.js';
+import { importSourceKey, emptyImportReference } from './import-source.js';
 
 export type ImportRole = 'pm' | 'hardware_owner' | 'software_owner' | 'participant';
 export type ImportStage = { code: string; state?: 'unknown' | 'locked' | 'ready' | 'active' | 'completed'; plannedDays?: number | null; note?: string; startedOn?: string | null; completedOn?: string | null; expectedEndOn?: string | null };
@@ -18,14 +20,14 @@ export type ImportRecordKind = 'project_node' | 'customer_node' | 'risk' | 'chan
 export type ImportRecord = { key: string; kind: ImportRecordKind; sourceKey: string | null; targetId?: string | null; values: Record<string, unknown> };
 export type ImportHistoryLine = { date: string; text: string };
 export type ImportHistories = Partial<Record<'mixed' | 'status_description', ImportHistoryLine[]>>;
-export type ImportProjectFields = Omit<SaveRequest['changes'], 'people' | 'stagePlans' | 'riskOps' | 'nodeOps' | 'changeOps'> & {
+export type ImportProjectFields = Omit<SaveRequest['changes'], 'people' | 'stagePlans' | 'riskOps' | 'nodeOps' | 'changeOps' | 'taskOps'> & {
   status?: 'proposal' | 'ongoing' | 'paused' | 'closed'; resumeStatus?: string | null; preCloseStatus?: string | null;
   proposalDate?: string | null; filingDate?: string | null; startDate?: string | null; dueDate?: string | null; originalDueDate?: string | null;
   closedOn?: string | null; closureDueDate?: string | null; closureType?: 'normal' | 'terminated' | null;
   closureNote?: string; remainingWorkNote?: string; maintenanceEnabled?: boolean;
 };
 export type ImportProjectInput = { projectId?: string; expectedVersion?: string; fields?: ImportProjectFields; people?: Partial<Record<ImportRole, string[]>>;
-  stages?: ImportStage[]; records?: ImportRecord[]; histories?: ImportHistories; statusEntries?: StatusEntry[]; lastCheckAt?: unknown;
+  stages?: ImportStage[]; records?: ImportRecord[]; histories?: ImportHistories; tasks?: ProjectTask[]; statusEntries?: StatusEntry[]; lastCheckAt?: unknown;
   intent?: { kind: 'correction' | 'rework' | 'reopen'; reason: string } };
 export type ImportProjectContext = { itemId: string; sourceNamespace: string; operationKey: string; requestId: string; now?: Date; selectionKeys?: Record<string, string>; candidateRecords?: ImportRecord[] };
 export type ImportEffect = { cause: string; consequence: string; requiredKeys?: string[] };
@@ -42,7 +44,7 @@ const stageName = (code: string) => stageNames[Number(code.slice(1)) - 1] ?? cod
 const stageStateName = (state?: string) => ({ locked: '未解锁', ready: '待开始', active: '进行中', completed: '已完成' } as Record<string, string>)[state ?? ''] ?? '未知';
 const dateColumns = { proposalDate: 'proposed_on', filingDate: 'filed_on', startDate: 'started_on', dueDate: 'current_due_date', originalDueDate: 'original_due_date', closedOn: 'closed_on', closureDueDate: 'closure_due_date' } as const;
 const factColumns = { ...dateColumns, status: 'status', resumeStatus: 'resume_status', preCloseStatus: 'pre_close_status', closureType: 'closure_type', closureNote: 'closure_note', remainingWorkNote: 'remaining_work_note', maintenanceEnabled: 'maintenance_enabled' } as const;
-const ordinaryKeys = () => new Set([...Object.keys(columns), 'chipIds', 'tagIds']);
+const ordinaryKeys = () => new Set([...Object.keys(columns), ...Object.keys(projectReferences), 'chipSelections', 'tagIds']);
 // 本地日期控件把未填写保存为“-”；原文仍保存在来源记录中。
 const dateValue = (v: unknown) => v === '' || v === '-' || v === null ? null : v;
 const sourceKey = importSourceKey;
@@ -63,19 +65,38 @@ export function normalizeImportProject(raw: Record<string, unknown>, resolver: I
   if (fields.closureType === 'early') issue('fields.closureType', 'IMPORT_CLOSURE_TYPE_REQUIRED', '中途结案不代表终止，请核对结案类型或明确为未知');
   if (!own(fields, 'preCloseStatus') && object(raw.stageCloseBefore) && own(raw.stageCloseBefore, 'status')) fields.preCloseStatus = stateNames[String(raw.stageCloseBefore.status)] ?? raw.stageCloseBefore.status;
   const reference = (kind: string, value: unknown, path: string) => {
-    if (value === '' || value === null) return null;
+    if (emptyImportReference(value)) return null;
     const name = typeof value === 'string' ? value : object(value) ? String(value.id ?? value.name ?? '') : typeof value === 'number' ? String(value) : '';
     const id = name ? resolver.resolve?.(kind, name, path) : undefined;
-    if (!id || !validId(id)) { issue(path, 'IMPORT_REFERENCE_REQUIRED', '请在资料区确认对应资料'); return undefined; }
+    if (id === null) return null;
+    if (!id || !validId(id)) { issue(path, 'IMPORT_REFERENCE_REQUIRED', '所引用的资料需要处理'); return undefined; }
     return id;
   };
-  for (const [key, target, kind] of [['customer', 'customerId', 'customers'], ['odmFactory', 'odmCustomerId', 'customers'], ['productLine', 'productLineId', 'productLines'], ['app', 'appId', 'apps'], ['group', 'groupId', 'groups']]) if (own(raw, key)) {
-    const id = reference(kind, raw[key], 'fields.' + target); if (id !== undefined) fields[target] = id;
+  for (const [key, target, kind] of [['customer', 'customerIds', 'customers'], ['odmFactory', 'odmFactoryIds', 'odmFactories'], ['productLine', 'productLineIds', 'productLines'], ['app', 'appIds', 'apps'], ['group', 'groupIds', 'groups']]) if (own(raw, key)) {
+    const values = Array.isArray(raw[key]) ? raw[key] as unknown[] : raw[key] === '' || raw[key] === null ? [] : [raw[key]];
+    if(values.length&&values.every(value=>typeof value==='string'&&value.trim()==='-'))continue;
+    const ids = values.map(value => reference(kind, value, 'fields.' + target));
+    if (ids.every(id => id !== undefined)) fields[target] = [...new Set(ids.filter(id => id !== null))];
   }
-  for (const [key, target, kind] of [['chips', 'chipIds', 'chips'], ['tags', 'tagIds', 'tags']]) if (own(raw, key)) {
-    if (!Array.isArray(raw[key])) { issue('fields.' + target, 'IMPORT_INVALID_COLLECTION', '来源名单应为数组'); continue; }
-    const ids = (raw[key] as unknown[]).map(v => reference(kind, v, 'fields.' + target));
-    if (ids.every(v => v !== undefined)) fields[target] = [...new Set(ids.filter(v => v !== null))];
+  if (own(raw, 'tags')) {
+    if (!Array.isArray(raw.tags)) issue('fields.tagIds', 'IMPORT_INVALID_COLLECTION', '来源名单应为数组');
+    else {
+      const ids = raw.tags.map(value => reference('tags', value, 'fields.tagIds'));
+      if (ids.every(id => id !== undefined)) fields.tagIds = [...new Set(ids.filter(id => id !== null))];
+    }
+  }
+  if (own(raw, 'chipSelections') || own(raw, 'chips')) {
+    const values = own(raw, 'chipSelections') ? raw.chipSelections : raw.chips;
+    if (!Array.isArray(values)) issue('fields.chipSelections', 'IMPORT_INVALID_COLLECTION', '来源名单应为数组');
+    else {
+      const selections = values.map((value, index) => {
+        const chipId = reference('chips', object(value) ? value.name : value, 'fields.chipSelections');
+        const sourceId = object(value) && typeof value.id === 'string' && /^[a-f0-9-]{36}$/.test(value.id) ? value.id : createHash('sha256').update(JSON.stringify([index,value])).digest('hex').slice(0,32);
+        const selectionId = sourceId.length === 36 ? sourceId : sourceId.slice(0,8)+'-'+sourceId.slice(8,12)+'-'+sourceId.slice(12,16)+'-'+sourceId.slice(16,20)+'-'+sourceId.slice(20);
+        return { selectionId, chipId, note: object(value) && typeof value.note === 'string' ? value.note : '' };
+      });
+      if (selections.every(item => item.chipId !== undefined)) fields.chipSelections = selections.filter(item => item.chipId !== null);
+    }
   }
   for (const [key, role] of [['hwOwner', 'hardware_owner'], ['swOwner', 'software_owner'], ['participants', 'participant']] as const) if (own(raw, key)) {
     const values = Array.isArray(raw[key]) ? raw[key] as unknown[] : raw[key] === '' || raw[key] === null ? [] : [raw[key]];
@@ -135,6 +156,21 @@ export function normalizeImportProject(raw: Record<string, unknown>, resolver: I
     else (input.histories ??= {})[kind] = (raw[key] as Record<string, unknown>[]).map(v => ({ date: v.date as string ?? '', text: v.text as string }));
   }
   if (Array.isArray(raw.statusDescEntries)) input.statusEntries = raw.statusDescEntries.filter(object).map(v => ({ text: typeof v.text === 'string' ? v.text : '', date: typeof v.updatedAt === 'string' ? v.updatedAt : typeof v.date === 'string' ? v.date : '' }));
+  if (own(raw,'tasks')) {
+    try {
+      input.tasks=sourceTasks(raw.tasks);
+      if(raw.taskUnifiedVersion!==1&&typeof raw.statusDesc==='string'){
+        const legacy=raw.statusDesc.replace(/\r\n?/g,'\n').split('\n').map((line,index)=>({id:'legacy-source-'+createHash('sha256').update(JSON.stringify([raw.id??'',index,line])).digest('hex').slice(0,32),text:line.replace(/^\s*\d+[、.．)）]\s*/, '').trim(),createdAt:input.statusEntries?.[index]?.text===line?input.statusEntries[index].date:'',updatedAt:input.statusEntries?.[index]?.text===line?input.statusEntries[index].date:'',completedAt:'',deletedAt:''})).filter(task=>task.text&&task.text!=='-');
+        input.tasks.push(...legacy);
+      }
+      delete fields.statusDesc;
+    }
+    catch(error) { issue('tasks','INVALID_IMPORT_TASKS',(error as {fields?:{tasks:string}}).fields?.tasks ?? '任务内容无效'); }
+  }
+  if(Array.isArray(raw.taskHistory)) {
+    const entries=raw.taskHistory.filter(object).filter(v=>typeof v.text==='string').map(v=>({date:typeof v.date==='string'?v.date:'',text:v.text as string}));
+    if(entries.length)(input.histories??={}).status_description=[...(input.histories?.status_description??[]),...entries];
+  }
   if (own(raw, 'lastCheckAt')) input.lastCheckAt = raw.lastCheckAt;
   return { input, issues };
 }
@@ -146,6 +182,7 @@ export async function lockImportProject(c: PoolConnection, input: ImportProjectI
     || input.stages !== undefined && (!Array.isArray(input.stages) || input.stages.some(stage => !object(stage))) || input.records !== undefined && (!Array.isArray(input.records) || input.records.some(record => !object(record)))
     || input.histories !== undefined && !object(input.histories) || input.statusEntries !== undefined && (!Array.isArray(input.statusEntries) || input.statusEntries.some(entry => !object(entry) || typeof entry.text !== 'string' || typeof entry.date !== 'string'))
     || input.intent !== undefined && (!object(input.intent) || !['correction', 'rework', 'reopen'].includes(input.intent.kind) || typeof input.intent.reason !== 'string')) failure('INVALID_IMPORT_PROJECT', 400);
+  if(input.tasks!==undefined)sourceTasks(input.tasks);
   const ordinary = Object.fromEntries(Object.entries(input.fields ?? {}).filter(([key]) => ordinaryKeys().has(key))) as SaveRequest['changes'];
   if (input.people) ordinary.people = Object.entries(input.people).flatMap(([role, ids]) => (ids ?? []).map(id => ({ id, role })));
   if (Object.keys(ordinary).length) validateSave({ changes: ordinary, expectedVersion: '1', idempotencyKey: '00000000-0000-4000-8000-000000000001' });
@@ -169,7 +206,7 @@ export async function readImportProject(c: PoolConnection, projectId: string, so
   if (!current) return null;
   const fields: ImportProjectFields & Record<string, unknown> = { ...current }; delete fields.version;
   fields.maintenanceEnabled = !!fields.maintenanceEnabled;
-  fields.chipIds = (await rows(c, 'SELECT CAST(chip_id AS CHAR) id FROM project_chips WHERE project_id=? ORDER BY sort_order,chip_id', [projectId])).map(v => v.id);
+  Object.assign(fields, await readProjectReferences(c, projectId));
   fields.tagIds = (await rows(c, 'SELECT CAST(tag_id AS CHAR) id FROM project_tags WHERE project_id=? ORDER BY sort_order,tag_id', [projectId])).map(v => v.id);
   const people: ImportProjectInput['people'] = { pm: [], hardware_owner: [], software_owner: [], participant: [] };
   for (const item of await rows(c, 'SELECT role,CAST(engineer_id AS CHAR) id FROM project_people WHERE project_id=? ORDER BY sort_order,engineer_id', [projectId])) people[item.role as ImportRole]?.push(item.id);
@@ -195,7 +232,7 @@ export async function readImportProject(c: PoolConnection, projectId: string, so
   const mark = sourceNamespace ? (await localCheckMarks(c, projectId)).find(row => row.sourceNamespace === sourceNamespace) : undefined;
   const baseline = (await statusSourceBaselines(c, [projectId])).get(projectId);
   const statusChanges = await rows(c, `SELECT action,CASE WHEN JSON_TYPE(JSON_EXTRACT(before_json,'$.statusDesc'))='STRING' THEN JSON_UNQUOTE(JSON_EXTRACT(before_json,'$.statusDesc')) ELSE NULL END beforeText,JSON_UNQUOTE(JSON_EXTRACT(after_json,'$.statusDesc')) afterText,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%s.%fZ') createdAt FROM audit_log WHERE project_id=? AND action<>'project.import' AND JSON_TYPE(JSON_EXTRACT(after_json,'$.statusDesc'))='STRING'${baseline ? ' AND version_after>?' : ''} ORDER BY id`, [projectId, ...baseline ? [baseline.version] : []]) as (RowDataPacket & StatusChange)[];
-  return { projectId, expectedVersion: current.version, fields, people, stages, records, histories, statusEntries: projectStatusEntries(fields.statusDesc ?? '', statusChanges, baseline?.entries), ...(mark ? { lastCheckAt: mark.value } : {}) };
+  return { projectId, expectedVersion: current.version, fields, people, stages, records, histories, tasks:(await readTasks(c,projectId)).tasks, statusEntries: projectStatusEntries(fields.statusDesc ?? '', statusChanges, baseline?.entries), ...(mark ? { lastCheckAt: mark.value } : {}) };
 }
 
 const recordColumns: Record<ImportRecordKind, Record<string, string>> = {
@@ -387,8 +424,16 @@ async function prepareImportProject(c: PoolConnection, actor: Actor, input: Impo
     if (locked.current!.version !== input.expectedVersion) failure('PROJECT_VERSION_CONFLICT', 409, { currentVersion: locked.current!.version });
   }
   const before = id ? await readImportProject(c, id, context.sourceNamespace) : null;
-  const defaults: ImportProjectFields = { name: '', summary: '', marketExpectation: '', detailNote: '', summaryNote: '', chipstatNote: '', signalNote: '', statusDesc: '', priority: 'mid', signal: 'green', status: 'proposal', proposalDate: null, filingDate: null, startDate: null, dueDate: null, originalDueDate: null, closedOn: null, closureDueDate: null, closureType: null, closureNote: '', remainingWorkNote: '', resumeStatus: null, preCloseStatus: null, maintenanceEnabled: false, customerId: null, odmCustomerId: null, productLineId: null, appId: null, groupId: null, chipIds: [], tagIds: [] };
+  const defaults: ImportProjectFields = { name: '', summary: '', marketExpectation: '', detailNote: '', summaryNote: '', chipstatNote: '', signalNote: '', statusDesc: '', priority: 'mid', signal: 'green', status: 'proposal', proposalDate: null, filingDate: null, startDate: null, dueDate: null, originalDueDate: null, closedOn: null, closureDueDate: null, closureType: null, closureNote: '', remainingWorkNote: '', resumeStatus: null, preCloseStatus: null, maintenanceEnabled: false, customerIds: [], odmFactoryIds: [], productLineIds: [], appIds: [], groupIds: [], chipSelections: [], tagIds: [] };
   const next = { ...defaults, ...before?.fields, ...input.fields };
+  let tasks:ProjectTask[]|undefined;
+  if(input.tasks!==undefined){
+    const incoming=sourceTasks(input.tasks);tasks=[...(before?.tasks??[]).filter(old=>!incoming.some(task=>task.id===old.id)),...incoming];
+    next.statusDesc=taskDescription(tasks);
+  } else if(id&&own(input.fields??{},'statusDesc')&&(await readTasks(c,id)).unified){
+    tasks=(await taskCandidate(c,id,textTaskOperations(before?.tasks??[],next.statusDesc??''),now.toISOString())).after;next.statusDesc=taskDescription(tasks);
+  }
+  const tasksChanged=tasks!==undefined&&JSON.stringify(tasks)!==JSON.stringify(before?.tasks??[]);
   const ordinary = Object.fromEntries(Object.entries(input.fields ?? {}).filter(([key]) => ordinaryKeys().has(key))) as SaveRequest['changes'];
   if (!id && !next.name?.trim()) failure('INVALID_PROJECT_FIELDS', 422, { fields: { name: '请填写项目名称' } });
   if(next.name&&(await rows(c,'SELECT id FROM projects WHERE name_key=? AND id<>?',[projectNameKey(next.name),id??'0'])).length)failure('PROJECT_NAME_TAKEN',409,{fields:{name:'已有同名项目，请重新核对项目名称。'}});
@@ -400,12 +445,12 @@ async function prepareImportProject(c: PoolConnection, actor: Actor, input: Impo
     validateSave({ changes: { people: ordinary.people }, expectedVersion: '1', idempotencyKey: context.operationKey });
   }
   for (const [key, table] of Object.entries(referenceFields)) if (own(ordinary, key)) {
-    const values = key === 'people' ? ordinary.people!.map(v => v.id) : Array.isArray(ordinary[key as keyof typeof ordinary]) ? ordinary[key as keyof typeof ordinary] as string[] : ordinary[key as keyof typeof ordinary] ? [ordinary[key as keyof typeof ordinary] as string] : [];
-    const previous = key === 'people' ? Object.values(before?.people ?? {}).flat() : before?.fields?.[key as keyof ImportProjectFields];
+    const values = key === 'chipSelections' ? ordinary.chipSelections!.map(item => item.chipId) : key === 'people' ? ordinary.people!.map(v => v.id) : Array.isArray(ordinary[key as keyof typeof ordinary]) ? ordinary[key as keyof typeof ordinary] as string[] : ordinary[key as keyof typeof ordinary] ? [ordinary[key as keyof typeof ordinary] as string] : [];
+    const previous = key === 'chipSelections' ? before?.fields?.chipSelections?.map(item => item.chipId) : key === 'people' ? Object.values(before?.people ?? {}).flat() : before?.fields?.[key as keyof ImportProjectFields];
     for (const target of values) {
       if (key === 'people' && !Object.values(input.people ?? {}).flat().includes(target)) continue;
       const ref = locked.references[table]?.find(row => row.id === target);
-      const retained = key === 'people' ? Object.entries(input.people ?? {}).filter(([, ids]) => ids?.includes(target)).every(([role]) => before?.people?.[role as ImportRole]?.includes(target)) : Array.isArray(previous) ? previous.includes(target) : previous === target;
+      const retained = key === 'people' ? Object.entries(input.people ?? {}).filter(([, ids]) => ids?.includes(target)).every(([role]) => before?.people?.[role as ImportRole]?.includes(target)) : Array.isArray(previous) ? (previous as unknown[]).includes(target) : previous === target;
       if (!ref || !ref.enabled && !retained) failure('INVALID_PROJECT_FIELDS', 422, { fields: { [key]: '资料已停用或不存在，请重新核对' } });
     }
   }
@@ -417,18 +462,18 @@ async function prepareImportProject(c: PoolConnection, actor: Actor, input: Impo
   const historyManifest = importHistoryManifest(input.histories);
   const previousManifest = importHistoryManifest(before?.histories);
   const historyChanged = Object.entries(historyManifest).some(([kind, value]) => value.hash !== previousManifest[kind as keyof ImportHistories]?.hash);
-  const changedFields = Object.keys(input.fields ?? {}).filter(key => JSON.stringify(before?.fields?.[key as keyof ImportProjectFields] ?? defaults[key as keyof ImportProjectFields]) !== JSON.stringify(next[key as keyof ImportProjectFields]));
+  const changedFields = [...new Set([...Object.keys(input.fields ?? {}),...tasks?['statusDesc']:[]])].filter(key => JSON.stringify(before?.fields?.[key as keyof ImportProjectFields] ?? defaults[key as keyof ImportProjectFields]) !== JSON.stringify(next[key as keyof ImportProjectFields]));
   const changedRoles = Object.keys(input.people ?? {}).filter(role => JSON.stringify(before?.people?.[role as ImportRole] ?? []) !== JSON.stringify(people[role as ImportRole]));
   const changedStages = stageFacts.filter((stage, index) => JSON.stringify(stage) !== JSON.stringify(baseStages[index]));
   const changedRecords = recordChanges.filter(item => !item.before || JSON.stringify(item.before.values) !== JSON.stringify(item.after.values));
   let oldSource: Record<string, unknown> = {};
   if (id) oldSource = json((await rows(c, "SELECT adopted_json data FROM import_adoptions WHERE target_kind='project' AND target_id=? AND source_namespace=? AND JSON_CONTAINS_PATH(adopted_json,'one','$.lastCheckAt') ORDER BY id DESC LIMIT 1", [id, context.sourceNamespace]))[0]?.data ?? {});
   const sourceChanged = own(input, 'lastCheckAt') && JSON.stringify(oldSource.lastCheckAt) !== JSON.stringify(input.lastCheckAt);
-  const changed = !id || !!(changedFields.length || changedRoles.length || changedStages.length || changedRecords.length || historyChanged || sourceChanged);
+  const changed = !id || !!(changedFields.length || changedRoles.length || changedStages.length || changedRecords.length || historyChanged || sourceChanged || tasksChanged);
   const beforeVersion: string | null = locked.current?.version ?? null;
   if (changed && beforeVersion === '18446744073709551615') failure('PROJECT_VERSION_EXHAUSTED', 422);
   const savedVersion = beforeVersion ? String(BigInt(beforeVersion) + (changed ? 1n : 0n)) : '1';
-  return { before, next, ordinary, people, baseStages, stageFacts, recordChanges, changedRecords, historyManifest, historyChanged, sourceChanged, changedFields, changedRoles, changedStages, changed, beforeVersion, savedVersion, timestamp };
+  return { before, next, tasks, tasksChanged, ordinary, people, baseStages, stageFacts, recordChanges, changedRecords, historyManifest, historyChanged, sourceChanged, changedFields, changedRoles, changedStages, changed, beforeVersion, savedVersion, timestamp };
 }
 
 export async function validateImportProject(c: PoolConnection, actor: Actor, input: ImportProjectInput, context: ImportProjectContext, current?: LockedImportProject) {
@@ -461,12 +506,12 @@ export async function validateImportProject(c: PoolConnection, actor: Actor, inp
   for (const kind of Object.keys(input.histories ?? {}) as (keyof ImportHistories)[]) if (candidate.historyManifest[kind]?.hash !== importHistoryManifest(candidate.before?.histories)[kind]?.hash) effects.push({
     cause: `采用本来源完整${kind === 'mixed' ? '更新历史' : '状态说明历史'}，由${candidate.before?.histories?.[kind]?.length ?? 0}条改为${input.histories![kind]!.length}条`, consequence: '原有记录区默认展示这份完整版本，旧版本仍可在原位置选择查看；最新状态说明正文保持本次明确选择的结果。' });
   return { projectId: input.projectId ?? null, beforeVersion: candidate.beforeVersion, savedVersion: candidate.savedVersion, changed: candidate.changed,
-    before: candidate.before, after: { fields: candidate.next, people: candidate.people, stages: candidate.stageFacts, records: candidate.recordChanges.map(v => v.after), histories: input.histories },
+    before: candidate.before, after: { fields: candidate.next, people: candidate.people, stages: candidate.stageFacts, records: candidate.recordChanges.map(v => v.after), tasks:candidate.tasks, histories: input.histories },
     changedFields: candidate.changedFields, changedRoles: candidate.changedRoles, changedStages: candidate.changedStages.map(v => v.code), historyChanged: candidate.historyChanged, sourceChanged: candidate.sourceChanged, effects };
 }
 
 export async function applyImportProject(c: PoolConnection, actor: Actor, input: ImportProjectInput, context: ImportProjectContext, locked: LockedImportProject) {
-  const { before, next, ordinary, baseStages, stageFacts, recordChanges, changedRecords, historyManifest, changedFields, changedRoles, changedStages, changed, beforeVersion, savedVersion, timestamp } = await prepareImportProject(c, actor, input, context, locked);
+  const { before, next, tasks, tasksChanged, ordinary, baseStages, stageFacts, recordChanges, changedRecords, historyManifest, changedFields, changedRoles, changedStages, changed, beforeVersion, savedVersion, timestamp } = await prepareImportProject(c, actor, input, context, locked);
   let id = input.projectId;
   if (!id) {
     await c.query("INSERT INTO projects (name,name_key,data_kind,created_by,source_namespace,source_key,source_import_item_id,signal_note,market_expectation,status_description,detail_note,summary_note,chipstat_note,closure_note,remaining_work_note,summary,created_at,updated_at) VALUES (?,?,'business',?,NULL,NULL,?,'','','','','','','','','',?,?)", [next.name, projectNameKey(next.name!), actor.id, context.itemId, timestamp, timestamp]);
@@ -474,6 +519,7 @@ export async function applyImportProject(c: PoolConnection, actor: Actor, input:
     await c.query('INSERT INTO project_responsibilities (project_id,user_id,joined_at) VALUES (?,?,?)', [id, actor.id, timestamp]);
     for (const stage of baseStages) await c.query('INSERT INTO project_stages (project_id,stage_code,state,note) VALUES (?,?,?,?)', [id, stage.code, stage.state, '']);
   }
+  if(tasks!==undefined)await writeTasks(c,id!,tasks);
   const childIdMap: Record<string, string> = Object.fromEntries((input.records ?? []).filter(record => record.targetId).map(record => [record.key, record.targetId!]));
   if (changed) {
     const selected = before ? changedFields : Object.keys(next).filter(key => own(columns, key) || own(factColumns, key));
@@ -487,7 +533,7 @@ export async function applyImportProject(c: PoolConnection, actor: Actor, input:
     if (changedFields.includes('statusDesc')) assignments.push('status_description_updated_at=NULL');
     assignments.push('version=?', 'updated_at=?');
     await c.query(`UPDATE projects SET ${assignments.join(',')} WHERE id=?`, [...params, savedVersion, timestamp, id]);
-    await replaceLinks(c, id!, { ...(own(ordinary, 'chipIds') ? { chipIds: ordinary.chipIds } : {}), ...(own(ordinary, 'tagIds') ? { tagIds: ordinary.tagIds } : {}), ...(input.people ? { people: ordinary.people } : {}) }, false);
+    await replaceLinks(c, id!, ordinary, false);
     for (const stage of (before ? changedStages : stageFacts)) await c.query('UPDATE project_stages SET state=?,planned_days=?,note=?,started_on=?,completed_on=?,expected_end_on=? WHERE project_id=? AND stage_code=?', [stage.state, stage.plannedDays ?? null, stage.note ?? '', stage.startedOn ?? null, stage.completedOn ?? null, stage.expectedEndOn ?? null, id, stage.code]);
     const stageIds = new Map((await rows(c, 'SELECT stage_code code,CAST(id AS CHAR) id FROM project_stages WHERE project_id=?', [id])).map(v => [v.code, v.id]));
     // 先取得本次新节点ID，再写前后连线，避免来源ID误作正式ID。
@@ -512,6 +558,7 @@ export async function applyImportProject(c: PoolConnection, actor: Actor, input:
     const beforeValues: Record<string, unknown> = Object.fromEntries(changedFields.map(key => [key, before?.fields?.[key as keyof ImportProjectFields] ?? null]));
     const afterValues: Record<string, unknown> = Object.fromEntries(changedFields.map(key => [key, next[key as keyof ImportProjectFields]]));
     if (changedRoles.length) { beforeValues.people = Object.entries(before?.people ?? {}).flatMap(([role, ids]) => ids!.map(id => ({ id, role }))); afterValues.people = ordinary.people; }
+    if(tasksChanged){beforeValues.tasks=before?.tasks??[];afterValues.tasks=tasks;}
     if (changedStages.length) { beforeValues.stageChanges = baseStages.filter(stage => changedStages.some(v => v.code === stage.code)); afterValues.stageChanges = changedStages; }
     // 来源时间由采用基线提供，审计不冒充旧说明的实际保存时间。
     const beforeDisplay = await displayValues(c, beforeValues), afterDisplay = await displayValues(c, afterValues);
@@ -531,6 +578,6 @@ export async function applyImportProject(c: PoolConnection, actor: Actor, input:
     const final = recordChanges.find(change => change.request.key === record.key)!.after;
     return { ...record, targetId: childIdMap[record.key] ?? record.targetId, values: Object.fromEntries(Object.keys(record.values).map(key => [key, ['previousNodeId', 'nextNodeId'].includes(key) && final.values[key] ? childIdMap[String(final.values[key])] ?? final.values[key] : final.values[key]])) };
   });
-  const adopted = { fields: input.fields ?? {}, ...(input.people ? { people: input.people } : {}), ...(input.stages ? { stages: input.stages } : {}), records: adoptedRecords, ...(input.intent ? { intent: input.intent } : {}), ...(statusEntries ? { statusEntries, statusDescriptionBaseline: next.statusDesc } : {}), ...(own(input, 'lastCheckAt') ? { lastCheckAt: input.lastCheckAt } : {}), ...(closureChanged ? { effectiveClosure: { status: next.status, preCloseStatus: next.preCloseStatus, closedOn: next.closedOn, closureDueDate: next.closureDueDate, closureType: next.closureType, closureNote: next.closureNote, remainingWorkNote: next.remainingWorkNote, maintenanceEnabled: next.maintenanceEnabled, planKnown: own(input.fields ?? {}, 'closureDueDate') ? next.closureDueDate != null : before?.fields?.status === 'closed' ? !!(await rows(c, `SELECT ${closurePlanKnownExpression} known FROM projects p WHERE p.id=?`, [id]))[0].known : false } } : {}) };
+  const adopted = { fields: input.fields ?? {}, ...(input.tasks?{tasks:input.tasks}:{}), ...(input.people ? { people: input.people } : {}), ...(input.stages ? { stages: input.stages } : {}), records: adoptedRecords, ...(input.intent ? { intent: input.intent } : {}), ...(statusEntries ? { statusEntries, statusDescriptionBaseline: next.statusDesc } : {}), ...(own(input, 'lastCheckAt') ? { lastCheckAt: input.lastCheckAt } : {}), ...(closureChanged ? { effectiveClosure: { status: next.status, preCloseStatus: next.preCloseStatus, closedOn: next.closedOn, closureDueDate: next.closureDueDate, closureType: next.closureType, closureNote: next.closureNote, remainingWorkNote: next.remainingWorkNote, maintenanceEnabled: next.maintenanceEnabled, planKnown: own(input.fields ?? {}, 'closureDueDate') ? next.closureDueDate != null : before?.fields?.status === 'closed' ? !!(await rows(c, `SELECT ${closurePlanKnownExpression} known FROM projects p WHERE p.id=?`, [id]))[0].known : false } } : {}) };
   return { projectId: id!, beforeVersion, savedVersion, changed, childIdMap, adopted, historyManifest, histories: input.histories ?? {}, changedFields, changedRoles, changedStages: changedStages.map(v => v.code) };
 }

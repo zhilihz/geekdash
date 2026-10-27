@@ -1334,15 +1334,105 @@ DEC-165最小账号启停复用`users.enabled/version/updated_at`、`sessions.re
 4. 旧执行先核实、再升级；具体顺序归实施计划1.3.4。已有成功及未提交修正分别承接，不能把旧页面的默认选择直接变成新授权。
 5. 增量扩展阶段state约束以表达未知；只改变允许值，不批量改写存量阶段。解析、阶段读模型、校验、卡片/详情与动作入口共同理解unknown：不显示已开始/已完成，实际动作需要明确依据时才在原阶段处理。新增迁移文件与schema manifest必须一并验证，0001～0008原文件校验和不动。新版本字段类型和索引宽度、存量补值、中断续跑均须真实MySQL实测；本节不是已生成的SQL或测试通过记录。
 
-### 5.15 多值资料与统一操作的结构影响（DEC-167/168，待详细收敛）
+### 5.15 多值资料与统一操作的目标结构（DEC-167/168）
 
-这是已确认业务方向对应的结构清单，尚未生成迁移，不能当作已验证完整ERD或DDL。
+本节为0010目标；是否已迁移以系统真相及验证报告为准。已发布0001～0009资源保持摘要不变。
 
-| 现有实体或关系 | 目标与保留要求 | 详细设计尚需核实 |
+| 实体 | 字段、键与不可替代用途 |
+|---|---|
+| project_customers | project_id→projects、customer_id→customers、sort_order；复合主键(project_id,customer_id)，反向索引(customer_id,project_id)。一个项目多个客户且不重复 |
+| project_odm_factories | project_id→projects、customer_id→customers、sort_order；复合主键及反向索引同上，表达ODM角色，与客户关系独立 |
+| project_product_lines | project_id、product_line_id→product_lines、sort_order；复合主键和资料反向索引 |
+| project_apps | project_id、app_id→apps、sort_order；复合主键和资料反向索引 |
+| project_group_links | project_id、group_id→project_groups、sort_order；复合主键和资料反向索引 |
+| customers分类 | is_customer与is_odm布尔值；旧资料保留客户分类，旧ODM引用额外标记ODM。新建ODM只赋ODM分类。公司同时承担两种角色仍是同一个ID；不按名称自动合并 |
+| project_chip_selections | project_id→projects、selection_id（项目内稳定选择键，varchar64）、chip_id→chips、note（TEXT项目备注）、sort_order；主键(project_id,selection_id)，索引(chip_id,project_id)。承接V1.055同型号多个选择，不用chip_id去重抹掉备注 |
+| project_membership_requests | 原表保留历史；旧pending统一invalidated，resolution_code记录入口退役。已accepted不撤销正式责任，不再新增申请/邀请 |
+| users | 复用display_name与version；姓名修改不改登录名或用户ID，审计原操作者快照不更新 |
+
+```mermaid
+erDiagram
+ projects ||--o{ project_customers : "客户"
+ customers ||--o{ project_customers : "稳定资料ID"
+ projects ||--o{ project_odm_factories : "ODM"
+ customers ||--o{ project_odm_factories : "同一公司可有两个角色"
+ projects ||--o{ project_product_lines : "产品线"
+ product_lines ||--o{ project_product_lines : "关联"
+ projects ||--o{ project_apps : "APP"
+ apps ||--o{ project_apps : "关联"
+ projects ||--o{ project_group_links : "分组"
+ project_groups ||--o{ project_group_links : "关联"
+ projects ||--o{ project_chip_selections : "项目选择"
+ chips ||--o{ project_chip_selections : "允许不同选择备注"
+ project_chip_selections {
+  bigint project_id PK,FK
+  varchar selection_id PK
+  bigint chip_id FK
+  text note
+  int sort_order
+ }
+```
+
+关联分组的物理表命名为`project_group_links`，避免与既有资料表`project_groups`重名；图中分组目录及关系按该物理命名核对。五类旧单外键和project_chips保留为只读迁移来源；新运行使用关系表，不将多值压成首项。旧单选非空值逐项生成一个关联，空值保持空；旧芯片选择键用可重放的legacy前缀及chip_id，备注为空，不捏造本地备注。回填校验目标与来源集合一致后方可登记完成。
+
+项目全页保存仍复用projects.version、audit_log、command_receipts及个人草稿；同次提交只推进一次版本，全部明细在同事务。临时子记录ID映射不另造常驻实体。旧请求和草稿保留原协议可核对，新全页范围使用独立请求摘要；没有迁移自动提交旧草稿。
+
+### 5.16 多管理员与注册、CHECK增量（0011）
+
+行为归SPEC-021。users新增is_admin（tinyint，默认0）及registration_invite_id（可空外键）；既有maintenance_user_id保留迁移来源，运行判权使用is_admin。registration_invites保存id、唯一code_hash（二进制SHA256）、role、created_by、created_at、expires_at、revoked_at；不存明文。check_rule_revisions新增frequency，保留原星期/生效周/保存人/时间；project_checks继续引用实际规则版本，不复制另一套周期状态表。
+
+```mermaid
+erDiagram
+ users ||--o{ registration_invites : creates
+ registration_invites o|--o{ users : registers
+ users ||--o{ check_rule_revisions : saves
+ check_rule_revisions o|--o{ project_checks : applied_rule
+```
+
+0011将既有维护账号标为管理员，并建立本次每周五默认规则修订；旧规则、原检查外键和时间保留。运行统计派生当前周期，不追加每个项目的重复周期表。
+
+
+### 0012账号管理补充（DEC-170）
+
+users.deleted_at（datetime(3)，可空）表示保留业务引用的删除；registration_invites.code_value（varchar(32)、ascii_bin，可空）供管理员列表回读完整码，旧摘要记录为空。实体/外键不新增，原唯一code_hash仍用于注册匹配。实际应用环境见系统真相。
+
+### 5.17 账号业务资格与1056任务（0013、0014）
+
+行为归SPEC-022；以下为迁移资源的结构说明，环境实测结果只查[本轮报告](../testing/reports/2026-10-27-experience.md)。
+
+```mermaid
+erDiagram
+ users ||--o{ project_responsibilities : joins
+ projects ||--o{ project_responsibilities : has
+ projects ||--o{ project_tasks : contains
+ users {
+   bigint id PK
+   tinyint is_maintenance
+   tinyint is_project_manager
+   varchar registration_name
+ }
+ project_tasks {
+   bigint project_id PK,FK
+   varchar task_key PK
+   text content
+   varchar created_at_text
+   varchar updated_at_text
+   varchar completed_at_text
+   varchar deleted_at_text
+   int sort_order
+ }
+```
+
+| 字段 | 物理定义与用途 | 必要性与写入边界 |
 |---|---|---|
-| projects五个单值资料外键 | 客户、产品线、ODM、APP、分组改为各自有稳定资料外键及顺序的多对多关系；旧非空值转为一个关系、空值保持空，旧历史及回执不改 | 关系表、唯一键、读取/筛选索引与旧协议的退役顺序，不使用无外键的通用ID集合替代 |
-| ODM资料目前复用customers | 新增独立管理分类与统一候选；已有ID、项目关联及导入来源必须保留，同名不自动合并 | 独立分类与物理实体是否共用的准确映射；不得根据名称含ODM猜测归类或先复制出两套公司资料 |
-| project_chips | 加入项目级备注承接本地V1.055，备注不属于chips公共字段 | 本地同芯片多备注的实际键语义、缺字段和重复项承接，不能把显示后缀擅自当编号 |
-| projects/version、audit_log及提交回执 | 整页一次事务和版本，复用已存在实体；旧分区回执与个人草稿可核对，不批量丢弃 | 全页草稿修订与原结果兼容、临时子记录ID回映 |
-| project_responsibilities及project_membership_requests | 已加入关系保持；旧pending终止并保留来源，未来直接本人加入不生成申请/邀请 | pending终态与旧读取兼容、中断续跑及并发加入/停用对账 |
-| users/display_name | 本人资料修改复用原字段与账号版本，不改ID、登录名、权限或历史姓名快照 | 显示名称的并发提交及通知读回，不为本次扩头像/联系方式实体 |
+| users.is_project_manager | tinyint，非空，默认1 | 与管理员资格独立；旧账号保留原业务资格，新管理员注册明确写0，管理员勾选兼任后写1 |
+| users.registration_name | varchar(128)，可空 | 注册时固定显示姓名；日常改名不改变项目匹配依据，旧账号为空时不猜造第一次姓名 |
+| projects.tasks_unified | tinyint，非空，默认0 | 区分尚未正式采用的旧说明与已统一任务，避免每次读取重复追加；首次明确任务保存/导入同事务置1 |
+| project_tasks.project_id、task_key | bigint unsigned＋varchar(128)，联合主键；task_key用utf8mb4_bin | 项目内稳定身份，大小写不同的原任务ID不被数据库合并；project_id真实外键限制悬空引用 |
+| content | text，非空 | 人工正文；不以文字去重，原文相同的两条任务仍独立 |
+| 四个*_at_text | varchar(128)，非空，默认空串 | 兼容原文件只有日期、完整时间及未知值；不把旧日期伪造成精确时刻，新动作由服务器写ISO时间 |
+| sort_order | int unsigned，非空 | 保留原显示次序；不依赖随机ID或文字排序 |
+
+没有另建“当前任务”“任务回收站”“任务人员统计”等重复表。当前任务状态来自上述一行，完整修改历史复用audit_log，导入来源历史复用现有来源版本。任务人员由未完成正文提及派生。status_description只作现有消费者的未完成任务投影；旧正文写入口不得与任务操作同时写。
+
+旧项目在首次读取时提供稳定ID的虚拟任务，读取本身不改业务数据。首次明确保存才持久化；原说明历史保持。新任务表不可被旧版应用理解，回退按版本匹配的备份恢复或向前修复，不能直接启动0012应用。

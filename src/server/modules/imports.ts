@@ -1,3 +1,5 @@
+import { assertBusinessActor } from './project-membership.js';
+import { projectReferences, expandLegacyReferences } from './project-references.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { link, mkdir, open, readFile, unlink } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
@@ -11,7 +13,7 @@ import { parseImportSource, importCatalogKinds } from './import-source.js';
 import { catalogDefinition, catalogNameKey, readCatalogInTransaction, previewCatalogInTransaction, saveCatalogInTransaction, validateCatalog } from './catalog.js';
 import { normalizeImportProject, readImportProject, lockImportProject, validateImportProject, applyImportProject, writeImportHistory, type ImportProjectInput } from './project-import.js';
 import { projectNameKey } from './project-name.js';
-import { hasProjectAccess, maintenanceAccount, lockMembershipAccounts, inviteCollaborator } from './project-membership.js';
+import { hasProjectAccess, lockMembershipAccounts } from './project-membership.js';
 
 type Json = Record<string, any>;
 type Difference = { key: string; label: string; before: unknown; after: unknown; selectable: boolean; status: 'normal'|'conflict'|'needs_choice'|'keep_online'; defaultSelected: boolean; members?: Difference[]; issues?: Json[] };
@@ -35,7 +37,7 @@ function command(input: unknown): ItemCommand {
     || input.targetId !== undefined && input.targetId !== null && !validId(input.targetId) || input.basis !== undefined && (typeof input.basis !== 'string' || !/^[a-f0-9]{64}$/.test(input.basis))) failure('INVALID_IMPORT_COMMAND',400);
   if (input.payload) {
     for (const key of ['fields','people','histories']) if(input.payload[key]!==undefined&&!object(input.payload[key]))failure('INVALID_IMPORT_PAYLOAD',400);
-    for (const key of ['stages','records','statusEntries']) if(input.payload[key]!==undefined&&(!Array.isArray(input.payload[key])||input.payload[key].some((v:unknown)=>!object(v))))failure('INVALID_IMPORT_PAYLOAD',400);
+    for (const key of ['stages','records','statusEntries','tasks']) if(input.payload[key]!==undefined&&(!Array.isArray(input.payload[key])||input.payload[key].some((v:unknown)=>!object(v))))failure('INVALID_IMPORT_PAYLOAD',400);
     if(input.payload.records?.some((v:Json)=>typeof v.key!=='string'||!object(v.values)) || input.payload.stages?.some((v:Json)=>typeof v.code!=='string'))failure('INVALID_IMPORT_PAYLOAD',400);
   }
   return input as ItemCommand;
@@ -89,12 +91,13 @@ async function catalogs(c: PoolConnection) {
   return result;
 }
 async function mayEdit(c: PoolConnection, actor: Actor, b: RowDataPacket, targetId: string | null, project: boolean) {
-  if(await maintenanceAccount(c,false)===actor.id)return false;
-  if (!project) return true;
+
+  if(!(await rows(c,'SELECT id FROM users WHERE id=? AND enabled=1 AND is_project_manager=1',[actor.id])).length)return false;
+  if (!project) return b.handlerId===actor.id;
   if (!targetId) return b.handlerId === actor.id && !!b.handlerEnabled;
   return hasProjectAccess(c,targetId,actor.id);
 }
-const labels: Record<string,string> = { name:'项目名称', status:'项目状态', statusDesc:'最新状态说明', summary:'项目简介', marketExpectation:'市场预期', detailNote:'详细说明', summaryNote:'项目简要备注', chipstatNote:'芯片备注', customerId:'客户', odmCustomerId:'ODM工厂', productLineId:'产品线', appId:'APP', groupId:'分组', chipIds:'芯片', tagIds:'标签', signal:'灯色', signalNote:'灯色说明', priority:'优先级', filingDate:'立案日期', proposalDate:'提案日期', startDate:'实际启动日期', dueDate:'预计结案日期', originalDueDate:'原始计划', closedOn:'实际结案日期', closureType:'结案类型', closureDueDate:'结案时计划', closureNote:'结案说明', remainingWorkNote:'遗留处置说明', maintenanceEnabled:'量产维护', resumeStatus:'暂缓前状态', preCloseStatus:'结案前状态', hardware_owner:'硬件负责人', software_owner:'软件负责人', participant:'参与人员', pm:'本地项目经理资料', fullName:'企业全称', shortName:'企业简称', managerText:'企业负责人文字', namePrefix:'命名前缀', contact:'联系方式', background:'背景资料', role:'岗位', appVersion:'APP版本', description:'说明', originalModel:'原型号', manufacturer:'厂商', firmwareVersion:'固件版本' };
+const labels: Record<string,string> = { name:'项目名称', status:'项目状态', statusDesc:'最新状态说明', summary:'项目简介', marketExpectation:'市场预期', detailNote:'详细说明', summaryNote:'项目简要备注', chipstatNote:'芯片备注', customerIds:'客户', odmFactoryIds:'ODM工厂', productLineIds:'产品线', appIds:'APP', groupIds:'分组', chipSelections:'芯片', tagIds:'标签', signal:'灯色', signalNote:'灯色说明', priority:'优先级', filingDate:'立案日期', proposalDate:'提案日期', startDate:'实际启动日期', dueDate:'预计结案日期', originalDueDate:'原始计划', closedOn:'实际结案日期', closureType:'结案类型', closureDueDate:'结案时计划', closureNote:'结案说明', remainingWorkNote:'遗留处置说明', maintenanceEnabled:'量产维护', resumeStatus:'暂缓前状态', preCloseStatus:'结案前状态', hardware_owner:'硬件负责人', software_owner:'软件负责人', participant:'参与人员', pm:'本地项目经理资料', fullName:'企业全称', shortName:'企业简称', managerText:'企业负责人文字', namePrefix:'命名前缀', contact:'联系方式', background:'背景资料', role:'岗位', appVersion:'APP版本', description:'说明', originalModel:'原型号', manufacturer:'厂商', firmwareVersion:'固件版本' };
 
 function catalogSource(kind:string,raw:Json):Json {
   const value={...raw};
@@ -132,6 +135,7 @@ function differences(payload: Json, current: Json | null, project: boolean): Dif
     group('record.'+record.key,({project_node:'项目节点',customer_node:'客户节点',risk:'风险',change:'需求变更',schedule:'改期记录'} as Json)[record.kind]+' · '+(record.values.title ?? record.values.content ?? record.values.reason ?? ''),prior?.values ?? null,record.values,record.targetId===null);
   }
   for (const [kind,value] of Object.entries(payload.histories ?? {})) add('history.'+kind,kind==='mixed'?'本地原有记录':'本地状态说明历史',current?.histories?.[kind],value);
+  if(payload.tasks)add('tasks','任务与最新状态说明',current?.tasks,payload.tasks);
   if (Object.hasOwn(payload,'lastCheckAt')) add('lastCheckAt','本地最后标记时间',current?.lastCheckAt,payload.lastCheckAt);
   return diffs;
 }
@@ -158,12 +162,14 @@ function selectProject(payload: ImportProjectInput, selected: string[]): ImportP
   const stages = payload.stages?.map(v=>({code:v.code,...Object.fromEntries(Object.entries(v).filter(([key])=>key!=='code'&&(chosen.has('stage.'+v.code)||chosen.has('stage.'+v.code+'.'+key))))})).filter(v=>Object.keys(v).length>1); if (stages?.length) input.stages=stages;
   const records = payload.records?.map(v=>({...v,values:Object.fromEntries(Object.entries(v.values).filter(([key])=>chosen.has('record.'+v.key)||chosen.has('record.'+v.key+'.'+key)))})).filter(v=>Object.keys(v.values).length); if (records?.length) input.records=records;
   if (chosen.has('fields.statusDesc') && payload.statusEntries) input.statusEntries=payload.statusEntries;
+  if(chosen.has('tasks'))input.tasks=payload.tasks;
   if (chosen.has('lastCheckAt')) input.lastCheckAt=payload.lastCheckAt;
   return input;
 }
 function validationIssues(error:unknown):Json[] {
   const known=error as {status?:number;code?:string;fields?:Record<string,string>;cause?:string;consequence?:string;requiredKeys?:string[]};
   if(!known.status)throw error;
+  if(known.code==='CATALOG_NAME_CONFLICT')return [{code:known.code,path:'name',message:'已有同名资料。请选择使用已有资料，或在这里改为不同名称后导入。'}];
   const effect={cause:known.cause,consequence:known.consequence,requiredKeys:known.requiredKeys};
   return known.fields?Object.entries(known.fields).map(([path,message])=>({path,message,code:known.code,...effect})):[{code:known.code,message:'所选信息尚不能保存：'+known.code,...effect}];
 }
@@ -200,7 +206,7 @@ function correctionFor(base:Json,payload:Json,project:boolean):Json {
     }).filter(Boolean);
     if(changed.length)result[key]=changed;
   }
-  for(const key of ['statusEntries','lastCheckAt'])if(Object.hasOwn(payload,key)&&differs(base,key,payload[key]))result[key]=payload[key];
+  for(const key of ['statusEntries','lastCheckAt','tasks'])if(Object.hasOwn(payload,key)&&differs(base,key,payload[key]))result[key]=payload[key];
   return result;
 }
 function assertRecordIdentity(base:Json,correction?:Json|null) {
@@ -212,8 +218,9 @@ function assertRecordIdentity(base:Json,correction?:Json|null) {
 function applicableCorrection(correction:Json|null,metadata:Json,source:string,target:string|null):Json|null {
   if(!correction)return null;
   const value=structuredClone(correction);
+  if (value.fields) value.fields=expandLegacyReferences(value.fields);
   if(metadata.sourceNamespace && metadata.sourceNamespace!==source) {
-    for(const key of ['customerId','odmCustomerId','productLineId','appId','groupId','chipIds','tagIds'])if(value.fields)delete value.fields[key];
+    for(const key of ['customerIds','odmFactoryIds','productLineIds','appIds','groupIds','chipSelections','tagIds'])if(value.fields)delete value.fields[key];
     delete value.people;
     delete value.tagIds;
   }
@@ -233,22 +240,9 @@ function sourceBinding(row:RowDataPacket,all:RowDataPacket[],bindings:RowDataPac
   const identity=sourceIdentity(row,all);
   return identity?bindings.find(value=>value.kind===row.kind&&value.scope===identity.scope&&value.sourceKey===identity.key):undefined;
 }
-async function collaborators(c:PoolConnection,row:RowDataPacket,all:RowDataPacket[],matches:Record<string,string>={}) {
-  const names=[...new Set((Array.isArray(row.raw.pm)?row.raw.pm:row.raw.pm==null?[]:[row.raw.pm]).flatMap((value:unknown)=>{
-    const key=object(value)?String(value.id??value.name??''):String(value);
-    const source=all.filter(item=>item.kind==='engineers'&&item.sourceKey===key);
-    const name=source.length===1?source[0].raw.name:object(value)?value.name:typeof value==='string'?value:'';
-    return typeof name==='string'&&name.trim()?[name.trim()]:[];
-  }))] as string[];
-  const accounts=await rows(c,'SELECT CAST(u.id AS CHAR) id,u.display_name name FROM users u WHERE u.enabled=1 AND NOT EXISTS(SELECT 1 FROM system_configuration s WHERE s.maintenance_user_id=u.id)');
-  return names.map(name=>{
-    const candidates=accounts.filter(account=>account.name===name).map(({id,name})=>({id,name}));
-    const targetId=matches[name]&&candidates.some(value=>value.id===matches[name])?matches[name]:candidates.length===1?candidates[0].id:null;
-    return {name,targetId,candidates,status:targetId?'matched':candidates.length?'ambiguous':'unmatched'};
-  });
-}
 async function viewItem(c: PoolConnection, actor: Actor, b: RowDataPacket, row: RowDataPacket, all: RowDataPacket[], bindings: RowDataPacket[], catalog: Record<string,RowDataPacket[]>, input?: Partial<ItemCommand>) {
   const project = row.kind === 'project', metadata = row.validation ?? {}, bound = sourceBinding(row,all,bindings);
+  const ignored=!project&&!!metadata.ignored&&!row.result;
   const stored = metadata.sourceNamespace===b.sourceNamespace ? metadata.choice : undefined;
   const choice = input?.mode ? {mode:input.mode,targetId:input.targetId ?? null} : stored;
   const sourceProjectName=row.corrected?.fields?.name ?? row.raw.name;
@@ -257,17 +251,22 @@ async function viewItem(c: PoolConnection, actor: Actor, b: RowDataPacket, row: 
   if (targetId!==null && !validId(targetId)) failure('INVALID_IMPORT_TARGET',400);
   let current:Json|null=project&&targetId&&await hasProjectAccess(c,targetId,actor.id)?await readImportProject(c,targetId,b.sourceNamespace):null;
   const used: unknown[] = [], issues: Json[] = [],unresolvedReferences:{path:string;itemIds:string[]}[]=[];
+  const ignoredPaths=new Set<string>();
   const resolveReference = (kind: string,key: string,path='reference') => {
-    const candidates=all.filter(v=>v.kind===kind&&(v.sourceKey===key||v.raw?.name===key));
+    let candidates=all.filter(v=>v.kind===kind&&(v.sourceKey===key||v.raw?.name===key));
+    const legacyOdm=kind==='odmFactories'&&!candidates.length;
+    if(legacyOdm)candidates=all.filter(v=>v.kind==='customers'&&(v.sourceKey===key||v.raw?.name===key));
     let id:string|undefined;
     if(candidates.length===1) {
-      const candidate=candidates[0],adopted=candidate.result?.sourceNamespace===b.sourceNamespace?candidate.result:undefined;
-      const supplied=catalogSource(kind,candidate.raw);
+      const candidate=candidates[0];
+      if(candidate.validation?.ignored&&!candidate.result){used.push(['ignored',candidate.id,candidate.reviewVersion]);ignoredPaths.add(path);return null;}
+      const adopted=candidate.result?.sourceNamespace===b.sourceNamespace?candidate.result:undefined;
+      const supplied=catalogSource(legacyOdm?'customers':kind,candidate.raw);
       if(kind==='customers'&&Array.isArray(candidate.raw.tags)&&candidate.raw.tags.length) {
         const tagIds=candidate.raw.tags.map((v:unknown)=>resolveReference('tags',String(v),'tagIds'));
         if(tagIds.every(Boolean))supplied.tagIds=tagIds;else supplied.tagIds=null;
       }
-      const automatic=matchingCatalog(kind,supplied,catalog);
+      const automatic=matchingCatalog(legacyOdm?'customers':kind,supplied,catalog);
       used.push(['item',candidate.id,candidate.reviewVersion,null,adopted?.id ?? null]);
       id=adopted?.id ?? automatic?.id;
     }
@@ -275,7 +274,7 @@ async function viewItem(c: PoolConnection, actor: Actor, b: RowDataPacket, row: 
       unresolvedReferences.push({path,itemIds:candidates.length===1?[candidates[0].id]:[]});
       return undefined;
     }
-    const reference = catalog[kind]?.find(v=>v.id===id); used.push([kind,id,reference?.version ?? null]);
+    const reference = catalog[kind]?.find(v=>v.id===id)??(legacyOdm?catalog.customers?.find(v=>v.id===id):undefined); used.push([kind,id,reference?.version ?? null]);
     return reference ? id : undefined;
   };
   const parentScope = bound && targetId===bound.targetId ? `project:${bound.id}:${bound.version}` : null;
@@ -290,6 +289,7 @@ async function viewItem(c: PoolConnection, actor: Actor, b: RowDataPacket, row: 
       if(chosen)return chosen.targetId;
       return candidates.length===1?candidates[0].targetId:candidates.length||child?undefined:null;
     }});
+    if(targetId)for(const path of ignoredPaths){const [group,key]=path.split('.');const values=group==='fields'?normalized.input.fields:group==='people'?normalized.input.people:null;if(Array.isArray((values as Json)?.[key])&&!(values as Json)[key].length)delete (values as Json)[key];}
     basePayload=normalized.input;
     assertRecordIdentity(basePayload,row.corrected);assertRecordIdentity(basePayload,input?.payload);
     payload=overlay(overlay(basePayload,correction),input?.payload);
@@ -343,19 +343,15 @@ async function viewItem(c: PoolConnection, actor: Actor, b: RowDataPacket, row: 
   }
   const referenceIds: Record<string,string[]> = {};
   if (project) {
-    for (const [key,kind] of Object.entries({customerId:'customers',odmCustomerId:'customers',productLineId:'productLines',appId:'apps',groupId:'groups',chipIds:'chips',tagIds:'tags'})) {
-      const value=payload.fields?.[key]; if (value) (referenceIds[kind] ??= []).push(...Array.isArray(value)?value:[value]);
+    for (const [key,kind] of Object.entries({customerIds:'customers',odmFactoryIds:'odmFactories',productLineIds:'productLines',appIds:'apps',groupIds:'groups',chipSelections:'chips',tagIds:'tags'})) {
+      const value=payload.fields?.[key]; if (value) (referenceIds[kind] ??= []).push(...(key==='chipSelections'?value.map((item:Json)=>item.chipId):Array.isArray(value)?value:[value]));
     }
     referenceIds.engineers=Object.values(payload.people ?? {}).flat() as string[];
   } else if (payload.tagIds) referenceIds.tags=payload.tagIds;
   for (const [kind,ids] of Object.entries(referenceIds)) for (const id of [...new Set(ids)].sort(idSort)) {
     const found=catalog[kind]?.find(v=>v.id===id); used.push(['reference',kind,id,found?.version ?? null,found?.enabled ?? null]);
   }
-  const managerMatches=Object.assign({},...all.filter(value=>value.kind==='project').map(value=>value.result?.managerMatches??{}),input?.managerMatches??{});
-  const managers=project?await collaborators(c,row,all,managerMatches):[];
-  const members=project&&targetId&&!restricted?await rows(c,'SELECT CAST(user_id AS CHAR) id FROM project_responsibilities WHERE project_id=?',[targetId]):[];
-  const requests=project&&targetId&&!restricted?await rows(c,'SELECT CAST(target_user_id AS CHAR) id FROM project_membership_requests WHERE project_id=?',[targetId]):[];
-  const pendingInvitations=canEdit?managers.filter(manager=>manager.targetId&&manager.targetId!==actor.id&&!members.some(value=>value.id===manager.targetId)&&!requests.some(value=>value.id===manager.targetId)).map(manager=>manager.name):[];
+  const managers: Json[] = [], pendingInvitations: string[] = [];
   const reliable=!!targetId&&!restricted;
   const defaultSelected=leaves(diffs).filter(diff=>diff.defaultSelected).map(diff=>diff.key);
   const conflictKeys=leaves(diffs).filter(diff=>diff.status==='conflict'||diff.status==='needs_choice').map(diff=>diff.key);
@@ -370,19 +366,23 @@ async function viewItem(c: PoolConnection, actor: Actor, b: RowDataPacket, row: 
   }
   const unchanged=reliable && !diffs.length && !issues.length;
   const keptOnline=reliable && !!diffs.length && leaves(diffs).every(diff=>diff.status==='keep_online') && !issues.length;
-  const classification=unchanged||keptOnline?'unchanged':issues.length||conflictKeys.length||!canEdit?'needs_attention':'ready';
+  const classification=ignored||unchanged||keptOnline?'unchanged':issues.length||conflictKeys.length||!canEdit?'needs_attention':'ready';
   const executionBasis=[b.sourceNamespace,b.version,row.reviewVersion,targetId,bound ? [bound.id,bound.version,bound.targetId] : null,used,[]];
   const basis=hash(executionBasis).toString('hex');
   const referenceBasis=hash([resolvedReferences,
-    Object.fromEntries(['customerId','odmCustomerId','productLineId','appId','groupId','chipIds','tagIds'].map(key=>[key,basePayload.fields?.[key] ?? basePayload[key]])),
+    Object.fromEntries(['customerIds','odmFactoryIds','productLineIds','appIds','groupIds','chipSelections','tagIds'].map(key=>[key,basePayload.fields?.[key] ?? basePayload[key]])),
     basePayload.people,(basePayload.records ?? []).map((record:Json)=>[record.key,record.targetId,record.values.previousNodeId,record.values.nextNodeId])
   ]).toString('hex');
   const adoptions=await rows(c,'SELECT CAST(id AS CHAR) id,CAST(target_id AS CHAR) targetId,CAST(version_after AS CHAR) savedVersion,adopted_json adopted,JSON_KEYS(history_manifest_json) historyKinds,created_at savedAt FROM import_adoptions WHERE item_id=? ORDER BY id DESC',[row.id]);
   if(project)for(const adoption of adoptions)if(!await hasProjectAccess(c,adoption.targetId,actor.id))delete adoption.adopted;
   const candidates=project&&typeof sourceProjectName==='string'&&sourceProjectName.trim()?await rows(c,'SELECT CAST(p.id AS CHAR) id,p.name FROM project_name_aliases a JOIN projects p ON p.id=a.project_id WHERE a.name_key=? AND p.name_key<>? ORDER BY p.id',[projectNameKey(sourceProjectName),projectNameKey(sourceProjectName)]):catalog[row.kind]??[];
-  const basic=restricted?(await rows(c,'SELECT CAST(p.id AS CHAR) id,p.name,p.status,p.summary,c.name customer,pl.name productLine FROM projects p LEFT JOIN customers c ON c.id=p.customer_id LEFT JOIN product_lines pl ON pl.id=p.product_line_id WHERE p.id=?',[targetId]))[0]:undefined;
-  if(basic)for(const [key,join,table,column]of [['chips','project_chips','chips','chip_id'],['tags','project_tags','tags','tag_id']])basic[key]=await rows(c,`SELECT CAST(v.id AS CHAR) id,v.name FROM ${join} r JOIN ${table} v ON v.id=r.${column} WHERE r.project_id=? ORDER BY r.sort_order,v.id`,[targetId]);
-  return {id:row.id,kind:row.kind,reviewVersion:row.reviewVersion,sourceKey:row.sourceKey,payload,basePayload,managers,pendingInvitations,canEdit,restricted,canAdopt:canEdit && (pendingInvitations.length>0 || !unchanged && !keptOnline),targetId,expectedVersion:current?.expectedVersion ?? current?.version ?? (targetId?null:'0'),mode:targetId?'existing':'new',diffs,issues,unresolvedReferences,unchanged,keptOnline,needsMapping,classification,defaultSelected,conflictKeys,basis,executionBasis,referenceBasis,bindingVersion:bound?.version ?? null,previousResult:row.result ?? null,adoptions:restricted?adoptions.map(({adopted:_,...value})=>value):adoptions,sourceName:row.raw.name ?? row.raw.fullName ?? '',name:payload.fields?.name ?? payload.name ?? payload.fullName ?? '',target:current,basic,candidates};
+  const basic=restricted?(await rows(c,'SELECT CAST(p.id AS CHAR) id,p.name,p.status,p.summary FROM projects p WHERE p.id=?',[targetId]))[0]:undefined;
+  if (basic) for (const link of Object.values(projectReferences)) {
+    const values = await rows(c,`SELECT CAST(v.id AS CHAR) id,v.name FROM ${link.table} r JOIN ${link.catalog} v ON v.id=r.${link.reference} WHERE r.project_id=? ORDER BY r.sort_order,v.id`,[targetId]);
+    basic[link.dimension+'Items']=values; basic[link.dimension==='group'?'projectGroup':link.dimension]=values.map(v=>v.name).join(' / ');
+  }
+  if(basic)for(const [key,join,table,column]of [['chips','project_chip_selections','chips','chip_id'],['tags','project_tags','tags','tag_id']])basic[key]=await rows(c,`SELECT CAST(v.id AS CHAR) id,v.name FROM ${join} r JOIN ${table} v ON v.id=r.${column} WHERE r.project_id=? ORDER BY r.sort_order,v.id`,[targetId]);
+  return {ignored,id:row.id,kind:row.kind,reviewVersion:row.reviewVersion,sourceKey:row.sourceKey,payload,basePayload,managers,pendingInvitations,canEdit,restricted,canAdopt:!ignored && canEdit && (pendingInvitations.length>0 || !unchanged && !keptOnline),targetId,expectedVersion:current?.expectedVersion ?? current?.version ?? (targetId?null:'0'),mode:targetId?'existing':'new',diffs,issues,unresolvedReferences,unchanged,keptOnline,needsMapping,classification,defaultSelected,conflictKeys,basis,executionBasis,referenceBasis,bindingVersion:bound?.version ?? null,previousResult:row.result ?? null,adoptions:restricted?adoptions.map(({adopted:_,...value})=>value):adoptions,sourceName:row.raw.name ?? row.raw.fullName ?? '',name:payload.fields?.name ?? payload.name ?? payload.fullName ?? '',target:current,basic,candidates};
 }
 
 async function bind(c: PoolConnection, source: string, kind: string, scope: string, key: string | null, targetId: string) {
@@ -423,7 +423,7 @@ async function receiveFile(stream: Readable, actor: Actor, key: string) {
     return {file:final,bytes,sha,parsed};
   } catch(error) { await file.close().catch(()=>{}); await unlink(temporary).catch(()=>{}); throw error; }
 }
-async function actorLock(c: PoolConnection, actor: Actor) { await rows(c,'SELECT id FROM users WHERE id=? FOR UPDATE',[actor.id]); await assertActor(c,actor);if(await maintenanceAccount(c)===actor.id)failure('BUSINESS_ACCOUNT_REQUIRED',403); }
+async function actorLock(c: PoolConnection, actor: Actor) { await rows(c,'SELECT id FROM users WHERE id=? FOR UPDATE',[actor.id]); await assertBusinessActor(c,actor); }
 async function sourceExists(c: PoolConnection, source: string, lock = false) {
   const found=(await rows(c,`SELECT source_namespace FROM import_sources WHERE source_namespace=?${lock?' FOR SHARE':''}`,[source]))[0];
   if (!found) failure('IMPORT_SOURCE_NOT_FOUND',404);
@@ -442,8 +442,8 @@ function issueFailure(issues: Json[]) {
 }
 // 已接收任务凭持久授权执行；退出页面或会话不撤销任务，账号停用/改密/交接仍立即阻止后续写入。
 async function executionActor(c:PoolConnection,actor:Actor,execution:{id:string;token:string}) {
-  const user=(await rows(c,'SELECT enabled,must_change_password,CAST(version AS CHAR) version,display_name name FROM users WHERE id=? FOR SHARE',[actor.id]))[0];
-  if(!user?.enabled||user.must_change_password||user.version!==actor.version)failure('AUTH_REQUIRED',401);
+  const user=(await rows(c,'SELECT enabled,is_project_manager,must_change_password,CAST(version AS CHAR) version,display_name name FROM users WHERE id=? FOR SHARE',[actor.id]))[0];
+  if(!user?.enabled||!user.is_project_manager||user.must_change_password||user.version!==actor.version)failure('AUTH_REQUIRED',401);
   const job=(await rows(c,"SELECT actor_id FROM import_executions WHERE id=? AND actor_id=? AND lease_token=? AND lease_until>UTC_TIMESTAMP(3) AND status='running' FOR UPDATE",[execution.id,actor.id,execution.token]))[0];
   if(!job)failure('IMPORT_EXECUTION_LEASE_LOST',409);
   actor.name=user.name;
@@ -455,6 +455,26 @@ export function imports(database: RuntimeDatabase) {
     return database.readSnapshot(async c=>{await assertActor(c,actor,false,new Date(),false,false);const result=await receipt(c,actor,scope,key,body);return result?{outcome:'committed',result}:{outcome:'not_found'};});
   }
   const service = {
+    ignoreCatalog(actor:Actor,batchId:string,itemId:string,input:unknown,requestId:string,query=false){
+      if(!object(input)||Object.keys(input).some(key=>!['ignored','expectedBatchVersion','expectedReviewVersion','idempotencyKey'].includes(key))||typeof input.ignored!=='boolean'||!validId(input.expectedBatchVersion)||!validId(input.expectedReviewVersion)||!uuid(input.idempotencyKey))failure('INVALID_IMPORT_COMMAND',400);
+      const scope=`user:${actor.id}:import:ignore:${itemId}`;
+      return database.writeTransaction(async c=>{
+        await assertBusinessActor(c,actor);const b=await batch(c,batchId,true);
+        if(b.handlerId!==actor.id)failure('IMPORT_HANDLER_REQUIRED',403);
+        const prior=await receipt(c,actor,scope,input.idempotencyKey,input);
+        if(prior)return {outcome:'committed',result:prior};
+        if(query)return {outcome:'not_found'};
+        if(b.version!==input.expectedBatchVersion)failure('IMPORT_BATCH_VERSION_CONFLICT',409);
+        if((await rows(c,"SELECT id FROM import_executions WHERE batch_id=? AND status IN ('accepted','running') LIMIT 1",[batchId])).length)failure('IMPORT_EXECUTION_ACTIVE',409);
+        const row=(await itemRows(c,batchId,itemId,true))[0];if(!row)failure('IMPORT_ITEM_NOT_FOUND',404);
+        if(row.kind==='project'||row.result)failure('IMPORT_ALREADY_ADOPTED',409);
+        if(row.reviewVersion!==input.expectedReviewVersion)failure('IMPORT_REVIEW_VERSION_CONFLICT',409);
+        await c.execute('UPDATE import_items SET validation_json=?,review_version=review_version+1 WHERE id=?',[JSON.stringify({...row.validation,ignored:input.ignored}),itemId]);
+        const result={itemId,ignored:input.ignored,operationId:input.idempotencyKey};
+        await audit(c,actor,'import.catalog.ignore','import_item',itemId,{ignored:!!row.validation?.ignored},{ignored:input.ignored},requestId);
+        await remember(c,actor,scope,input.idempotencyKey,input,result);return {outcome:'committed',result};
+      });
+    },
     query,
     executionResult(actor:Actor,itemId:string,body:ItemCommand){return database.readSnapshot(c=>itemResult(c,actor,`user:${actor.id}:import:item:${itemId}`,itemId,body,'adopt'));},
     async planExecution(c:PoolConnection,actor:Actor,batchId:string,input:unknown) {
@@ -475,6 +495,7 @@ export function imports(database: RuntimeDatabase) {
         if(visiting.has(id))failure('IMPORT_DEPENDENCY_REQUIRED',422);visiting.add(id);
         const row=all.find(value=>value.id===id);if(!row)failure('IMPORT_ITEM_NOT_FOUND',404);
         const supplied=requested.get(id),view=await viewItem(c,actor,b,row,all,bindings,catalog,supplied);
+        if(view.ignored)failure('IMPORT_CATALOG_IGNORED',422);
         if(!view.canEdit)failure(view.targetId?'PROJECT_RESPONSIBILITY_REQUIRED':'IMPORT_HANDLER_REQUIRED',403);
         const body=supplied ?? {expectedBatchVersion:b.version,expectedReviewVersion:row.reviewVersion,expectedVersion:view.expectedVersion,idempotencyKey:randomUUID(),basis:view.basis,selected:view.defaultSelected};
         assertVersions(b,row,body);
@@ -538,7 +559,8 @@ export function imports(database: RuntimeDatabase) {
       operation(options.operation);if(options.source!==undefined)failure('IMPORT_CLIENT_OUTDATED',410);
       const source='backup-account-'+actor.id;
       if (typeof options.name!=='string' || !options.name.trim() || options.name.length>255 || options.new!==undefined && options.new!=='1') failure('INVALID_IMPORT_UPLOAD',400);
-      await database.readSnapshot(async c=>{await assertActor(c,actor,false,new Date(),false,false);if(await maintenanceAccount(c,false)===actor.id)failure('BUSINESS_ACCOUNT_REQUIRED',403);});
+      await database.readSnapshot(async c=>{await assertActor(c,actor,false,new Date(),false,false);});
+      await database.readSnapshot(c=>assertBusinessActor(c,actor));
       const file=await receiveFile(stream,actor,options.operation);
       const request={source,name:options.name,hash:file.sha.toString('hex'),bytes:file.bytes,new:options.new==='1'};
       // 已发布文件按原操作保持不可变；事务失败也不能删除另一并发重试正在登记的同一文件。
@@ -554,7 +576,7 @@ export function imports(database: RuntimeDatabase) {
           }
           await c.execute('INSERT INTO import_batches(source_hash,source_file_ref,source_bytes,source_schema_version,source_app_version,exported_at_text,source_namespace,mapping_json,created_by,current_handler_id,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(3))',[file.sha,file.file,file.bytes,String(file.parsed.version ?? 'unknown'),file.parsed.appVersion,file.parsed.exportedAt==null?null:String(file.parsed.exportedAt).slice(0,128),source,JSON.stringify({filename:options.name,format:file.parsed.format,issues:file.parsed.issues}),actor.id,actor.id]);
           const batchId=await lastId(c);
-          for(const item of file.parsed.items) await c.execute('INSERT INTO import_items(batch_id,item_kind,source_sequence,source_key,source_payload_json,validation_json,status) VALUES (?,?,?,?,?,?,\'pending\')',[batchId,item.kind,item.sequence,item.sourceKey,JSON.stringify(item.raw),JSON.stringify({issues:item.issues,present:item.present,originPaths:item.originPaths})]);
+          for(const item of file.parsed.items) await c.execute('INSERT INTO import_items(batch_id,item_kind,source_sequence,source_key,source_payload_json,validation_json,status) VALUES (?,?,?,?,?,?,\'pending\')',[batchId,item.kind,item.sequence,item.sourceKey,JSON.stringify(item.raw),JSON.stringify({issues:item.issues,present:item.present,originPaths:item.originPaths,...item.kind!=='project'&&item.kind!=='company'&&typeof item.raw.name==='string'&&item.raw.name.trim()==='-'?{ignored:true}:{} })]);
           const result={batchId,reused:false};await remember(c,actor,scope,options.operation,request,result);return{outcome:'committed',result};
       });
     },
@@ -584,9 +606,9 @@ export function imports(database: RuntimeDatabase) {
       });
       const execute=async(c:PoolConnection)=> {
         const writing=action!=='preview';
-        const accounts=writing?await lockMembershipAccounts(c,[actor.id,...(execution?.collaborators??[]).flatMap(value=>value.targetId?[value.targetId]:[])]):new Map<string,RowDataPacket>();
+        if(writing)await lockMembershipAccounts(c,[actor.id]);
         if(execution)await executionActor(c,actor,execution);else await assertActor(c,actor,false,new Date(),false,writing);
-        if(writing&&await maintenanceAccount(c)===actor.id)failure('BUSINESS_ACCOUNT_REQUIRED',403);
+
         const initial=await batch(c,batchId);
         const raw=(await itemRows(c,batchId,itemId))[0];if(!raw)failure('IMPORT_ITEM_NOT_FOUND',404);
         if(writing && raw.kind!=='project')await rows(c,'SELECT id FROM system_configuration WHERE id=1 FOR UPDATE');
@@ -597,6 +619,7 @@ export function imports(database: RuntimeDatabase) {
         if(action!=='preview') { const previous=await itemResult(c,actor,scope,itemId,body,action);if(previous)return{outcome:'committed',result:previous}; assertVersions(b,row,body); }
         const all=await itemRows(c,batchId),bindings=await bindingRows(c,b.sourceNamespace,writing),catalog=await catalogs(c);
         let view=await viewItem(c,actor,b,row,all,bindings,catalog,body);
+        if(view.ignored&&writing)failure('IMPORT_CATALOG_IGNORED',422);
         if(!view.canEdit && writing)failure(view.targetId?'PROJECT_RESPONSIBILITY_REQUIRED':'IMPORT_HANDLER_REQUIRED',403);
         if(writing && (!body.basis || body.basis!==view.basis))failure('IMPORT_BINDING_CHANGED',409);
         const selected=selection(view.diffs,body.selected ?? []),kept=selection(view.diffs,body.keepOnline ?? [],true),project=row.kind==='project';
@@ -622,7 +645,7 @@ export function imports(database: RuntimeDatabase) {
               const known=error as {status?:number;code?:string;fields?:Record<string,string>;cause?:string;consequence?:string;requiredKeys?:string[]};if(!known.status)throw error;
               const effect={cause:known.cause,consequence:known.consequence,requiredKeys:known.requiredKeys};
               if(known.fields)for(const [path,message]of Object.entries(known.fields))issues.push({path,message,code:known.code,...effect});
-              else issues.push({code:known.code,message:({IMPORT_INTENT_REQUIRED:'阶段倒退或重新打开项目需要明确本次变化原因。',PROJECT_VERSION_CONFLICT:'项目已更新，请重新核对。',IMPORT_RECORD_TARGET_REQUIRED:'请选择记录对应或新增。'} as Json)[known.code ?? ''] ?? '所选信息尚不能保存：'+known.code,...effect});
+              else issues.push({code:known.code,message:({CATALOG_NAME_CONFLICT:'已有同名资料。请选择使用已有资料，或在这里改为不同名称后导入。',IMPORT_INTENT_REQUIRED:'阶段倒退或重新打开项目需要明确本次变化原因。',PROJECT_VERSION_CONFLICT:'项目已更新，请重新核对。',IMPORT_RECORD_TARGET_REQUIRED:'请选择记录对应或新增。'} as Json)[known.code ?? ''] ?? '所选信息尚不能保存：'+known.code,...effect});
             }
           }
           const {basePayload:_,...publicView}=view;return {item:publicView,...publicView,issues,effects};
@@ -648,14 +671,6 @@ export function imports(database: RuntimeDatabase) {
         }
         const targetId=result.projectId ?? result.id;
         const invitations:Json[]=[],confirmedMatches:Record<string,string>={};
-        if(project)for(const manager of execution?.collaborators??[]) {
-          const account=manager.targetId?accounts.get(manager.targetId):undefined;
-          if(!account?.enabled||account.name!==manager.name||await maintenanceAccount(c)===manager.targetId) {invitations.push({name:manager.name,status:'unmatched'});continue;}
-          const invitation=await inviteCollaborator(c,targetId,actor,manager.targetId!,false);
-          invitations.push({name:manager.name,userId:manager.targetId,...invitation});
-          if(body.managerMatches?.[manager.name]===manager.targetId)confirmedMatches[manager.name]=manager.targetId!;
-          if(invitation.created)await audit(c,actor,'project.membership.invite','project',targetId,null,{targetUserId:manager.targetId,requestId:invitation.requestId,sourceImportItemId:itemId},requestId);
-        }
         const identity=sourceIdentity(row,all);
         const parent=identity?await bind(c,b.sourceNamespace,row.kind,identity.scope,identity.key,targetId):null;
         const comparisonRecords:Json={};
@@ -689,7 +704,7 @@ export function imports(database: RuntimeDatabase) {
         const before=await batch(c,id);
         for(const userId of [...new Set([actor.id,before.handlerId])].sort(idSort))await rows(c,'SELECT id FROM users WHERE id=? FOR UPDATE',[userId]);
         await assertActor(c,actor);
-        if(await maintenanceAccount(c)===actor.id)failure('BUSINESS_ACCOUNT_REQUIRED',403);
+
         const current=await batch(c,id,true),prior=await receipt(c,actor,scope,input.idempotencyKey,input);if(prior)return{outcome:'committed',result:prior};
         if(current.version!==input.expectedVersion || before.handlerId!==current.handlerId)failure('IMPORT_BATCH_VERSION_CONFLICT',409,{currentVersion:current.version});
         if(action==='takeover' && current.handlerEnabled)failure('IMPORT_HANDLER_ACTIVE',409);

@@ -1,40 +1,43 @@
+import {setupPasswordInputs} from './shared/password-input';
 import './shared/read.css';
 import './shared/detail.css';
 import './shared/forms.css';
-import { get, send, setAccount, notifyIdentityChange, SaveError, account, type Account } from './shared/api';
-import { afterLogin, workTarget } from './shared/auth-return';
-const login = document.getElementById('login') as HTMLFormElement;
-const password = document.getElementById('password') as HTMLFormElement;
-const message = document.getElementById('message')!;
-const logout = document.getElementById('logout') as HTMLButtonElement;
-let busy = false;
-function note(text: string) { message.textContent = text; }
-async function restore() {
-  const { account } = await get<{ account: Account }>('/api/auth/me'); setAccount(account);
-  login.hidden = true; password.hidden = false; logout.hidden = false;
-  document.getElementById('back')!.hidden = account.mustChangePassword;
-  const back = document.getElementById('back') as HTMLAnchorElement;
-  back.href = afterLogin(account.id); back.textContent = back.getAttribute('href') === '/' ? '进入看板' : '返回原页面';
-  const query = new URLSearchParams(location.search);
-  if (account.mustChangePassword && !query.has('returnAccount') && workTarget(query.get('returnTo'))) { query.set('returnAccount', account.id); history.replaceState(null, '', '/login.html?' + query); }
-  document.getElementById('notice')!.textContent = account.name + (account.mustChangePassword ? '：请先修改临时密码，再重新登录。' : '：可修改密码或退出；退出会影响同浏览器其他标签页。');
+import {get,send,setAccount,notifyIdentityChange,SaveError,account,type Account} from './shared/api';
+import {afterLogin,loginTarget} from './shared/auth-return';
+const login=document.getElementById('login') as HTMLFormElement,message=document.getElementById('message')!,notice=document.getElementById('notice')!;
+const logout=document.getElementById('logout') as HTMLButtonElement,back=document.getElementById('back') as HTMLAnchorElement;
+const query=new URLSearchParams(location.search),exiting=query.get('logout')==='1';
+let busy=false;
+const authLock=<T>(work:()=>Promise<T>)=>navigator.locks?navigator.locks.request('geekdash_auth',work):work();
+function signedOut(){notifyIdentityChange(true);location.replace('/login.html');}
+async function exitSession(){
+ if(busy)return;busy=true;logout.disabled=true;notice.textContent='正在退出登录…';
+ try{if(!account){const current=await get<{account:Account}>('/api/auth/me');setAccount(current.account);}await authLock(async()=>{await send('/api/auth/logout','POST',{});signedOut();});}
+ catch(error){
+  // 退出回包或同浏览器身份广播可能先到；用新请求确认会话已撤销，不重复判作失败。
+  try{const response=await fetch('/api/auth/me',{cache:'no-store',signal:AbortSignal.timeout(10000)});if(response.status===401&&(await response.json()).code==='AUTH_REQUIRED'){signedOut();return;}}catch{/* 无法确认时保留明确重试入口。 */}
+  notice.textContent='退出尚未确认。';message.textContent=(error as Error).message;logout.textContent='重试退出登录';logout.hidden=false;
+ }finally{busy=false;logout.disabled=false;}
 }
-function bind(form: HTMLFormElement, path: string, complete: (result: Record<string, unknown>) => Promise<void>) {
-  form.onsubmit = async event => {
-    event.preventDefault(); if (busy) return; busy = true;
-    const button = form.querySelector('button')!; button.disabled = true;
-    try { const body = Object.fromEntries(new FormData(form)); await navigator.locks.request('geekdash_auth', async () => { const result = await send<Record<string, unknown>>(path, 'POST', body); form.reset(); await complete(result); }); }
-    catch (error) { const unknown = form === password && error instanceof SaveError && error.outcome === 'unknown'; if (unknown) login.hidden = false; note(unknown ? '改密结果待确认，请用新密码正常登录核对；不要自动重复提交密码。' : (error as Error).message); }
-    finally { busy = false; button.disabled = false; }
-  };
+async function restore(){
+ const result=await get<{account:Account}>('/api/auth/me');setAccount(result.account);
+ if(exiting){login.hidden=true;await exitSession();return;}
+ const target=afterLogin(result.account.id);
+ if(result.account.mustChangePassword||query.get('change')==='1'){location.replace(loginTarget(target,result.account.id,true));return;}
+ location.replace(target);
 }
-bind(login, '/api/auth/login', async result => { await restore(); if (account!.id !== result.accountId) throw new SaveError('AUTH_CONTEXT_CHANGED', 'unknown'); notifyIdentityChange(); if (!document.getElementById('back')!.hidden) location.replace(afterLogin(account!.id)); });
-bind(password, '/api/auth/password', async () => { notifyIdentityChange(); login.hidden = false; password.hidden = true; logout.hidden = true; document.getElementById('back')!.hidden = true; note('密码已保存，请用新密码重新登录。'); });
-logout.onclick = async () => {
-  if (busy || !confirm('退出会影响同浏览器所有标签页，并清除本机恢复副本；服务器个人草稿保留。请先同步或复制未保存内容，确定退出？')) return;
-  busy = true; logout.disabled = true;
-  try { await navigator.locks.request('geekdash_auth', async () => { await send('/api/auth/logout', 'POST', {}); notifyIdentityChange(true); location.replace('/login.html'); }); }
-  catch (error) { note((error as Error).message + ' 请核对登录状态，结果未确认时不要认为已经退出。'); }
-  finally { busy = false; logout.disabled = false; }
+login.onsubmit=async event=>{
+ event.preventDefault();if(busy)return;busy=true;const button=login.querySelector<HTMLButtonElement>('button[type="submit"]')!;button.disabled=true;
+ try{await authLock(async()=>{const result=await send<{accountId:string}>('/api/auth/login','POST',Object.fromEntries(new FormData(login)));const current=await get<{account:Account}>('/api/auth/me');setAccount(current.account);if(current.account.id!==result.accountId)throw new SaveError('AUTH_CONTEXT_CHANGED','unknown');login.reset();notifyIdentityChange();location.replace(current.account.mustChangePassword?loginTarget(afterLogin(current.account.id),current.account.id,true):afterLogin(current.account.id));});}
+ catch(error){message.textContent=(error as Error).message;}
+ finally{busy=false;button.disabled=false;}
 };
-void restore().then(() => { const query = new URLSearchParams(location.search); if (!account!.mustChangePassword && query.has('returnTo') && query.get('change') !== '1') location.replace(afterLogin(account!.id)); }).catch(error => { if (!(error instanceof SaveError && error.code === 'AUTH_REQUIRED')) note((error as Error).message); });
+logout.onclick=()=>{void exitSession();};back.hidden=true;
+if(exiting){login.hidden=true;notice.textContent='正在退出登录…';}
+void restore().catch(error=>{
+ if(error instanceof SaveError&&error.code==='AUTH_REQUIRED'){
+  if(exiting){signedOut();return;}login.hidden=false;
+ }else{message.textContent=(error as Error).message;if(exiting){logout.hidden=false;logout.textContent='重试退出登录';}}
+});
+
+setupPasswordInputs();

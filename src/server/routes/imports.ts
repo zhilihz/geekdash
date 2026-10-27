@@ -44,6 +44,9 @@ export function registerImports(app:FastifyInstance,database?:RuntimeDatabase,no
     if(!request.actor)failure('AUTH_REQUIRED',401);if(!executions)failure('DATABASE_UNAVAILABLE',503);
     return executions.read(request.actor,request.params.batchId,request.query.operation);
   });
+  for(const query of [false,true])app.post<{Params:{batchId:string;itemId:string}}>('/api/imports/:batchId/items/:itemId/ignore'+(query?'/results/query':''),{bodyLimit:4096},request=>{
+    if(!request.actor)failure('AUTH_REQUIRED',401);if(!query)writable();return available().ignoreCatalog(request.actor,request.params.batchId,request.params.itemId,request.body,request.id,query);
+  });
   for(const action of ['review','adopt'])app.post('/api/imports/:batchId/items/:itemId/'+action,()=>failure('IMPORT_CLIENT_OUTDATED',410));
   for(const action of ['preview','results/query'] as const)app.post<{Params:{batchId:string;itemId:string}}>('/api/imports/:batchId/items/:itemId/'+action,{bodyLimit:4*1024*1024},async request=>{
     if(!request.actor)failure('AUTH_REQUIRED',401);

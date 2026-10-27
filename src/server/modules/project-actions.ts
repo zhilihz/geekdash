@@ -156,7 +156,7 @@ export async function applyAction(c: PoolConnection, actor: Actor, id: string, b
     let checkId = body.action === 'correctCheck' ? body.checkId : '';
     if (body.action === 'saveCheck') {
       const value = candidate.afterValues.check;
-      await c.execute('INSERT INTO project_checks (project_id,actor_id,checked_at,week_start,conclusion,note,rule_version,observed_version,result_version) VALUES (?,?,?,NULL,?,?,NULL,?,?)', [id, actor.id, now.toISOString().slice(0, 23).replace('T', ' '), body.conclusion, body.note, project.version, savedVersion]);
+      await c.execute('INSERT INTO project_checks (project_id,actor_id,checked_at,week_start,conclusion,note,rule_version,observed_version,result_version) VALUES (?,?,?,?,?,?,?,?,?)', [id, actor.id, now.toISOString().slice(0, 23).replace('T', ' '), 'weekStart' in value ? value.weekStart : null, body.conclusion, body.note, 'ruleVersion' in value ? value.ruleVersion : null, project.version, savedVersion]);
       checkId = (await rows(c, 'SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0].id;
       Object.assign(value, { id: checkId, actorId: actor.id, actorName: actor.name });
     }

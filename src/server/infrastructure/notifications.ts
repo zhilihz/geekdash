@@ -94,6 +94,15 @@ export function registerNotifications(app:FastifyInstance,database?:RuntimeDatab
         for(const [id,item] of editors)if(allSessions ? item.actor.id===actor.id : item.actor.tokenHash.equals(actor.tokenHash)){editors.delete(id);void presence(item.projectId).catch(()=>{});}
       });
     },
+    profileChanged(userId:string,name:string,version:string){
+      dispatch(async()=>{
+        const projects=new Set<string>();
+        for(const viewer of viewers.values())if(viewer.actor.id===userId){viewer.actor={...viewer.actor,name,version};}
+        for(const item of editors.values())if(item.actor.id===userId){item.actor={...item.actor,name,version};projects.add(item.projectId);}
+        for(const viewer of [...viewers.values()])if(await valid(viewer))send(viewer,'profile',{userId,name});
+        for(const projectId of projects)await presence(projectId);
+      });
+    },
     accountChanged(userId:string){
       dispatch(async()=>{
         for(const [id,viewer] of viewers)if(viewer.actor.id===userId){send(viewer,'identity',{});viewer.reply.raw.end();remove(id,viewer);}

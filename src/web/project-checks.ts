@@ -11,13 +11,13 @@ import { esc, get, label, checkTime, requireIdentity, SaveError, send, setupThem
 type Command = Extract<CheckCommand, { action: 'saveCheck' }>;
 type Pending = { projectId: string; projectName: string; command: Command };
 const element = (id: string) => document.getElementById(id)!;
-const dimensions: Record<string, string> = { customer: '客户', productLine: '产品线', odmFactory: 'ODM 工厂', app: 'APP', group: '分组', status: '状态', priority: '优先级', signal: '信号灯', deadline: '计划结果', stage: '当前阶段', progress: '进度', chip: '芯片', tags: '标签', owner: '业务人员' };
+const dimensions: Record<string, string> = { customer: '客户', productLine: '产品线', odmFactory: 'ODM 工厂', app: 'APP', group: '分组', status: '状态', priority: '优先级', signal: '信号灯', stage: '当前阶段', progress: '进度', chip: '芯片', tags: '标签', owner: '业务人员' };
 const scopeKeys = ['view', 'search', ...Object.keys(dimensions)];
 const query = new URLSearchParams();
 const originalQuery = new URLSearchParams(location.search);
-for (const key of [...scopeKeys, 'checkToday', 'page']) if (originalQuery.get(key)) query.set(key, originalQuery.get(key)!);
+for (const key of [...scopeKeys, 'checkCycle', 'page']) if (originalQuery.get(key)) query.set(key, originalQuery.get(key)!);
 if (!query.has('view')) query.set('view', 'all');
-if (!query.has('checkToday')) query.set('checkToday', 'unchecked');
+if (!query.has('checkCycle')) query.set('checkCycle', 'unchecked');
 let list: List | undefined;
 let notificationPending=false;
 let loading = false, busy = false, fresh = false, authFrozen = false, recoveryBroken = false, storageFailed = false;
@@ -77,8 +77,8 @@ function controls() {
   document.querySelectorAll<HTMLButtonElement>('[data-confirm-check],[data-retry-check]').forEach(button => button.disabled = frozen);
   document.querySelectorAll<HTMLButtonElement>('[data-check-today]').forEach(button => {
     button.disabled = frozen || !ownerId;
-    button.classList.toggle('active', button.dataset.checkToday === query.get('checkToday'));
-    button.setAttribute('aria-pressed', String(button.dataset.checkToday === query.get('checkToday')));
+    button.classList.toggle('active', button.dataset.checkToday === query.get('checkCycle'));
+    button.setAttribute('aria-pressed', String(button.dataset.checkToday === query.get('checkCycle')));
   });
   (element('previous') as HTMLButtonElement).disabled = frozen || !fresh || !list || list.pagination.page <= 1;
   (element('next') as HTMLButtonElement).disabled = frozen || !fresh || !list || list.pagination.page >= list.pagination.pageCount;
@@ -98,7 +98,7 @@ function card(project: ListProject) {
     <div class="check-card-content"><div class="check-card-heading"><h2>${esc(project.name)}</h2></div>
     <p class="check-card-subtitle">${esc(label(project.status))} · ${esc(label(project.stage))} · ${esc(project.progress)}% · ${esc(label(project.priority))}优先级 · ${esc(label(project.signal))}</p>
     ${project.tags.length ? `<div class="check-tags">${project.tags.map(tag => `<span class="read-tag">${esc(tag.name)}</span>`).join('')}</div>` : ''}
-    ${project.inspection ? inspectionContent(project.inspection) : '<p role="alert">完整项目内容尚未读到，请重新读取后检查。</p>'}
+    ${project.checkPolicy?.overdue?'<p class="field-error">本期检查已逾期</p>':''}${project.inspection ? inspectionContent(project.inspection) : '<p role="alert">完整项目内容尚未读到，请重新读取后检查。</p>'}
     <details class="inspection-section" data-inspection="历史" data-check-history="${esc(project.id)}"><summary>检查与更新历史</summary><div class="inspection-history">展开后读取记录</div></details>
     <div class="check-card-foot"><span>${project.checkedToday ? '今日已检查' : '今日未检查'} · 最近检查：${esc(checkTime(project.checkStatus))}${project.checkStatus.latest?.actorName ? ' · ' + esc(project.checkStatus.latest.actorName) : ''}<br>项目更新于 ${esc(updated)}</span><span class="${project.capabilities.canCheck ? 'check-status-label' : 'check-warning'}">${project.capabilities.canCheck ? esc(project.checkStatus.label) + (project.checkStatus.updatedAfterCheck ? ' · 检查后有更新' : '') : '仅项目负责人可以通过检查'}</span></div></div>
     <div class="check-card-actions"><button class="head-btn check-pass" data-check-project="${esc(project.id)}" disabled>${project.checkedToday ? '今日已检查' : '通过检查'}</button><a class="head-btn" data-correct-project="${esc(project.id)}" href="/project-detail.html?${esc(detail)}">进入修正</a></div>
@@ -117,8 +117,10 @@ function restoreSections(saved: unknown) {
 function render() {
   if (!list) return;
   const opened = openSections();
-  element('check-rule').textContent = list.businessDate;
-  element('check-list').innerHTML = list.items.length ? list.items.map(card).join('') : `<p class="checks-empty">${query.get('checkToday') === 'checked' ? '当前范围今天还没有检查记录' : '当前范围今天没有待检查项目'}</p>`;
+  const policy=list.checkPolicy;
+  element('check-rule').textContent=policy?.frequency==='manual'?'不定期检查，只记录事实':policy?`${policy.frequency==='weekly'?'每周一次':'每天一次'} · 本期截止 ${policy.deadline}（全天）`:list.businessDate;
+  document.querySelectorAll<HTMLElement>('[data-check-today]').forEach(button=>{button.textContent=button.dataset.checkToday==='checked'?(policy?.frequency==='manual'?'有检查记录':'本期已检查'):(policy?.frequency==='manual'?'尚无检查记录':'本期未检查');});
+  element('check-list').innerHTML = list.items.length ? list.items.map(card).join('') : `<p class="checks-empty">${query.get('checkCycle') === 'checked' ? '当前范围本期还没有检查记录' : '当前范围本期没有待检查项目'}</p>`;
   element('page-info').textContent = `第 ${list.pagination.page} / ${list.pagination.pageCount} 页 · 共 ${list.pagination.total} 个项目`;
   document.querySelectorAll<HTMLButtonElement>('[data-check-project]').forEach(button => button.onclick = () => {
     const project = list?.items.find(item => item.id === button.dataset.checkProject);
@@ -225,7 +227,7 @@ for (const [id, offset] of [['previous', -1], ['next', 1]] as const) element(id)
 };
 document.querySelectorAll<HTMLButtonElement>('[data-check-today]').forEach(button => button.onclick = () => {
   if (busy || loading || authFrozen) return;
-  query.set('checkToday', button.dataset.checkToday!); query.set('page', '1'); remember();void load();
+  query.set('checkCycle', button.dataset.checkToday!); query.set('page', '1'); remember();void load();
 });
 document.addEventListener('geekdash-identity-changed', () => { authFrozen = true; element('login').hidden = false; note('账号已变化，检查已暂停。请重新登录原账号后确认尚未完成的检查。', true); controls(); });
 function refreshBusinessDay() {
@@ -241,7 +243,7 @@ window.addEventListener('pagehide',()=>{remember();void preference?.flush();});
 document.addEventListener('geekdash-preference-status',event=>note((event as CustomEvent<string>).detail,true));
 void requireIdentity().then(async identity => {
   ownerId = identity.id;preference=new PersonalPreference('checks',text=>note(text,true));const saved=await preference.load();
-  if(!originalQuery.size){if(typeof saved.view==='string')query.set('view',saved.view);if(typeof saved.page==='number')query.set('page',String(saved.page));for(const [key,value] of Object.entries(saved.filters ?? {}))if([...scopeKeys,'checkToday'].includes(key) && typeof value==='string')query.set(key,value);restoredScroll=typeof saved.scrollY==='number'?saved.scrollY:undefined;}
+  if(!originalQuery.size){if(typeof saved.view==='string')query.set('view',saved.view);if(typeof saved.page==='number')query.set('page',String(saved.page));for(const [key,value] of Object.entries(saved.filters ?? {}))if([...scopeKeys,'checkCycle'].includes(key) && typeof value==='string')query.set(key,value);restoredScroll=typeof saved.scrollY==='number'?saved.scrollY:undefined;}
   restoreBack();recover(); renderRecovery(); await load();
   new ProjectNotifications(refresh,refresh,text=>{if(text)element('message').textContent=text;},undefined,undefined,refresh);
   for (const id of pending.keys()) { if (authFrozen || recoveryBroken) break; await execute(id, true); }

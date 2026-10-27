@@ -55,7 +55,7 @@ export async function openRuntimeDatabase(profile: RuntimeProfile) {
 
   return {
     pool, fact,
-    async writeTransaction<T>(work: (connection: PoolConnection) => Promise<T>): Promise<T> {
+    async writeTransaction<T>(work: (connection: PoolConnection) => Promise<T>, preview = false): Promise<T> {
       let commitSent = false;
       try {
         return await useConnection(5000, async connection => {
@@ -72,6 +72,7 @@ export async function openRuntimeDatabase(profile: RuntimeProfile) {
             }
             throw error;
           }
+          if (preview) { await connection.rollback(); return result; }
           commitSent = true;
           await connection.commit();
           return result;

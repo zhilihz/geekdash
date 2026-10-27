@@ -1,3 +1,4 @@
+import {readCheckPolicy,type CheckPolicy} from './public-settings.js';
 import { assertProjectAccess } from './project-membership.js';
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import { businessToday, validDate } from './project-dates.js';
@@ -47,7 +48,8 @@ const checkColumns = `CAST(ck.project_id AS CHAR) projectId,CAST(ck.id AS CHAR) 
 const actorJoins = "LEFT JOIN users u ON u.id=ck.actor_id LEFT JOIN audit_log originalAudit ON originalAudit.entity_type='project_check' AND originalAudit.entity_id=ck.id AND originalAudit.action='project.check.save'";
 export async function checkCandidate(c: PoolConnection, id: string, project: { version: string }, body: CheckCommand, now: Date) {
   if (body.action === 'saveCheck') {
-    const check = { conclusion: body.conclusion, note: body.note, checkedAt: now.toISOString(), weekStart: null, ruleVersion: null, observedVersion: project.version, resultVersion: (BigInt(project.version) + 1n).toString() };
+    const policy=await readCheckPolicy(c,now);
+    const check = { conclusion: body.conclusion, note: body.note, checkedAt: now.toISOString(), weekStart: policy.frequency==='manual'?null:policy.periodStart, ruleVersion: policy.version==='0'?null:policy.version, observedVersion: project.version, resultVersion: (BigInt(project.version) + 1n).toString() };
     return { changed: true, beforeValues: null, afterValues: { check }, preview: { changed: true, beforeValues: null, afterValues: { check } } };
   }
   const [rows] = await c.query<RowDataPacket[]>({ sql: `SELECT ${checkColumns} FROM project_checks ck ${actorJoins} WHERE ck.project_id=? AND ck.id=?`, timeout: 3000 }, [id, body.checkId]);
@@ -82,8 +84,16 @@ export function todayCheckCondition(businessDate: string) {
     values: [start, start + 86400000].map(time => new Date(time).toISOString().slice(0, 23).replace('T', ' ')),
   };
 }
+export function cycleCheckCondition(policy:CheckPolicy){
+  if(policy.frequency==='manual')return {sql:'EXISTS(SELECT 1 FROM project_checks cycle_check WHERE cycle_check.project_id=p.id)',values:[] as string[]};
+  const start=Date.parse(policy.periodStart)-8*3600000,end=start+(policy.frequency==='daily'?1:7)*86400000;
+  return {sql:'EXISTS(SELECT 1 FROM project_checks cycle_check WHERE cycle_check.project_id=p.id AND cycle_check.checked_at>=? AND cycle_check.checked_at<?)',values:[start,end].map(time=>new Date(time).toISOString().slice(0,23).replace('T',' '))};
+}
 export async function enrichChecks(c: PoolConnection, projects: RowDataPacket[], context: Context) {
   if (!projects.length) return;
+  const policy=await readCheckPolicy(c,new Date(context.businessDate+'T04:00:00Z'));
+  const cycle=cycleCheckCondition(policy);
+  const [cycleRecords]=await c.query<RowDataPacket[]>(`SELECT CAST(p.id AS CHAR) id,(${cycle.sql}) checked FROM projects p WHERE p.id IN (?)`,[...cycle.values,projects.map(p=>p.id)]);
   const [records] = await c.query<RowDataPacket[]>({ sql: `SELECT ${checkColumns},g.checkedToday
     FROM (SELECT project_id,MAX(id) latestId,MAX(checked_at>=? AND checked_at<?) checkedToday FROM project_checks WHERE project_id IN (${projects.map(() => '?').join(',')}) GROUP BY project_id) g
     JOIN project_checks ck ON ck.id=g.latestId ${actorJoins}`, timeout: 3000 }, [...todayCheckCondition(context.businessDate).values, ...projects.map(p => p.id)]);
@@ -91,6 +101,8 @@ export async function enrichChecks(c: PoolConnection, projects: RowDataPacket[],
   const byProject = new Map(records.map(r => [r.projectId, r]));
   for (const p of projects) {
     const record = byProject.get(p.id);
+    const checkedCycle=!!Number(cycleRecords.find(row=>row.id===p.id)?.checked);
+    p.checkPolicy={...policy,checked:checkedCycle,overdue:policy.deadline!==null && context.businessDate>policy.deadline && !checkedCycle};
     p.checkedToday = Number(record?.checkedToday ?? 0) === 1;
     const kind: CheckKind = p.checkedToday ? 'checked' : 'unchecked';
     p.checkStatus = { kind, label: checkLabels[kind], updatedAfterCheck: !!record && BigInt(p.version) > BigInt(record.resultVersion), latest: record ? { id: record.id, actorId: record.actorId, actorName: record.actorName, checkedAt: record.checkedAt, conclusion: record.conclusion, note: record.note, observedVersion: record.observedVersion, resultVersion: record.resultVersion } : null };
