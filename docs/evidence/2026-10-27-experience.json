@@ -15,9 +15,9 @@
   ],
   "verification": "HTTP/MySQL only; human UI acceptance pending",
   "build": {
-    "revision": "1376caa27222d0bfc8a7b2463a1049a11eaa7eac",
+    "revision": "5ba3b4c38bc784e0b576ca76dd21814cc6bf6939",
     "dirty": false,
-    "builtAt": "2026-10-27T15:38:52.861Z",
+    "builtAt": "2026-10-27T16:22:38.485Z",
     "stage": "P05-project-editing",
     "schemaVersion": "0014-project-tasks"
   },
@@ -42,9 +42,9 @@
           "status": "alive",
           "stage": "P05-project-editing",
           "build": {
-            "revision": "1376caa27222d0bfc8a7b2463a1049a11eaa7eac",
+            "revision": "5ba3b4c38bc784e0b576ca76dd21814cc6bf6939",
             "dirty": false,
-            "builtAt": "2026-10-27T15:38:52.861Z",
+            "builtAt": "2026-10-27T16:22:38.485Z",
             "stage": "P05-project-editing",
             "schemaVersion": "0014-project-tasks"
           }
@@ -55,8 +55,31 @@
         "body": {
           "status": "ready"
         }
+      },
+      "/": {
+        "status": 200
+      },
+      "/project-detail.html": {
+        "status": 200
+      },
+      "/project-status-summary.html": {
+        "status": 200
+      },
+      "/accounts.html": {
+        "status": 200
+      },
+      "/login.html": {
+        "status": 200
+      },
+      "/profile.html": {
+        "status": 200
+      },
+      "/password.html": {
+        "status": 200
       }
-    }
+    },
+    "artifact": "test-results/live-0014-bulk",
+    "latestUpdate": "2026-10-28 应用产物更新，无数据库迁移或业务写入"
   },
   "notVerified": [
     "真实页面与导出文件由用户验收",
