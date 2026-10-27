@@ -13,7 +13,7 @@ export function applyCompany(company:Company|null|undefined) {
 }
 export type CheckPolicy={version:string;frequency:'daily'|'weekly'|'manual';deadlineWeekday:number;periodStart:string;deadline:string|null;businessDate:string;checked?:boolean;overdue?:boolean};
 export type Project = {
-  id: string; version: string; tasks?:ProjectTask[]; tasksUnified?:number; dataKind: 'business' | 'trial'; name: string; status: string; priority: string; signal: string;
+  id: string; version: string; tasks?:ProjectTask[]; tasksUnified?:number; contentUpdatedAt?:string;contentUpdatedOn?:string; dataKind: 'business' | 'trial'; name: string; status: string; priority: string; signal: string;
   customer: string | null; odmFactory: string | null; productLine: string | null; app: string | null; projectGroup: string | null;
   proposalDate: string | null; filingDate: string | null; startDate: string | null; closedOn: string | null; dueDate: string | null; marketExpectation: string; summary: string; statusDesc: string; statusEntries?: { text: string; date: string }[]; summaryNote?: string;
   checkPolicy?:CheckPolicy; deadline: Deadline; checkStatus: CheckStatus; resumeStatus: string | null; maintenanceEnabled: number; updatedAt: string; stage: string; stageState: string; progress: string | number;
@@ -22,7 +22,7 @@ export type Project = {
   managers: { id: string; name: string; enabled: number }[];
 };
 export type ListProject = Project & { checkedToday: boolean; capabilities: { canCheck: boolean }; riskSummary?: { unresolvedCount: number; highestLevel: 'high' | 'mid' | 'low' | null }; inspection?: Detail };
-export type Dashboard = { distributions: Record<string, { value: string; count: number }[]>; focusTotal: number; focus: Pick<Project, 'id' | 'name' | 'status' | 'priority' | 'stage' | 'progress'>[]; latest: Pick<Project, 'id' | 'name' | 'statusDesc' | 'updatedAt'>[]; managers: { id: string; name: string; count: number }[] };
+export type Dashboard = { distributions: Record<string, { value: string; count: number }[]>; focusTotal: number; focus: Pick<Project, 'id' | 'name' | 'status' | 'priority' | 'stage' | 'progress'>[]; latest: Pick<Project, 'id' | 'name' | 'statusDesc' | 'updatedAt' | 'contentUpdatedAt' | 'contentUpdatedOn'>[]; managers: { id: string; name: string; count: number }[] };
 export type List = { checkPolicy?:CheckPolicy; items: ListProject[]; businessDate: string; company?:Company|null; stats: Record<string, number> & { todayChecked: number; todayUnchecked: number }; options: Record<string, string[]>; optionLabels?: Record<string, Record<string, string>>; stageCounts: { value: string; count: string | number }[]; pagination: { page: number; pageSize: number; total: number; pageCount: number }; readOnly: true; dashboard?: Dashboard; globalChecks?: { cycleChecked:number;cycleUnchecked:number; total: number; todayChecked: number; todayUnchecked: number }; quickRanges?: Record<string,string[]> };
 export type Entry = Record<string, string | number | null>;
 export type SourceHistoryPage = { kind: 'mixed' | 'status_description'; projectVersion: string; sources: { id: string | null; sourceNamespace: string | null; sourceName: string; itemId: string | null; entries: { id: string; date: string; text: string }[] }[]; versions: { id: string; sourceNamespace: string; sourceName: string; itemId: string; adoptedAt: string; count: number }[]; nextCursor: string | null };

@@ -1,4 +1,5 @@
-import { attachTasks } from './project-tasks.js';
+import { attachTasks,attachContentDates } from './project-tasks.js';
+import { failure } from './project-save.js';
 import { suggestedProjects } from './project-membership.js';
 import { isAdministrator } from './identity.js';
 import { projectReferences } from './project-references.js';
@@ -7,7 +8,7 @@ import { assertProjectAccess } from './project-membership.js';
 import { changeRows, riskRows, nodeRows } from './project-records.js';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 import { stageBlock, startProjectBlock, type StageFact } from './project-actions.js';
-import { businessToday, closurePlanKnownExpression, dayDifference, deadlineCondition, deadlineKinds, deadlineResult, type DateFacts, type DeadlineKind } from './project-dates.js';
+import { businessToday, validDate, closurePlanKnownExpression, dayDifference, deadlineCondition, deadlineKinds, deadlineResult, type DateFacts, type DeadlineKind } from './project-dates.js';
 import { scheduleRecords } from './project-plans.js';
 import { currentClosure } from './project-closures.js';
 import { lifecycleNotes } from './project-lifecycle.js';
@@ -26,7 +27,7 @@ export const stages = [
   { code: 'S6', name: 'PVT量产验证', progress: 90 },
   { code: 'S7', name: 'MP量产维护', progress: 100 },
 ];
-export type ProjectQuery = Partial<Record<'customer' | 'productLine' | 'odmFactory' | 'app' | 'group' | 'status' | 'priority' | 'signal' | 'stage' | 'progress' | 'chip' | 'tags' | 'owner' | 'taskOwner', string | string[]>> & { view?: string; search?: string; deadline?: DeadlineKind | DeadlineKind[]; checkToday?: 'unchecked' | 'checked'; checkCycle?: 'unchecked'|'checked'; page?: number; pageSize?: number; dashboard?: '1'; details?: 'checks' };
+export type ProjectQuery = Partial<Record<'customer' | 'productLine' | 'odmFactory' | 'app' | 'group' | 'status' | 'priority' | 'signal' | 'stage' | 'progress' | 'chip' | 'tags' | 'owner' | 'taskOwner', string | string[]>> & { contentFrom?:string; contentTo?:string; view?: string; search?: string; deadline?: DeadlineKind | DeadlineKind[]; checkToday?: 'unchecked' | 'checked'; checkCycle?: 'unchecked'|'checked'; page?: number; pageSize?: number; dashboard?: '1'; details?: 'checks' };
 
 async function rows(connection: PoolConnection, sql: string, values: unknown[] = []) {
   return (await connection.query<RowDataPacket[]>({ sql, timeout: 3000 }, values))[0];
@@ -140,6 +141,7 @@ async function enrich(connection: PoolConnection, projects: RowDataPacket[], inc
     if (includeStatusEntries) project.statusEntries = projectStatusEntries(project.statusDesc, statusChanges.get(project.id) ?? [], sourceBaselines.get(project.id)?.entries);
   }
   await attachTasks(connection,projects);
+  await attachContentDates(connection,projects);
   return projects;
 }
 
@@ -245,6 +247,7 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
       });
     },
     list(query: ProjectQuery, accountId?: string) {
+      if(query.contentFrom&&!validDate(query.contentFrom)||query.contentTo&&!validDate(query.contentTo)||query.contentFrom&&query.contentTo&&query.contentFrom>query.contentTo)failure('INVALID_CONTENT_DATE_RANGE',400);
       const now = clock(), today = businessToday(now);
       return database.readSnapshot(async connection => {
         const policy=await readCheckPolicy(connection,now);
@@ -254,6 +257,7 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
         const filtered = conditions(query, true, today, scopeAccount,policy);
         const taskPeople=(await rows(connection,'SELECT name FROM engineers')).map(row=>String(row.name));
         const taskSources=await rows(connection,`SELECT CAST(p.id AS CHAR) id,p.status_description text FROM projects p ${base.sql}`,base.values);
+        if(query.contentFrom||query.contentTo){await attachContentDates(connection,taskSources);const ids=taskSources.filter(row=>row.contentUpdatedOn&&(!query.contentFrom||row.contentUpdatedOn>=query.contentFrom)&&(!query.contentTo||row.contentUpdatedOn<=query.contentTo)).map(row=>row.id);filtered.sql+=(filtered.sql?' AND ':' WHERE ')+(ids.length?'p.id IN (?)':'0');if(ids.length)filtered.values.push(ids);}
         const taskOwners=new Map(taskSources.map(row=>[row.id,projectStatusOwners(row.text,taskPeople)]));
         const selectedTaskOwners=selectedValues(query.taskOwner);
         if(selectedTaskOwners.length){const ids=[...taskOwners].filter(([,names])=>names.some(name=>selectedTaskOwners.includes(name))).map(([id])=>id);filtered.sql+=(filtered.sql?' AND ':' WHERE ')+(ids.length?`p.id IN (${ids.map(()=>'?').join(',')})`:'0');filtered.values.push(...ids);}
@@ -322,7 +326,7 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
           focus.sort((a, b) => priorities[a.priority] - priorities[b.priority] || Number(b.progress) - Number(a.progress));
           const managerCounts=new Map<string,{id:string;name:string;count:number}>();
           for(const project of all)for(const manager of project.managers as {id:string;name:string;enabled:number}[])if(manager.enabled){const item=managerCounts.get(manager.id)??{id:manager.id,name:manager.name,count:0};item.count++;managerCounts.set(manager.id,item);}
-          dashboard = { managers:[...managerCounts.values()].sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name,'zh-CN')),distributions, focusTotal: focus.length, focus: focus.slice(0, 12).map(({ id, name, status, priority, stage, progress }) => ({ id, name, status, priority, stage, progress })), latest: [...all].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 10).map(({ id, name, statusDesc, updatedAt }) => ({ id, name, statusDesc, updatedAt })) };
+          dashboard = { managers:[...managerCounts.values()].sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name,'zh-CN')),distributions, focusTotal: focus.length, focus: focus.slice(0, 12).map(({ id, name, status, priority, stage, progress }) => ({ id, name, status, priority, stage, progress })), latest: [...all].sort((a,b)=>String(b.contentUpdatedOn).localeCompare(String(a.contentUpdatedOn))||String(b.contentUpdatedAt).localeCompare(String(a.contentUpdatedAt))).slice(0,10).map(({id,name,statusDesc,updatedAt,contentUpdatedAt,contentUpdatedOn})=>({id,name,statusDesc,updatedAt,contentUpdatedAt,contentUpdatedOn})) };
         }
         return { items, businessDate: today, checkPolicy:policy, company:await companyInformation(connection),stats: Object.fromEntries(Object.entries(stats).map(([key, value]) => [key, Number(value)])), stageCounts, options, optionLabels, pagination: { page, pageSize, total, pageCount }, readOnly: true, ...(dashboard ? { dashboard,quickRanges,globalChecks } : {}) };
       });

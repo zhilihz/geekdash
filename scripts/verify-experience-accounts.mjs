@@ -5,6 +5,7 @@ import { connectDatabase } from '../dist/server/infrastructure/db.js';
 import { openRuntimeDatabase } from '../dist/server/infrastructure/runtime-database.js';
 import { normalizeImportProject } from '../dist/server/modules/project-import.js';
 import { hashPassword } from '../dist/server/modules/identity.js';
+import {bulkTaskOperations} from '../src/web/shared/task-text.ts';
 
 // 必须在本轮独立数据库运行，禁止指向用户正在使用的本地库。
 assert.equal(process.env.GEEKDASH_EXPERIENCE_TEST, '1');
@@ -101,8 +102,9 @@ try {
   const body={scope:'project',changes:{summary:'任务共同保存',taskOps:[{op:'edit',id:first,text:'修正进展 @工程师'},{op:'complete',id:first},{op:'add',id:added,text:'下一步'}]},expectedVersion:oldVersion,idempotencyKey:randomUUID()};
   for(const scope of ['project','status']){
     const clientDraftId=randomUUID(),changes=scope==='project'?body.changes:{taskOps:body.changes.taskOps};
-    const draft=await member.request('/api/personal/drafts/save','POST',{clientDraftId,projectId:project.projectId,formKind:scope,baseVersion:oldVersion,expectedDraftVersion:'0',clientSequence:'1',payload:{schemaVersion:1,instanceId:randomUUID(),values:changes,submission:{scope,changes}}});
+    const draft=await member.request('/api/personal/drafts/save','POST',{clientDraftId,projectId:project.projectId,formKind:scope,baseVersion:oldVersion,expectedDraftVersion:'0',clientSequence:'1',payload:{schemaVersion:1,instanceId:randomUUID(),values:changes,editors:{task:{text:'整栏尚有歧义的原输入\n必须原样保留'}},submission:{scope,changes}}});
     const reloaded=await member.request('/api/personal/drafts?clientDraftId='+clientDraftId);assert.deepEqual(reloaded.items[0].payload.values.taskOps,body.changes.taskOps);assert.equal(draft.draftVersion,'1');
+    assert.equal(reloaded.items[0].payload.editors.task.text,'整栏尚有歧义的原输入\n必须原样保留');
   }
   assert.equal((await member.request('/api/projects/'+project.projectId)).project.version,oldVersion);
   checks.push('详情/卡片任务草稿保存与新请求回读一致，不推进正式项目版本');
@@ -116,7 +118,14 @@ try {
   const summary=await member.request('/api/project-summary');assert.equal(summary.items.find(p=>p.id===project.projectId).statusDesc,detail.project.statusDesc);
   const dashboard=await member.request('/api/projects?view=all&dashboard=1');assert(dashboard.dashboard.managers.some(manager=>manager.id===registered.accountId&&manager.count>=3));assert(dashboard.dashboard.distributions.progress.length);
   checks.push('任务原说明逐行保留且同文不合并；整页任务与简介原子保存；重试不重复；完成/重开/删除/无变化/旧版本冲突；新请求简要与驾驶舱消费');
-  const taskBatchId=await admin.upload({version:2,projects:[{id:123,name:prefix+'1056任务',status:'已结案',pm:prefix+'首次登记姓名',taskUnifiedVersion:1,statusDesc:'这个旧投影不能再导入',tasks:[{id:'same',text:'待办任务',createdAt:'2026-10-10',updatedAt:'2026-10-11'},{id:'SAME',text:'已完成任务',completedAt:'2026-10-12'},{id:'gone',text:'已删除任务',deletedAt:'2026-10-13'}]}]});
+  const beforeBulk=structuredClone(detail.project.tasks),ops=bulkTaskOperations(beforeBulk,detail.project.statusDesc.replace('修正进展','整栏修改进展')+'\n新增整栏任务');
+  await save({taskOps:ops});detail=await member.request('/api/projects/'+project.projectId);
+  assert.equal(detail.project.tasks.find(t=>t.id===first).text,'整栏修改进展 @工程师');assert.equal(detail.project.tasks.find(t=>t.id===first).createdAt,beforeBulk.find(t=>t.id===first).createdAt);
+  const bulkAdded=detail.project.tasks.find(t=>t.text==='新增整栏任务');assert(bulkAdded);
+  await save({taskOps:bulkTaskOperations(detail.project.tasks,detail.project.statusDesc.split('\n').filter(line=>!line.includes('新增整栏任务')).join('\n'))});detail=await member.request('/api/projects/'+project.projectId);assert(detail.project.tasks.find(t=>t.id===bulkAdded.id).deletedAt);
+  assert.equal(Number((await c.query('SELECT COUNT(*) n FROM project_tasks WHERE project_id=? AND task_key=?',[project.projectId,first]))[0][0].n),1);
+  checks.push('真实整栏操作生成→原保存事务→新请求及SQL读回；改文字保留身份/创建时间，删行保留历史；原始整栏草稿可恢复');
+  const taskBatchId=await admin.upload({version:2,projects:[{id:123,name:prefix+'1056任务',status:'已结案',pm:prefix+'首次登记姓名',taskUnifiedVersion:1,tasksUpdatedAt:'2026-10-14T20:00:00.000Z',statusDesc:'这个旧投影不能再导入',tasks:[{id:'same',text:'待办任务',createdAt:'2026-10-10',updatedAt:'2026-10-11'},{id:'SAME',text:'已完成任务',completedAt:'2026-10-12'},{id:'gone',text:'已删除任务',deletedAt:'2026-10-13'}]}]});
   const taskBatch=await admin.request('/api/imports/'+taskBatchId),taskItem=taskBatch.items[0];
   assert.equal(taskItem.payload.fields.statusDesc,undefined);assert(taskItem.defaultSelected.includes('tasks'));
   const taskCmd={expectedBatchVersion:taskBatch.batch.version,expectedReviewVersion:taskItem.reviewVersion,expectedVersion:taskItem.expectedVersion,basis:taskItem.basis,selected:taskItem.defaultSelected,idempotencyKey:randomUUID()};
@@ -130,6 +139,19 @@ try {
   assert.equal(Number((await c.query('SELECT COUNT(*) n FROM project_tasks WHERE project_id=?',[adopted.result.projectId]))[0][0].n),3);
   checks.push('1056任务实际导入保留完成/删除与历史日期；大小写ID分别存储；不重复追加statusDesc；同次重试不增任务');
 
+  assert.equal(imported.project.contentUpdatedOn,'2026-10-15');
+  const range=await admin.request('/api/projects?view=all&dashboard=1&contentFrom=2026-10-15&contentTo=2026-10-15');assert(range.items.some(p=>p.id===imported.project.id));assert.equal(range.stats.total,range.pagination.total);assert(range.dashboard.latest.some(p=>p.id===imported.project.id&&p.contentUpdatedOn==='2026-10-15'));
+  assert(!(await admin.request('/api/projects?view=all&contentTo=2026-10-14')).items.some(p=>p.id===imported.project.id));
+  assert(!(await member.request('/api/projects?view=all&contentFrom=2026-10-15&contentTo=2026-10-15')).items.some(p=>p.id===imported.project.id));
+  await admin.request('/api/projects/'+imported.project.id,'PATCH',{scope:'project',changes:{summary:'只改简介不能算说明更新'},expectedVersion:imported.project.version,idempotencyKey:randomUUID()});
+  assert.equal((await admin.request('/api/projects/'+imported.project.id)).project.contentUpdatedAt,imported.project.contentUpdatedAt);
+  assert.equal((await admin.request('/api/projects?contentFrom=2026-10-16&contentTo=2026-10-15','GET',undefined,400)).code,'INVALID_CONTENT_DATE_RANGE');
+  assert.equal((await admin.request('/api/projects?contentFrom=2026-02-31','GET',undefined,400)).code,'INVALID_CONTENT_DATE_RANGE');
+  const forExport=await admin.request('/api/project-summary');assert.equal(forExport.items.find(p=>p.id===imported.project.id).contentUpdatedOn,'2026-10-15');
+  const deviceKey=randomUUID(),filters={contentFrom:'2026-10-15',contentTo:'2026-10-15',taskOwner:['工程师']};
+  await member.request('/api/personal/preferences/save','POST',{deviceKey,scope:'board',expectedVersion:'0',value:{schemaVersion:1,filters,distributions:['chip','tags','odmFactory','progress']}});
+  const preference=await member.request('/api/personal/preferences?'+new URLSearchParams({deviceKey,scope:'board'}));assert.deepEqual(preference.value.filters,filters);
+  checks.push('说明更新时间承接已采用1056来源；上海跨日/边界日期/权限/分页与统计一致；简介修改不误计，简要及个人筛选偏好读回');
   const suggestion=await member.request('/api/auth/me');assert(suggestion.account.suggestedProjectCount>=1);
   const space=await member.request('/api/project-space');assert(space.items.some(p=>p.id===adopted.result.projectId&&p.suggested));
   await member.request('/api/projects/'+adopted.result.projectId,'GET',undefined,403);

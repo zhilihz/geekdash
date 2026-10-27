@@ -1,4 +1,5 @@
-import { taskPanel,putTaskOp,taskCopy,taskText } from './shared/tasks';
+import { validTaskDraft } from './shared/task-text';
+import { taskPanel,putTaskOp,taskCopy,taskText,applyTaskText,confirmTaskDeletes } from './shared/tasks';
 import './shared/board.css';
 import './shared/read.css';
 import './shared/board-page.css';
@@ -20,7 +21,7 @@ let restoredScroll:number|undefined;
 let scrollTimer:ReturnType<typeof setTimeout>|undefined;
 query.set('view', ['active', 'proposal', 'closed', 'maintenance', 'all'].includes(query.get('view') ?? '') ? query.get('view')! : 'active');
 const dimensions = { customer: '客户', productLine: '产品线', odmFactory: 'ODM 工厂', app: '配套 APP', status: '状态', priority: '优先级', signal: '信号灯', stage: '项目阶段', progress: '进度', chip: '芯片', tags: '项目标签', group: '分组', owner: '项目负责与分工', taskOwner:'任务负责人', deadline: '计划结果' };
-const allowed = new Set(['view', 'search', 'page', 'layout', ...Object.keys(dimensions)]);
+const allowed = new Set(['contentFrom','contentTo','view', 'search', 'page', 'layout', ...Object.keys(dimensions)]);
 for (const key of [...query.keys()]) if (!allowed.has(key)) query.delete(key);
 let controller: AbortController | undefined;
 let generation = 0;
@@ -29,7 +30,7 @@ let hasResult = false;
 let businessDate = '';
 let currentData: List | undefined;
 let readingNotice = '';
-type StatusEdit={ops?:import('./shared/api').TaskOperation[];id:string;value:string;base:string;version:string;pending?:SaveRequest;committed?:SaveResult;busy?:boolean;cancelling?:boolean;stale?:boolean;message?:string};
+type StatusEdit={taskBulk?:string;ops?:import('./shared/api').TaskOperation[];id:string;value:string;base:string;version:string;pending?:SaveRequest;committed?:SaveResult;busy?:boolean;cancelling?:boolean;stale?:boolean;message?:string};
 const changedHere=new Set<string>();
 const statusEdits=new Map<string,StatusEdit>(),statusDrafts=new Map<string,PersonalDrafts>(),editors=new Map<string,EditingPresence['users']>();
 let activeStatus:string|undefined,notifications:ProjectNotifications|undefined,frozen=false,composingStatus=false,renderStatusPending=false;
@@ -43,13 +44,13 @@ function drafts(id:string){
   let store=statusDrafts.get(id);if(store)return store;
   store=new PersonalDrafts(id,()=>({version:currentProject(id)?.version ?? null,editable:canEditStatus(currentProject(id)) && !statusEdits.get(id)?.stale}),row=>{
     const current=currentProject(id),edit=statusEdits.get(id),value=row.payload.values?.statusDesc,ops=row.payload.values?.taskOps;
-    if(row.formKind!=='status' || typeof value!=='string' && !Array.isArray(ops) || !current || !canEditStatus(current) || row.baseVersion!==current.version || edit?.pending || edit?.busy || edit && statusChanged(edit))return false;
-    const next={id,value:typeof value==='string'?value:current.statusDesc,ops:Array.isArray(ops)?ops:[],base:current.statusDesc,version:current.version};statusEdits.set(id,next);activeStatus=id;captureStatus(next);preserveStatus();renderProjects();return true;
+    if(row.formKind!=='status' || typeof value!=='string' && !Array.isArray(ops) && !row.payload.editors?.task || !current || !canEditStatus(current) || row.baseVersion!==current.version || edit?.pending || edit?.busy || edit && statusChanged(edit))return false;
+    const next:StatusEdit={taskBulk:(row.payload.editors?.task as {text?:string}|undefined)?.text,id,value:typeof value==='string'?value:current.statusDesc,ops:Array.isArray(ops)?ops:[],base:current.statusDesc,version:current.version};statusEdits.set(id,next);activeStatus=id;captureStatus(next);preserveStatus();renderProjects();return true;
   },{button:false,kinds:['status']});statusDrafts.set(id,store);return store;
 }
-const statusChanged=(edit:StatusEdit)=>edit.value!==edit.base||!!edit.ops?.length;
+const statusChanged=(edit:StatusEdit)=>edit.value!==edit.base||!!edit.ops?.length||edit.taskBulk!==undefined&&edit.taskBulk!==taskText(taskCopy(currentProject(edit.id)?.tasks??[],edit.ops??[]));
 const statusChanges=(edit:StatusEdit)=>edit.ops?.length?{taskOps:edit.ops}:{statusDesc:edit.value};
-function captureStatus(edit:StatusEdit){if(!frozen && statusChanged(edit) && !edit.pending && !edit.stale)drafts(edit.id).capture('status',undefined,edit.version,{values:statusChanges(edit),submission:{scope:'status',changes:statusChanges(edit)}});}
+function captureStatus(edit:StatusEdit){if(!frozen && statusChanged(edit) && !edit.pending && !edit.stale)drafts(edit.id).capture('status',undefined,edit.version,{values:statusChanges(edit),...edit.taskBulk!==undefined?{editors:{task:{text:edit.taskBulk}}}:{},submission:{scope:'status',changes:statusChanges(edit)}});}
 function clearEditors(){editors.clear();document.querySelectorAll('[data-project-editors]').forEach(node=>node.replaceChildren());}
 async function loadMentionPeople(){
   if(mentionLoading)return mentionLoading;
@@ -66,13 +67,13 @@ function filterToggle() {
   element('filter-toggle').setAttribute('aria-expanded', String(!filterRows.hidden));
   element('filter-toggle').textContent = filterRows.hidden ? '▸ 展开筛选' : '▾ 收起筛选';
 }
-function remember(){preference?.update({view:query.get('view'),page:Number(query.get('page') ?? 1),filters:Object.fromEntries(['search',...Object.keys(dimensions)].filter(key=>query.has(key)).map(key=>[key,key==='search'?query.get(key):query.getAll(key)])),filtersOpen:!filterRows.hidden,distributions:visibleDistributions,scrollY:window.scrollY});}
+function remember(){preference?.update({view:query.get('view'),page:Number(query.get('page') ?? 1),filters:Object.fromEntries(['search','contentFrom','contentTo',...Object.keys(dimensions)].filter(key=>query.has(key)).map(key=>[key,['search','contentFrom','contentTo'].includes(key)?query.get(key):query.getAll(key)])),filtersOpen:!filterRows.hidden,distributions:visibleDistributions,scrollY:window.scrollY});}
 function filterValue(key: string, value: string) {
   const deadlineNames: Record<string, string> = { upcoming: '未到期', due: '今日到期', overdue: '已超期', unset: '计划未定', closed_on_time: '按期结案', closed_late: '超期结案', closed_unplanned: '无计划结案', closed_unknown: '结案日期待核对', terminated: '终止结案' };
   return currentData?.optionLabels?.[key]?.[value] ?? (key === 'deadline' ? deadlineNames[value] ?? value : key === 'progress' ? value + '%' : ['status', 'priority', 'signal', 'stage'].includes(key) ? label(value) : value);
 }
 function selectedFilters() {
-  const selected = [['search', '搜索'], ...Object.entries(dimensions)].filter(([key]) => query.get(key)).map(([key, title]) => ({ key, text: `${title}：${query.getAll(key).map(value=>filterValue(key,value)).join('、')}` }));
+  const selected = [['search','搜索'],['contentFrom','内容更新起日'],['contentTo','内容更新止日'],...Object.entries(dimensions)].filter(([key]) => query.get(key)).map(([key, title]) => ({ key, text: `${title}：${query.getAll(key).map(value=>filterValue(key,value)).join('、')}` }));
   element('selected-filters').hidden = !selected.length;
   element('selected-filters').innerHTML = selected.map(item => `<button class="chip active" data-remove-filter="${item.key}" aria-label="取消${esc(item.text)}">${esc(item.text)} <span aria-hidden="true">×</span></button>`).join('');
   return selected.map(item => item.text);
@@ -99,18 +100,18 @@ function card(project: ListProject) {
 function statusContent(project:ListProject){
   const edit=statusEdits.get(project.id),editable=canEditStatus(project),stale=!!edit && (edit.stale || edit.version!==project.version || !editable);
   const notice=frozen?(edit?.committed?'状态已保存，无需重新保存。请重新登录后读取结果，输入保留供复制。':'账号状态已改变，输入和原保存请求保留，请重新登录。'):edit?.committed?edit.message ?? '状态已保存，正在读取正式内容。':stale?'项目已被他人更新，请重新进入项目。未保存文字保留供复制。':edit?.message ?? '';
-  if(edit && activeStatus===project.id)return `${edit.value!==edit.base?`<textarea data-status-input="${project.id}" aria-label="旧状态说明草稿" rows="5" ${frozen||stale?'readonly':''}>${esc(edit.value)}</textarea>`:taskPanel(project.tasks??[],edit.ops??[],!frozen&&!stale&&!edit.busy)}<p class="board-status-feedback" role="status">${esc(notice)}</p><div class="board-status-actions">${edit.committed?`<button data-status-action="query" ${edit.busy || frozen?'disabled':''}>读取已保存结果</button>`:edit.pending?`<button data-status-action="query" ${edit.busy || frozen?'disabled':''}>核对原保存结果</button><button data-status-action="retry" ${edit.busy || frozen?'disabled':''}>重试原保存</button>`:`<button data-status-action="save" ${edit.busy || frozen || stale?'disabled':''}>保存状态</button><button data-status-action="cancel" ${edit.busy || frozen?'disabled':''}>取消修改</button><button data-status-action="drafts" ${edit.busy || frozen?'disabled':''}>个人草稿</button>`}${stale || frozen?`<button data-status-action="copy">复制输入</button><a href="project-detail.html?id=${project.id}">重新进入项目</a>`:''}</div>`;
+  if(edit && activeStatus===project.id)return `${edit.value!==edit.base?`<textarea data-status-input="${project.id}" aria-label="旧状态说明草稿" rows="5" ${frozen||stale?'readonly':''}>${esc(edit.value)}</textarea>`:taskPanel(project.tasks??[],edit.ops??[],!frozen&&!stale&&!edit.busy,edit.taskBulk)}<p class="board-status-feedback" role="status">${esc(notice)}</p><div class="board-status-actions">${edit.committed?`<button data-status-action="query" ${edit.busy || frozen?'disabled':''}>读取已保存结果</button>`:edit.pending?`<button data-status-action="query" ${edit.busy || frozen?'disabled':''}>核对原保存结果</button><button data-status-action="retry" ${edit.busy || frozen?'disabled':''}>重试原保存</button>`:`<button data-status-action="save" ${edit.busy || frozen || stale?'disabled':''}>保存状态</button><button data-status-action="cancel" ${edit.busy || frozen?'disabled':''}>取消修改</button><button data-status-action="drafts" ${edit.busy || frozen?'disabled':''}>个人草稿</button>`}${stale || frozen?`<button data-status-action="copy">复制输入</button><a href="project-detail.html?id=${project.id}">重新进入项目</a>`:''}</div>`;
   return `<div class="board-status-lines">${taskPanel(project.tasks??[],[],false)}</div>${editable || edit?`<button data-status-action="edit" ${frozen?'disabled':''}>${edit?'继续编辑':'更新状态'}</button>`:''}`;
 }
 function renderProjects() {
   if (!currentData) return;
   if(composingStatus){renderStatusPending=true;return;}renderStatusPending=false;
-  const input=document.activeElement instanceof HTMLTextAreaElement && document.activeElement.matches('[data-status-input],[data-task-text]')?document.activeElement:undefined,focus=input?{id:input.dataset.statusInput,task:input.closest<HTMLElement>('[data-task-row]')?.dataset.taskRow,project:input.closest<HTMLElement>('[data-project-id]')?.dataset.projectId,start:input.selectionStart,end:input.selectionEnd,scrollTop:input.scrollTop}:undefined;
+  const input=document.activeElement instanceof HTMLTextAreaElement && document.activeElement.matches('[data-status-input],[data-task-text],[data-task-bulk]')?document.activeElement:undefined,focus=input?{bulk:input.hasAttribute('data-task-bulk'),id:input.dataset.statusInput,task:input.closest<HTMLElement>('[data-task-row]')?.dataset.taskRow,project:input.closest<HTMLElement>('[data-project-id]')?.dataset.projectId,start:input.selectionStart,end:input.selectionEnd,scrollTop:input.scrollTop}:undefined;
   const progress = query.get('layout') === 'progress';
   element('card-grid').classList.toggle('progress-layout', progress);
   element('card-grid').innerHTML = currentData.items.map(card).join('');
-  document.querySelectorAll<HTMLTextAreaElement>('[data-status-input],[data-task-text]').forEach(input=>attachStatusMentions(input,()=>mentionPeople ?? []));
-  if(focus){const input=document.querySelector<HTMLTextAreaElement>(focus.task?`[data-project-id="${focus.project}"] [data-task-row="${CSS.escape(focus.task)}"] textarea`:`[data-status-input="${focus.id}"]`);if(input){input.focus({preventScroll:true});input.setSelectionRange(focus.start,focus.end);input.scrollTop=focus.scrollTop;}}
+  document.querySelectorAll<HTMLTextAreaElement>('[data-status-input],[data-task-text],[data-task-bulk]').forEach(input=>attachStatusMentions(input,()=>mentionPeople ?? []));
+  if(focus){const input=document.querySelector<HTMLTextAreaElement>(focus.bulk?`[data-project-id="${focus.project}"] [data-task-bulk]`:focus.task?`[data-project-id="${focus.project}"] [data-task-row="${CSS.escape(focus.task)}"] textarea`:`[data-status-input="${focus.id}"]`);if(input){input.focus({preventScroll:true});input.setSelectionRange(focus.start,focus.end);input.scrollTop=focus.scrollTop;}}
   element('cards-view').hidden = progress; element('dashboard-view').hidden = !progress;
   for (const [id, active] of [['layout-cards', !progress], ['layout-toggle', progress]] as const) { element(id).classList.toggle('active', active); element(id).setAttribute('aria-pressed', String(active)); }
   updateEditing();
@@ -120,6 +121,7 @@ async function saveStatus(edit:StatusEdit,queryResult=false){
   const project=currentProject(edit.id);
   if(!edit.pending && (!canEditStatus(project) || edit.stale || project?.version!==edit.version)){edit.stale=true;renderProjects();return;}
   if(!edit.pending && !statusChanged(edit)){await cancelStatus(edit);return;}
+  if(!edit.pending){try{if(edit.taskBulk!==undefined){edit.ops=applyTaskText(project?.tasks??[],edit.ops??[],edit.taskBulk);edit.taskBulk=undefined;captureStatus(edit);preserveStatus();}}catch(error){edit.message=(error as Error).message;renderProjects();return;}edit.busy=true;try{if(!await confirmTaskDeletes(project?.tasks??[],edit.ops??[]))return;}finally{edit.busy=false;}if(edit.stale||frozen)return;if(!statusChanged(edit)){await cancelStatus(edit);return;}}
   edit.busy=true;edit.message=queryResult?'正在核对原保存结果…':'正在保存…';renderProjects();
   try{
     if(!edit.pending){
@@ -144,7 +146,7 @@ async function saveStatus(edit:StatusEdit,queryResult=false){
     const fresh=await get<Detail>('/api/projects/'+edit.id,undefined,false);
     if(frozen)return;
     const submitted=JSON.stringify(statusChanges(edit))===JSON.stringify(original.changes);
-    edit.base=fresh.project.statusDesc;if(submitted){edit.value=edit.base;edit.ops=[];}edit.version=result.savedVersion;edit.pending=undefined;edit.committed=undefined;
+    edit.base=fresh.project.statusDesc;if(submitted){edit.value=edit.base;edit.ops=[];edit.taskBulk=undefined;}edit.version=result.savedVersion;edit.pending=undefined;edit.committed=undefined;
     edit.stale=fresh.project.version!==result.savedVersion || !fresh.capabilities.editOrdinary;
     await drafts(edit.id).advance(result,{kind:'status'});
     const displayed=currentProject(edit.id);if(displayed)Object.assign(displayed,fresh.project);
@@ -167,12 +169,19 @@ async function cancelStatus(edit:StatusEdit){
 element('card-grid').addEventListener('input',event=>{
   const input=event.target as HTMLTextAreaElement,id=input.dataset.statusInput??input.closest<HTMLElement>('[data-project-id]')?.dataset.projectId,edit=id?statusEdits.get(id):undefined;
   if(!edit)return;
-  if(input.matches('[data-task-text]'))edit.ops=putTaskOp(edit.ops??[],{op:'edit',id:input.closest<HTMLElement>('[data-task-row]')!.dataset.taskRow!,text:input.value});else if(input.matches('[data-status-input]'))edit.value=input.value;else return;
+  if(input.matches('[data-task-bulk]'))edit.taskBulk=input.value;else if(input.matches('[data-task-text]'))edit.ops=putTaskOp(edit.ops??[],{op:'edit',id:input.closest<HTMLElement>('[data-task-row]')!.dataset.taskRow!,text:input.value});else if(input.matches('[data-status-input]'))edit.value=input.value;else return;
   changedHere.add(edit.id);captureStatus(edit);preserveStatus();updateEditing();
 });
-element('card-grid').addEventListener('compositionstart',event=>{if((event.target as HTMLElement).matches('[data-status-input],[data-task-text]'))composingStatus=true;});
+element('card-grid').addEventListener('compositionstart',event=>{if((event.target as HTMLElement).matches('[data-status-input],[data-task-text],[data-task-bulk]'))composingStatus=true;});
 element('card-grid').addEventListener('compositionend',()=>{composingStatus=false;if(renderStatusPending)queueMicrotask(renderProjects);});
-element('card-grid').addEventListener('click',event=>{
+element('card-grid').addEventListener('click',async event=>{
+  const mode=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-task-mode]');
+  if(mode){const id=mode.closest<HTMLElement>('[data-project-id]')!.dataset.projectId!,edit=statusEdits.get(id);if(!edit||edit.busy||edit.stale||frozen)return;
+    try{if(mode.dataset.taskMode==='copy'){await navigator.clipboard.writeText(edit.taskBulk??'');edit.message='整栏输入已复制。';}
+      else if(mode.dataset.taskMode==='bulk')edit.taskBulk=taskText(taskCopy(currentProject(id)?.tasks??[],edit.ops??[]));
+      else{if(mode.dataset.taskMode==='rows')edit.ops=applyTaskText(currentProject(id)?.tasks??[],edit.ops??[],edit.taskBulk??'');edit.taskBulk=undefined;}
+    }catch(error){edit.message=(error as Error).message;}captureStatus(edit);preserveStatus();renderProjects();return;
+  }
   const taskButton=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-task-action]');
   if(taskButton&&!taskButton.disabled){const projectId=taskButton.closest<HTMLElement>('[data-project-id]')!.dataset.projectId!,edit=statusEdits.get(projectId);if(!edit)return;
     const op=taskButton.dataset.taskAction as 'add'|'complete'|'reopen'|'delete',id=taskButton.closest<HTMLElement>('[data-task-row]')?.dataset.taskRow??crypto.randomUUID();
@@ -213,7 +222,7 @@ function charts(data: Dashboard) {
   element('focus-projects').innerHTML = data.focus.map(project => {const progress=Math.max(0,Math.min(100,Number(project.progress))),color=project.priority==='high'?'var(--red)':project.priority==='mid'?'var(--yellow)':'var(--accent)';return `<a class="pp-item" data-project-id="${project.id}" href="project-detail.html?id=${project.id}"><div class="pp-ring"><svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18" fill="none" stroke="var(--border)" stroke-width="4"/><circle cx="22" cy="22" r="18" fill="none" stroke="${color}" stroke-width="4" pathLength="100" stroke-dasharray="${progress} 100" transform="rotate(-90 22 22)"/></svg><span class="pp-ring-pct">${progress}%</span></div><div class="pp-info"><div class="pp-name">${esc(project.name)}</div><div class="pp-meta">${esc(label(project.stage))} · ${esc(label(project.status))}</div></div></a>`;}).join('') || '<p class="pp-empty">当前范围没有匹配项目</p>';
   const maximum=Math.max(1,...data.managers.map(person=>person.count));
   element('manager-project-counts').innerHTML=`<ul class="board-distribution">${data.managers.map(person=>`<li><button class="legend-filter" data-manager="${esc(person.id)}">${esc(person.name)}</button><span class="board-distribution-track" aria-hidden="true"><i style="width:${person.count/maximum*100}%;background:var(--accent)"></i></span><b>${person.count}</b></li>`).join('')||'<li>暂无负责项目</li>'}</ul>`;
-  element('latest-status').innerHTML = data.latest.length ? `<div class="read-table-wrap"><table class="read-table"><thead><tr><th>项目</th><th>最新状态说明</th><th>更新时间</th></tr></thead><tbody>${data.latest.map(project => `<tr><th scope="row"><a data-project-id="${project.id}" href="project-detail.html?id=${project.id}">${esc(project.name)}</a></th><td>${esc(project.statusDesc || '暂无状态说明')}</td><td>${esc(new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', dateStyle: 'short', timeStyle: 'short' }).format(new Date(project.updatedAt)))}</td></tr>`).join('')}</tbody></table></div>` : '<p class="pp-empty">暂无匹配项目</p>';
+  element('latest-status').innerHTML = data.latest.length ? `<div class="read-table-wrap"><table class="read-table"><thead><tr><th>项目</th><th>最新状态说明</th><th>更新时间</th></tr></thead><tbody>${data.latest.map(project => `<tr><th scope="row"><a data-project-id="${project.id}" href="project-detail.html?id=${project.id}">${esc(project.name)}</a></th><td>${esc(project.statusDesc || '暂无状态说明')}</td><td>${esc(project.contentUpdatedAt?(project.contentUpdatedAt.includes('T')?new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',dateStyle:'short',timeStyle:'short'}).format(new Date(project.contentUpdatedAt)):project.contentUpdatedAt):'时间未知')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="pp-empty">暂无匹配项目</p>';
   distribution();
 }
 
@@ -221,7 +230,7 @@ function filters(options: List['options'], labels: List['optionLabels']) {
   options.stage = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'completed', 'unconfigured'];
   options.progress = ['0', '5', '10', '20', '60', '80', '90', '100'];
   options.deadline = ['upcoming', 'due', 'overdue', 'unset', 'closed_on_time', 'closed_late', 'closed_unplanned', 'closed_unknown', 'terminated'];
-  filterRows.innerHTML = Object.entries(dimensions).map(([key, title]) => {
+  filterRows.innerHTML = `<div class="filter-row"><span class="filter-label">内容更新时间</span><label>从 <input type="date" data-content-date="contentFrom" value="${esc(query.get('contentFrom')??'')}" max="${esc(query.get('contentTo')??'')}"></label><label>至 <input type="date" data-content-date="contentTo" value="${esc(query.get('contentTo')??'')}" min="${esc(query.get('contentFrom')??'')}"></label><span>按说明与任务修改日期筛选</span></div>`+Object.entries(dimensions).map(([key, title]) => {
     const values = options[key] ?? [];
     const selected = query.getAll(key);
     const choices = [...new Set([...selected,...values])];
@@ -311,6 +320,7 @@ filterRows.onclick = event => {
 };
 let searchTimer: ReturnType<typeof setTimeout>;
 search.oninput = () => { clearTimeout(searchTimer); controller?.abort(); generation++; freezeCheckEntry(); searchTimer = setTimeout(() => change('search', search.value), 200); };
+filterRows.addEventListener('change',event=>{const input=event.target as HTMLInputElement;if(input.dataset.contentDate&&input.reportValidity())change(input.dataset.contentDate,input.value);});
 element('clear').onclick = () => { clearTimeout(searchTimer); for (const key of [...query.keys()]) if (key !== 'view' && key !== 'layout') query.delete(key); search.value = ''; remember();void load(); };
 element('previous').onclick = () => { if (pagination) { query.set('page', String(pagination.page - 1)); remember();void load(); } };
 element('next').onclick = () => { if (pagination) { query.set('page', String(pagination.page + 1)); remember();void load(); } };
@@ -344,7 +354,7 @@ document.addEventListener('geekdash-preference-status',event=>{feedback((event a
 setInterval(() => { if (hasResult && document.visibilityState === 'visible' && businessDate !== new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date())) void load(false); }, 60000);
 void import('./shared/api').then(async ({ requireIdentity }) => {
   await requireIdentity();preference=new PersonalPreference('board',feedback);const saved=await preference.load();if(Array.isArray(saved.distributions))visibleDistributions=saved.distributions.filter((key:unknown)=>typeof key==='string'&&Object.hasOwn(distributionNames,key));
-  try{const cached=JSON.parse(sessionStorage.getItem(statusCache()) ?? '[]');if(Array.isArray(cached))for(const edit of cached)if(typeof edit.id==='string' && /^[1-9][0-9]*$/.test(edit.id) && typeof edit.value==='string' && typeof edit.base==='string' && typeof edit.version==='string' && (!edit.pending || edit.pending.scope==='status'))statusEdits.set(edit.id,{...edit,busy:false});}catch{}
+  try{const cached=JSON.parse(sessionStorage.getItem(statusCache()) ?? '[]');if(Array.isArray(cached))for(const edit of cached)if(typeof edit.id==='string' && /^[1-9][0-9]*$/.test(edit.id) && typeof edit.value==='string' && typeof edit.base==='string' && validTaskDraft(edit.ops) && (edit.taskBulk===undefined||typeof edit.taskBulk==='string') && typeof edit.version==='string' && (!edit.pending || edit.pending.scope==='status'))statusEdits.set(edit.id,{...edit,busy:false});}catch{}
   if(!explicitQuery){if(typeof saved.view==='string')query.set('view',saved.view);if(typeof saved.page==='number')query.set('page',String(saved.page));for(const [key,value] of Object.entries(saved.filters ?? {}))if(allowed.has(key)){query.delete(key);for(const item of Array.isArray(value)?value:[value])if(typeof item==='string')query.append(key,item)};restoredScroll=typeof saved.scrollY==='number'?saved.scrollY:undefined;}
   if(!query.has('layout') && appearance?.current().layout==='progress')query.set('layout','progress');
   filterRows.hidden=saved.filtersOpen!==true;filterToggle();search.value=query.get('search') ?? '';await load();

@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {taskRows,bulkTaskOperations,validTaskDraft} from '../src/web/shared/task-text.ts';
+const task=(id,text,rest={})=>({id,text,createdAt:'2026-10-10',updatedAt:'2026-10-11',completedAt:'',deletedAt:'',...rest});
+const before=[task('a','样机发货'),task('b','联调验证'),task('c','等待芯片')],original=JSON.stringify(before);
+assert.deepEqual(taskRows(before,'1、样机发货\n2、联调完成\n3、等待芯片'),[{id:'a',text:'样机发货'},{id:'b',text:'联调完成'},{id:'c',text:'等待芯片'}]);
+assert.deepEqual(bulkTaskOperations(before,'样机发货\n等待芯片'),[{op:'delete',id:'b'}]);
+const added=bulkTaskOperations(before,'样机发货\n新增验证\n联调验证\n等待芯片');assert.equal(added.length,1);assert.equal(added[0].op,'add');assert.equal(added[0].text,'新增验证');
+assert.deepEqual(bulkTaskOperations(before,'1、样机发货\r\n\r\n2、联调验证\r\n3、等待芯片'),[]);
+assert.equal(bulkTaskOperations(before,'').filter(op=>op.op==='delete').length,3);
+assert.deepEqual(taskRows([task('multi','第一行\n第二行'),task('other','其他任务')],'1、第一行\n第二行\n2、其他任务'),[{id:'multi',text:'第一行\n第二行'},{id:'other',text:'其他任务'}]);
+assert.throws(()=>taskRows(before,'样机发货\n多条合并'),/无法确认/);
+assert.throws(()=>taskRows([task('a','同文'),task('b','同文')],'同文'),/相同/);
+assert.deepEqual(taskRows([task('a','同文'),task('b','同文')],'同文\n同文').map(row=>row.id),['a','b']);
+assert.deepEqual(bulkTaskOperations([task('c','已完成',{completedAt:'2026-10-12'}),task('d','已删除',{deletedAt:'2026-10-13'})],''),[]);
+assert.equal(JSON.stringify(before),original,'匹配不得改动旧任务与时间');
+assert(validTaskDraft([]));assert(validTaskDraft([{op:'add',id:'temporary',text:''}]));assert(!validTaskDraft([{op:'edit',id:'a',text:null}]));
+console.log(JSON.stringify({status:'passed',cases:14,scope:'整栏任务身份匹配与操作生成，无数据库或页面操作'}));

@@ -8,7 +8,7 @@ export type SummaryColumn=keyof typeof summaryColumns;
 export const defaultColumns=Object.keys(summaryColumns).filter(key=>key!=='chipNote') as SummaryColumn[];
 export const summaryFilterTitles={customer:'客户',productLine:'产品线',odmFactory:'ODM 工厂',app:'配套 APP',status:'项目状态',priority:'优先级',signal:'信号灯',stage:'项目阶段',progress:'进度',chip:'芯片',tags:'项目标签',group:'分组',assignment:'分工人员',owner:'任务负责人',deadline:'计划结果'};
 export type SummaryFilter=keyof typeof summaryFilterTitles;
-export type SummaryFilters=Partial<Record<SummaryFilter,string[]>> & {search?:string};
+export type SummaryFilters=Partial<Record<SummaryFilter,string[]>> & {search?:string;contentFrom?:string;contentTo?:string};
 export type SummarySort='customer'|'group'|'chip'|'stage'|'dueDate';
 export function summaryValue(project:SummaryProject,column:SummaryColumn):string {
   switch(column){
@@ -48,7 +48,7 @@ export function summaryFilterOptions(snapshot:SummarySnapshot):Record<SummaryFil
 }
 export function summaryRows(items:SummaryProject[],filters:SummaryFilters,sort:SummarySort,order:string[]=[],hidden:string[]=[],quickIds?:string[]) {
   const omitted=new Set(hidden),scope=quickIds ? new Set(quickIds) : null,positions=new Map(order.map((id,index)=>[id,index])),search=filters.search?.trim().toLowerCase();
-  const result=items.filter(project=>!omitted.has(project.id) && (!scope || scope.has(project.id))
+  const result=items.filter(project=>(!filters.contentFrom&&!filters.contentTo||!!project.contentUpdatedOn&&(!filters.contentFrom||project.contentUpdatedOn>=filters.contentFrom)&&(!filters.contentTo||project.contentUpdatedOn<=filters.contentTo)) && !omitted.has(project.id) && (!scope || scope.has(project.id))
     && (Object.keys(summaryFilterTitles) as SummaryFilter[]).every(kind=>!filters[kind]?.length || filterChoices(project,kind).some(([value])=>filters[kind]!.includes(value)))
     && (!search || [[project.name,project.customer,project.productLine,project.odmFactory,project.app,project.marketExpectation,project.statusDesc].filter(Boolean).join(' '),...project.chips.map(chip=>chip.name),...project.people.filter(person=>person.role!=='pm').map(person=>person.name),...project.managers.map(person=>person.name)].some(value=>value.toLowerCase().includes(search))));
   return result.sort((a,b)=>{

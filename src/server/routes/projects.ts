@@ -135,6 +135,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
   });
   const properties: Record<string, unknown> = {};
   for (const key of ['search', 'customer', 'productLine', 'odmFactory', 'app', 'group', 'chip', 'tags', 'owner', 'taskOwner']) properties[key] = { type: 'string', maxLength: 255 };
+  for(const key of ['contentFrom','contentTo'])properties[key]={type:'string',pattern:'^\\d{4}-\\d{2}-\\d{2}$'};
   properties.view = { type: 'string', enum: ['active', 'proposal', 'closed', 'maintenance', 'all'] };
   properties.dashboard = { type: 'string', enum: ['1'] };
   properties.details = { type: 'string', enum: ['checks'] };

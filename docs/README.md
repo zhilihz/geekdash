@@ -1,8 +1,10 @@
 # GeekDash 文档目录
 
-导航更新：2026-10-27。项目仓库：[zhilihz/geekdash](https://github.com/zhilihz/geekdash)。全部项目文档在本目录；协作与分类规则只维护于根目录[AGENTS.md](../AGENTS.md)。
+导航更新：2026-10-28。项目仓库：[zhilihz/geekdash](https://github.com/zhilihz/geekdash)。全部项目文档在本目录；协作与分类规则只维护于根目录[AGENTS.md](../AGENTS.md)。
 
 ## 本轮阅读入口
+
+当前接续为DEC-171整轮体验修正：设计查[PRD9.28](product/PRD.md)与[SPEC-022](specifications/specification.md)，实际进度、接口覆盖和用户验收边界查[本轮报告](testing/reports/2026-10-27-experience.md)及[系统真相](status/current-system-truth.md)。以下旧入口保留原阶段来源。
 
 2026-10-27新增修正讨论：先读[DEC-167/168](decisions/decisions.md#2026-10-27-现有页面与操作统一修正)、[PRD9.25](product/PRD.md#925-现有页面与操作统一修正2026-10-27已确认未实施)、[ERD5.15](data/ERD.md#515-多值资料与统一操作的结构影响dec-167168待详细收敛)及[计划1.2](implementation/execution-plan.md#12-p04完整实施计划2026-10-15)的修正输入；设计与现行运行状态分开。下方为既有P05交付来源。
 

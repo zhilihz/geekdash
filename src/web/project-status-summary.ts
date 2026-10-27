@@ -48,7 +48,7 @@ function remember(){preference.update({filters,filtersOpen,sort,rowOrder:order,h
 function renderSelectedFilters(){
   if(!snapshot)return;
   const options=summaryFilterOptions(snapshot);
-  element('summary-selected-filters').innerHTML=(filters.search?`<button data-clear-search>搜索：${esc(filters.search)} <span aria-hidden="true">×</span></button>`:'')+(Object.keys(summaryFilterTitles) as SummaryFilter[]).flatMap(kind=>(filters[kind] ?? []).map(value=>`<button data-remove-filter="${kind}" data-value="${esc(value)}">${summaryFilterTitles[kind]}：${esc(options[kind].find(option=>option[0]===value)?.[1] ?? value)} <span aria-hidden="true">×</span></button>`)).join('');
+  element('summary-selected-filters').innerHTML=(filters.search?`<button data-clear-search>搜索：${esc(filters.search)} <span aria-hidden="true">×</span></button>`:'')+(['contentFrom','contentTo'] as const).filter(key=>filters[key]).map(key=>`<button data-clear-date="${key}">${key==='contentFrom'?'内容更新起日':'内容更新止日'}：${esc(filters[key]!)} ×</button>`).join('')+(Object.keys(summaryFilterTitles) as SummaryFilter[]).flatMap(kind=>(filters[kind] ?? []).map(value=>`<button data-remove-filter="${kind}" data-value="${esc(value)}">${summaryFilterTitles[kind]}：${esc(options[kind].find(option=>option[0]===value)?.[1] ?? value)} <span aria-hidden="true">×</span></button>`)).join('');
   element('summary-selected-filters').hidden=!element('summary-selected-filters').childElementCount;
 }
 function renderFilters(){
@@ -57,7 +57,7 @@ function renderFilters(){
     element('summary-filters').innerHTML=`<label class="summary-search">搜索项目<input id="summary-search" type="search" maxlength="255" placeholder="项目名称 / 客户 / 芯片 / 人员" value="${esc(filters.search ?? '')}"></label><div class="summary-filter-tools"><button id="summary-filter-toggle" aria-controls="summary-filter-rows"></button><span>全部筛选条件</span><button data-clear-filters>清空筛选</button></div><div id="summary-selected-filters"></div><div id="summary-filter-rows"></div>`;
   }
   const options=summaryFilterOptions(snapshot);
-  element('summary-filter-rows').innerHTML=(Object.keys(summaryFilterTitles) as SummaryFilter[]).map(kind=>{
+  element('summary-filter-rows').innerHTML=`<div class="summary-filter"><span>内容更新时间：</span><label>从 <input type="date" data-content-date="contentFrom" value="${esc(filters.contentFrom??'')}" max="${esc(filters.contentTo??'')}"></label><label>至 <input type="date" data-content-date="contentTo" value="${esc(filters.contentTo??'')}" min="${esc(filters.contentFrom??'')}"></label></div>`+(Object.keys(summaryFilterTitles) as SummaryFilter[]).map(kind=>{
     const chosen=filters[kind] ?? [],values=[...options[kind],...chosen.filter(value=>!options[kind].some(option=>option[0]===value)).map(value=>[value,value])];
     return `<div class="summary-filter" role="group" aria-label="${summaryFilterTitles[kind]}"><span>${summaryFilterTitles[kind]}：</span><button data-all="${kind}" aria-pressed="${!chosen.length}">全选</button>${values.map(([value,title])=>`<label><input type="checkbox" data-filter="${kind}" value="${esc(value)}" ${chosen.includes(value)?'checked':''}>${esc(title)}</label>`).join('')}</div>`;
   }).join('');
@@ -124,12 +124,13 @@ element('summary-filters').onclick=event=>{
   if(button.id==='summary-filter-toggle'){filtersOpen=!filtersOpen;remember();renderFilters();return;}
   if(button.hasAttribute('data-clear-filters')){filters={};(element('summary-search') as HTMLInputElement).value='';}
   else if(button.hasAttribute('data-clear-search')){delete filters.search;(element('summary-search') as HTMLInputElement).value='';}
+  else if(button.dataset.clearDate)delete filters[button.dataset.clearDate as 'contentFrom'|'contentTo'];
   else if(button.dataset.removeFilter){const kind=button.dataset.removeFilter as SummaryFilter;filters[kind]=(filters[kind] ?? []).filter(value=>value!==button.dataset.value);}
   else if(button.dataset.all)filters[button.dataset.all as SummaryFilter]=[];
   else return;
   remember();renderFilters();renderTable();
 };
-element('summary-filters').onchange=event=>{const input=event.target as HTMLInputElement,kind=input.dataset.filter as SummaryFilter;if(!kind)return;filters[kind]=input.checked?[...new Set([...(filters[kind] ?? []),input.value])]:(filters[kind] ?? []).filter(value=>value!==input.value);remember();renderFilters();renderTable();};
+element('summary-filters').onchange=event=>{const input=event.target as HTMLInputElement,kind=input.dataset.filter as SummaryFilter;if(input.dataset.contentDate){if(!input.reportValidity())return;filters[input.dataset.contentDate as 'contentFrom'|'contentTo']=input.value;remember();renderFilters();renderTable();return;}if(!kind)return;filters[kind]=input.checked?[...new Set([...(filters[kind] ?? []),input.value])]:(filters[kind] ?? []).filter(value=>value!==input.value);remember();renderFilters();renderTable();};
 function searchProjects(event:Event){const input=event.target as HTMLInputElement;if(input.id!=='summary-search' || event instanceof InputEvent && event.isComposing)return;filters.search=input.value;remember();renderSelectedFilters();renderTable();}
 element('summary-filters').addEventListener('input',searchProjects);
 element('summary-filters').addEventListener('compositionend',searchProjects);
@@ -197,6 +198,7 @@ async function initialize(){if(await requireIdentity()){
     const saved=state.filters as Record<string,unknown>;
     for(const field of Object.keys(summaryFilterTitles) as SummaryFilter[])filters[field]=strings(saved[field]);
     if(typeof saved.search==='string')filters.search=saved.search;
+    for(const key of ['contentFrom','contentTo'] as const)if(typeof saved[key]==='string')filters[key]=saved[key];
   }
   filtersOpen=state.filtersOpen===true;
   if(['customer','group','chip','stage','dueDate'].includes(String(state.sort)))sort=state.sort as SummarySort;

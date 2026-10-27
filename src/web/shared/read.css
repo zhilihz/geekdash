@@ -2,6 +2,7 @@
 :root { --font-ui: "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif; --control-radius: 6px; }
 html, body { font-family: var(--font-ui); }
 button, input, select, textarea { font-family: inherit; }
+.filter-row input[data-content-date] { font: inherit; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; color: var(--text); background: var(--bg-input,var(--bg)); }
 button { font-size: 13px; line-height: 20px; padding: 7px 14px; color: var(--text-dim); background: transparent; border: 1px solid var(--border); border-radius: var(--control-radius); cursor: pointer; }
 :where(button:not(:disabled)):hover { color: var(--text); background: var(--card-hover); }
 .head-btn, .back-btn, .choice-cancel, .save-btn, .choice-confirm, .node-add-btn, .board-primary, .check-pass, .del-btn {

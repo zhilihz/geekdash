@@ -1,4 +1,5 @@
-import { taskPanel,putTaskOp } from './shared/tasks';
+import { validTaskDraft } from './shared/task-text';
+import { taskPanel,putTaskOp,taskCopy,taskText,applyTaskText,confirmTaskDeletes } from './shared/tasks';
 import { chipPicker, bindChipPicker, refreshChipOptions } from './shared/chip-picker';
 import './shared/detail.css';
 import './shared/read.css';
@@ -35,6 +36,7 @@ const roles = ['hardware_owner', 'software_owner', 'participant'];
 let basicDraft: BasicIntent | undefined;
 let personalDrafts: PersonalDrafts | undefined;
 let values: EditValues | undefined;
+let taskBulk:string|undefined;
 let catalog: Catalog | undefined;
 let catalogMessage = '';
 let catalogLoading = false;
@@ -51,7 +53,7 @@ let inFlight = false;
 let loading = false;
 let leaving = false;
 let storageFailed = false;
-type Buffer = { commands?: NonNullable<SaveRequest['commands']>; format: 2; baseVersion: string; values: EditValues; basicDraft?: BasicIntent; pending?: SaveRequest; changeDraft?: ChangeOperation; riskDraft?: RiskOperation; nodeDraft?: NodeOperation; nodeRestoreExtras?: NodeOperation[] };
+type Buffer = { taskBulk?:string; commands?: NonNullable<SaveRequest['commands']>; format: 2; baseVersion: string; values: EditValues; basicDraft?: BasicIntent; pending?: SaveRequest; changeDraft?: ChangeOperation; riskDraft?: RiskOperation; nodeDraft?: NodeOperation; nodeRestoreExtras?: NodeOperation[] };
 let candidate: Buffer | undefined;
 let legacyCopy: Buffer | undefined;
 let bufferKey = '';
@@ -837,7 +839,7 @@ function responsibilityControls() {
     if (dirty()) {
       const choice = await choose('变更负责范围前请处理未保存内容。', [['cancel', '继续编辑'], ['keep', '保留副本供复制，再变更'], ['discard', '放弃未保存内容，再变更']]);
       if (choice === 'cancel') return;
-      if (choice === 'keep') { persist(); if(!await personalDrafts?.sync()){note('草稿尚未全部同步，请先重试或复制内容，再变更负责范围。',true);return;} candidate = { format: 2, baseVersion: editBaseVersion, values: structuredClone(values!), basicDraft: basicDraft && structuredClone(basicDraft), changeDraft, riskDraft, nodeDraft, nodeRestoreExtras }; }
+      if (choice === 'keep') { persist(); if(!await personalDrafts?.sync()){note('草稿尚未全部同步，请先重试或复制内容，再变更负责范围。',true);return;} candidate = { format: 2, taskBulk, baseVersion: editBaseVersion, values: structuredClone(values!), basicDraft: basicDraft && structuredClone(basicDraft), changeDraft, riskDraft, nodeDraft, nodeRestoreExtras }; }
       else { if(!await discardPersonal())return;candidate = undefined; sessionStorage.removeItem(bufferKey); }
     }
     const command: ResponsibilityCommand = { expectedVersion: snapshot.project.version, idempotencyKey: crypto.randomUUID(), action: 'leave',protocol:2 };
@@ -904,7 +906,7 @@ function baseline(): EditValues {
   return { ...ordinary, summary: p.summary ?? '', chipSelections: (p.chipSelections ?? []) as import('./shared/api').ChipSelection[], tagIds: p.tags.map(item => item.id), people: p.people.filter(person => person.role !== 'pm').map(({ id, role }) => ({ id, role })), riskOps: [], nodeOps: [], changeOps: [], taskOps: [], stagePlans: snapshot!.stages.map(stage => ({ code: String(stage.code), plannedDays: stage.plannedDays == null ? null : Number(stage.plannedDays), note: String(stage.note ?? '') })) };
 }
 function changes() { const base = baseline(); return Object.fromEntries(keys.filter(key => JSON.stringify(values![key]) !== JSON.stringify(base[key])).map(key => [key, values![key]])) as Partial<EditValues>; }
-function dirty() { return !!values && !!snapshot && (!!riskDraft || !!nodeDraft || !!changeDraft || queuedCommands.length > 0 || !!stageDraft || !!correctionDraft || !!planDraft || !!lifecycleDraft || !!closureDraft || !!basicDraft && basicIntentChanged(snapshot, basicDraft) || Object.keys(changes()).length > 0); }
+function dirty() { return !!values && !!snapshot && (taskBulk!==undefined&&taskBulk!==taskText(taskCopy(snapshot.project.tasks??[],values.taskOps??[])) || !!riskDraft || !!nodeDraft || !!changeDraft || queuedCommands.length > 0 || !!stageDraft || !!correctionDraft || !!planDraft || !!lifecycleDraft || !!closureDraft || !!basicDraft && basicIntentChanged(snapshot, basicDraft) || Object.keys(changes()).length > 0); }
 function scopeDirty(scope: SaveScope, target?: string) { return !!snapshot && !!values && (Object.keys(scopeChanges(baseline(), values, scope, target)).length > 0 || scope === 'basic' && !!basicDraft && basicIntentChanged(snapshot, basicDraft)); }
 function actionFormOpen() { return !!document.querySelector('#stage-form, #start-form, #correction-edit, #plan-edit, #lifecycle-edit, #closure-edit, #check-edit, #risk-edit, #node-edit, #change-edit'); }
 function refreshReadView() { if (actionFormOpen()) controls(); else render(); }
@@ -943,7 +945,7 @@ function controls() {
     const button = document.getElementById(name) as HTMLButtonElement | null;
     if (button) button.disabled = frozen || stale || authFrozen;
   }
-  document.querySelectorAll<HTMLButtonElement>('[data-task-action]').forEach(button=>{button.disabled=frozen||stale||authFrozen||!snapshot?.capabilities.editText;});
+  document.querySelectorAll<HTMLButtonElement>('[data-task-action],[data-task-mode]:not([data-task-mode=copy])').forEach(button=>{button.disabled=frozen||stale||authFrozen||!snapshot?.capabilities.editText;});
   syncReferencePickers();
   document.querySelectorAll<HTMLButtonElement>('[data-plan]').forEach(button => { button.disabled = frozen || actionOpen || stale || authFrozen || !snapshot?.capabilities.editText; });
   const save = document.getElementById('save-project') as HTMLButtonElement | null;
@@ -993,7 +995,7 @@ function controls() {
 function persist() {
   if (!snapshot || !values || authFrozen) return;
   try {
-    if (pending || dirty()) sessionStorage.setItem(bufferKey, JSON.stringify({ format: 2, baseVersion: pending?.expectedVersion ?? editBaseVersion, values, basicDraft, pending, changeDraft, riskDraft, nodeDraft, nodeRestoreExtras,commands:queuedCommands }));
+    if (pending || dirty()) sessionStorage.setItem(bufferKey, JSON.stringify({ format: 2, taskBulk, baseVersion: pending?.expectedVersion ?? editBaseVersion, values, basicDraft, pending, changeDraft, riskDraft, nodeDraft, nodeRestoreExtras,commands:queuedCommands }));
     else if (!candidate) sessionStorage.removeItem(bufferKey);
     storageFailed = false;
   } catch { storageFailed = true; }
@@ -1006,6 +1008,7 @@ function captureDrafts() {
   const changes=scopeChanges(baseline(),values,'project');
   const intent=basicDraft&&basicIntentChanged(snapshot,basicDraft)?structuredClone(basicDraft) as unknown as Record<string,unknown>:undefined;
   const editors:Record<string,unknown>={};
+  if(taskBulk!==undefined)editors.task={text:taskBulk};
   if(riskDraft)editors.risk=structuredClone(riskDraft);
   if(changeDraft)editors.change=structuredClone(changeDraft);
   if(nodeDraft){editors.node=structuredClone(nodeDraft);editors.nodeExtras=structuredClone(nodeRestoreExtras);}
@@ -1014,7 +1017,7 @@ function captureDrafts() {
   personalDrafts.capture('project',undefined,editBaseVersion,{values:changes,...intent?{intent}:{},editors,submission:{scope:'project',changes,...intent?{basicIntent:intent}:{},commands:structuredClone(queuedCommands)}});
 }
 function canRestoreDraft(version:string|null){return !!values && !stale && !authFrozen && !pending && !stagePending && !responsibilityPending && !inFlight && !loading && !!snapshot?.capabilities.editText && version===editBaseVersion;}
-function recoveryInput(){return JSON.stringify({values,basicDraft,queuedCommands,riskDraft,changeDraft,nodeDraft,nodeRestoreExtras,stageDraft,correctionDraft,planDraft,lifecycleDraft,closureDraft,checkDraft});}
+function recoveryInput(){return JSON.stringify({values,taskBulk,basicDraft,queuedCommands,riskDraft,changeDraft,nodeDraft,nodeRestoreExtras,stageDraft,correctionDraft,planDraft,lifecycleDraft,closureDraft,checkDraft});}
 async function restorePersonalDraft(row:PersonalDraft){
   if(!values || !snapshot || !canRestoreDraft(row.baseVersion))return false;
   const before=recoveryInput();
@@ -1037,6 +1040,7 @@ async function restorePersonalDraft(row:PersonalDraft){
     if(key==='stagePlans' && row.formKind!=='project')values.stagePlans=values.stagePlans?.map(plan=>plan.code===row.payload.target ? structuredClone((restored.stagePlans as EditValues['stagePlans'])?.find(item=>item.code===plan.code) ?? base.stagePlans!.find(item=>item.code===plan.code)!) : plan);
     else if(key!=='nodeOps' || row.formKind==='projectNodes' || row.formKind==='project')Object.assign(values,{[key]:structuredClone(Object.hasOwn(restored,key)?restored[key]:base[key])});
   }
+  if(row.formKind==='project'||row.formKind==='status')taskBulk=(row.payload.editors?.task as {text?:string}|undefined)?.text;
   if(row.formKind==='project'){
     queuedCommands=structuredClone(row.payload.submission?.commands??[]) as NonNullable<SaveRequest['commands']>;
     const editors=row.payload.editors??{};riskDraft=structuredClone(editors.risk) as RiskOperation|undefined;changeDraft=structuredClone(editors.change) as ChangeOperation|undefined;nodeDraft=structuredClone(editors.node) as NodeOperation|undefined;nodeRestoreExtras=structuredClone(editors.nodeExtras??[]) as NodeOperation[];
@@ -1070,7 +1074,7 @@ function offerSessionDraft(){
       const before=recoveryInput();
       if(dirty() && await choose('本页已有新输入，恢复将替换这些未保存内容。',[['cancel','继续当前编辑'],['restore','恢复本标签页底稿']])!=='restore')return false;
       if(candidate!==saved || !canRestoreDraft(saved.baseVersion) || recoveryInput()!==before)return false;
-      values=structuredClone(saved.values);queuedCommands=structuredClone(saved.commands??[]);basicDraft=saved.basicDraft?structuredClone(saved.basicDraft):basicIntent(snapshot!);
+      values=structuredClone(saved.values);taskBulk=saved.taskBulk;queuedCommands=structuredClone(saved.commands??[]);basicDraft=saved.basicDraft?structuredClone(saved.basicDraft):basicIntent(snapshot!);
       changeDraft=saved.changeDraft && structuredClone(saved.changeDraft);riskDraft=saved.riskDraft && structuredClone(saved.riskDraft);nodeDraft=saved.nodeDraft && structuredClone(saved.nodeDraft);nodeRestoreExtras=structuredClone(saved.nodeRestoreExtras ?? []);
       candidate=undefined;render();persist();await hydrateRestoredNodes();return true;
     },
@@ -1090,10 +1094,9 @@ function readBuffer(key = bufferKey) {
     const valid = (key: string, value: unknown) => {
       if (!keys.includes(key as keyof EditValues)) return false;
       if (key === 'summary' && value === undefined) return true;
+      if (key === 'taskOps') return validTaskDraft(value);
       if (key === 'changeOps') return value === undefined || Array.isArray(value) && value.every(validChangeDraft);
-      if (key === 'changeOps') return JSON.stringify(value ?? [], null, 2);
-  if (key === 'change' && typeof value === 'object') { const c = value as ChangeRecord; return `需求变更 #${c.id} · ${c.source} · ${c.decision === 'accept' ? '接受' : c.decision === 'reject' ? '拒绝' : c.decision + '（待核对）'}\n${c.content}\n理由：${c.reason}\n创建：${c.createdByName ?? '原人未知'} · ${c.createdAt}`; }
-  if (key === 'nodeOps') return value === undefined || Array.isArray(value) && value.every(validNodeDraft);
+      if (key === 'nodeOps') return value === undefined || Array.isArray(value) && value.every(validNodeDraft);
       if (key === 'riskOps') return value === undefined || Array.isArray(value) && value.every(validRiskDraft);
       if (key === 'stagePlans') return value === undefined || Array.isArray(value) && value.length === 7 && value.every(item => /^S[1-7]$/.test(item.code) && (item.plannedDays === null || typeof item.plannedDays === 'number') && typeof item.note === 'string');
       if (key === 'people') return Array.isArray(value) && value.every(person => typeof person?.id === 'string' && /^[1-9][0-9]{0,19}$/.test(person.id) && [...roles, 'pm'].includes(person.role));
@@ -1103,6 +1106,7 @@ function readBuffer(key = bufferKey) {
       return typeof value === 'string';
     };
     if ([1, 2].includes(parsed?.format) && typeof parsed.baseVersion === 'string' && /^[1-9][0-9]{0,19}$/.test(parsed.baseVersion) && parsed.values && (parsed.format === 1 ? textKeys.slice(0, 4).every(key => typeof parsed.values[key] === 'string') : keys.every(key => valid(key, parsed.values[key])))) {
+      if(parsed.taskBulk!==undefined&&typeof parsed.taskBulk!=='string')return;
       if (parsed.changeDraft && !validChangeDraft(parsed.changeDraft) || parsed.riskDraft && !validRiskDraft(parsed.riskDraft) || parsed.nodeDraft && !validNodeDraft(parsed.nodeDraft) || parsed.nodeRestoreExtras && (!Array.isArray(parsed.nodeRestoreExtras) || !parsed.nodeRestoreExtras.every(validNodeDraft))) return;
       if (parsed.pending && (parsed.pending.expectedVersion !== parsed.baseVersion || typeof parsed.pending.idempotencyKey !== 'string' || !parsed.pending.changes || Object.entries(parsed.pending.changes).some(([key, value]) => !valid(key, value)))) return;
       return { ...parsed, format: 2, values: { ...baseline(), ...parsed.values, people: (parsed.values.people ?? baseline().people).filter((person: { role: string }) => person.role !== 'pm') } } as Buffer;
@@ -1126,13 +1130,13 @@ async function copyText() {
   const nodeCopyText = nodeDraft ? '未确认节点表单\n' + JSON.stringify({ nodeDraft, nodeRestoreExtras }, null, 2) + '\n\n' : '';
   const riskCopy = riskDraft ? '未确认风险表单\n' + JSON.stringify(riskDraft, null, 2) + '\n\n' : '';
   const stageCopy = stagePending ?? stageDraft ?? correctionDraft ?? planDraft ?? lifecycleDraft ?? closureDraft ?? checkDraft;
-  const text = changeCopyText + nodeCopyText + riskCopy + (stageCopy ? (stageCopy.action==='confirmStageState' || isPlanCommand(stageCopy) || isLifecycleCommand(stageCopy) || isClosureCommand(stageCopy) || isCheckCommand(stageCopy)) ? `${actionLabels[stageCopy.action]}副本\n${JSON.stringify(stageCopy, null, 2)}\n\n` : 'reason' in stageCopy ? `${actionLabels[stageCopy.action]}副本\n原因：${stageCopy.reason}\n进入版本：${stageCopy.expectedVersion}\n${stageCopy.action === 'correctStageFacts' ? JSON.stringify(stageCopy.changes) : label(stageCopy.stageCode) + (stageCopy.undoStart ? '（开始也误记）' : '')}\n\n` : stageCopy.action === 'startProject' ? `启动项目副本\n实际启动：${stageCopy.actualDate}\n预计结案：${stageCopy.dueDate}\n调整原因：${stageCopy.planReason ?? ''}\n进入版本：${stageCopy.expectedVersion}\n\n` : `阶段操作副本\n${label(stageCopy.stageCode)} · ${stageCopy.action === 'startStage' ? '开始' : '完成'}\n实际日期：${stageCopy.actualDate}\n说明：${stageCopy.completionNote ?? ''}\n进入版本：${stageCopy.expectedVersion}\n\n` : '') + keys.map(key => `${titles[key]}\n${showValue(key, values?.[key])}`).join('\n\n') + (candidate ? '\n\n——恢复候选副本——\n' + keys.map(key => `${titles[key]}\n${showValue(key, candidate!.values[key])}`).join('\n\n') + (candidate.changeDraft ? '\n未确认需求变更表单\n' + JSON.stringify(candidate.changeDraft, null, 2) : '') + (candidate.riskDraft ? '\n未确认风险表单\n' + JSON.stringify(candidate.riskDraft, null, 2) : '') + (candidate.nodeDraft ? '\n未确认节点表单\n' + JSON.stringify({ nodeDraft: candidate.nodeDraft, nodeRestoreExtras: candidate.nodeRestoreExtras }, null, 2) : '') : '') + (legacyCopy ? '\n\n——旧匿名试用副本（仅供核对）——\n' + keys.map(key => `${titles[key]}\n${showValue(key, legacyCopy!.values[key])}`).join('\n\n') : '');
+  const text = (candidate?.taskBulk!==undefined?'恢复候选整栏输入\n'+candidate.taskBulk+'\n\n':'') + (taskBulk!==undefined?'整栏未保存输入\n'+taskBulk+'\n\n':'') + changeCopyText + nodeCopyText + riskCopy + (stageCopy ? (stageCopy.action==='confirmStageState' || isPlanCommand(stageCopy) || isLifecycleCommand(stageCopy) || isClosureCommand(stageCopy) || isCheckCommand(stageCopy)) ? `${actionLabels[stageCopy.action]}副本\n${JSON.stringify(stageCopy, null, 2)}\n\n` : 'reason' in stageCopy ? `${actionLabels[stageCopy.action]}副本\n原因：${stageCopy.reason}\n进入版本：${stageCopy.expectedVersion}\n${stageCopy.action === 'correctStageFacts' ? JSON.stringify(stageCopy.changes) : label(stageCopy.stageCode) + (stageCopy.undoStart ? '（开始也误记）' : '')}\n\n` : stageCopy.action === 'startProject' ? `启动项目副本\n实际启动：${stageCopy.actualDate}\n预计结案：${stageCopy.dueDate}\n调整原因：${stageCopy.planReason ?? ''}\n进入版本：${stageCopy.expectedVersion}\n\n` : `阶段操作副本\n${label(stageCopy.stageCode)} · ${stageCopy.action === 'startStage' ? '开始' : '完成'}\n实际日期：${stageCopy.actualDate}\n说明：${stageCopy.completionNote ?? ''}\n进入版本：${stageCopy.expectedVersion}\n\n` : '') + keys.map(key => `${titles[key]}\n${showValue(key, values?.[key])}`).join('\n\n') + (candidate ? '\n\n——恢复候选副本——\n' + keys.map(key => `${titles[key]}\n${showValue(key, candidate!.values[key])}`).join('\n\n') + (candidate.changeDraft ? '\n未确认需求变更表单\n' + JSON.stringify(candidate.changeDraft, null, 2) : '') + (candidate.riskDraft ? '\n未确认风险表单\n' + JSON.stringify(candidate.riskDraft, null, 2) : '') + (candidate.nodeDraft ? '\n未确认节点表单\n' + JSON.stringify({ nodeDraft: candidate.nodeDraft, nodeRestoreExtras: candidate.nodeRestoreExtras }, null, 2) : '') : '') + (legacyCopy ? '\n\n——旧匿名试用副本（仅供核对）——\n' + keys.map(key => `${titles[key]}\n${showValue(key, legacyCopy!.values[key])}`).join('\n\n') : '');
   await choose('以下文字可选择后复制；复制不会保存项目。', [['cancel', '关闭']], `<textarea class="copy-text" readonly aria-label="未保存文字">${esc(text)}</textarea>`);
 }
 function editor() {
   const editable = snapshot!.capabilities.editText;
   basicDraft ??= basicIntent(snapshot!);
-  return `<section class="trial-editor project-info" aria-label="基本信息与项目分工" data-region="basic"><div class="section-heading"><h2>基本信息与项目分工</h2></div>${basicFields(snapshot!, values!, basicDraft, editable, selectReference, validationErrors)}${editable && catalogMessage ? `<p class="read-message">${esc(catalogMessage)}</p>` : ''}${editable && !catalog ? '<button class="back-btn" id="options-retry">重新读取候选资料</button>' : ''}</section><details id="status-history" class="secondary-section"${statusHistoryOpen ? ' open' : ''}><summary>状态说明历史</summary><div id="status-history-content"></div></details><section class="trial-editor status-editor" data-region="status"><div class="section-heading"><h2>最新状态说明</h2></div>${values!.statusDesc!==snapshot!.project.statusDesc ? `<textarea data-edit data-scope="status" id="edit-statusDesc" rows="6" aria-label="旧说明草稿">${esc(values!.statusDesc)}</textarea><p>这是先前保留的说明草稿，可复制到下方任务后使用标题栏保存。</p><button type="button" id="old-status-copied">已处理旧草稿</button>` : ''}${taskPanel(snapshot!.project.tasks??[],values!.taskOps??[],editable)}<span class="field-error" id="error-taskOps">${esc(validationErrors.taskOps)}</span></section>`;
+  return `<section class="trial-editor project-info" aria-label="基本信息与项目分工" data-region="basic"><div class="section-heading"><h2>基本信息与项目分工</h2></div>${basicFields(snapshot!, values!, basicDraft, editable, selectReference, validationErrors)}${editable && catalogMessage ? `<p class="read-message">${esc(catalogMessage)}</p>` : ''}${editable && !catalog ? '<button class="back-btn" id="options-retry">重新读取候选资料</button>' : ''}</section><details id="status-history" class="secondary-section"${statusHistoryOpen ? ' open' : ''}><summary>状态说明历史</summary><div id="status-history-content"></div></details><section class="trial-editor status-editor" data-region="status"><div class="section-heading"><h2>最新状态说明</h2></div>${values!.statusDesc!==snapshot!.project.statusDesc ? `<textarea data-edit data-scope="status" id="edit-statusDesc" rows="6" aria-label="旧说明草稿">${esc(values!.statusDesc)}</textarea><p>这是先前保留的说明草稿，可复制到下方任务后使用标题栏保存。</p><button type="button" id="old-status-copied">已处理旧草稿</button>` : ''}${taskPanel(snapshot!.project.tasks??[],values!.taskOps??[],editable,taskBulk)}<span class="field-error" id="error-taskOps">${esc(validationErrors.taskOps)}</span></section>`;
 }
 function selectReference(key: string, table: string, role?: string) {
   if (key === 'chipSelections') return chipPicker(values!.chipSelections, catalog);
@@ -1219,8 +1223,18 @@ function bindEditor() {
     if (input) input.oninput = () => { values![key] = input.value; delete validationErrors[key]; const error = document.getElementById('error-' + key); if (error) error.textContent = ''; persist(); };
   });
   document.getElementById('old-status-copied')?.addEventListener('click',()=>{values!.statusDesc=snapshot!.project.statusDesc;persist();render();});
-  document.querySelectorAll<HTMLTextAreaElement>('[data-task-text]').forEach(input=>{
+  document.querySelector<HTMLTextAreaElement>('[data-task-bulk]')?.addEventListener('input',event=>{taskBulk=(event.target as HTMLTextAreaElement).value;persist();});
+  document.querySelectorAll<HTMLButtonElement>('[data-task-mode]').forEach(button=>button.onclick=async()=>{
+    try {
+      if(button.dataset.taskMode==='copy'){await copyText();return;}
+      if(button.dataset.taskMode==='bulk')taskBulk=taskText(taskCopy(snapshot!.project.tasks??[],values!.taskOps??[]));
+      else {if(button.dataset.taskMode==='rows')values!.taskOps=applyTaskText(snapshot!.project.tasks??[],values!.taskOps??[],taskBulk??'');taskBulk=undefined;}
+      persist();render();document.querySelector<HTMLTextAreaElement>('[data-task-bulk]')?.focus();
+    } catch(error){note((error as Error).message,true);persist();render();}
+  });
+  document.querySelectorAll<HTMLTextAreaElement>('[data-task-text],[data-task-bulk]').forEach(input=>{
     attachStatusMentions(input,()=> (catalog?.engineers??[]).filter(person=>person.enabled));
+    if(input.hasAttribute('data-task-bulk'))return;
     input.oninput=()=>{values!.taskOps=putTaskOp(values!.taskOps??[],{op:'edit',id:input.closest<HTMLElement>('[data-task-row]')!.dataset.taskRow!,text:input.value});delete validationErrors.taskOps;persist();controls();};
   });
   document.querySelectorAll<HTMLButtonElement>('[data-task-action]').forEach(button=>button.onclick=()=>{
@@ -1277,6 +1291,12 @@ function editProjectState(state: string, closureType: 'normal' | 'terminated' = 
 }
 async function savePage(){
   if(submittingPage||inFlight||loading||pending||stagePending||stale||authFrozen)return;
+  submittingPage=true;
+  try {
+  if(taskBulk!==undefined){try{values!.taskOps=applyTaskText(snapshot!.project.tasks??[],values!.taskOps??[],taskBulk);taskBulk=undefined;persist();}catch(error){tab='info';render();note((error as Error).message,true);document.querySelector<HTMLTextAreaElement>('[data-task-bulk]')?.focus();return;}}
+  if(!await confirmTaskDeletes(snapshot!.project.tasks??[],values!.taskOps??[]))return;
+  } finally {submittingPage=false;}
+  if(stale||authFrozen||pending||stagePending)return;
   submittingPage=true;
   const priorTab=tab;
   const submit=async(selector:string)=>{
@@ -1739,7 +1759,7 @@ async function load(initial = false) {
     const data = await get<Detail>('/api/projects/' + id);
     if (current !== generation) return;
     snapshot = data;
-    values = baseline(); queuedCommands=[]; basicDraft = basicIntent(data); riskDraft = undefined; nodeDraft = undefined; changeDraft = undefined; nodeRestoreExtras = []; editBaseVersion = data.project.version; observedVersion = data.project.version; stale = false; validationErrors = {};
+    values = baseline(); taskBulk=undefined; queuedCommands=[]; basicDraft = basicIntent(data); riskDraft = undefined; nodeDraft = undefined; changeDraft = undefined; nodeRestoreExtras = []; editBaseVersion = data.project.version; observedVersion = data.project.version; stale = false; validationErrors = {};
     audit = undefined; auditMessage = ''; auditGeneration++; clearSourceHistory(); checks = undefined; checksMessage = ''; checksGeneration++;
     deletedNodes = undefined; deletedMessage = ''; deletedGeneration++; deletedLoading = false; restoredSources.clear();
     element('detail-panel').hidden = false;
@@ -1749,7 +1769,7 @@ async function load(initial = false) {
       candidate = readBuffer();
       if (stagePending) { tab = isPlanCommand(stagePending) || isLifecycleCommand(stagePending) || isClosureCommand(stagePending) || isCheckCommand(stagePending) ? 'info' : 'stages'; render(); await executeStage(true); }
       if (candidate?.pending && data.capabilities.editText) {
-        values = { ...candidate.values }; queuedCommands=candidate.commands??[]; basicDraft = candidate.basicDraft ?? basicIntent(snapshot!); changeDraft = candidate.changeDraft; riskDraft = candidate.riskDraft; nodeDraft = candidate.nodeDraft; nodeRestoreExtras = candidate.nodeRestoreExtras ?? []; editBaseVersion = candidate.baseVersion; pending = candidate.pending; candidate = undefined; render(); await execute(true);
+        values = { ...candidate.values }; taskBulk=candidate.taskBulk; queuedCommands=candidate.commands??[]; basicDraft = candidate.basicDraft ?? basicIntent(snapshot!); changeDraft = candidate.changeDraft; riskDraft = candidate.riskDraft; nodeDraft = candidate.nodeDraft; nodeRestoreExtras = candidate.nodeRestoreExtras ?? []; editBaseVersion = candidate.baseVersion; pending = candidate.pending; candidate = undefined; render(); await execute(true);
       } else if (candidate && (candidate.baseVersion !== snapshot!.project.version || !snapshot!.capabilities.editText)) { note('旧副本的项目版本已过期或当前项目只读，旧文字仅供复制核对。', true); controls(); }
     }
     await hydrateRestoredNodes();
@@ -1777,7 +1797,7 @@ element('reload').onclick = async () => {
   if (dirty()) {
     const choice = await choose('重新进入前请处理未保存文字。保留后可通过复制入口核对，不会自动带入新版本。', [['cancel', '继续编辑'], ['keep', '保留副本并重新进入'], ['discard', '放弃并重新进入']]);
     if (choice === 'cancel') return;
-    if (choice === 'keep') { persist();await personalDrafts?.sync();candidate = { format: 2, baseVersion: editBaseVersion, values: structuredClone(values!), basicDraft: basicDraft && structuredClone(basicDraft), changeDraft, riskDraft, nodeDraft, nodeRestoreExtras }; }
+    if (choice === 'keep') { persist();await personalDrafts?.sync();candidate = { format: 2, taskBulk, baseVersion: editBaseVersion, values: structuredClone(values!), basicDraft: basicDraft && structuredClone(basicDraft), changeDraft, riskDraft, nodeDraft, nodeRestoreExtras }; }
     else { if(!await discardPersonal())return;candidate = undefined; try { sessionStorage.removeItem(bufferKey); } catch { storageFailed = true; } }
   }
   await load();

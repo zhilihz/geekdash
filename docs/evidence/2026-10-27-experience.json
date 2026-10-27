@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "prefix": "experience_43fe55e4",
+  "prefix": "experience_eb9f68d4",
   "checks": [
     "10位随机邀请码三类字符；注册账号与会话同事务，随后新请求已登录；管理员默认无项目经理资格",
     "勾选兼任可创建和负责项目；已负责项目阻止取消；退出后可取消；直接调用加入接口仍拒绝",
@@ -8,7 +8,9 @@
     "单独横线按空值；忽略资料可重试、新请求解除待导入引用；两个项目实际入库并出现在详情和个人看板；未创建被忽略资料",
     "详情/卡片任务草稿保存与新请求回读一致，不推进正式项目版本",
     "任务原说明逐行保留且同文不合并；整页任务与简介原子保存；重试不重复；完成/重开/删除/无变化/旧版本冲突；新请求简要与驾驶舱消费",
+    "真实整栏操作生成→原保存事务→新请求及SQL读回；改文字保留身份/创建时间，删行保留历史；原始整栏草稿可恢复",
     "1056任务实际导入保留完成/删除与历史日期；大小写ID分别存储；不重复追加statusDesc；同次重试不增任务",
+    "说明更新时间承接已采用1056来源；上海跨日/边界日期/权限/分页与统计一致；简介修改不误计，简要及个人筛选偏好读回",
     "只用首次登记姓名给出可加入项目提示；管理员改名不改匹配名；未加入仍不能读取详情或进入个人统计；任务人员筛选消费未完成任务"
   ],
   "verification": "HTTP/MySQL only; human UI acceptance pending",
@@ -19,7 +21,7 @@
     "stage": "P05-project-editing",
     "schemaVersion": "0014-project-tasks"
   },
-  "httpRequests": 73,
+  "httpRequests": 88,
   "schema": {
     "version": "0014-project-tasks",
     "tables": 48,
@@ -60,10 +62,7 @@
     "真实页面与导出文件由用户验收",
     "服务器未发布本轮代码"
   ],
-  "notImplemented": [
-    "1056整栏任务编辑/删行匹配",
-    "内容更新时间范围筛选"
-  ],
+  "notImplemented": [],
   "migrationSourceRuntimeAndGitIdentical": {
     "0001-foundation.json": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
     "0002-trial-save.json": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695",
@@ -79,5 +78,10 @@
     "0012-account-management.json": "34bd7c1c319a1e4a1311c41bb91a42f60043c7361a58cd890d7c4b93c86ebaac",
     "0013-account-capabilities.json": "e19a0e0fd521dccd643be9e930feae346885aa7150e51e04508a3b774960ef1d",
     "0014-project-tasks.json": "ea8ab833aa7044dc346c4bb1adc08d8a1a0315822238cfd7e6fe43e1f8fdd191"
+  },
+  "pureCodeChecks": {
+    "taskTextCases": 14,
+    "summaryDateAndExport": "passed",
+    "liveBrowserExecuted": false
   }
 }

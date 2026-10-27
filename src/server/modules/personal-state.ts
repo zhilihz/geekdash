@@ -33,7 +33,9 @@ function payload(kind: string, value: unknown): asserts value is DraftPayload {
   const allowed = kind === 'create' ? createFields() : Object.hasOwn(scopeFields, kind) ? scopeFields[kind as keyof typeof scopeFields] as string[] : [];
   if (value.values !== undefined) { if (!object(value.values) || Object.keys(value.values).some(key => !allowed.includes(key))) failure('INVALID_PERSONAL_STATE', 400); Object.values(value.values).forEach(item => tree(item)); }
   if (value.intent !== undefined) { if (kind !== 'project' && kind !== 'basic' && kind !== 'create' || !object(value.intent)) failure('INVALID_PERSONAL_STATE', 400); tree(value.intent); }
-  if (value.editors !== undefined) { if (kind !== 'project' || !object(value.editors) || Object.keys(value.editors).some(key => !['risk','change','node','nodeExtras','action'].includes(key))) failure('INVALID_PERSONAL_STATE',400); Object.values(value.editors).forEach(item=>tree(item)); }
+  if (value.editors !== undefined) { if (!['project','status'].includes(kind) || !object(value.editors) || Object.keys(value.editors).some(key => !(kind==='project'?['risk','change','node','nodeExtras','action','task']:['task']).includes(key))) failure('INVALID_PERSONAL_STATE',400); Object.values(value.editors).forEach(item=>tree(item)); }
+  const taskEditor=(value.editors as Record<string,unknown>|undefined)?.task;
+  if(taskEditor!==undefined&&(!object(taskEditor)||Object.keys(taskEditor).some(key=>key!=='text')||typeof taskEditor.text!=='string'))failure('INVALID_PERSONAL_STATE',400);
   if (value.record !== undefined) { if (!['risk','change','customerNode','projectNodes'].includes(kind) || !object(value.record)) failure('INVALID_PERSONAL_STATE', 400); tree(value.record); }
   if (value.command !== undefined) { if (kind !== 'action' || !object(value.command)) failure('INVALID_PERSONAL_STATE', 400); tree(value.command); }
   if (value.submission !== undefined) {
@@ -83,14 +85,14 @@ function preferenceValue(scope: string, value: unknown) {
   for (const [key, item] of Object.entries(value)) {
     if (key === 'schemaVersion') continue;
     if (key==='page' && (typeof item!=='number' || !Number.isSafeInteger(item) || item<1) || key==='scrollY' && (typeof item!=='number' || !Number.isFinite(item) || item<0)) failure('INVALID_PERSONAL_STATE',400);
-    if(key==='distributions' && (!Array.isArray(item)||item.some(v=>!['stage','productLine','customer','status','priority','signal'].includes(String(v))))) failure('INVALID_PERSONAL_STATE',400);
+    if(key==='distributions' && (!Array.isArray(item)||item.some(v=>!['stage','productLine','customer','status','priority','signal','odmFactory','app','group','chip','tags','progress'].includes(String(v))))) failure('INVALID_PERSONAL_STATE',400);
     if (['filtersOpen','showStatus','showNotes','showChipNotes'].includes(key) && typeof item!=='boolean') failure('INVALID_PERSONAL_STATE',400);
     if (key==='view' && (typeof item!=='string' || !['active','proposal','closed','maintenance','all'].includes(item))) failure('INVALID_PERSONAL_STATE',400);
     if (scope==='summary' && key==='sort' && (typeof item!=='string' || !['customer','group','chip','stage','dueDate'].includes(item))) failure('INVALID_PERSONAL_STATE',400);
     if (scope==='summary' && ['rowOrder','hiddenRows'].includes(key) && (!Array.isArray(item) || item.some(id=>!validId(id)))) failure('INVALID_PERSONAL_STATE',400);
     if (scope==='summary-layout' && ['columns','hiddenColumns'].includes(key) && (!Array.isArray(item) || item.some(name=>!['customer','group','name','chips','status','engineers','note','chipNote','stage','node','dueDate','delay'].includes(name)))) failure('INVALID_PERSONAL_STATE',400);
     if (key === 'theme' && (typeof item!=='string' || !['dark','light','warm'].includes(item)) || key === 'layout' && (typeof item!=='string' || !['cards','progress'].includes(item))) failure('INVALID_PERSONAL_STATE',400);
-    if (key === 'filters') { if (!object(item) || Object.keys(item).some(name => !['search','customer','productLine','odmFactory','app','group','status','priority','signal','stage','progress','chip','tags','owner','deadline','checkToday',...scope==='summary'?['assignment']:[]].includes(name)) || Object.values(item).some(v => typeof v !== 'string' && (!Array.isArray(v) || v.some(x => typeof x !== 'string')))) failure('INVALID_PERSONAL_STATE',400); }
+    if (key === 'filters') { if (!object(item) || Object.keys(item).some(name => !['search','contentFrom','contentTo','taskOwner','customer','productLine','odmFactory','app','group','status','priority','signal','stage','progress','chip','tags','owner','deadline','checkToday',...scope==='summary'?['assignment']:[]].includes(name)) || Object.values(item).some(v => typeof v !== 'string' && (!Array.isArray(v) || v.some(x => typeof x !== 'string')))) failure('INVALID_PERSONAL_STATE',400); }
     else if (key === 'viewport') { if (!object(item) || Object.keys(item).some(k => !['x','y','zoom'].includes(k)) || Object.values(item).some(v => typeof v !== 'number' || !Number.isFinite(v))) failure('INVALID_PERSONAL_STATE',400); }
     else if (Array.isArray(item)) { if (item.some(v => typeof v !== 'string' || v.length > 255)) failure('INVALID_PERSONAL_STATE',400); }
     else if (!['string','number','boolean'].includes(typeof item) || typeof item === 'string' && item.length > 2048) failure('INVALID_PERSONAL_STATE',400);

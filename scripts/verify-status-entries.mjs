@@ -66,4 +66,11 @@ const fullNameProject = { ...project, statusDesc: '@catalog_6a690c0d 人员 待�
 const filtered = summary.summaryRows([fullNameProject], { owner: ['catalog_6a690c0d 人员'] }, 'customer');
 assert.equal(filtered.length, 1, '全名提名能在状态简要按同名筛选');
 assert.match(summary.summaryCsv(filtered, ['engineers']), /catalog_6a690c0d 人员/, '提名导出保留完整姓名');
+const dated={...project,contentUpdatedOn:'2026-10-15'},unknown={...project,id:'2',name:'未知日期项目',contentUpdatedOn:''};
+const datedRows=summary.summaryRows([dated,unknown],{contentFrom:'2026-10-15',contentTo:'2026-10-15'},'customer');
+assert.equal(datedRows.length,1);assert.equal(datedRows[0].id,dated.id);
+assert.equal(summary.summaryRows([dated],{contentTo:'2026-10-14'},'customer').length,0);
+assert.equal(summary.summaryRows([dated,unknown],{},'customer').length,2);
+assert(!summary.summaryCsv(datedRows,['name','status']).includes('未知日期项目'));
+assert(!summary.summaryMarkdown(datedRows,['name','status'],'状态简要',{businessDate:'2026-10-15',capturedAt:first,company:null}).includes('未知日期项目'));
 console.log(JSON.stringify({ status: 'passed', cases: count, displayCases: 4, mentionCases: 8, databaseAccess: false, source: 'audit_log.statusDesc', checks: ['creation', 'changed_lines', 'reorder', 'duplicates', 'empty_lines', 'legacy_unknown', 'no_op', 'remove_and_readd', 'current_body_consistency', 'missing_before', 'audit_gap', 'manual_text_preserved', 'shared_shanghai_dates', 'stale_projection_falls_back', 'html_escaped', 'exports_keep_dates_without_mutating_body_or_filters', 'known_full_name_longest_match', 'mention_boundary', 'literal_special_characters', 'free_name_compatibility', 'no_at_no_mention', 'mention_deduplication', 'full_name_filter_and_export'] }));

@@ -3,10 +3,40 @@ import { createHash } from 'node:crypto';
 import { failure } from './project-save.js';
 import { projectStatusEntries, type StatusEntry, type StatusChange } from './project-status-entries.js';
 import { statusSourceBaselines } from './project-source-history.js';
+import { validDate } from './project-dates.js';
 
 export type ProjectTask = { id:string; text:string; createdAt:string; updatedAt:string; completedAt:string; deletedAt:string };
 export type TaskOperation = { op:'add'; id:string; text:string } | { op:'edit'; id:string; text:string } | { op:'complete'|'reopen'|'delete'; id:string };
 const rows = async(c:PoolConnection,sql:string,values:unknown[]=[]) => (await c.query<RowDataPacket[]>(sql,values))[0];
+// 内容日期只取已采用的来源事实或真实说明/任务操作；不使用整项目updated_at。
+export async function attachContentDates(c:PoolConnection,projects:RowDataPacket[]) {
+  if(!projects.length)return;
+  const ids=projects.map(project=>project.id),dates=new Map<string,string[]>(),versions=new Map<string,string>();
+  const add=(id:string,...values:unknown[])=>dates.set(id,[...(dates.get(id)??[]),...values.filter((value):value is string=>typeof value==='string')]);
+  const sources=await rows(c,`SELECT CAST(a.target_id AS CHAR) projectId,CAST(a.version_after AS CHAR) version,a.adopted_json facts,i.source_payload_json source FROM import_adoptions a JOIN import_items i ON i.id=a.item_id JOIN
+    (SELECT MAX(id) id FROM import_adoptions WHERE target_kind='project' AND target_id IN (?) AND JSON_CONTAINS_PATH(adopted_json,'one','$.tasks','$.statusDescriptionBaseline') GROUP BY target_id) latest ON latest.id=a.id`,[ids]);
+  for(const source of sources){
+    const facts=typeof source.facts==='string'?JSON.parse(source.facts):source.facts,raw=typeof source.source==='string'?JSON.parse(source.source):source.source;
+    versions.set(source.projectId,source.version);
+    add(source.projectId,...(facts.tasks??[]).flatMap((task:ProjectTask)=>[task.updatedAt,task.completedAt,task.deletedAt]),...(facts.statusEntries??[]).map((entry:StatusEntry)=>entry.date));
+    if(facts.tasks)add(source.projectId,raw.tasksUpdatedAt);else add(source.projectId,raw.statusDescUpdatedAt);
+  }
+  const tasks=await rows(c,'SELECT CAST(project_id AS CHAR) projectId,updated_at_text updatedAt,completed_at_text completedAt,deleted_at_text deletedAt FROM project_tasks WHERE project_id IN (?)',[ids]);
+  for(const task of tasks)add(task.projectId,task.updatedAt,task.completedAt,task.deletedAt);
+  const audits=await rows(c,`SELECT CAST(project_id AS CHAR) projectId,CAST(version_after AS CHAR) version,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%s.%fZ') at FROM audit_log WHERE project_id IN (?) AND entity_type='project' AND action<>'project.import' AND
+    (action='project.tasks.save' OR JSON_TYPE(JSON_EXTRACT(after_json,'$.statusDesc'))='STRING' AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(before_json,'$.statusDesc')),'')<>JSON_UNQUOTE(JSON_EXTRACT(after_json,'$.statusDesc')))`,[ids]);
+  for(const audit of audits)if(!versions.has(audit.projectId)||BigInt(audit.version)>BigInt(versions.get(audit.projectId)!))add(audit.projectId,audit.at);
+  for(const project of projects){
+    add(project.id,...(project.statusEntries??[]).map((entry:StatusEntry)=>entry.date));
+    const known=(dates.get(project.id)??[]).map(raw=>{
+      const dateOnly=/^\d{4}-\d\d-\d\d$/.test(raw),timestamp=/^\d{4}-\d\d-\d\d[T ]\d\d:\d\d(?::\d\d(?:\.\d+)?)?(?:Z|[+-]\d\d:\d\d)?$/.test(raw);
+      const time=!validDate(raw.slice(0,10))?NaN:dateOnly?Date.parse(raw+'T00:00:00+08:00'):timestamp?Date.parse(raw.replace(' ','T')+(/(?:Z|[+-]\d\d:\d\d)$/.test(raw)?'':'+08:00')):NaN;
+      return {raw,time};
+    }).filter(value=>Number.isFinite(value.time)).sort((a,b)=>b.time-a.time)[0];
+    project.contentUpdatedAt=known?(known.raw.length===10?known.raw:new Date(known.time).toISOString()):'';
+    project.contentUpdatedOn=known?new Date(known.time+8*3600_000).toISOString().slice(0,10):'';
+  }
+}
 const stripNumber=(text:string)=>text.replace(/^\s*\d+[、.．)）]\s*/, '').trim();
 export const taskDescription=(tasks:ProjectTask[])=>tasks.filter(t=>!t.deletedAt&&!t.completedAt).map((t,i)=>`${i+1}、${t.text}`).join('\n');
 export function sourceTasks(value:unknown):ProjectTask[] {

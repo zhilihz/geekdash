@@ -16,7 +16,7 @@ export function draftText(row:PersonalDraft) {
   if(typeof fields.stageCode==='string')fields.stageCode=label(fields.stageCode);
   if(typeof fields.maintenance==='boolean')fields.maintenance=fields.maintenance?'开启':'关闭';
   const action=typeof fields.action==='string'?actionLabels[fields.action]:undefined;
-  return [action,readableFields(fields,titles),...Object.entries(payload.editors??{}).map(([key,value])=>({risk:'风险输入',change:'需求变更输入',node:'节点输入',nodeExtras:'节点联动',action:'阶段与状态输入'}[key])+': '+readableFields(value as Record<string,unknown>,titles))].filter(Boolean).join('\n');
+  return [action,readableFields(fields,titles),...Object.entries(payload.editors??{}).map(([key,value])=>({risk:'风险输入',change:'需求变更输入',node:'节点输入',nodeExtras:'节点联动',action:'阶段与状态输入',task:'整栏任务输入'}[key])+': '+readableFields(value as Record<string,unknown>,titles))].filter(Boolean).join('\n');
 }
 const messages: Record<string,string> = {DRAFT_CAPACITY_REACHED:'个人草稿已满，请在草稿列表明确丢弃不需要的内容。',DRAFT_TOO_LARGE:'本份草稿过大，请复制或导出后精简输入。',DRAFT_VERSION_CONFLICT:'这份草稿已有新修订，请先核对草稿列表。',DRAFT_TERMINAL:'这份草稿已提交或丢弃，请核对后继续。',DRAFT_BASE_CHANGED:'草稿基线需要重新核对，现有输入保留。',INVALID_PERSONAL_STATE:'这份草稿的格式需要核对，输入仍在本页。'};
 
