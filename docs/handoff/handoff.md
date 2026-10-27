@@ -1,16 +1,13 @@
 # 未完成任务交接
 
-## 当前接续（2026-10-27 04:18 P05候选与原生验收）
+## 当前接续（2026-10-27 10:10 P05本地验收收口）
 
-- 目标尚未完成；当前产品`ac4f3521ce46b71267a73cf04fc1ceb0fd362244`，clean构建20:05:22Z，0009；`codex/p05-project-space`已推送该产品。远端main仍64a1ad5，未合并或部署。本轮文档补记见HEAD，接手先核Git未提交内容。
-- **所有命令显式使用`D:/geekwon/geekdash`**；app默认cwd可能还是临时过渡worktree。不能在那里修改主候选。
-- 已验及剩余唯一入口：[报告8节](../testing/reports/2026-10-26-project-space.md#8-原生接续与固定产物准备2026-10-27-0418)、[系统真相](../status/current-system-truth.md)、证据pageAndReleasePreparation。11项固定回归沿第7节；新增退出缓存失败105请求；后端与迁移树和真实备份326/切换19请求的候选相同。不重跑不受影响测试。
-- 固定库`geekdash-p05-fixed-20261027-mysql`、UUID724bf9a4-d174-11f1-92c0-1e5ebc35de72，D盘；wrapper `test-results/p05-fixed-20261027.ps1`。已经非空，不能重跑初始导入/0008演练。原生应用41868仍用旧隔离库UUID da55e9c7-d11f-11f1-bfe6-7232bd8e8a88；不要让两应用消费同一库的验收任务。
-- 原生合成项目77已分别保存状态/简介并确认S2进行中（日期未知保持）；项目216由账号46创建，邀请199仍pending。独立SQL见`test-results/p05-fixed27-native-readback.json`。新角色夹具位于仓库外`D:/geekwon/geekdash-data/p05-import-space-20261026/ui-control/native27-accounts.json`，不输出凭据。此隔离库维护账号暂为200，原维护ID152写在夹具中；不要影响线上账号。本轮已重启该隔离app；live/ready均200，进程和静态资源已核为ac4f352干净构建，不要再次重启数据库。
-- 浏览器阻塞：原验收标签已被正常会话清理关闭。新建标签1064373031恢复到登录页、仍为账号46；置前后再次点击退出，确认框处理仍触发setFocusEmulationEnabled超时，受支持CDP确认调用也同样失败，退出结果未确认。文件URL权限仍待用户开启。不要重复退出、代改会话或绕过权限；用户处理确认框后再核实际身份。旧CDP9222是另一连接，不切换通道规避。剩余验收与发布归报告9节。
-- 固定镜像及源码/配置归档：`D:/geekwon/geekdash-data/transport/p05-project-space-ac4f3521ce46/`；manifest候选未发布，BUSINESS_WRITES默认disabled。镜像容器内HTTP健康已验；临时镜像smoke容器已移除，隔离数据保持。准确摘要见证据。
-- 0008过渡：`codex/p05-import-drain`当前ef4af15，修正Compose漏传接收关口。最终归档`D:/geekwon/geekdash-data/transport/p05-drain-ef4af152aac8/`，默认关闭新接收、保留执行，已核Compose实际环境；准确摘要见证据transitionPackage。旧164a369归档标记REJECTED，不能部署；原隔离演练的backend相同，结果仍适用。原测试dist `D:/geekwon/geekdash-data/p05-drain-artifact-20261026/`保留。临时worktree不能归档因primary checkout，未强删，不合并0008代码到0009。
-- 线上最新只读健康及存量见报告8节，未执行封口/备份/迁移。下一步补完整原生上传与账号链，再按计划1.3/运维切换。具体命令顺序已补在运维“P05项目空间切换与0009兼容恢复”，沿现有server.sh/dbtool分步执行；不复用旧app-only安装器。未新增业务取舍、未代用真实批次；取消的关机任务不恢复。
+- 目标active，尚未完成部署；所有命令显式使用`D:/geekwon/geekdash`。分支`codex/p05-project-space`，基线远端main `64a1ad5`，产品HEAD `4ebd377`，clean构建01:33:23Z、0009。本轮文档/证据变动待提交，接手先核Git，不能在app默认过渡worktree修改主候选。
+- 当前成果及准确测试边界归[报告10节](../testing/reports/2026-10-26-project-space.md#10-原生关键链验收完成2026-10-27-1010)和[系统真相](../status/current-system-truth.md)。原生关键链已通过，文件访问权限用户已关闭；旧浏览器阻塞已解除，不重复请求权限或重测已过链路。代码新增仅共享GET保留权限错误及其前端反例，未改变后端和迁移。
+- 原生41868连接`geekdash-p05-import-space-20261026-mysql`，UUID da55e9c7-d11f-11f1-bfe6-7232bd8e8a88；合成账号199已退出项目216并负责新导入217/218，200维护；163停用后已恢复启用。当前原生页accounts.html登录200，刷新状态已核。受控凭据在仓库外ui-control，不输出。独立固定回归库`geekdash-p05-fixed-20261027-mysql`，UUID724bf9a4-d174-11f1-92c0-1e5ebc35de72；库均非空，不重跑初始迁移/真实首次导入，不共享worker。
+- 下一步：4ebd377最终镜像已封存于`D:/geekwon/geekdash-data/transport/p05-project-space-4ebd37744342/`，容器健康及build已验（ac4f352旧包不作最终版本）。完成文档检查后提交合并推送main；再按[既定切换入口](../operations/release-maintenance.md#p05项目空间切换与0009兼容恢复)执行服务器旧执行收口、双库/文件/配置备份、0009增量迁移、只读核对和开放合成验收。服务器仍是最后只读确认cbb6f85/0008，不能把本地验收写成发布。
+- 0008过渡包`D:/geekwon/geekdash-data/transport/p05-drain-ef4af152aac8/`，分支codex/p05-import-drain已推送ef4af15；Compose实际接收disabled/执行enabled已验。旧164a369包已REJECTED，不能部署；不合并0008临时代码到0009，不强删primary worktree。
+- 用户已按DEC-166确认本次测试发布D盘加密副本位置，迁移前下载并解密核摘要；正式长期Q-008/011/016边界不冒充已落实。用户真实未完成批次保持原结果，不代为采用；取消的关机任务不恢复。原始日志仅test-results，脱敏证据进docs/evidence；测试结果、发布记录分别维护。
 
 ## 历史接续（2026-10-26 17:02 P05施工）
 

@@ -1,9 +1,9 @@
 {
-  "checkedAt": "2026-10-26T20:27:34.667369+00:00",
+  "checkedAt": "2026-10-27T02:07:53.351492+00:00",
   "branch": "codex/p05-project-space",
   "base": "64a1ad5fb320b3853147d6e777e171aa44646eb6",
-  "candidate": "ac4f3521ce46b71267a73cf04fc1ceb0fd362244",
-  "scope": "本地固定候选与部分原生页面已验证；施工分支已推送，完整原生及整阶段交付尚未完成",
+  "candidate": "4ebd377443426e4a00c59b41319c0f37bd127abb",
+  "scope": "本地阶段功能与原生关键操作验收已完成；尚未合并main或部署。版本差异及未测边界见报告10节",
   "migration": {
     "status": "passed",
     "checkedAt": "2026-10-26T07:46:17.743Z",
@@ -3639,5 +3639,322 @@
     ],
     "mainMerged": false,
     "serverDeployed": false
+  },
+  "nativeAcceptance": {
+    "build": {
+      "revision": "4ebd377443426e4a00c59b41319c0f37bd127abb",
+      "dirty": false,
+      "builtAt": "2026-10-27T01:33:23.497Z",
+      "stage": "P05-imports",
+      "schemaVersion": "0009-project-space"
+    },
+    "isolated": true,
+    "membershipAccepted": {
+      "checkedAt": "2026-10-27T01:11:25.087Z",
+      "step": "accepted",
+      "isolated": true,
+      "members": [
+        {
+          "project_id": "216",
+          "user_id": "46"
+        },
+        {
+          "project_id": "216",
+          "user_id": "199"
+        }
+      ],
+      "requests": [
+        {
+          "id": "154",
+          "kind": "invitation",
+          "status": "accepted",
+          "initiator_id": "46",
+          "target_user_id": "199"
+        }
+      ],
+      "accounts": [
+        {
+          "id": "199",
+          "enabled": 1
+        },
+        {
+          "id": "200",
+          "enabled": 1
+        }
+      ],
+      "audits": [
+        {
+          "action": "project.create",
+          "actor_id": "46",
+          "version_before": null,
+          "version_after": "1"
+        },
+        {
+          "action": "project.membership.accept",
+          "actor_id": "199",
+          "version_before": "1",
+          "version_after": "2"
+        }
+      ]
+    },
+    "membershipLeft": {
+      "checkedAt": "2026-10-27T01:14:01.421Z",
+      "step": "left",
+      "isolated": true,
+      "members": [
+        {
+          "project_id": "216",
+          "user_id": "46"
+        }
+      ],
+      "requests": [
+        {
+          "id": "154",
+          "kind": "invitation",
+          "status": "accepted",
+          "initiator_id": "46",
+          "target_user_id": "199"
+        }
+      ],
+      "accounts": [
+        {
+          "id": "199",
+          "enabled": 1
+        },
+        {
+          "id": "200",
+          "enabled": 1
+        }
+      ],
+      "audits": [
+        {
+          "action": "project.create",
+          "actor_id": "46",
+          "version_before": null,
+          "version_after": "1"
+        },
+        {
+          "action": "project.membership.accept",
+          "actor_id": "199",
+          "version_before": "1",
+          "version_after": "2"
+        },
+        {
+          "action": "project.membership.leave",
+          "actor_id": "199",
+          "version_before": "2",
+          "version_after": "3"
+        }
+      ]
+    },
+    "importReadback": {
+      "checkedAt": "2026-10-27T01:45:50.700Z",
+      "isolated": true,
+      "projects": [
+        {
+          "id": "217",
+          "name": "P05 固定版页面验收 20261027",
+          "summary": "用于验证导入、项目空间与个人范围，不含真实业务数据",
+          "version": "1"
+        },
+        {
+          "id": "218",
+          "name": "P05 固定版批量验收 20261027",
+          "summary": "用于验证导入、项目空间与个人范围，不含真实业务数据",
+          "version": "1"
+        }
+      ],
+      "members": [
+        {
+          "project_id": "217",
+          "user_id": "199"
+        },
+        {
+          "project_id": "218",
+          "user_id": "199"
+        }
+      ],
+      "adoptions": [
+        {
+          "item_id": "914",
+          "target_id": "217",
+          "actor_id": "199"
+        },
+        {
+          "item_id": "915",
+          "target_id": "218",
+          "actor_id": "199"
+        }
+      ],
+      "stages": [
+        {
+          "project_id": "217",
+          "stage_code": "S2",
+          "state": "unknown",
+          "started_on": null,
+          "completed_on": null
+        },
+        {
+          "project_id": "218",
+          "stage_code": "S2",
+          "state": "unknown",
+          "started_on": null,
+          "completed_on": null
+        }
+      ]
+    },
+    "accountDisabled": {
+      "checkedAt": "2026-10-27T01:55:36.675Z",
+      "isolated": true,
+      "step": "disabled",
+      "accounts": [
+        {
+          "id": "163",
+          "display_name": "草稿测试1",
+          "enabled": 0
+        }
+      ]
+    },
+    "accountEnabled": {
+      "checkedAt": "2026-10-27T01:56:16.670Z",
+      "isolated": true,
+      "step": "enabled",
+      "accounts": [
+        {
+          "id": "163",
+          "display_name": "草稿测试1",
+          "enabled": 1
+        }
+      ]
+    },
+    "permissionRegression": {
+      "status": "passed",
+      "checkedAt": "2026-10-27T01:21:49.891Z",
+      "build": {
+        "revision": "ac4f3521ce46b71267a73cf04fc1ceb0fd362244",
+        "dirty": false,
+        "builtAt": "2026-10-26T20:05:22.667Z",
+        "stage": "P05-imports",
+        "schemaVersion": "0009-project-space"
+      },
+      "requests": 110,
+      "checks": [
+        "新建页多选邀请可存服务器草稿；一次创建产生两条邀请，只有创建者负责，被邀者尚不能读详情",
+        "基础空间→接受邀请（注入丢响应）→原结果核对→同一项目进入个人列表和简要；不重复责任",
+        "原阶段卡确认历史开始状态，保存后新读与SQL一致且日期仍未知；详情退出后正式读取和个人列表同步收回",
+        "浏览器操作记录写入失败不发送修改且原按钮可重试；清理失败不否定已成功操作",
+        "维护页就地显示影响→一次确认停用→撤销旧会话、其他协作者继续管理→重新启用需新登录",
+        "原存量无负责人项目可在空间认领，随后同一ID进入本人项目"
+      ],
+      "limitation": "真实前端模块、HTTP及MySQL；原生视觉和全部切换场景另验",
+      "frontendVersion": "4ebd377443426e4a00c59b41319c0f37bd127abb",
+      "buildBoundary": "脚本运行当前前端源码，后端仍为ac4f352；随后4ebd377干净构建原生复验通过。后端及迁移树相同。"
+    },
+    "permissionNativeVerified": true,
+    "repeatUpload": {
+      "batchId": "206",
+      "projectIds": [
+        "217",
+        "218"
+      ],
+      "sameFileReturnedOriginalResult": true,
+      "noSecondImportSent": true
+    },
+    "fileUrlPermission": "用户明确开启供上传验收，完成后用户确认已关闭；未绕过工具禁止的扩展设置入口",
+    "accountHandoffBlocked": {
+      "userId": "199",
+      "projectIds": [
+        "217",
+        "218"
+      ],
+      "saveDisableUnavailable": true
+    },
+    "limitations": [
+      "原生验收仅使用隔离合成资料；真实备份采用使用此前相同后端的326请求证据",
+      "原生页面未逐一重测全部并发与故障组合，接口及实际前端模块脚本补足对应范围",
+      "未执行服务器切换及公网新版本验收"
+    ]
+  },
+  "finalPackage": {
+    "directory": "D:\\geekwon\\geekdash-data\\transport\\p05-project-space-4ebd37744342",
+    "manifest": {
+      "preparedAt": "2026-10-27T02:08:17.733073+00:00",
+      "status": "candidate_not_released",
+      "build": {
+        "revision": "4ebd377443426e4a00c59b41319c0f37bd127abb",
+        "dirty": false,
+        "builtAt": "2026-10-27T01:33:23.497Z",
+        "stage": "P05-imports",
+        "schemaVersion": "0009-project-space"
+      },
+      "image": "geekdash-foundation:p05-4ebd377",
+      "imageId": "sha256:974e1e8d31e9438a7cc97369f940c55a2f69dc6342fed4b5972b1df50106ba4d",
+      "platform": "linux/amd64",
+      "migrationFrom": "0008-import-name-bindings",
+      "schemaVersion": "0009-project-space",
+      "archives": {
+        "source.tar": {
+          "bytes": 52193280,
+          "sha256": "ae1e2c4a02ecd649b40204529d4bc797ae8e0d8a410ac91d40f63552fd76464d"
+        },
+        "image.tar.gz": {
+          "bytes": 85107254,
+          "sha256": "5b2188072b3ff0d3daf361890fa32223ca66f1013f76235b2b6187123b7e79d8"
+        }
+      },
+      "migrationSha256": {
+        "0001-foundation.json": "1934efd766256a898718e1114b4d763ed30cd62ef6e08d1a3f4d0fdeb6e63101",
+        "0002-trial-save.json": "51ba9dd2943f8e27b226074b2c1c6053e876f009563017d17b107d3b7de6a695",
+        "0003-node-recovery.json": "4a5b38bd7c84ea230d9d2b1b0b7f93c575107f20c5df9968109901c09296e578",
+        "0004-project-compatibility.json": "98ea64154f89c74ca08274f0d74be2998616d9b4ae4749fc9f544fb80f160e8a",
+        "0005-check-facts.json": "1b70d74c3ff84fdcc8f5587e2ab2007d20801e33b8e9f8720894a43458e40fb8",
+        "0006-imports.json": "08e1941425e3f57b5586b0c01f7b124f24074cd9c064b413109ca8345b837811",
+        "0007-import-executions.json": "6c0c71ccf5c0744a7e21e7ad5b3937592570deaddf3ddef193734a86aa780b6a",
+        "0008-import-name-bindings.json": "3bd4b83963cd35418a14d209b4d15dc69f603c391d89a488562352f9b5dd52a6",
+        "0009-project-space.json": "2cff897dd8ade0bfcfdd43ef2f54050443c39740eb55082ec17dc6b772a68d45"
+      },
+      "nativeAcceptance": "local-critical-paths-passed",
+      "mergedMain": false,
+      "deployed": false
+    },
+    "releaseSha256": "48fe3ea2a621f0ed78985744d5224a6859beb3abd6436c3755b7d60cb1aa3092",
+    "imageReadback": {
+      "checkedAt": "2026-10-27T02:13:24.945Z",
+      "live": {
+        "status": "alive",
+        "stage": "P05-imports",
+        "build": {
+          "revision": "4ebd377443426e4a00c59b41319c0f37bd127abb",
+          "dirty": false,
+          "builtAt": "2026-10-27T01:33:23.497Z",
+          "stage": "P05-imports",
+          "schemaVersion": "0009-project-space"
+        }
+      },
+      "ready": {
+        "status": "ready"
+      },
+      "isolated": true,
+      "businessWrites": "disabled"
+    },
+    "dependencyReuse": "复用已验ac4f352镜像的node_modules；package.json、package-lock.json及基础镜像逐字/摘要相同；dist为干净4ebd377，未重新拉取依赖"
+  },
+  "latestPreflight": {
+    "status": "passed",
+    "checkedAt": "2026-10-27T02:08:52.767136+00:00",
+    "build": {
+      "revision": "cbb6f857f52d643a114d8cd5cf11d26b37f1ec16",
+      "dirty": false,
+      "builtAt": "2026-10-23T10:09:50.576Z",
+      "stage": "P05-imports",
+      "schemaVersion": "0008-import-name-bindings"
+    },
+    "appImage": "sha256:01df6802612bd0d42cfab030111a662b689856ae705432f228f8a24a053c6756",
+    "mysqlId": "73bbcc0a1bdee606eac91a7971ae70cf6ceb023a9e8ec17ea55c47c5708d9ad1",
+    "mysqlStartedAt": "2026-10-15T07:49:02.710263277Z",
+    "diskFreeBytes": 10914648064,
+    "memoryAvailableBytes": 870985728,
+    "nginxSiteExists": true,
+    "readOnly": true
   }
 }
