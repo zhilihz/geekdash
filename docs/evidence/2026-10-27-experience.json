@@ -13,9 +13,9 @@
   ],
   "verification": "HTTP/MySQL only; human UI acceptance pending",
   "build": {
-    "revision": "138d674eb2ffa4d3cc0ecca142ca8cb951591406",
-    "dirty": true,
-    "builtAt": "2026-10-27T15:36:11.543Z",
+    "revision": "1376caa27222d0bfc8a7b2463a1049a11eaa7eac",
+    "dirty": false,
+    "builtAt": "2026-10-27T15:38:52.861Z",
     "stage": "P05-project-editing",
     "schemaVersion": "0014-project-tasks"
   },
@@ -32,7 +32,29 @@
     "oldBusinessTableCount": 46,
     "oldColumnsPreserved": true,
     "encryptedBackupRoundtripVerified": true,
-    "fullRestoreExecuted": false
+    "fullRestoreExecuted": false,
+    "healthReadback": {
+      "/api/health/live": {
+        "status": 200,
+        "body": {
+          "status": "alive",
+          "stage": "P05-project-editing",
+          "build": {
+            "revision": "1376caa27222d0bfc8a7b2463a1049a11eaa7eac",
+            "dirty": false,
+            "builtAt": "2026-10-27T15:38:52.861Z",
+            "stage": "P05-project-editing",
+            "schemaVersion": "0014-project-tasks"
+          }
+        }
+      },
+      "/api/health/ready": {
+        "status": 200,
+        "body": {
+          "status": "ready"
+        }
+      }
+    }
   },
   "notVerified": [
     "真实页面与导出文件由用户验收",
