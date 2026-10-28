@@ -382,6 +382,59 @@
       "独立HTML导出",
       "科技主题"
     ],
-    "release": "see docs/operations/deployments/2026-10-27-experience-local.md"
+    "release": "see docs/operations/deployments/2026-10-27-experience-local.md",
+    "localRelease": {
+      "base": "http://127.0.0.1:41870",
+      "build": {
+        "revision": "cc4a34bac3458984d0a462aa593e89bedad94a44",
+        "dirty": false,
+        "builtAt": "2026-10-28T07:40:15.666Z",
+        "stage": "P05-project-editing",
+        "schemaVersion": "0015-project-deletion"
+      },
+      "live": {
+        "status": "alive",
+        "stage": "P05-project-editing",
+        "build": {
+          "revision": "cc4a34bac3458984d0a462aa593e89bedad94a44",
+          "dirty": false,
+          "builtAt": "2026-10-28T07:40:15.666Z",
+          "stage": "P05-project-editing",
+          "schemaVersion": "0015-project-deletion"
+        }
+      },
+      "ready": {
+        "status": "ready"
+      },
+      "pages": [
+        "accounts.html",
+        "data-manage.html",
+        "imports.html",
+        "index.html",
+        "login.html",
+        "password.html",
+        "profile.html",
+        "project-checks.html",
+        "project-detail.html",
+        "project-new.html",
+        "project-space.html",
+        "project-status-summary.html",
+        "register.html",
+        "settings.html"
+      ],
+      "staticAssets200": 37,
+      "sharedDesignLast": 14,
+      "singleBusinessHeaders": 12,
+      "databaseMigration": false,
+      "businessActionsExecuted": false,
+      "browserUAT": "user_pending"
+    },
+    "pureTaskMatching": {
+      "cases": 14,
+      "status": "passed"
+    },
+    "branchPushed": "codex/project-use-unified-save",
+    "mainMerged": false,
+    "singaporeDeployed": false
   }
 }

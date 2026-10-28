@@ -46,3 +46,11 @@
 - 首次迁移入口误用Windows PowerShell，脚本策略在数据库命令执行前拒绝，原应用随即恢复。随后改用本机pwsh（RemoteSigned）且未改系统策略，重新备份当前数据后完成迁移。早期feedback-20261028-102559副本保留，不能把它当作最终迁移前数据。
 - /api/health/live实际返回上述revision、dirty=false及0015；ready返回ready。首页、详情、基础资料、状态简要及其引用静态资源全部HTTP200。真实浏览器使用未代验收。
 - 产品已推送远端codex/project-use-unified-save；main未合并，新加坡未更新。旧0014产物不支持新结构，不能直接回切；恢复应在隔离环境验证匹配应用和此备份，优先向前修正。
+
+## 统一设计与1056展示承接（2026-10-28）
+
+- 产品提交`cc4a34bac3458984d0a462aa593e89bedad94a44`，clean构建`2026-10-28T07:40:15.666Z`，schema仍`0015-project-deletion`；固定目录`test-results/live-0015-unified-design`，入口`http://127.0.0.1:41870/`。
+- 仅复制已构建产物、替换editing-ui.mjs的固定目录引用并重启geekdash-editing-20261027-ui；未重启MySQL，未迁移、清理、回放或写入用户业务数据。
+- 新请求health/live回读上述版本及dirty=false，ready=ready。14个HTML和37个引用静态资源全部HTTP200；各页共享设计CSS位于最后，12个业务页面共同页头各1个。该证据不包含用户真实页面点击或视觉验收。
+- 产品已推送远端codex/project-use-unified-save；后续交付记录提交只改文档。main未合并，新加坡本轮未更新；此前公网版本仅保留历史记录，未重新核实。
+- 前一应用产物test-results/live-0015-feedback-catalog保持完整，同为0015；如需回退应用先确认用户输入及问题范围，再更改启动引用并只重启应用。此前迁移备份不冒充本次时点备份。
