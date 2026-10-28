@@ -22,7 +22,7 @@ export type Project = {
   managers: { id: string; name: string; enabled: number }[];
 };
 export type ListProject = Project & { checkedToday: boolean; capabilities: { canCheck: boolean }; riskSummary?: { unresolvedCount: number; highestLevel: 'high' | 'mid' | 'low' | null }; inspection?: Detail };
-export type Dashboard = { distributions: Record<string, { value: string; count: number }[]>; focusTotal: number; focus: Pick<Project, 'id' | 'name' | 'status' | 'priority' | 'stage' | 'progress'>[]; latest: Pick<Project, 'id' | 'name' | 'statusDesc' | 'updatedAt' | 'contentUpdatedAt' | 'contentUpdatedOn'>[]; managers: { id: string; name: string; count: number }[] };
+export type Dashboard = { distributions: Record<string, { value: string; count: number }[]>; focusTotal: number; focus: Pick<Project, 'id' | 'name' | 'status' | 'priority' | 'stage' | 'progress'>[]; latest: {projectId:string;name:string;date:string;text:string;kind:'online'|'source'}[]; managers: { id: string; name: string; count: number }[] };
 export type List = { checkPolicy?:CheckPolicy; items: ListProject[]; businessDate: string; company?:Company|null; stats: Record<string, number> & { todayChecked: number; todayUnchecked: number }; options: Record<string, string[]>; optionLabels?: Record<string, Record<string, string>>; stageCounts: { value: string; count: string | number }[]; pagination: { page: number; pageSize: number; total: number; pageCount: number }; readOnly: true; dashboard?: Dashboard; globalChecks?: { cycleChecked:number;cycleUnchecked:number; total: number; todayChecked: number; todayUnchecked: number }; quickRanges?: Record<string,string[]> };
 export type Entry = Record<string, string | number | null>;
 export type SourceHistoryPage = { kind: 'mixed' | 'status_description'; projectVersion: string; sources: { id: string | null; sourceNamespace: string | null; sourceName: string; itemId: string | null; entries: { id: string; date: string; text: string }[] }[]; versions: { id: string; sourceNamespace: string; sourceName: string; itemId: string; adoptedAt: string; count: number }[]; nextCursor: string | null };
@@ -166,7 +166,12 @@ export async function requireIdentity() {
   appearance=new PersonalPreference('appearance',message=>document.dispatchEvent(new CustomEvent('geekdash-preference-status',{detail:message})));
   const preference=await appearance.load();
   if(themeTouched)appearance.update({theme:document.documentElement.dataset.theme});else applyTheme(String(preference.theme ?? 'dark'));
-  const toolbar = document.querySelector('.project-nav') ?? document.querySelector('.head-actions');
+  setupAccountHeader();
+  return account;
+}
+export function setupAccountHeader() {
+  if(!account)return;
+  const toolbar = document.querySelector('[data-app-header] .head-actions');
   if(toolbar && !toolbar.querySelector('.primary-nav')){
     const links=[['/','个人项目'],['/project-status-summary.html','项目状态简要'],['/imports.html','导入项目'],['/data-manage.html','资料与设置'],['/project-space.html',account.suggestedProjectCount?`项目空间 · ${account.suggestedProjectCount} 个待加入`:'项目空间']];
     if(!account.isProjectManager)links.splice(2,1);
@@ -179,7 +184,6 @@ export async function requireIdentity() {
     toolbar.append(menu);
   }
   if(!account.isProjectManager)document.querySelectorAll<HTMLAnchorElement>('a[href="/project-new.html"],a[href="/imports.html"]').forEach(link=>link.hidden=true);
-  return account;
 }
 export function setAccount(value: Account) { account = value; contextChanged = false; }
 export function notifyIdentityChange(clearCache=false) { context.postMessage(clearCache?{type:'changed',clearCache:true}:'changed');if(clearCache)clearLocalAccountState(); }
@@ -239,6 +243,9 @@ export function applyTheme(value: string) {
     document.querySelectorAll<HTMLButtonElement>('button[data-theme]').forEach(button => button.classList.toggle('active', button.dataset.theme === document.documentElement.dataset.theme));
 }
 export function setupTheme() {
+  const header=document.querySelector<HTMLElement>('[data-app-header]');
+  if(header && !header.children.length)header.innerHTML='<a class="app-brand" href="/">GeekDash</a><div class="head-actions"><div class="view-switch theme-switch" aria-label="主题"><button data-theme="dark">深色</button><button data-theme="light">浅色</button><button data-theme="warm">暖色</button></div></div>';
+  if(header && !header.dataset.measured){header.dataset.measured='true';new ResizeObserver(()=>document.documentElement.style.setProperty('--app-header-height',header.offsetHeight+'px')).observe(header);}
   applyTheme(document.documentElement.dataset.theme ?? 'dark');
   document.querySelectorAll<HTMLButtonElement>('button[data-theme]').forEach(button => button.onclick = () => {
     if(contextChanged)return;themeTouched=true;applyTheme(button.dataset.theme!);
@@ -251,7 +258,8 @@ export function setupDateZone() {
   const clock = () => {
     const now = new Date(), date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(now);
     const days = Math.round((Date.parse(date.slice(0, 4) + '-12-31') - Date.parse(date)) / 86400000);
-    zone.textContent = new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(now) + '　' + new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(now) + '　距年底 ' + days + ' 天';
+    zone.classList.add('clock-block');
+    zone.innerHTML = `<span class="clock-date">${new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(now)}</span><time class="clock-time" datetime="${now.toISOString()}">${new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', hourCycle:'h23', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(now)}</time><span class="clock-countdown">距年底 <strong>${days}</strong> 天</span>`;
   };
   clock(); setInterval(clock, 1000);
 }

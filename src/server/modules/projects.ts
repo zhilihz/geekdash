@@ -15,7 +15,7 @@ import { lifecycleNotes } from './project-lifecycle.js';
 import { checkConditions, enrichChecks, todayCheckCondition, cycleCheckCondition } from './project-checks.js';
 import { companyInformation, readCheckPolicy, type CheckPolicy } from './public-settings.js';
 import { projectStatusEntries, projectStatusOwners, type StatusChange, type StatusEntry } from './project-status-entries.js';
-import { sourceHistory, statusSourceBaselines, localCheckMarks, recordSourceFacts, originalRecordTimes, type SourceHistoryKind } from './project-source-history.js';
+import { recentStatusUpdates, sourceHistory, statusSourceBaselines, localCheckMarks, recordSourceFacts, originalRecordTimes, type SourceHistoryKind } from './project-source-history.js';
 
 // V1.050 的阶段名称、完成权重和里程碑；查询不自动改变业务状态。
 export const stages = [
@@ -27,7 +27,7 @@ export const stages = [
   { code: 'S6', name: 'PVT量产验证', progress: 90 },
   { code: 'S7', name: 'MP量产维护', progress: 100 },
 ];
-export type ProjectQuery = Partial<Record<'customer' | 'productLine' | 'odmFactory' | 'app' | 'group' | 'status' | 'priority' | 'signal' | 'stage' | 'progress' | 'chip' | 'tags' | 'owner' | 'taskOwner', string | string[]>> & { contentFrom?:string; contentTo?:string; perspective?:'responsible'|'management'; view?: string; search?: string; deadline?: DeadlineKind | DeadlineKind[]; checkToday?: 'unchecked' | 'checked'; checkCycle?: 'unchecked'|'checked'; page?: number; pageSize?: number; dashboard?: '1'; details?: 'checks' };
+export type ProjectQuery = Partial<Record<'customer' | 'productLine' | 'odmFactory' | 'app' | 'group' | 'status' | 'priority' | 'signal' | 'stage' | 'progress' | 'chip' | 'tags' | 'owner' | 'taskOwner' | 'manager', string | string[]>> & { contentFrom?:string; contentTo?:string; perspective?:'responsible'|'management'; view?: string; search?: string; deadline?: DeadlineKind | DeadlineKind[]; checkToday?: 'unchecked' | 'checked'; checkCycle?: 'unchecked'|'checked'; page?: number; pageSize?: number; dashboard?: '1'; details?: 'checks' };
 
 async function rows(connection: PoolConnection, sql: string, values: unknown[] = []) {
   return (await connection.query<RowDataPacket[]>({ sql, timeout: 3000 }, values))[0];
@@ -75,6 +75,8 @@ function conditions(query: ProjectQuery, includeFilters: boolean, today: string,
       const selected=selectedValues(query[key as keyof ProjectQuery] as string|string[]|undefined);
       if(selected.length){clauses.push(`EXISTS (${sql.replace('r.name=?','r.name IN (?)')})`);values.push(selected);}
     }
+    const managers=selectedValues(query.manager);
+    if(managers.length){clauses.push('EXISTS(SELECT 1 FROM project_responsibilities r WHERE r.project_id=p.id AND CAST(r.user_id AS CHAR) IN (?))');values.push(managers);}
     const owners=selectedValues(query.owner),ownerConditions:string[]=[];
     for(const owner of owners){
       if(/^user:[1-9][0-9]*$/.test(owner)){ownerConditions.push('EXISTS (SELECT 1 FROM project_responsibilities r WHERE r.project_id=p.id AND r.user_id=?)');values.push(owner.slice(5));}
@@ -204,7 +206,7 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
         const where = clauses.length ? 'WHERE ' + clauses.join(' AND ') : '';
         const total=Number((await rows(c,`SELECT COUNT(*) total FROM projects p ${where}`,params))[0].total);
         const pageSize=query.pageSize??24,pageCount=Math.max(1,Math.ceil(total/pageSize)),page=Math.min(query.page??1,pageCount);
-        const items=await rows(c,`SELECT CAST(p.id AS CHAR) id,p.name,p.status,p.summary FROM projects p ${where} ORDER BY p.id DESC LIMIT ? OFFSET ?`,[...params,pageSize,(page-1)*pageSize]);
+        const items=await rows(c,`SELECT CAST(p.id AS CHAR) id,CAST(p.version AS CHAR) version,p.name,p.status,p.summary FROM projects p ${where} ORDER BY p.id DESC LIMIT ? OFFSET ?`,[...params,pageSize,(page-1)*pageSize]);
         await enrichReferenceNames(c, items);
         if(items.length) {
           const ids=items.map(v=>v.id);
@@ -305,8 +307,9 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
         for (const option of await rows(connection, optionQueries.join(' UNION ALL ') + ' ORDER BY dimension,value', optionQueries.flatMap(() => base.values))) options[option.dimension].push(option.value);
         const owners = await rows(connection, `(SELECT DISTINCT CONCAT('user:',u.id) id,u.display_name name ${joins} JOIN project_responsibilities r ON r.project_id=p.id JOIN users u ON u.id=r.user_id ${base.sql}) UNION ALL (SELECT DISTINCT CONCAT('engineer:',e.id) id,e.name name ${joins} JOIN project_people pp ON pp.project_id=p.id AND pp.role<>'pm' JOIN engineers e ON e.id=pp.engineer_id ${base.sql}) ORDER BY name,id`, [...base.values, ...base.values]);
         options.taskOwner=[...new Set([...taskOwners.values()].flat())].sort((a,b)=>a.localeCompare(b,'zh-CN'));
-        options.owner = owners.map(item => item.id);
-        const optionLabels = { owner: Object.fromEntries(owners.map(item => [item.id, item.name])) };
+        options.manager=owners.filter(item=>item.id.startsWith('user:')).map(item=>item.id.slice(5));
+        options.owner = owners.filter(item=>item.id.startsWith('engineer:')).map(item => item.id);
+        const optionLabels = { manager:Object.fromEntries(owners.filter(item=>item.id.startsWith('user:')).map(item=>[item.id.slice(5),item.name])), owner: Object.fromEntries(owners.map(item => [item.id, item.name])) };
         const stageCounts = await rows(connection, `SELECT ${stageExpression} value,COUNT(*) count ${joins} ${filtered.sql} GROUP BY value`, filtered.values);
         let dashboard;
         if (query.dashboard) {
@@ -321,12 +324,12 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
             }
             return [key, [...counts].map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, 'zh-CN'))];
           }));
-          const focus = [...all];
+          const focus = all.filter(project=>project.status!=='closed');
           const priorities: Record<string, number> = { high: 0, mid: 1, low: 2 };
           focus.sort((a, b) => priorities[a.priority] - priorities[b.priority] || Number(b.progress) - Number(a.progress));
           const managerCounts=new Map<string,{id:string;name:string;count:number}>();
           for(const project of all)for(const manager of project.managers as {id:string;name:string;enabled:number}[])if(manager.enabled){const item=managerCounts.get(manager.id)??{id:manager.id,name:manager.name,count:0};item.count++;managerCounts.set(manager.id,item);}
-          dashboard = { managers:[...managerCounts.values()].sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name,'zh-CN')),distributions, focusTotal: focus.length, focus: focus.slice(0, 12).map(({ id, name, status, priority, stage, progress }) => ({ id, name, status, priority, stage, progress })), latest: [...all].sort((a,b)=>String(b.contentUpdatedOn).localeCompare(String(a.contentUpdatedOn))||String(b.contentUpdatedAt).localeCompare(String(a.contentUpdatedAt))).slice(0,10).map(({id,name,statusDesc,updatedAt,contentUpdatedAt,contentUpdatedOn})=>({id,name,statusDesc,updatedAt,contentUpdatedAt,contentUpdatedOn})) };
+          dashboard = { managers:[...managerCounts.values()].sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name,'zh-CN')),distributions, focusTotal: focus.length, focus: focus.map(({ id, name, status, priority, stage, progress }) => ({ id, name, status, priority, stage, progress })), latest: await recentStatusUpdates(connection,all as (RowDataPacket & {id:string;name:string})[],today) };
         }
         return { items, businessDate: today, checkPolicy:policy, company:await companyInformation(connection),stats: Object.fromEntries(Object.entries(stats).map(([key, value]) => [key, Number(value)])), stageCounts, options, optionLabels, pagination: { page, pageSize, total, pageCount }, readOnly: true, ...(dashboard ? { dashboard,quickRanges,globalChecks } : {}) };
       });

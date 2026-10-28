@@ -2,6 +2,7 @@ import { chipPicker, bindChipPicker, refreshChipOptions } from './shared/chip-pi
 import './shared/detail.css';
 import './shared/read.css';
 import './shared/reference-picker.css';
+import './shared/design.css';
 import { requireIdentity, get, send, SaveError, account, setupTheme, setupDateZone, esc, type EditValues, type Catalog } from './shared/api';
 import { basicFields, referenceSelect, type BasicIntent } from './shared/project-form';
 import { scopeFields } from './shared/scoped-editor';

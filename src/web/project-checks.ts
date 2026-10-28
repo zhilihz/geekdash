@@ -1,6 +1,7 @@
 import './shared/read.css';
 import './shared/detail.css';
 import './shared/project-checks.css';
+import './shared/design.css';
 import { inspectionContent } from './shared/inspection';
 import { auditHistory } from './shared/history';
 import { PersonalPreference } from './shared/personal-state';

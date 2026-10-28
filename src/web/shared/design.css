@@ -1,0 +1,57 @@
+/* 1056的系统字体、三主题与密度；所有业务页使用同一页头和控件尺度。 */
+:root { --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif; --control-radius: 8px; --app-header-height: 84px; }
+html body { font-family: var(--font-ui); font-size: 14px; line-height: 1.6; }
+html body .page.page { max-width: 1440px; margin-inline: auto; padding: 0 48px 60px; }
+html body .page.auth-page { max-width: 840px; padding-top: 32px; }
+.page h1 { font-size: 26px; line-height: 1.4; font-weight: 700; }
+.page h2 { font-size: 18px; line-height: 1.5; font-weight: 600; }
+.page h3 { line-height: 1.5; }
+.page .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 24px 0; }
+.page .page-heading h1 { margin: 0; }
+.page .app-header { display: flex; align-items: center; gap: 24px; min-height: 84px; margin: 0 0 24px; padding: 16px 0; border: 0; border-bottom: 1px solid var(--border); background: var(--bg); position: sticky; top: 0; z-index: 150; box-sizing: border-box; }
+.app-header .app-brand { flex: none; color: var(--text); font-size: 24px; line-height: 1.4; font-weight: 700; text-decoration: none; }
+.app-header .head-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px; margin-left: auto; min-width: 0; }
+.app-header .primary-nav { order: 0; gap: 8px; }
+.app-header .theme-switch { order: 1; flex-shrink: 0; }
+.app-header #account-menu { order: 2; }
+.app-header a.head-btn, .app-header .head-btn, .app-header .view-switch button { white-space: nowrap; }
+.page button, .page .head-btn, .page .back-btn, .page .save-btn, .page .board-primary { font-family: inherit; font-size: 14px; line-height: 20px; border-radius: var(--control-radius); }
+.page :is(.head-btn,.back-btn,.save-btn,.board-primary,.check-pass,.password-toggle) { min-height: 40px; padding: 9px 16px; display: inline-flex; justify-content: center; align-items: center; box-sizing: border-box; }
+.page :is(input,select,textarea):not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]):not([type=range]) { font-family: inherit; font-size: 14px; line-height: 20px; color: var(--text); background: var(--bg-input,var(--bg-soft)); border: 1px solid var(--border); border-radius: var(--control-radius); padding: 9px 12px; box-sizing: border-box; min-height: 40px; }
+.page :is(input,select,textarea):focus-visible, .page button:focus-visible, .page a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.page :is(input,textarea)::placeholder { color: var(--text-faint); }
+.page input[type=checkbox], .page input[type=radio] { accent-color: var(--accent); }
+.page .reference-picker .reference-values input { border: 0; outline: 0; background: transparent; border-radius: 0; padding: 0; height: 28px; min-height: 28px; }
+.page .reference-picker .reference-box { border-radius: var(--control-radius); min-height: 40px; }
+.page .reference-picker .reference-chip, .page .project-chip-tag { width: auto; flex: 0 0 auto; border-radius: 999px; align-items: center; justify-content: center; }
+.page .reference-picker .reference-chip button, .page .project-chip-tag button { min-height: 24px; width: 24px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; }
+.page .reference-picker .reference-box > button { min-height: 28px; padding: 0; }
+.page .reference-picker .reference-options button { text-align: left; }
+.page .clock-block { display: flex; align-items: center; justify-content: space-between; gap: 16px 32px; flex-wrap: wrap; margin: 20px 0; padding: 18px 24px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); box-shadow: 0 2px 6px #00000008; font-size: 24px; line-height: 1.5; }
+.clock-block .clock-date { font-size: 24px; font-weight: 500; }
+.clock-block .clock-time { color: var(--accent); font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.clock-block .clock-countdown { color: var(--text-dim); font-size: 16px; }
+.clock-countdown strong { color: var(--text); font-size: 24px; font-variant-numeric: tabular-nums; }
+.page .top-sticky { position: static; margin: 0; }
+.page .topbar { flex-wrap: wrap; }
+.page .topbar .clock-block { flex: 1; min-width: 320px; margin: 0; }
+.page .detail-head { top: var(--app-header-height); }
+.page .detail-head .d-title { font-size: 24px; }
+.page .detail-head .project-exit { border: 0; margin: 0; padding: 0; display: flex; gap: 8px; }
+.page .detail-head .project-exit:empty { display: none; }
+.page.password-page .auth-panel { max-width: 720px; margin-inline: auto; }
+.task-history-switch { display: flex; gap: 8px; margin: 12px 0 16px; flex-wrap: wrap; }
+.task-history-switch [aria-pressed=true] { background: var(--accent-dim); color: #fff; border-color: var(--accent-dim); }
+.space-delete-dialog { max-width: min(520px,90vw); border: 1px solid var(--border); border-radius: 12px; padding: 24px; background: var(--card); color: var(--text); }
+.space-delete-dialog::backdrop { background: #0007; }
+.space-delete-dialog form { display: flex; justify-content: flex-end; gap: 12px; }
+@media(max-width:1100px) { .page .app-header { align-items: flex-start; } .app-header .primary-nav { width: 100%; justify-content: flex-end; } }
+@media(max-width:700px) {
+  html body .page.page { padding-inline: 16px; }
+  .page .app-header { gap: 12px; flex-wrap: wrap; }
+  .app-header .head-actions { width: 100%; justify-content: space-between; }
+  .app-header .primary-nav { justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; }
+  .page .clock-block { gap: 12px; padding: 16px; }
+  .clock-block .clock-date { width: 100%; }
+  .page .topbar .clock-block { min-width: 0; flex-basis: 100%; }
+}

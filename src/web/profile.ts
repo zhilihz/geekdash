@@ -1,5 +1,6 @@
 import './shared/board.css';
 import './shared/read.css';
+import './shared/design.css';
 import { get,requireIdentity,setupTheme } from './shared/api';
 setupTheme();
 void requireIdentity().then(async()=>{

@@ -11,7 +11,17 @@ if (!Array.isArray(stages) || stages.length !== 7 || stages.some((stage, index) 
 const themeInit = readFileSync(new URL('./src/web/shared/theme-init.js', import.meta.url), 'utf8');
 
 export default defineConfig({
-  plugins: [{ name: 'geekdash-initial-theme', transformIndexHtml: { order: 'pre', handler: () => [{ tag: 'script', attrs: { 'data-theme-init': '' }, children: themeInit, injectTo: 'head-prepend' }] } }],
+  plugins: [
+    { name: 'geekdash-initial-theme', transformIndexHtml: { order: 'pre', handler: () => [{ tag: 'script', attrs: { 'data-theme-init': '' }, children: themeInit, injectTo: 'head-prepend' }] } },
+    { name: 'geekdash-shared-design', transformIndexHtml: { order: 'post', handler(html, context) {
+      if (!context.bundle) return html;
+      // Vite 会提前抽取共享 CSS；统一设计必须在各页旧样式之后生效。
+      const design = Object.values(context.bundle).find(asset => asset.type === 'asset' && asset.fileName.endsWith('.css') && String(asset.source).includes('--app-header-height:'));
+      const link = [...html.matchAll(/<link\b[^>]*rel="stylesheet"[^>]*>/g)].find(match => design && match[0].includes(`/${design.fileName}`));
+      if (!link) throw new Error('页面缺少统一设计样式');
+      return html.replace(link[0], '').replace('</head>', `  ${link[0]}\n</head>`);
+    } } },
+  ],
   define: { __GEEKDASH_STAGES__: JSON.stringify(stages) },
   root: fileURLToPath(new URL('./src/web/', import.meta.url)),
   envDir: false,

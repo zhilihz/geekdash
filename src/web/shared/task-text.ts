@@ -10,9 +10,9 @@ export function taskRows(tasks:ProjectTask[],text:string):{id?:string;text:strin
     const parts=task.text.split('\n').map(line=>line.trim()).filter(Boolean);
     for(let i=0;i<=lines.length-parts.length;i++)if(parts.every((part,j)=>part===lines[i+j])){lines.splice(i,parts.length,task.text);break;}
   }
-  for(const task of old){const count=old.filter(row=>row.text===task.text).length;if(count>1&&lines.filter(line=>line===task.text).length!==count)throw new Error('有内容相同的任务，无法确认要修改哪一条。输入已保留，请切回逐条编辑处理这些任务。');}
+  for(const task of old){const count=old.filter(row=>row.text===task.text).length;if(count>1&&lines.filter(line=>line===task.text).length!==count)throw new Error('有内容相同的任务，无法确认要修改哪一条。输入已保留。请先修正上方输入，或放弃这段输入后在下方逐条处理。');}
   // ponytail: 沿用本地版LCS；超大整栏先提示分次编辑，避免阻塞浏览器，不限制项目或任务总数。
-  if(old.length*lines.length>1_000_000)throw new Error('本次整栏涉及的任务过多，请分次编辑或切回逐条编辑。输入已保留。');
+  if(old.length*lines.length>1_000_000)throw new Error('本次整栏涉及的任务过多，请分次编辑或在下方逐条处理。输入已保留。');
   const dp=Array.from({length:old.length+1},()=>new Uint32Array(lines.length+1));
   for(let i=old.length-1;i>=0;i--)for(let j=lines.length-1;j>=0;j--)dp[i][j]=old[i].text===lines[j]?dp[i+1][j+1]+1:Math.max(dp[i+1][j],dp[i][j+1]);
   const anchors:[number,number][]=[];let i=0,j=0;

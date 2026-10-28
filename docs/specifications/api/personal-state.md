@@ -68,3 +68,5 @@
 | 断网、超时、结果未知 | 以实际响应为准 | 不宣称同步成功；保留原序号和正文核对/重放。正式保存未知继续走原业务回执 |
 
 页面正常恢复采用“继续编辑 / 丢弃”，多份或旧版本稿才进入核对入口；旧版本只能复制核对，不能覆盖新版本。操作路径见[使用说明](../../usage/user-guide.md)，API 的存在和此处协议核对不代表全部页面及失败路径已验收。
+
+2026-10-28统一设计接续：board偏好新增filterOrder、hiddenFilters（类别字符串数组）、cardContent（status/tasks）、chartPercent（布尔）、activityDays（7/30）、activityCount（5/10/20）；filters支持manager账号ID。页面按允许值恢复，未知类别忽略；协议不改变项目权限、版本或业务数据，规则归SPEC-022。

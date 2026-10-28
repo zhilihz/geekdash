@@ -1,11 +1,13 @@
+import { bindTaskEditor } from './shared/task-editor';
 import { saveMembership, hasPendingMembership } from './shared/membership';
 import { validTaskDraft } from './shared/task-text';
-import { changedTaskOps,taskPanel,putTaskOp,taskCopy,taskText,applyTaskText,confirmTaskDeletes } from './shared/tasks';
+import { changedTaskOps,taskPanel,taskList,taskCopy,taskText,applyTaskText,confirmTaskDeletes } from './shared/tasks';
 import { chipPicker, bindChipPicker, refreshChipOptions } from './shared/chip-picker';
 import './shared/detail.css';
 import './shared/read.css';
 import { auditHistory, statusDescriptionHistory, historyTime, readableFields } from './shared/history';
 import './shared/reference-picker.css';
+import './shared/design.css';
 import { mountReferencePickers, syncReferencePickers } from './shared/reference-picker';
 import { basicFields, basicIntent, basicIntentChanged, referenceSelect, type BasicIntent } from './shared/project-form';
 import { scopeFields, scopeChanges, carryInputs } from './shared/scoped-editor';
@@ -14,13 +16,14 @@ import { ProjectNotifications, editorBadges } from './shared/notifications';
 import { refreshProjectOptions } from './shared/project-options';
 import { attachStatusMentions } from './shared/status-mentions';
 import type { SaveScope, SourceHistoryPage } from './shared/api';
-import { get, send, SaveError, esc, label, projectTags, setupTheme, requireIdentity, account, loginUrl, stageMessages, actionLabels, dateTitles, isPlanCommand, isLifecycleCommand, isClosureCommand, isCheckCommand, type ChangeOperation, type ChangeRecord, type ChangeFields, type NodeOperation, type NodeRecord, type NodePreview, type NodeFields, type RiskOperation, type RiskRecord, type RiskPreview, type CheckCommand, type CheckPage, closureTitles, type ClosureCommand, type ClosurePreview, type LifecycleCommand, type PlanCommand, type PlanPreview, type ScheduleRecord, type CorrectionCommand, type CorrectionPreview, type StageCommand, type StartCommand, type ProjectCommand, type Detail, type Entry, type EditValues, type Catalog, type SaveRequest, type SaveResult, type AuditPage } from './shared/api';
+import { get, send, SaveError, esc, label, projectTags, setupTheme, setupDateZone, requireIdentity, account, loginUrl, stageMessages, actionLabels, dateTitles, isPlanCommand, isLifecycleCommand, isClosureCommand, isCheckCommand, type ChangeOperation, type ChangeRecord, type ChangeFields, type NodeOperation, type NodeRecord, type NodePreview, type NodeFields, type RiskOperation, type RiskRecord, type RiskPreview, type CheckCommand, type CheckPage, closureTitles, type ClosureCommand, type ClosurePreview, type LifecycleCommand, type PlanCommand, type PlanPreview, type ScheduleRecord, type CorrectionCommand, type CorrectionPreview, type StageCommand, type StartCommand, type ProjectCommand, type Detail, type Entry, type EditValues, type Catalog, type SaveRequest, type SaveResult, type AuditPage } from './shared/api';
 
 const element = (id: string) => document.getElementById(id)!;
 const id = new URLSearchParams(location.search).get('id') ?? '';
 let snapshot: Detail | undefined;
 let tab = 'info';
 let statusHistoryOpen = false;
+let statusHistoryView: 'history'|'completed' = 'history';
 let readingPreference:PersonalPreference|undefined;
 let notifications:ProjectNotifications|undefined;
 function updateEditing(){notifications?.setEditing(!!snapshot?.capabilities.editText && !stale && !authFrozen && (dirty() || !!stageDraft || !!correctionDraft || !!planDraft || !!lifecycleDraft || !!closureDraft || !!checkDraft || !!document.activeElement?.matches('[data-edit]')));}
@@ -829,28 +832,6 @@ function forgetResponsibility() {
   responsibilityPending = undefined;
   try { sessionStorage.removeItem(responsibilityKey()); } catch { /* 清理失败不改变已确认的操作结果。 */ }
 }
-async function deleteProject() {
-  if(!snapshot || !account?.isMaintenance || inFlight || loading || pending || stagePending || responsibilityPending || authFrozen)return;
-  const key=`geekdash_delete:${account.id}:${id}`;
-  let command:{expectedVersion:string;idempotencyKey:string};
-  try {
-    const stored=sessionStorage.getItem(key);
-    if(stored)command=JSON.parse(stored);
-    else {
-      if(await choose(`删除“${snapshot.project.name}”？项目将从列表、统计和检查中移除。${dirty()?'本页未保存修改不会提交。':''}`, [['cancel','取消'],['delete','删除项目']])!=='delete')return;
-      command={expectedVersion:snapshot.project.version,idempotencyKey:crypto.randomUUID()};
-      sessionStorage.setItem(key,JSON.stringify(command));
-    }
-    inFlight=true;controls();
-    let result=await send<{outcome:string}>(`/api/projects/${id}/delete-results/query`,'POST',command,false);
-    if(result.outcome==='not_found')result=await send(`/api/projects/${id}/delete`,'POST',command);
-    if(result.outcome!=='committed')throw new Error('删除结果待确认，请重试原操作。');
-    sessionStorage.removeItem(key);leaving=true;location.href='/';
-  } catch(error) {
-    if(error instanceof SaveError&&error.outcome==='not_committed'&&error.code!=='OPERATION_KEY_REUSED')sessionStorage.removeItem(key);
-    note((error as Error).message,true);
-  } finally {inFlight=false;controls();}
-}
 function projectAccessControls() {
   if(!snapshot)return;
   const blocked=loading||inFlight||stale||!!pending||!!responsibilityPending||!!stagePending||authFrozen;
@@ -862,8 +843,6 @@ function projectAccessControls() {
     try{const result=await saveMembership(id,{action:'join'});if(result.outcome!=='committed')throw new Error('加入结果待确认，请重试原操作。');inFlight=false;await load();note('已加入项目，可以编辑并保存。');}
     catch(error){note((error as Error).message,true);}finally{inFlight=false;controls();}
   };}
-  const remove=document.getElementById('delete-project') as HTMLButtonElement|null;
-  if(remove){remove.hidden=!account?.isMaintenance;remove.disabled=blocked;remove.onclick=()=>{void deleteProject();};}
 }
 function responsibilityControls() {
   if (!snapshot || !document.getElementById('responsibility')) return;
@@ -984,7 +963,7 @@ function controls() {
     const button = document.getElementById(name) as HTMLButtonElement | null;
     if (button) button.disabled = frozen || stale || authFrozen;
   }
-  document.querySelectorAll<HTMLButtonElement>('[data-task-action],[data-task-mode]:not([data-task-mode=copy])').forEach(button=>{button.disabled=frozen||stale||authFrozen||!snapshot?.capabilities.editText;});
+  document.querySelectorAll<HTMLButtonElement>('[data-task-action],[data-task-discard]').forEach(button=>{button.disabled=frozen||stale||authFrozen||!snapshot?.capabilities.editText;});
   syncReferencePickers();
   document.querySelectorAll<HTMLButtonElement>('[data-plan]').forEach(button => { button.disabled = frozen || actionOpen || stale || authFrozen || !snapshot?.capabilities.editText; });
   const save = document.getElementById('save-project') as HTMLButtonElement | null;
@@ -1265,25 +1244,10 @@ function bindEditor() {
     if (input) input.oninput = () => { values![key] = input.value; delete validationErrors[key]; const error = document.getElementById('error-' + key); if (error) error.textContent = ''; persist(); };
   });
   document.getElementById('old-status-copied')?.addEventListener('click',()=>{values!.statusDesc=snapshot!.project.statusDesc;persist();render();});
-  document.querySelector<HTMLTextAreaElement>('[data-task-bulk]')?.addEventListener('input',event=>{taskBulk=(event.target as HTMLTextAreaElement).value;persist();});
-  document.querySelectorAll<HTMLButtonElement>('[data-task-mode]').forEach(button=>button.onclick=async()=>{
-    try {
-      if(button.dataset.taskMode==='copy'){await copyText();return;}
-      if(button.dataset.taskMode==='bulk')taskBulk=taskText(taskCopy(snapshot!.project.tasks??[],values!.taskOps??[]));
-      else {if(button.dataset.taskMode==='rows')values!.taskOps=applyTaskText(snapshot!.project.tasks??[],values!.taskOps??[],taskBulk??'');taskBulk=undefined;}
-      persist();render();document.querySelector<HTMLTextAreaElement>('[data-task-bulk]')?.focus();
-    } catch(error){note((error as Error).message,true);persist();render();}
-  });
-  document.querySelectorAll<HTMLTextAreaElement>('[data-task-text],[data-task-bulk]').forEach(input=>{
-    attachStatusMentions(input,()=> (catalog?.engineers??[]).filter(person=>person.enabled));
-    if(input.hasAttribute('data-task-bulk'))return;
-    input.oninput=()=>{values!.taskOps=putTaskOp(values!.taskOps??[],{op:'edit',id:input.closest<HTMLElement>('[data-task-row]')!.dataset.taskRow!,text:input.value});delete validationErrors.taskOps;persist();controls();};
-  });
-  document.querySelectorAll<HTMLButtonElement>('[data-task-action]').forEach(button=>button.onclick=()=>{
-    const op=button.dataset.taskAction as 'add'|'complete'|'reopen'|'delete',id=button.closest<HTMLElement>('[data-task-row]')?.dataset.taskRow??crypto.randomUUID();
-    values!.taskOps=putTaskOp(values!.taskOps??[],op==='add'?{op,id,text:''}:{op,id});persist();render();
-    if(op==='add')document.querySelector<HTMLTextAreaElement>(`[data-task-row="${id}"] textarea`)?.focus();
-  });
+  bindTaskEditor(element('detail-body'),
+    ()=>({tasks:snapshot!.project.tasks??[],ops:values!.taskOps??[],bulk:taskBulk,editable:!inFlight&&!loading&&!checksLoading&&!pending&&!stagePending&&!responsibilityPending&&!stale&&!authFrozen&&!!snapshot?.capabilities.editText}),
+    (ops,bulk)=>{values!.taskOps=changedTaskOps(snapshot!.project.tasks??[],ops);taskBulk=bulk;delete validationErrors.taskOps;persist();controls();},
+    ()=>(catalog?.engineers??[]).filter(person=>person.enabled));
   const statusInput = document.getElementById('edit-statusDesc') as HTMLTextAreaElement | null;
   if (statusInput) attachStatusMentions(statusInput, () => (catalog?.engineers ?? []).filter(person => person.enabled));
   for (const key of ['signal', 'priority', ...Object.keys(referenceFields).filter(key => key !== 'chipSelections')]) {
@@ -1521,7 +1485,9 @@ async function loadAudit(more = false) {
 function renderStatusHistory() {
   const box = document.getElementById('status-history-content');
   if (!box || !statusHistoryOpen) return;
-  box.innerHTML = (audit ? statusDescriptionHistory(audit.items) : '') + sourceHistoryPanel('status_description') + `<p class="read-message">${esc(auditMessage)}</p>${!audit || auditMessage ? '<button class="back-btn" data-status-history-load>读取历史</button>' : ''}${audit?.nextCursor ? '<button class="back-btn" data-status-history-more>读取更早记录</button>' : ''}`;
+  const tabs=`<div class="task-history-switch"><button type="button" data-task-history="history" aria-pressed="${statusHistoryView==='history'}">说明历史</button><button type="button" data-task-history="completed" aria-pressed="${statusHistoryView==='completed'}">已完成任务</button></div>`;
+  box.innerHTML = tabs + (statusHistoryView==='completed'?`<div class="task-history-list">${taskList(taskCopy(snapshot!.project.tasks??[],values!.taskOps??[]),!inFlight&&!loading&&!checksLoading&&!pending&&!stagePending&&!responsibilityPending&&!stale&&!authFrozen&&!!snapshot?.capabilities.editText,true)}</div>`:(audit ? statusDescriptionHistory(audit.items) : '') + sourceHistoryPanel('status_description') + `<p class="read-message">${esc(auditMessage)}</p>${!audit || auditMessage ? '<button class="back-btn" data-status-history-load>读取历史</button>' : ''}${audit?.nextCursor ? '<button class="back-btn" data-status-history-more>读取更早记录</button>' : ''}`);
+  box.querySelectorAll<HTMLButtonElement>('[data-task-history]').forEach(button=>button.onclick=()=>{statusHistoryView=button.dataset.taskHistory as 'history'|'completed';renderStatusHistory();});
   box.querySelector<HTMLButtonElement>('[data-status-history-load]')?.addEventListener('click', () => { void loadAudit(); });
   box.querySelector<HTMLButtonElement>('[data-status-history-more]')?.addEventListener('click', () => { void loadAudit(true); });
   bindSourceHistory(box);
@@ -1567,12 +1533,7 @@ element('action-reload').onclick = () => element('reload').click();
 element('action-confirm').onclick = () => { void executeStage(true); };
 element('action-retry').onclick = () => { void executeStage(false); };
 setupTheme();
-function clock() {
-  const now = new Date(), day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(now);
-  const [year] = day.split('-').map(Number), remaining = Math.round((Date.UTC(year, 11, 31) - Date.parse(day)) / 86400000);
-  element('date-zone').innerHTML = `<div class="dz-left"><span class="dz-date">${new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: 'long', day: 'numeric' }).format(now)}</span><span class="dz-week">${new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', weekday: 'long' }).format(now)}</span><span class="dz-time">${new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(now)}</span></div><span class="read-label">距年底 ${remaining} 天</span>`;
-}
-clock(); setInterval(clock, 1000);
+setupDateZone();
 function restoreBoardReturn(){if(new URLSearchParams(location.search).has('returnTo'))return;try {
   const saved = JSON.parse(sessionStorage.getItem('geekdash_board_return:'+account!.id) ?? 'null');
   if (typeof saved?.url === 'string') {

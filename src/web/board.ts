@@ -1,8 +1,10 @@
+import { bindTaskEditor } from './shared/task-editor';
 import { validTaskDraft } from './shared/task-text';
-import { changedTaskOps,taskPanel,putTaskOp,taskCopy,taskText,applyTaskText,confirmTaskDeletes } from './shared/tasks';
+import { changedTaskOps,taskPanel,taskCopy,taskText,applyTaskText,confirmTaskDeletes } from './shared/tasks';
 import './shared/board.css';
 import './shared/read.css';
 import './shared/board-page.css';
+import './shared/design.css';
 import { get, send, SaveError, esc, label, checkTime, applyCompany, setupTheme, setupDateZone, appearance, account, loginUrl, type Dashboard, type List, type ListProject, type Detail, type SaveRequest, type SaveResult } from './shared/api';
 import { PersonalPreference, PersonalDrafts } from './shared/personal-state';
 import { ProjectNotifications, editorBadges, type EditingPresence } from './shared/notifications';
@@ -20,7 +22,8 @@ let preference:PersonalPreference|undefined;
 let restoredScroll:number|undefined;
 let scrollTimer:ReturnType<typeof setTimeout>|undefined;
 query.set('view', ['active', 'proposal', 'closed', 'maintenance', 'all'].includes(query.get('view') ?? '') ? query.get('view')! : 'active');
-const dimensions = { customer: '客户', productLine: '产品线', odmFactory: 'ODM 工厂', app: '配套 APP', status: '状态', priority: '优先级', signal: '信号灯', stage: '项目阶段', progress: '进度', chip: '芯片', tags: '项目标签', group: '分组', owner: '项目负责与分工', taskOwner:'任务负责人', deadline: '计划结果' };
+const dimensions = { customer: '客户', productLine: '产品线', odmFactory: 'ODM 工厂', app: '配套 APP', status: '状态', priority: '优先级', signal: '信号灯', stage: '项目阶段', progress: '进度', chip: '芯片', tags: '项目标签', group: '分组', manager:'项目负责人', owner: '业务分工', taskOwner:'任务负责人', deadline: '计划结果' };
+let filterOrder=[...Object.keys(dimensions),'contentDate'],hiddenFilters:string[]=[],cardContent='status',chartPercent=true,activityDays=30,activityCount=10;
 const allowed = new Set(['perspective','contentFrom','contentTo','view', 'search', 'page', 'layout', ...Object.keys(dimensions)]);
 for (const key of [...query.keys()]) if (!allowed.has(key)) query.delete(key);
 let controller: AbortController | undefined;
@@ -54,7 +57,7 @@ function captureStatus(edit:StatusEdit){if(!frozen && !edit.pending && !edit.sta
 function clearEditors(){editors.clear();document.querySelectorAll('[data-project-editors]').forEach(node=>node.replaceChildren());}
 async function loadMentionPeople(){
   if(mentionLoading)return mentionLoading;
-  mentionLoading=(async()=>{try{const data=await get<{engineers:{name:string;enabled:number}[]}>('/api/project-options',undefined,false);mentionPeople=data.engineers.filter(person=>!!person.enabled);const input=document.activeElement;if(input instanceof HTMLTextAreaElement && input.matches('[data-status-input]'))input.dispatchEvent(new Event('input',{bubbles:true})); }catch{mentionPeople=[];}finally{mentionLoading=undefined;}})();
+  mentionLoading=(async()=>{try{const data=await get<{engineers:{name:string;enabled:number}[]}>('/api/project-options',undefined,false);mentionPeople=data.engineers.filter(person=>!!person.enabled);const input=document.activeElement;if(input instanceof HTMLTextAreaElement && input.matches('[data-status-input],[data-task-bulk],[data-task-text]'))input.dispatchEvent(new Event('input',{bubbles:true})); }catch{mentionPeople=[];}finally{mentionLoading=undefined;}})();
   return mentionLoading;
 }
 function feedback(text: string) { message.textContent = readingNotice + text; }
@@ -67,7 +70,7 @@ function filterToggle() {
   element('filter-toggle').setAttribute('aria-expanded', String(!filterRows.hidden));
   element('filter-toggle').textContent = filterRows.hidden ? '▸ 展开筛选' : '▾ 收起筛选';
 }
-function remember(){preference?.update({view:query.get('view'),page:Number(query.get('page') ?? 1),filters:Object.fromEntries(['search','contentFrom','contentTo',...Object.keys(dimensions)].filter(key=>query.has(key)).map(key=>[key,['search','contentFrom','contentTo'].includes(key)?query.get(key):query.getAll(key)])),filtersOpen:!filterRows.hidden,distributions:visibleDistributions,scrollY:window.scrollY});}
+function remember(){preference?.update({view:query.get('view'),page:Number(query.get('page') ?? 1),filters:Object.fromEntries(['search','contentFrom','contentTo',...Object.keys(dimensions)].filter(key=>query.has(key)).map(key=>[key,['search','contentFrom','contentTo'].includes(key)?query.get(key):query.getAll(key)])),filtersOpen:!filterRows.hidden,distributions:visibleDistributions,filterOrder,hiddenFilters,cardContent,chartPercent,activityDays,activityCount,scrollY:window.scrollY});}
 function filterValue(key: string, value: string) {
   const deadlineNames: Record<string, string> = { upcoming: '未到期', due: '今日到期', overdue: '已超期', unset: '计划未定', closed_on_time: '按期结案', closed_late: '超期结案', closed_unplanned: '无计划结案', closed_unknown: '结案日期待核对', terminated: '终止结案' };
   return currentData?.optionLabels?.[key]?.[value] ?? (key === 'deadline' ? deadlineNames[value] ?? value : key === 'progress' ? value + '%' : ['status', 'priority', 'signal', 'stage'].includes(key) ? label(value) : value);
@@ -94,14 +97,14 @@ function card(project: ListProject) {
     ${project.marketExpectation ? `<p class="board-card-market"><span>市场预期</span>${esc(project.marketExpectation)}</p>` : ''}</section>
     ${project.managers.length>1?`<p class="read-label">协作者：${project.managers.filter(person=>person.id!==account?.id).map(person=>esc(person.name)+(person.enabled?'':'（已停用）')).join('、')}</p>`:''}
     <div class="board-card-stage"><div class="board-stage-heading"><span>当前阶段：${esc(stageName)}</span><strong>${project.progress}%</strong></div><div class="board-card-progress"><div class="stage-bar-track"><div class="stage-bar-fill" style="width:${Number(project.progress)}%"></div></div></div><p class="board-card-milestone">${stage ? '里程碑：' + esc(stage.milestone) : project.stage === 'completed' ? '七阶段里程碑已全部完成。' : '阶段待确认'}</p></div>
-    <div class="board-card-status"><div class="board-status-heading"><span>任务清单</span></div>${statusContent(project)}</div>
+    <div class="board-card-status"><div class="board-status-heading"><span>${cardContent==='tasks'?'任务清单':'最新状态说明'}</span></div>${statusContent(project)}</div>
     <div class="board-card-footer"><div class="board-check-time">最近检查：${project.checkStatus.latest ? `<time datetime="${esc(project.checkStatus.latest.checkedAt)}">${esc(checkTime(project.checkStatus))}</time>${project.checkStatus.latest.actorName ? ' · ' + esc(project.checkStatus.latest.actorName) : ''}` : '尚未检查'}${project.checkStatus.updatedAfterCheck ? '<span class="board-check-updated">检查后有更新</span>' : ''}</div><a href="project-detail.html?id=${project.id}">查看详情 ↗</a></div></article>`;
 }
 function statusContent(project:ListProject){
   const edit=statusEdits.get(project.id),editable=canEditStatus(project),stale=!!edit && (edit.stale || edit.version!==project.version || !editable);
   const notice=frozen?(edit?.committed?'任务已保存，无需重新保存。请重新登录后读取结果，输入保留供复制。':'账号状态已改变，输入和原保存请求保留，请重新登录。'):edit?.committed?edit.message ?? '任务已保存，正在读取正式内容。':stale?'项目已被他人更新，请重新进入项目。未保存文字保留供复制。':edit?.message ?? '';
   if(edit && activeStatus===project.id)return `${edit.value!==edit.base?`<textarea data-status-input="${project.id}" aria-label="旧状态说明草稿" rows="5" ${frozen||stale?'readonly':''}>${esc(edit.value)}</textarea>`:taskPanel(project.tasks??[],edit.ops??[],!frozen&&!stale&&!edit.busy,edit.taskBulk)}<p class="board-status-feedback" role="status">${esc(notice)}</p><div class="board-status-actions">${edit.committed?`<button data-status-action="query" ${edit.busy || frozen?'disabled':''}>读取已保存结果</button>`:edit.pending?`<button data-status-action="query" ${edit.busy || frozen?'disabled':''}>核对原保存结果</button><button data-status-action="retry" ${edit.busy || frozen?'disabled':''}>重试原保存</button>`:`<button data-status-action="save" ${edit.busy || frozen || stale?'disabled':''}>保存任务</button><button data-status-action="cancel" ${edit.busy || frozen?'disabled':''}>取消修改</button><button data-status-action="drafts" ${edit.busy || frozen?'disabled':''}>个人草稿</button>`}${stale || frozen?`<button data-status-action="copy">复制输入</button><a href="project-detail.html?id=${project.id}">重新进入项目</a>`:''}</div>`;
-  return `<div class="board-status-lines">${taskPanel(project.tasks??[],[],false)}</div>${editable || edit?`<button data-status-action="edit" ${frozen?'disabled':''}>${edit?'继续编辑':'更新状态'}</button>`:''}`;
+  return `<div class="board-status-lines">${cardContent==='tasks'?taskPanel(project.tasks??[],[],false):`<p class="board-status-copy">${esc(project.statusDesc||'暂无待办任务')}</p>`}</div>${editable || edit?`<button data-status-action="edit" ${frozen?'disabled':''}>${edit?'继续编辑':'更新状态'}</button>`:''}`;
 }
 function renderProjects() {
   if (!currentData) return;
@@ -110,8 +113,15 @@ function renderProjects() {
   const progress = query.get('layout') === 'progress';
   element('card-grid').classList.toggle('progress-layout', progress);
   element('card-grid').innerHTML = currentData.items.map(card).join('');
-  document.querySelectorAll<HTMLTextAreaElement>('[data-status-input],[data-task-text],[data-task-bulk]').forEach(input=>attachStatusMentions(input,()=>mentionPeople ?? []));
+  document.querySelectorAll<HTMLTextAreaElement>('[data-status-input]').forEach(input=>attachStatusMentions(input,()=>mentionPeople ?? []));
+  document.querySelectorAll<HTMLElement>('.card[data-project-id]').forEach(root=>{
+    const id=root.dataset.projectId!,edit=statusEdits.get(id);if(!edit||activeStatus!==id)return;
+    bindTaskEditor(root,()=>({tasks:currentProject(id)?.tasks??[],ops:edit.ops??[],bulk:edit.taskBulk,editable:!frozen&&!edit.stale&&!edit.busy&&!edit.pending&&canEditStatus(currentProject(id))}),
+      (ops,bulk)=>{edit.ops=changedTaskOps(currentProject(id)?.tasks??[],ops);edit.taskBulk=bulk;changedHere.add(id);captureStatus(edit);preserveStatus();updateEditing();},()=>mentionPeople??[]);
+  });
+  if(focus?.task)document.querySelector<HTMLButtonElement>(`[data-project-id="${focus.project}"] [data-task-row="${CSS.escape(focus.task)}"] [data-task-action="edit"]`)?.click();
   if(focus){const input=document.querySelector<HTMLTextAreaElement>(focus.bulk?`[data-project-id="${focus.project}"] [data-task-bulk]`:focus.task?`[data-project-id="${focus.project}"] [data-task-row="${CSS.escape(focus.task)}"] textarea`:`[data-status-input="${focus.id}"]`);if(input){input.focus({preventScroll:true});input.setSelectionRange(focus.start,focus.end);input.scrollTop=focus.scrollTop;}}
+  document.querySelectorAll<HTMLButtonElement>('[data-card-content]').forEach(button=>{const active=button.dataset.cardContent===cardContent;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});
   element('cards-view').hidden = progress; element('dashboard-view').hidden = !progress;
   for (const [id, active] of [['layout-cards', !progress], ['layout-toggle', progress]] as const) { element(id).classList.toggle('active', active); element(id).setAttribute('aria-pressed', String(active)); }
   updateEditing();
@@ -169,30 +179,19 @@ async function cancelStatus(edit:StatusEdit){
 element('card-grid').addEventListener('input',event=>{
   const input=event.target as HTMLTextAreaElement,id=input.dataset.statusInput??input.closest<HTMLElement>('[data-project-id]')?.dataset.projectId,edit=id?statusEdits.get(id):undefined;
   if(!edit)return;
-  if(input.matches('[data-task-bulk]'))edit.taskBulk=input.value;else if(input.matches('[data-task-text]'))edit.ops=putTaskOp(edit.ops??[],{op:'edit',id:input.closest<HTMLElement>('[data-task-row]')!.dataset.taskRow!,text:input.value});else if(input.matches('[data-status-input]'))edit.value=input.value;else return;
+  if(input.matches('[data-status-input]'))edit.value=input.value;else return;
   changedHere.add(edit.id);captureStatus(edit);preserveStatus();updateEditing();
 });
 element('card-grid').addEventListener('compositionstart',event=>{if((event.target as HTMLElement).matches('[data-status-input],[data-task-text],[data-task-bulk]'))composingStatus=true;});
 element('card-grid').addEventListener('compositionend',()=>{composingStatus=false;if(renderStatusPending)queueMicrotask(renderProjects);});
 element('card-grid').addEventListener('click',async event=>{
-  const mode=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-task-mode]');
-  if(mode){const id=mode.closest<HTMLElement>('[data-project-id]')!.dataset.projectId!,edit=statusEdits.get(id);if(!edit||edit.busy||edit.stale||frozen)return;
-    try{if(mode.dataset.taskMode==='copy'){await navigator.clipboard.writeText(edit.taskBulk??'');edit.message='整栏输入已复制。';}
-      else if(mode.dataset.taskMode==='bulk')edit.taskBulk=taskText(taskCopy(currentProject(id)?.tasks??[],edit.ops??[]));
-      else{if(mode.dataset.taskMode==='rows')edit.ops=applyTaskText(currentProject(id)?.tasks??[],edit.ops??[],edit.taskBulk??'');edit.taskBulk=undefined;}
-    }catch(error){edit.message=(error as Error).message;}captureStatus(edit);preserveStatus();renderProjects();return;
-  }
-  const taskButton=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-task-action]');
-  if(taskButton&&!taskButton.disabled){const projectId=taskButton.closest<HTMLElement>('[data-project-id]')!.dataset.projectId!,edit=statusEdits.get(projectId);if(!edit)return;
-    const op=taskButton.dataset.taskAction as 'add'|'complete'|'reopen'|'delete',id=taskButton.closest<HTMLElement>('[data-task-row]')?.dataset.taskRow??crypto.randomUUID();
-    edit.ops=putTaskOp(edit.ops??[],op==='add'?{op,id,text:''}:{op,id});changedHere.add(projectId);captureStatus(edit);preserveStatus();renderProjects();if(op==='add')document.querySelector<HTMLTextAreaElement>(`[data-task-row="${id}"] textarea`)?.focus();return;}
   const button=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-status-action]'),id=button?.closest<HTMLElement>('[data-project-id]')?.dataset.projectId;
   if(!button || !id || button.disabled)return;
   let edit=statusEdits.get(id);
   if(button.dataset.statusAction==='edit'){
     const project=currentProject(id);if(!project || frozen || !edit && !canEditStatus(project))return;
     if(!edit){edit={id,ops:[],value:project.statusDesc,base:project.statusDesc,version:project.version};statusEdits.set(id,edit);}
-    activeStatus=id;preserveStatus();renderProjects();document.querySelector<HTMLTextAreaElement>(`[data-status-input="${id}"]`)?.focus({preventScroll:true});
+    activeStatus=id;preserveStatus();renderProjects();document.querySelector<HTMLTextAreaElement>(`[data-project-id="${id}"] [data-task-bulk], [data-status-input="${id}"]`)?.focus({preventScroll:true});
     if(!mentionPeople)void loadMentionPeople();
     if(!edit.pending && !statusChanged(edit))void drafts(id).offer();
   }else if(edit){
@@ -200,7 +199,7 @@ element('card-grid').addEventListener('click',async event=>{
     else if(button.dataset.statusAction==='drafts')void drafts(id).open();
     else if(button.dataset.statusAction==='copy'){
       const input=document.querySelector<HTMLTextAreaElement>(`[data-status-input="${id}"]`);input?.focus();input?.select();
-      void navigator.clipboard?.writeText(edit.ops?.length?taskText(taskCopy(currentProject(id)?.tasks??[],edit.ops)):edit.value).then(()=>feedback('输入已复制。')).catch(()=>feedback('请复制当前已选中的输入。'));
+      void navigator.clipboard?.writeText(edit.taskBulk??(edit.ops?.length?taskText(taskCopy(currentProject(id)?.tasks??[],edit.ops)):edit.value)).then(()=>feedback('输入已复制。')).catch(()=>feedback('请复制当前已选中的输入。'));
     }else void saveStatus(edit,button.dataset.statusAction==='query');
   }
 });
@@ -213,30 +212,48 @@ function distribution() {
   element('distribution-charts').innerHTML=visibleDistributions.map(key=>{
     const slices=currentData!.dashboard!.distributions[key]??[],total=slices.reduce((sum,item)=>sum+item.count,0);let angle=0;
     const gradient=slices.map((slice,index)=>{const start=angle;angle+=slice.count/Math.max(1,total)*360;return `${chartColors[index%chartColors.length]} ${start}deg ${angle}deg`;}).join(',');
-    return `<section class="chart-card"><h3>${distributionNames[key]}</h3><div class="board-pie-layout"><div class="board-pie" aria-hidden="true" style="background:${total?'conic-gradient('+gradient+')':'var(--border)'}"><span>${total}<small>${['customer','productLine','odmFactory','app','group','chip','tags'].includes(key)?'项目关联':'项目'}</small></span></div><ul class="board-pie-legend">${slices.map((slice,index)=>`<li><i style="background:${chartColors[index%chartColors.length]}"></i>${slice.value?`<button class="legend-filter" data-filter="${key}" data-value="${esc(slice.value)}">${esc(filterValue(key,slice.value))}</button>`:'<span>未选择</span>'}<b>${slice.count}</b></li>`).join('')||'<li>暂无匹配项目</li>'}</ul></div></section>`;
+    return `<section class="chart-card"><h3>${distributionNames[key]}</h3><div class="board-pie-layout"><div class="board-pie" aria-hidden="true" style="background:${total?'conic-gradient('+gradient+')':'var(--border)'}"><span>${total}<small>${['customer','productLine','odmFactory','app','group','chip','tags'].includes(key)?'项目关联':'项目'}</small></span></div><ul class="board-pie-legend">${slices.map((slice,index)=>`<li><i style="background:${chartColors[index%chartColors.length]}"></i>${slice.value?`<button class="legend-filter" data-filter="${key}" data-value="${esc(slice.value)}">${esc(filterValue(key,slice.value))}</button>`:'<span>未选择</span>'}<b>${slice.count}${chartPercent?`<small> ${Math.round(slice.count/Math.max(1,total)*100)}%</small>`:''}</b></li>`).join('')||'<li>暂无匹配项目</li>'}</ul></div></section>`;
 
   }).join('');
 }
 function charts(data: Dashboard) {
-  element('focus-count').textContent = `当前范围 ${data.focusTotal} 个项目 · 优先级/进度排序 · 展示前 ${data.focus.length} 个`;
+  element('focus-count').textContent = `当前范围 ${data.focusTotal} 个非结案项目 · 按优先级和进度排序`;
   element('focus-projects').innerHTML = data.focus.map(project => {const progress=Math.max(0,Math.min(100,Number(project.progress))),color=project.priority==='high'?'var(--red)':project.priority==='mid'?'var(--yellow)':'var(--accent)';return `<a class="pp-item" data-project-id="${project.id}" href="project-detail.html?id=${project.id}"><div class="pp-ring"><svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18" fill="none" stroke="var(--border)" stroke-width="4"/><circle cx="22" cy="22" r="18" fill="none" stroke="${color}" stroke-width="4" pathLength="100" stroke-dasharray="${progress} 100" transform="rotate(-90 22 22)"/></svg><span class="pp-ring-pct">${progress}%</span></div><div class="pp-info"><div class="pp-name">${esc(project.name)}</div><div class="pp-meta">${esc(label(project.stage))} · ${esc(label(project.status))}</div></div></a>`;}).join('') || '<p class="pp-empty">当前范围没有匹配项目</p>';
   const maximum=Math.max(1,...data.managers.map(person=>person.count));
   element('manager-project-counts').innerHTML=`<ul class="board-distribution">${data.managers.map(person=>`<li><button class="legend-filter" data-manager="${esc(person.id)}">${esc(person.name)}</button><span class="board-distribution-track" aria-hidden="true"><i style="width:${person.count/maximum*100}%;background:var(--accent)"></i></span><b>${person.count}</b></li>`).join('')||'<li>暂无负责项目</li>'}</ul>`;
-  element('latest-status').innerHTML = data.latest.length ? `<div class="read-table-wrap"><table class="read-table"><thead><tr><th>项目</th><th>任务清单</th><th>更新时间</th></tr></thead><tbody>${data.latest.map(project => `<tr><th scope="row"><a data-project-id="${project.id}" href="project-detail.html?id=${project.id}">${esc(project.name)}</a></th><td>${esc(project.statusDesc || '暂无待办任务')}</td><td>${esc(project.contentUpdatedAt?(project.contentUpdatedAt.includes('T')?new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',dateStyle:'short',timeStyle:'short'}).format(new Date(project.contentUpdatedAt)):project.contentUpdatedAt):'时间未知')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="pp-empty">暂无匹配项目</p>';
+  activities(data);
   distribution();
 }
+
+function activities(data:Dashboard){
+  const from=new Date(Date.parse(businessDate+'T00:00:00+08:00')-(activityDays-1)*86400000).toLocaleDateString('en-CA',{timeZone:'Asia/Shanghai'});
+  const recent=data.latest.filter(row=>{const value=row.date.trim().replaceAll('/','-');const date=/(Z|[+-]\d\d:\d\d)$/.test(value)?new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai'}).format(new Date(value)):value.slice(0,10);return date>=from;}).slice(0,activityCount);
+  element('latest-status').innerHTML=recent.map(row=>`<article class="activity-item"><div><a data-project-id="${row.projectId}" href="project-detail.html?id=${row.projectId}">${esc(row.name)}</a><time>${esc(/(Z|[+-]\d\d:\d\d)$/.test(row.date)?new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',dateStyle:'short',timeStyle:'short',hour12:false}).format(new Date(row.date)):row.date)}</time>${row.kind==='source'?'<small>本地原有记录</small>':''}</div><p>${esc(row.text)}</p></article>`).join('')||'<p class="pp-empty">这段时间没有状态或任务修改。</p>';
+  document.querySelectorAll<HTMLButtonElement>('[data-activity-days],[data-activity-count]').forEach(button=>{const active=button.dataset.activityDays?Number(button.dataset.activityDays)===activityDays:Number(button.dataset.activityCount)===activityCount;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});
+}
+document.querySelectorAll<HTMLButtonElement>('[data-activity-days],[data-activity-count]').forEach(button=>button.onclick=()=>{if(button.dataset.activityDays)activityDays=Number(button.dataset.activityDays);else activityCount=Number(button.dataset.activityCount);remember();if(currentData?.dashboard)activities(currentData.dashboard);});
 
 function filters(options: List['options'], labels: List['optionLabels']) {
   options.stage = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'completed', 'unconfigured'];
   options.progress = ['0', '5', '10', '20', '60', '80', '90', '100'];
   options.deadline = ['upcoming', 'due', 'overdue', 'unset', 'closed_on_time', 'closed_late', 'closed_unplanned', 'closed_unknown', 'terminated'];
-  filterRows.innerHTML = `<div class="filter-row"><span class="filter-label">内容更新时间</span><label>从 <input type="date" data-content-date="contentFrom" value="${esc(query.get('contentFrom')??'')}" max="${esc(query.get('contentTo')??'')}"></label><label>至 <input type="date" data-content-date="contentTo" value="${esc(query.get('contentTo')??'')}" min="${esc(query.get('contentFrom')??'')}"></label><span>按说明与任务修改日期筛选</span></div>`+Object.entries(dimensions).map(([key, title]) => {
+  filterRows.innerHTML = `<div class="filter-row" data-dimension="contentDate"><span class="filter-label">内容更新时间</span><label>从 <input type="date" data-content-date="contentFrom" value="${esc(query.get('contentFrom')??'')}" max="${esc(query.get('contentTo')??'')}"></label><label>至 <input type="date" data-content-date="contentTo" value="${esc(query.get('contentTo')??'')}" min="${esc(query.get('contentFrom')??'')}"></label><span>按说明与任务修改日期筛选</span></div>`+filterOrder.filter(key=>key!=='contentDate').map(key => {
+    const title=dimensions[key as keyof typeof dimensions];
     const values = options[key] ?? [];
     const selected = query.getAll(key);
     const choices = [...new Set([...selected,...values])];
-    return `<div class="filter-row" role="group" aria-label="${title}"><span class="filter-label">${title}</span><button class="chip ${selected.length ? '' : 'active'}" aria-pressed="${!selected.length}" data-filter="${key}" data-value="">全部</button>${choices.map(value => `<button class="chip ${selected.includes(value) ? 'active' : ''}" aria-pressed="${selected.includes(value)}" data-filter="${key}" data-value="${esc(value)}">${esc(labels?.[key]?.[value] ?? filterValue(key, value))}</button>`).join('')}</div>`;
+    return `<div class="filter-row" data-dimension="${key}" role="group" aria-label="${title}"><span class="filter-label">${title}</span><button class="chip ${selected.length ? '' : 'active'}" aria-pressed="${!selected.length}" data-filter="${key}" data-value="">全部</button>${choices.map(value => `<button class="chip ${selected.includes(value) ? 'active' : ''}" aria-pressed="${selected.includes(value)}" data-filter="${key}" data-value="${esc(value)}">${esc(labels?.[key]?.[value] ?? filterValue(key, value))}</button>`).join('')}</div>`;
   }).join('');
+  for(const key of filterOrder){const row=filterRows.querySelector<HTMLElement>(`[data-dimension="${key}"]`);if(row){row.hidden=hiddenFilters.includes(key)&&!(key==='contentDate'?query.has('contentFrom')||query.has('contentTo'):query.has(key));filterRows.append(row);}}
 }
+function filterSettings(){
+  element('filter-settings-panel').innerHTML=filterOrder.map((key,i)=>`<div class="filter-setting"><label><input type="checkbox" data-filter-visible="${key}"${hiddenFilters.includes(key)?'':' checked'}>${key==='contentDate'?'内容更新时间':dimensions[key as keyof typeof dimensions]}</label><button class="head-btn" data-filter-move="${key}" data-direction="-1"${i===0?' disabled':''} aria-label="上移">↑</button><button class="head-btn" data-filter-move="${key}" data-direction="1"${i===filterOrder.length-1?' disabled':''} aria-label="下移">↓</button></div>`).join('');
+}
+element('filter-settings').onclick=()=>{const panel=element('filter-settings-panel');panel.hidden=!panel.hidden;element('filter-settings').setAttribute('aria-expanded',String(!panel.hidden));filterSettings();};
+element('filter-settings-panel').onchange=event=>{const input=event.target as HTMLInputElement,key=input.dataset.filterVisible!;hiddenFilters=hiddenFilters.filter(value=>value!==key);if(!input.checked)hiddenFilters.push(key);remember();if(currentData)filters(currentData.options,currentData.optionLabels);};
+element('filter-settings-panel').onclick=event=>{const button=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-filter-move]');if(!button||button.disabled)return;const a=filterOrder.indexOf(button.dataset.filterMove!),b=a+Number(button.dataset.direction);[filterOrder[a],filterOrder[b]]=[filterOrder[b],filterOrder[a]];remember();filterSettings();if(currentData)filters(currentData.options,currentData.optionLabels);};
+document.querySelectorAll<HTMLButtonElement>('[data-card-content]').forEach(button=>button.onclick=()=>{cardContent=button.dataset.cardContent!;remember();renderProjects();});
+element('chart-percent').onchange=event=>{chartPercent=(event.target as HTMLInputElement).checked;remember();distribution();};
 async function load(active = true) {
   freezeCheckEntry();
   controller?.abort();
@@ -329,7 +346,7 @@ element('next').onclick = () => { if (pagination) { query.set('page', String(pag
 element('filter-toggle').onclick = () => { filterRows.hidden = !filterRows.hidden; filterToggle();remember(); };
 element('selected-filters').onclick = event => { const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-remove-filter]'); if (button) { clearTimeout(searchTimer); if (button.dataset.removeFilter === 'search') search.value = ''; change(button.dataset.removeFilter!, ''); } };
 element('distribution-options').onchange=()=>{visibleDistributions=[...document.querySelectorAll<HTMLInputElement>('#distribution-options input:checked')].map(input=>input.value);remember();distribution();};
-element('manager-project-counts').onclick=event=>{const button=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-manager]');if(button)change('owner','user:'+button.dataset.manager);};
+element('manager-project-counts').onclick=event=>{const button=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-manager]');if(button)change('manager',button.dataset.manager!);};
 element('distribution-charts').onclick = event => { const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-filter]'); if (button) change(button.dataset.filter!, button.dataset.value!); };
 element('layout-toggle').onclick = () => { query.set('layout', 'progress');appearance?.update({layout:'progress'}); history.replaceState(null, '', location.pathname + '?' + query); renderProjects(); };
 element('layout-cards').onclick = () => { query.delete('layout');appearance?.update({layout:'cards'}); history.replaceState(null, '', location.pathname + '?' + query); renderProjects(); };
@@ -361,8 +378,13 @@ void import('./shared/api').then(async ({ requireIdentity }) => {
   element('perspective-switch').hidden=!dualRole;
   document.querySelectorAll<HTMLButtonElement>('[data-perspective]').forEach(button=>button.onclick=()=>{query.set('perspective',button.dataset.perspective!);query.set('page','1');preserveStatus();void load();});
   preference=new PersonalPreference('board',feedback);const saved=await preference.load();if(Array.isArray(saved.distributions))visibleDistributions=saved.distributions.filter((key:unknown)=>typeof key==='string'&&Object.hasOwn(distributionNames,key));
+  if(Array.isArray(saved.filterOrder)){filterOrder=[...new Set([...saved.filterOrder.filter((key:unknown)=>typeof key==='string'&&filterOrder.includes(key)),...filterOrder])];}
+  if(Array.isArray(saved.hiddenFilters))hiddenFilters=saved.hiddenFilters.filter((key:unknown)=>typeof key==='string'&&filterOrder.includes(key));
+  activityDays=saved.activityDays===7?7:30;activityCount=[5,10,20].includes(Number(saved.activityCount))?Number(saved.activityCount):10;
+  cardContent=saved.cardContent==='tasks'?'tasks':'status';chartPercent=saved.chartPercent!==false;element<HTMLInputElement>('chart-percent').checked=chartPercent;
   try{const cached=JSON.parse(sessionStorage.getItem(statusCache()) ?? '[]');if(Array.isArray(cached))for(const edit of cached)if(typeof edit.id==='string' && /^[1-9][0-9]*$/.test(edit.id) && typeof edit.value==='string' && typeof edit.base==='string' && validTaskDraft(edit.ops) && (edit.taskBulk===undefined||typeof edit.taskBulk==='string') && typeof edit.version==='string' && (!edit.pending || edit.pending.scope==='status'))statusEdits.set(edit.id,{...edit,busy:false});}catch{}
   if(!explicitQuery){if(typeof saved.view==='string')query.set('view',saved.view);if(typeof saved.page==='number')query.set('page',String(saved.page));for(const [key,value] of Object.entries(saved.filters ?? {}))if(allowed.has(key)){query.delete(key);for(const item of Array.isArray(value)?value:[value])if(typeof item==='string')query.append(key,item)};restoredScroll=typeof saved.scrollY==='number'?saved.scrollY:undefined;}
+  const priorOwners=query.getAll('owner');if(priorOwners.some(value=>value.startsWith('user:'))){query.delete('owner');for(const value of priorOwners)query.append(value.startsWith('user:')?'manager':'owner',value.startsWith('user:')?value.slice(5):value);}
   if(!query.has('layout') && appearance?.current().layout==='progress')query.set('layout','progress');
   filterRows.hidden=saved.filtersOpen!==true;filterToggle();search.value=query.get('search') ?? '';await load();
   notifications=new ProjectNotifications((event,own)=>{

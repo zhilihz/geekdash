@@ -144,6 +144,14 @@ try {
   const inspected=inspection.items.find(row=>row.id===project.projectId).inspection.project;
   assert.equal(inspected.statusDesc,detail.project.statusDesc);assert.deepEqual(inspected.tasks,detail.project.tasks);
   const dashboard=await member.request('/api/projects?view=all&dashboard=1');assert(dashboard.dashboard.managers.some(manager=>manager.id===registered.accountId&&manager.count>=3));assert(dashboard.dashboard.distributions.progress.length);
+  assert(dashboard.dashboard.latest.some(event=>event.projectId===project.projectId&&event.text.includes('任务')));
+  assert(dashboard.dashboard.focus.every(item=>item.status!=='closed'));assert.equal(dashboard.dashboard.focus.length,dashboard.dashboard.focusTotal);
+  assert(dashboard.dashboard.latest.every(event=>dashboard.items.some(item=>item.id===event.projectId)));
+  const managerFiltered=await member.request('/api/projects?view=all&dashboard=1&manager='+registered.accountId);
+  assert(managerFiltered.items.some(item=>item.id===project.projectId));assert(managerFiltered.options.manager.includes(registered.accountId));assert(managerFiltered.options.owner.every(value=>value.startsWith('engineer:')));
+  const spaceVersion=await member.request('/api/project-space?search='+encodeURIComponent(prefix));assert(spaceVersion.items.every(item=>/^[1-9][0-9]*$/.test(item.version)));
+  const boardPrefs={schemaVersion:1,filterOrder:['manager','taskOwner','customer'],hiddenFilters:['customer'],cardContent:'tasks',chartPercent:false,activityDays:7,activityCount:5};
+  const prefKey=randomUUID();await member.request('/api/personal/preferences/save','POST',{deviceKey:prefKey,scope:'board',expectedVersion:'0',value:boardPrefs});assert.deepEqual((await member.request('/api/personal/preferences?'+new URLSearchParams({deviceKey:prefKey,scope:'board'}))).value,boardPrefs);
   checks.push('任务原说明逐行保留且同文不合并；整页任务与简介原子保存；重试不重复；完成/重开/删除/无变化/旧版本冲突；新请求简要与驾驶舱消费');
   const beforeBulk=structuredClone(detail.project.tasks),ops=bulkTaskOperations(beforeBulk,detail.project.statusDesc.replace('修正进展','整栏修改进展')+'\n新增整栏任务');
   await save({taskOps:ops});detail=await member.request('/api/projects/'+project.projectId);
@@ -167,7 +175,7 @@ try {
   checks.push('1056任务实际导入保留完成/删除与历史日期；大小写ID分别存储；不重复追加statusDesc；同次重试不增任务');
 
   assert.equal(imported.project.contentUpdatedOn,'2026-10-15');
-  const range=await admin.request('/api/projects?view=all&dashboard=1&contentFrom=2026-10-15&contentTo=2026-10-15');assert(range.items.some(p=>p.id===imported.project.id));assert.equal(range.stats.total,range.pagination.total);assert(range.dashboard.latest.some(p=>p.id===imported.project.id&&p.contentUpdatedOn==='2026-10-15'));
+  const range=await admin.request('/api/projects?view=all&dashboard=1&contentFrom=2026-10-15&contentTo=2026-10-15');assert(range.items.some(p=>p.id===imported.project.id));assert.equal(range.stats.total,range.pagination.total);assert(range.dashboard.latest.every(p=>range.items.some(item=>item.id===p.projectId)));
   assert(!(await admin.request('/api/projects?view=all&contentTo=2026-10-14')).items.some(p=>p.id===imported.project.id));
   assert(!(await member.request('/api/projects?view=all&contentFrom=2026-10-15&contentTo=2026-10-15')).items.some(p=>p.id===imported.project.id));
   await admin.request('/api/projects/'+imported.project.id,'PATCH',{scope:'project',changes:{summary:'只改简介不能算说明更新'},expectedVersion:imported.project.version,idempotencyKey:randomUUID()});

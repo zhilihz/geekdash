@@ -1,11 +1,5 @@
 /* Figma 原 W19/W20：同页文件、共享资料、项目卡与共同保存。 */
 .imports-page .page{max-width:1440px;padding:0 48px 100px;margin:auto}
-.imports-header{justify-content:flex-start;gap:24px;min-height:72px;padding:16px 0;margin:0 0 24px;border-color:var(--border-soft)}
-.imports-header .board-brand{font-size:22px;font-weight:700;color:var(--text);text-decoration:none}
-.imports-header nav{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
-.imports-header nav a{font-size:13px;color:var(--text-dim);text-decoration:none}
-.imports-header nav a[aria-current]{color:var(--accent)}
-.imports-header .head-actions{margin-left:auto}
 .imports-page-title{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:16px 0}
 .imports-page-title>div{min-width:0;overflow-wrap:anywhere}
 .imports-page-title>button{flex-shrink:0;white-space:nowrap}

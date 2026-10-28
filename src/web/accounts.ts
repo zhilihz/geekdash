@@ -1,6 +1,7 @@
 import './shared/board.css';
 import './shared/read.css';
 import './shared/project-space.css';
+import './shared/design.css';
 import {account,esc,get,requireIdentity,SaveError,send,setupTheme} from './shared/api';
 type User={id:string;name:string;loginName:string;enabled:number;isAdmin:number;isProjectManager:number;version:string};
 type Impact={account:User;unhandedProjects:{id:string;name:string}[];affectedRequests:{id:string;projectName:string}[];impactToken:string};

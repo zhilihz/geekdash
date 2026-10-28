@@ -144,7 +144,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
     return checks.read(request.params.id, request.query.pageSize ?? 20, request.query.before, request.actor?.id);
   });
   const properties: Record<string, unknown> = {};
-  for (const key of ['search', 'customer', 'productLine', 'odmFactory', 'app', 'group', 'chip', 'tags', 'owner', 'taskOwner']) properties[key] = { type: 'string', maxLength: 255 };
+  for (const key of ['search', 'customer', 'productLine', 'odmFactory', 'app', 'group', 'chip', 'tags', 'owner', 'taskOwner', 'manager']) properties[key] = { type: 'string', maxLength: 255 };
   for(const key of ['contentFrom','contentTo'])properties[key]={type:'string',pattern:'^\\d{4}-\\d{2}-\\d{2}$'};
   properties.view = { type: 'string', enum: ['active', 'proposal', 'closed', 'maintenance', 'all'] };
   properties.dashboard = { type: 'string', enum: ['1'] };
@@ -160,7 +160,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
   properties.progress = { type: 'string', enum: ['0', '5', '10', '20', '60', '80', '90', '100'] };
   properties.page = { type: 'integer', minimum: 1, maximum: 1000000 };
   properties.pageSize = { type: 'integer', minimum: 1, maximum: 100 };
-  for(const key of ['customer','productLine','odmFactory','app','group','chip','tags','owner','taskOwner','status','priority','signal','deadline','stage','progress'])properties[key]={type:'array',items:properties[key],maxItems:100};
+  for(const key of ['customer','productLine','odmFactory','app','group','chip','tags','owner','taskOwner','manager','status','priority','signal','deadline','stage','progress'])properties[key]={type:'array',items:properties[key],maxItems:100};
   const options = { schema: { querystring: { type: 'object', additionalProperties: false, properties } } };
   app.get<{ Querystring: ProjectQuery }>('/api/projects', options, async (request, reply) => {
     reply.header('Cache-Control', 'no-store');

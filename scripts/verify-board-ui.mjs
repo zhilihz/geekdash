@@ -41,7 +41,7 @@ try {
   const engineer = references.find(item => item.table === 'engineers').id;
   for (const [id, roles] of [[ids[0], ['hardware_owner', 'pm']], [ids[31], ['software_owner']]]) for (const role of roles) await c.execute('INSERT INTO project_people (project_id,engineer_id,role,sort_order) VALUES (?,?,?,0)', [id, engineer, role]);
   let data = await api(query);
-  assert.equal(data.items.length, 24); assert.equal(data.stats.total, 31); assert.equal(data.dashboard.focusTotal, 31); assert.equal(data.dashboard.focus.length, 12);
+  assert.equal(data.items.length, 24); assert.equal(data.stats.total, 31); assert.equal(data.dashboard.focusTotal, 31); assert.equal(data.dashboard.focus.length, 31);
   assert.equal(data.dashboard.focus[0].id, ids[0]); assert.equal(data.dashboard.team.find(item => item.id === engineer).count, 1);
   assert.deepEqual(data.dashboard.distributions.productLine.map(item => item.count).sort((a,b)=>a-b), [15,16]);
   const page2 = await api(query + '&page=2'); assert.equal(page2.items.length, 7); assert.deepEqual(page2.dashboard.distributions, data.dashboard.distributions);
@@ -51,7 +51,7 @@ try {
   checks.push('31项完整筛选投影与24/7分页；分布/重点跨页相同，真实重复职责按项目去重且结案排除；空范围与非法查询准确');
   const target = data.items[0].id, current = await api('/api/projects/' + target);
   await api('/api/projects/' + target, 'PATCH', { expectedVersion: current.project.version, idempotencyKey: randomUUID(), changes: { summaryNote: '真实保存的新简介', statusDesc: '真实保存的新状态' } });
-  data = await api(query); assert.equal(data.items.find(item => item.id === target).summaryNote, '真实保存的新简介'); assert.equal(data.dashboard.latest[0].id, target);
+  data = await api(query); assert.equal(data.items.find(item => item.id === target).summaryNote, '真实保存的新简介'); assert.equal(data.dashboard.latest[0].projectId, target);
   assert.equal((await c.query('SELECT summary_note,status_description FROM projects WHERE id=?', [target]))[0][0].summary_note, '真实保存的新简介');
   checks.push('普通保存真实事务后新GET/独立SQL/卡片简介及最近状态消费同一项目');
 

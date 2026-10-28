@@ -1,6 +1,7 @@
 import './shared/board.css';
 import './shared/read.css';
 import './shared/summary.css';
+import './shared/design.css';
 import {get,send,requireIdentity,account,esc,SaveError,setupTheme,type SaveRequest,type SaveResult} from './shared/api';
 import {PersonalPreference,PersonalDrafts} from './shared/personal-state';
 import {ProjectNotifications} from './shared/notifications';

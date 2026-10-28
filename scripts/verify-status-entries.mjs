@@ -82,8 +82,14 @@ assert.match(summary.summaryMarkdown([peopleProject],['projectOwners','engineers
 const tasks=await module('src/web/shared/tasks.ts',{'./api':api});
 const taskView=tasks.taskPanel([{id:'done',text:'旧已完成',completedAt:first,createdAt:first,updatedAt:first,deletedAt:''}], [{op:'add',id:'todo',text:'新增待办'}],true);
 assert.equal(tasks.taskCopy([],[{op:'add',id:'todo',text:'新增待办'}])[0].completedAt,'');
-assert(taskView.indexOf('添加待办任务')<taskView.indexOf('task-completed'));
-assert(taskView.indexOf('新增待办')<taskView.indexOf('旧已完成'));
+assert.match(taskView, /data-task-bulk/);assert.match(taskView,/1、新增待办/);assert(!taskView.includes('旧已完成')&&!taskView.includes('data-task-mode'));
+const completed=tasks.taskList([{id:'done',text:'旧已完成',completedAt:first,deletedAt:''},{id:'later',text:'新完成',completedAt:second,deletedAt:''}],true,true);
+assert(completed.indexOf('新完成')<completed.indexOf('旧已完成'));assert.match(completed,/data-task-action="reopen"/);
+const editor=await module('src/web/shared/task-editor.ts',{'./api':api,'./tasks':tasks});
+assert.equal(editor.numberTaskInput('第一件事\n第二件事'),'1、第一件事\n2、第二件事');
+assert.equal(editor.numberTaskInput('8. 第一件事\n22、第二件事\n'),'1、第一件事\n2、第二件事\n');
+assert.equal(editor.numberTaskInput('1、第一件事\n2、'),'1、第一件事\n2、');
+assert.equal(editor.numberTaskInput(''),'');
 assert.equal(tasks.changedTaskOps([{id:'t',text:'原文字',completedAt:'',deletedAt:''}],[{id:'t',op:'edit',text:'原文字'}]).length,0);
 assert.equal(tasks.changedTaskOps([],[{id:'new',op:'add',text:''}]).length,0);
 const history=await module('src/web/shared/history.ts',{'./api':api});
@@ -105,4 +111,4 @@ assert.match(description,/修改项目名称：新名称/);assert.match(descript
 assert.equal(draftsModule.meaningfulEditor({op:'add',tempId:'unused',level:'mid',content:''}),false);
 assert.equal(draftsModule.meaningfulEditor({op:'correct',changes:{},reason:''}),false);
 assert.equal(draftsModule.meaningfulEditor({op:'add',content:'有实际输入'}),true);
-console.log(JSON.stringify({ status: 'passed', cases: count, displayCases: 4, mentionCases: 8, feedbackChecks:['owner_roles_export','new_task_pending','pending_before_completed','no_changes_no_draft','revert_discards_draft','operation_descriptions','empty_editor_ignored'], databaseAccess: false, source: 'audit_log.statusDesc', checks: ['creation', 'changed_lines', 'reorder', 'duplicates', 'empty_lines', 'legacy_unknown', 'no_op', 'remove_and_readd', 'current_body_consistency', 'missing_before', 'audit_gap', 'manual_text_preserved', 'shared_shanghai_dates', 'stale_projection_falls_back', 'html_escaped', 'exports_keep_dates_without_mutating_body_or_filters', 'known_full_name_longest_match', 'mention_boundary', 'literal_special_characters', 'free_name_compatibility', 'no_at_no_mention', 'mention_deduplication', 'full_name_filter_and_export'] }));
+console.log(JSON.stringify({ status: 'passed', cases: count, displayCases: 4, mentionCases: 8, feedbackChecks:['owner_roles_export','new_task_pending','default_big_input','completed_in_history','auto_numbering','no_changes_no_draft','revert_discards_draft','operation_descriptions','empty_editor_ignored'], databaseAccess: false, source: 'audit_log.statusDesc', checks: ['creation', 'changed_lines', 'reorder', 'duplicates', 'empty_lines', 'legacy_unknown', 'no_op', 'remove_and_readd', 'current_body_consistency', 'missing_before', 'audit_gap', 'manual_text_preserved', 'shared_shanghai_dates', 'stale_projection_falls_back', 'html_escaped', 'exports_keep_dates_without_mutating_body_or_filters', 'known_full_name_longest_match', 'mention_boundary', 'literal_special_characters', 'free_name_compatibility', 'no_at_no_mention', 'mention_deduplication', 'full_name_filter_and_export'] }));

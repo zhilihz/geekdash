@@ -85,10 +85,6 @@ html, body {
    顶部栏
    ========================================================================== */
 .topbar { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
-.project-nav { display:flex; align-items:center; flex-wrap:wrap; gap:20px; padding-bottom:18px; margin-bottom:20px; border-bottom:1px solid var(--border); }
-.project-nav a { color:var(--text-dim); text-decoration:none; font-size:13px; }
-.project-nav a:hover { color:var(--text); }
-.project-nav .project-brand { color:var(--text); font-size:20px; font-weight:700; }
 .project-detail-page .head-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-left: auto; }
 .topbar .crumb { color: var(--text-faint); font-size: 13px; }
 

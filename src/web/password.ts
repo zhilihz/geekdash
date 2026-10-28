@@ -3,10 +3,12 @@ import {setupPasswordInputs} from './shared/password-input';
 import './shared/read.css';
 import './shared/detail.css';
 import './shared/forms.css';
-import {get,send,setAccount,notifyIdentityChange,SaveError,type Account} from './shared/api';
+import './shared/design.css';
+import {get,send,setAccount,notifyIdentityChange,SaveError,setupTheme,setupAccountHeader,type Account} from './shared/api';
 import {loginTarget,afterLogin} from './shared/auth-return';
 const form=document.getElementById('password-form') as HTMLFormElement,message=document.getElementById('password-message')!,login=document.getElementById('password-login') as HTMLAnchorElement,back=document.getElementById('password-back') as HTMLAnchorElement;
 let busy=false,actor:Account|undefined;
+setupTheme();
 form.onsubmit=async event=>{
  event.preventDefault();if(busy||!actor)return;
  const body=Object.fromEntries(new FormData(form)) as Record<string,string>;
@@ -21,7 +23,7 @@ form.onsubmit=async event=>{
  }finally{busy=false;button.disabled=false;}
 };
 void get<{account:Account}>('/api/auth/me').then(result=>{
- actor=result.account;setAccount(actor);form.hidden=false;login.href=loginTarget(new URLSearchParams(location.search).has('returnTo')?afterLogin(actor.id):'/profile.html',actor.id);
+ actor=result.account;setAccount(actor);if(!actor.mustChangePassword)setupAccountHeader();form.hidden=false;login.href=loginTarget(new URLSearchParams(location.search).has('returnTo')?afterLogin(actor.id):'/profile.html',actor.id);
  if(actor.mustChangePassword){back.hidden=true;document.getElementById('password-notice')!.textContent='这是临时密码，请先设定自己的密码，再重新登录。';}
 }).catch(error=>{
  message.textContent=(error as Error).message;back.hidden=true;login.href=loginTarget('/password.html');login.hidden=false;

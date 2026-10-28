@@ -1,6 +1,7 @@
 import './shared/board.css';
 import './shared/read.css';
 import './shared/catalog.css';
+import './shared/design.css';
 import { get,send,requireIdentity,account,esc,SaveError,setupTheme } from './shared/api';
 import { ProjectNotifications } from './shared/notifications';
 
@@ -16,6 +17,7 @@ type Preview=Impact & {impactToken:string;changed:boolean};
 type Pending={kind:string;body:Command};
 let kind='customers',items:Item[]=[],tags:Item[]=[],selected:Item|undefined,values:Values={},review:Preview|undefined;
 let showRemoved=false;
+let customerTags:string[]=[];
 let editing=false,canMaintain=false,busy=false,frozen=false,pending:Pending|undefined,search='';
 let refreshing=false,refreshRequested=false;
 const detail=document.getElementById('catalog-detail')!,list=document.getElementById('catalog-list')!,message=document.getElementById('catalog-message')!;
@@ -32,21 +34,34 @@ function leave(){return !busy && !pending && (!editing || !Object.keys(changes()
 function controls(){
   newButton.hidden=!canMaintain || kind==='company';newButton.disabled=busy || frozen || !!pending;
   reload.disabled=busy || frozen || !!pending;
-  document.querySelectorAll<HTMLButtonElement>('#catalog-tabs button,.catalog-item').forEach(button=>button.disabled=busy || frozen || !!pending);
+  document.querySelectorAll<HTMLButtonElement>('#catalog-tabs button,.catalog-item button').forEach(button=>button.disabled=busy || frozen || !!pending);
   detail.querySelectorAll<HTMLInputElement|HTMLTextAreaElement|HTMLButtonElement>('input,textarea,button').forEach(input=>input.disabled=busy || frozen || !!pending && !['catalog-confirm','catalog-retry'].includes(input.id) || input.dataset.disabled==='true' && !(input instanceof HTMLInputElement && input.checked));
   if(refreshRequested && !refreshing && !busy && !pending && !frozen)void refreshCatalog();
 }
 function bindTags(){detail.querySelectorAll<HTMLInputElement>('[data-tag]').forEach(input=>input.onchange=()=>{values.tagIds=[...detail.querySelectorAll<HTMLInputElement>('[data-tag]:checked')].map(el=>el.dataset.tag!);review=undefined;detail.querySelector('.catalog-impact')?.remove();controls();});}
 function renderList(){
   const archive=document.getElementById('catalog-removed') as HTMLButtonElement;archive.hidden=kind==='company'||!showRemoved&&!items.some(item=>!item.enabled);archive.textContent=showRemoved?'返回可用资料':'查看已删除';archive.disabled=busy||frozen||!!pending;
-  list.innerHTML=visibleItems().filter(item=>String(item.name ?? item.fullName).toLocaleLowerCase().includes(search.toLocaleLowerCase())).map(item=>`<button class="catalog-item" data-id="${esc(item.id)}" aria-current="${item.id===selected?.id}">${esc((item.name ?? item.fullName) || '企业信息')}<span>${kind==='company' ? '企业资料' : item.enabled ? '启用' : '已删除'}</span></button>`).join('') || '<p>没有匹配资料。</p>';
-  list.querySelectorAll<HTMLButtonElement>('[data-id]').forEach(button=>button.onclick=()=>{if(leave())void select(button.dataset.id!);});controls();
+  const tagFilter=document.getElementById('catalog-tag-filter')!;tagFilter.hidden=kind!=='customers';
+  tagFilter.innerHTML=kind==='customers'?`<span>客户标签</span><button class="chip${customerTags.length?'':' active'}" data-customer-tag="">全部</button>${tags.filter(tag=>tag.enabled||customerTags.includes(tag.id)).map(tag=>`<button class="chip${customerTags.includes(tag.id)?' active':''}" data-customer-tag="${esc(tag.id)}" aria-pressed="${customerTags.includes(tag.id)}">${esc(tag.name)}</button>`).join('')}`:'';
+  tagFilter.querySelectorAll<HTMLButtonElement>('[data-customer-tag]').forEach(button=>button.onclick=()=>{const id=button.dataset.customerTag!;customerTags=id?customerTags.includes(id)?customerTags.filter(value=>value!==id):[...customerTags,id]:[];renderList();});
+  list.after(detail);detail.hidden=true;
+  const visible=visibleItems().filter(item=>String(item.name??item.fullName).toLocaleLowerCase().includes(search.toLocaleLowerCase())&&(kind!=='customers'||!customerTags.length||customerTags.some(id=>(item.tagIds as string[]??[]).includes(id))));
+  list.innerHTML=visible.map(item=>`<article class="catalog-item" data-id="${esc(item.id)}"><header><h2>${esc((item.name??item.fullName)||'企业信息')}</h2>${item.enabled?'':'<span>已删除</span>'}</header><dl class="catalog-card-info">${Object.entries(fields[kind]).filter(([key])=>!['name','fullName'].includes(key)&&display(key,item[key])!=='—').map(([key,title])=>`<div><dt>${title}</dt><dd>${esc(display(key,item[key]))}</dd></div>`).join('')||'<div><dd>暂无补充资料</dd></div>'}</dl>${canMaintain?`<footer><button class="head-btn" data-card-edit="${item.id}">修改</button>${kind==='company'?'':`<button class="head-btn" data-card-remove="${item.id}">${item.enabled?'删除':'恢复'}</button>`}</footer>`:''}</article>`).join('')||'<p>没有匹配资料。</p>';
+  if(editing||review||pending){
+    detail.hidden=false;const card=selected?list.querySelector<HTMLElement>(`[data-id="${selected.id}"]`):null;
+    if(card){card.querySelector('.catalog-card-info')?.remove();card.querySelector('footer')?.remove();card.append(detail);}else list.before(detail);
+  }
+  list.querySelectorAll<HTMLButtonElement>('[data-card-edit],[data-card-remove]').forEach(button=>button.onclick=async()=>{
+    if(!leave())return;const id=button.dataset.cardEdit??button.dataset.cardRemove!;await select(id);
+    if(selected?.id!==id||busy||frozen)return;
+    document.getElementById(button.dataset.cardEdit?'catalog-edit':'catalog-toggle')?.click();
+  });controls();
 }
 function display(key:string,value:unknown){return key==='enabled' ? value?'可用':'已删除' : key==='tagIds' ? (value as string[] ?? []).map(id=>tags.find(tag=>tag.id===id)?.name ?? id).join('、') || '—' : String(value ?? '') || '—';}
 function render(){
   document.getElementById('catalog-tabs')!.innerHTML=Object.entries(kinds).map(([key,title])=>`<button class="head-btn" data-kind="${key}" aria-current="${key===kind}">${title}</button>`).join('');
   document.querySelectorAll<HTMLButtonElement>('[data-kind]').forEach(button=>button.onclick=()=>{if(leave()){kind=button.dataset.kind!;showRemoved=false;selected=undefined;items=[];editing=false;search='';(document.getElementById('catalog-search') as HTMLInputElement).value='';void load();}});
-  if(!selected && !editing){detail.innerHTML='<p>选择一条资料查看。</p>';renderList();return;}
+  if(!selected && !editing){detail.innerHTML='<p>查看资料卡，需修改时点击对应资料的“修改”。</p>';renderList();return;}
   const fieldHtml=Object.entries(fields[kind]).map(([key,title])=>{
     const value=editing ? values[key] : selected?.[key],wide=['contact','background','description','managerText','tagIds'].includes(key);
     let content=esc(value || '—');
@@ -74,7 +89,7 @@ async function select(id:string){
 }
 async function load(){
   if(busy || pending || frozen)return;busy=true;controls();let loaded=false;
-  try{const result=await get<{items:Item[];canMaintain:boolean}>('/api/catalog/'+kind);items=result.items;canMaintain=result.canMaintain;if(kind==='customers')tags=(await get<{items:Item[]}>('/api/catalog/tags')).items;message.textContent=items.length?'选择一条资料查看，修改后保存。':'此分类还没有资料。';loaded=true;}
+  try{const result=await get<{items:Item[];canMaintain:boolean}>('/api/catalog/'+kind);items=result.items;canMaintain=result.canMaintain;if(kind==='customers')tags=(await get<{items:Item[]}>('/api/catalog/tags')).items;message.textContent=items.length?'可直接浏览资料，修改后保存。':'此分类还没有资料。';loaded=true;}
   catch(error){message.textContent=explain(error)+' 请刷新重试。';}finally{busy=false;render();}
   if(loaded && visibleItems().length && !editing)await select(visibleItems().some(item=>item.id===selected?.id)?selected!.id:visibleItems()[0].id);
 }

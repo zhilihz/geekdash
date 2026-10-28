@@ -4,6 +4,7 @@ import './shared/board.css';
 import './shared/read.css';
 import './shared/reference-picker.css';
 import './shared/imports.css';
+import './shared/design.css';
 import { account, esc, get, label, requireIdentity, SaveError, send, sendFile, setupTheme, type List } from './shared/api';
 import { PersonalPreference } from './shared/personal-state';
 import { mountReferencePickers } from './shared/reference-picker';

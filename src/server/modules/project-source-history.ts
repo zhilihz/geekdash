@@ -6,6 +6,33 @@ const parse = (value: unknown): any => typeof value === 'string' ? JSON.parse(va
 async function rows(c: PoolConnection, sql: string, values: unknown[] = []) { return (await c.query<RowDataPacket[]>({ sql, timeout: 10000 }, values))[0]; }
 export type SourceHistoryKind = 'mixed' | 'status_description';
 
+// 首页只消费当前可见项目的已保存说明/任务，以及各来源最近采用的说明历史。
+export async function recentStatusUpdates(c:PoolConnection,projects:{id:string;name:string}[],today:string) {
+  if(!projects.length)return [];
+  const names=new Map(projects.map(p=>[p.id,p.name])),ids=[...names.keys()];
+  const since=new Date(Date.parse(today+'T00:00:00+08:00')-29*86400000).toISOString().slice(0,19).replace('T',' ');
+  const audits=await rows(c,`SELECT CAST(project_id AS CHAR) projectId,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%s.%fZ') date,before_json beforeValues,after_json afterValues FROM audit_log WHERE project_id IN (?) AND created_at>=? AND action<>'project.import' AND (action='project.tasks.save' OR JSON_TYPE(JSON_EXTRACT(after_json,'$.statusDesc'))='STRING' AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(before_json,'$.statusDesc')),'')<>JSON_UNQUOTE(JSON_EXTRACT(after_json,'$.statusDesc'))) ORDER BY created_at DESC,id DESC LIMIT 20`,[ids,since]);
+  const result:{projectId:string;name:string;date:string;text:string;kind:'online'|'source'}[]=audits.map(row=>{
+    const before=parse(row.beforeValues)??{},after=parse(row.afterValues)??{};
+    const text=Array.isArray(after.tasks)?after.tasks.flatMap((task:any)=>{
+      const old=before.tasks?.find((t:any)=>t.id===task.id);
+      if(old&&old.text===task.text&&old.completedAt===task.completedAt&&old.deletedAt===task.deletedAt)return [];
+      return [(task.deletedAt?'删除任务':task.completedAt?'完成任务':old?.completedAt?'恢复任务':old?'修改任务':'新增任务')+'：'+task.text];
+    }).join('\n'):after.statusDesc||'已清空状态说明';
+    return {projectId:row.projectId,name:names.get(row.projectId)!,date:row.date,text,kind:'online'};
+  });
+  const source=await rows(c,`SELECT CAST(h.project_id AS CHAR) projectId,h.source_date_text date,h.body text FROM legacy_project_history h LEFT JOIN
+    (SELECT MAX(id) id,source_namespace,target_id FROM import_adoptions WHERE target_kind='project' AND target_id IN (?) AND JSON_CONTAINS_PATH(history_manifest_json,'one','$.status_description') GROUP BY target_id,source_namespace) adopted ON adopted.id=h.source_adoption_id
+    WHERE h.project_id IN (?) AND h.history_kind='status_description' AND h.source_date_text<>'' AND (adopted.id IS NOT NULL OR h.source_adoption_id IS NULL AND NOT EXISTS(SELECT 1 FROM import_adoptions a WHERE a.target_kind='project' AND a.target_id=h.project_id AND a.source_namespace=h.legacy_source_namespace AND JSON_CONTAINS_PATH(a.history_manifest_json,'one','$.status_description'))) ORDER BY h.id DESC`,[ids,ids]);
+  for(const row of source)result.push({projectId:row.projectId,name:names.get(row.projectId)!,date:row.date,text:row.text,kind:'source'});
+  const instant=(value:string)=>{
+    const normalized=value.trim().replaceAll('/','-').replace(' ','T');
+    return /^\d{4}-\d\d-\d\d(?:T\d\d:\d\d(?::\d\d(?:\.\d+)?)?)?$/.test(normalized)?Date.parse(normalized+(normalized.length===10?'T00:00:00':'')+'+08:00'):/(Z|[+-]\d\d:\d\d)$/.test(normalized)?Date.parse(normalized):NaN;
+  };
+  const floor=Date.parse(since.replace(' ','T')+'Z'),end=Date.parse(today+'T00:00:00+08:00')+86400000;
+  return result.filter(row=>row.text&&instant(row.date)>=floor&&instant(row.date)<end).sort((a,b)=>instant(b.date)-instant(a.date)).slice(0,20);
+}
+
 export async function statusSourceBaselines(c: PoolConnection, ids: string[]) {
   const result = new Map<string, { version: string; entries: StatusEntry[] }>();
   if (!ids.length) return result;

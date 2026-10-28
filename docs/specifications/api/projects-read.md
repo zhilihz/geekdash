@@ -48,7 +48,7 @@
 
 返回 `items`（当前页项目摘要及批量关联芯片/人员/标签）、`pagination`、`stats`、`options`、`stageCounts`、`readOnly=true`。项目 ID/version 及关联 ID 均为字符串，避免 bigint 精度丢失；progress 可为 SQL 返回的数字字符串。空引用为 null，空关联为数组。
 
-dashboard=1在同一只读快照附加：items.summaryNote、dashboard.distributions（客户/产品线/状态/优先级/信号灯/阶段的value/count）、focusTotal及focus（当前完整匹配范围，优先级/进度排序，最多12项；已结案及量产维护看板同样展示）、latest（当前匹配按项目更新时间最近10项，非状态单项修改时间）、team。team按当前完整筛选集合的非结案项目计算：id/name/count，以及pmCount/hardwareCount/softwareCount；总数按工程师与项目去重，各岗位分别按项目去重，保留零负载工程师。UI12按统一展示范围替代旧team全局口径。数量均为实际计数；focus有限展示不构成创建上限，分页变化不改变汇总口径。统计失败整次读取失败，不返回假零值。
+dashboard=1在同一只读快照附加items.summaryNote、dashboard.distributions、focusTotal、focus、latest及managers。2026-10-28接续修正：focus只含当前完整筛选范围的非结案项目，按优先级/进度排序，不截取12条；latest为说明/任务历史事件，每项{projectId,name,date,text,kind:'online'|'source'}，最多20条，时间及来源语义引用SPEC-022；managers为当前可见范围每账号负责项目去重计数{id,name,count}，已替代旧team业务岗位统计。统计失败整次读取失败，不返回假零值；分页变化不改变汇总范围。
 
 列表items包含checkedToday:boolean和capabilities.canCheck:boolean。前者根据checked_at位于上海当天00:00至次日00:00的UTC半开区间判断；同一天多条只算一个已检查项目。后者来自当前可信账号的project_responsibilities关系，不由业务人员姓名推断；写入仍会重新校验。详情的project同样返回checkedToday，检查操作权限沿详情readOnly与capabilities读取。
 
@@ -111,3 +111,5 @@ GET `/api/projects/:id/deleted-nodes?pageSize=20&before=字符串ID`；默认20�
 客户端只在页projectVersion等于进入项目版本时接收；不同则冻结原编辑并提示重入，原副本保留供复制。恢复或删除明确保存后清旧分页缓存，再新请求读取；分页GET不产生恢复、历史、项目版本或回执。
 
 2026-10-28（92ecbc4）追加：GET /api/projects接受perspective=responsible|management，可与view/dashboard/details=checks叠加；responsible按本人负责关系筛选，management仍核服务器管理员身份，普通账号不能扩大范围。个人看板在可信身份加载后为兼任账号默认传responsible。所有读取排除deleted_at非空项目。行为归SPEC-022。
+
+2026-10-28统一设计接续：`manager`接受账号ID字符串或数组，选项在options.manager及optionLabels.manager；options.owner只列业务分工资料（engineer:ID）。旧owner=user:ID读取兼容保留。GET /api/project-space的items新增version字符串，空间管理员删除沿既有删除事务/回执，不另设删除接口。

@@ -3,6 +3,7 @@ import {setupPasswordInputs} from './shared/password-input';
 import './shared/detail.css';
 import './shared/read.css';
 import './shared/forms.css';
+import './shared/design.css';
 import {send,get,SaveError} from './shared/api';
 const form=document.getElementById('register') as HTMLFormElement,message=document.getElementById('register-message')!;
 const errors:Record<string,string>={INVITE_UNAVAILABLE:'邀请码无效、已过期或已撤销，请联系管理员。',LOGIN_NAME_EXISTS:'这个登录名已注册，请更换；若上次注册结果未确认，可直接尝试登录。',INVALID_PROFILE:'请填写有效姓名。',INVALID_REQUEST:'请检查登录名和邀请码格式。'};

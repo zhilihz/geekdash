@@ -2,6 +2,7 @@ import {setupPasswordInputs} from './shared/password-input';
 import './shared/read.css';
 import './shared/detail.css';
 import './shared/forms.css';
+import './shared/design.css';
 import {get,send,setAccount,notifyIdentityChange,SaveError,account,type Account} from './shared/api';
 import {afterLogin,loginTarget} from './shared/auth-return';
 const login=document.getElementById('login') as HTMLFormElement,message=document.getElementById('message')!,notice=document.getElementById('notice')!;

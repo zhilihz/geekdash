@@ -1,6 +1,6 @@
 import { esc,type ProjectTask,type TaskOperation } from './api';
 import './tasks.css';
-import { bulkTaskOperations, taskRows } from './task-text';
+import { bulkTaskOperations } from './task-text';
 
 export function taskCopy(tasks:ProjectTask[],ops:TaskOperation[]) {
   const result=structuredClone(tasks);
@@ -40,10 +40,13 @@ export async function confirmTaskDeletes(tasks:ProjectTask[],ops:TaskOperation[]
   document.body.append(dialog);
   return new Promise<boolean>(resolve=>{dialog.onclose=()=>{const accepted=dialog.returnValue==='delete';dialog.remove();resolve(accepted);};dialog.showModal();});
 }
+export function taskList(tasks:ProjectTask[],editable=false,completed=false) {
+  const rows=tasks.filter(task=>!task.deletedAt&&!!task.completedAt===completed);
+  if(completed)rows.sort((a,b)=>b.completedAt.localeCompare(a.completedAt));
+  const date=(value:string)=>/^\d{4}-\d\d-\d\dT/.test(value)&&!Number.isNaN(Date.parse(value))?new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',dateStyle:'short',timeStyle:'short',hour12:false}).format(new Date(value)):value;
+  return rows.map((task,index)=>`<div class="task-row${completed?' task-complete':''}" data-task-row="${esc(task.id)}"><span class="task-number">${index+1}</span><div class="task-body"><div class="task-text">${esc(task.text)}</div>${(completed?task.completedAt:task.updatedAt)?`<small class="task-date">${completed?'完成于 ':''}${esc(date(completed?task.completedAt:task.updatedAt))}</small>`:''}</div>${editable?`<div class="task-actions"><button type="button" data-task-action="edit">编辑</button><button type="button" data-task-action="${completed?'reopen':'complete'}">${completed?'改为未完成':'标记完成'}</button><button type="button" data-task-action="delete">删除</button></div>`:''}</div>`).join('')||`<p class="task-empty">暂无${completed?'已完成':'待办'}任务</p>`;
+}
 export function taskPanel(tasks:ProjectTask[],ops:TaskOperation[]=[],editable=false,bulk?:string) {
-  const current=taskCopy(tasks,ops).filter(t=>!t.deletedAt),complete=current.filter(t=>t.completedAt),pending=current.filter(t=>!t.completedAt);
-  const displayDate=(value:string)=>{const date=new Date(value);return /^\d{4}-\d\d-\d\dT/.test(value)&&!Number.isNaN(date.getTime())?new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',dateStyle:'short',timeStyle:'short',hour12:false}).format(date):value;};
-  const row=(task:ProjectTask,index:number)=>`<div class="task-row${task.completedAt?' task-complete':''}" data-task-row="${esc(task.id)}"><span class="task-number">${index+1}</span><div class="task-body">${editable&&bulk===undefined&&!task.completedAt?`<textarea data-task-text data-edit data-scope="status" rows="2" aria-label="任务内容" placeholder="填写要做的事，可用 @ 指定执行负责人">${esc(task.text)}</textarea>`:`<div class="task-text">${esc(task.text)}</div>`}${task.updatedAt?`<small class="task-date">${esc(displayDate(task.updatedAt))}</small>`:''}</div>${editable&&bulk===undefined?`<div class="task-actions"><button type="button" data-task-action="${task.completedAt?'reopen':'complete'}">${task.completedAt?'改为未完成':'标记完成'}</button><button type="button" data-task-action="delete" aria-label="删除这条任务">删除</button></div>`:''}</div>`;
-  let issue='';if(bulk!==undefined)try{taskRows(current,bulk);}catch(error){issue=(error as Error).message;}
-  return `<div class="task-panel">${editable?`<div class="task-toolbar"><strong>待办任务</strong><button type="button" data-task-mode="${bulk===undefined?'bulk':'rows'}">${bulk===undefined?'整栏编辑':'逐条编辑'}</button>${bulk!==undefined?'<span>每行一条任务；仍用页面保存按钮保存。</span>':''}</div>`:''}${bulk!==undefined?`<textarea data-task-bulk data-edit rows="7" aria-label="整栏任务内容" ${editable?'':'readonly'}>${esc(bulk)}</textarea><p class="task-issue" role="status">${esc(issue)}</p>${issue?'<button type="button" data-task-mode="copy">复制整栏输入</button><button type="button" data-task-mode="discard">保留原任务，返回逐条编辑</button>':''}`:`<div class="task-list">${pending.length?pending.map(row).join(''):'<p class="task-empty">暂无待办任务</p>'}</div>${editable?'<button class="back-btn" type="button" data-task-action="add">＋ 添加待办任务</button>':''}`}${complete.length?`<details class="task-completed"><summary>已完成（${complete.length}）</summary>${complete.map(row).join('')}</details>`:''}</div>`;
+  const current=taskCopy(tasks,ops);
+  return `<div class="task-panel">${editable?`<label class="task-input-label">每行一条任务<textarea data-task-bulk data-edit data-scope="status" rows="5" aria-label="任务清单" placeholder="1、输入要做的事，可用 @ 选择人员">${esc(bulk??taskText(current))}</textarea></label><p class="task-issue" role="status"></p><button type="button" data-task-discard hidden>保留原任务，放弃这段输入</button>`:bulk!==undefined?`<textarea data-task-bulk rows="5" aria-label="保留的任务输入" readonly>${esc(bulk)}</textarea>`:''}<div class="task-list">${taskList(current,editable)}</div></div>`;
 }

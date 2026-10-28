@@ -1,5 +1,6 @@
 import './shared/board.css';
 import './shared/read.css';
+import './shared/design.css';
 import {account,get,send,setupTheme,requireIdentity,SaveError,type CheckPolicy} from './shared/api';
 const form=document.getElementById('check-settings') as HTMLFormElement,frequency=document.getElementById('check-frequency') as HTMLSelectElement,weekday=document.getElementById('check-weekday') as HTMLSelectElement;
 const message=document.getElementById('settings-message')!,save=document.getElementById('settings-save') as HTMLButtonElement,query=document.getElementById('settings-query') as HTMLButtonElement;
