@@ -70,7 +70,7 @@ async function references(c: PoolConnection, kind: string, id: string) {
   };
   if (kind === 'company') return { projects:[] as RowDataPacket[], customers:[] as RowDataPacket[] };
   const condition=conditions[kind];
-  const [projects]=await c.query<RowDataPacket[]>(`SELECT CAST(p.id AS CHAR) projectId,p.name,CAST(p.version AS CHAR) version FROM projects p WHERE ${condition} ORDER BY p.id`,Array(condition.split('?').length-1).fill(id));
+  const [projects]=await c.query<RowDataPacket[]>(`SELECT CAST(p.id AS CHAR) projectId,p.name,CAST(p.version AS CHAR) version FROM projects p WHERE p.deleted_at IS NULL AND (${condition}) ORDER BY p.id`,Array(condition.split('?').length-1).fill(id));
   const customers = kind === 'tags' ? (await c.query<RowDataPacket[]>('SELECT CAST(c.id AS CHAR) id,c.name,CAST(c.version AS CHAR) version FROM customers c JOIN customer_tags r ON r.customer_id=c.id WHERE r.tag_id=? ORDER BY c.id',[id]))[0] : [];
   return {projects,customers};
 }

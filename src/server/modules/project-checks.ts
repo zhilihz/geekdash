@@ -62,7 +62,7 @@ export async function checkCandidate(c: PoolConnection, id: string, project: { v
 export function projectChecks(database: RuntimeDatabase, clock = () => new Date()) {
   return { read(id: string, pageSize: number, before?: string, accountId?:string) { return database.readSnapshot(async c => {
     if(accountId)await assertProjectAccess(c,id,accountId);
-    const [projects] = await c.query<RowDataPacket[]>('SELECT CAST(version AS CHAR) version FROM projects WHERE id=?', [id]);
+    const [projects] = await c.query<RowDataPacket[]>('SELECT CAST(version AS CHAR) version FROM projects WHERE deleted_at IS NULL AND id=?', [id]);
     if (!projects.length) failure('PROJECT_NOT_FOUND', 404);
     const [records] = await c.query<RowDataPacket[]>({ sql: `SELECT ${checkColumns}
       FROM project_checks ck ${actorJoins}

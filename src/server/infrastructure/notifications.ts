@@ -63,9 +63,9 @@ export function registerNotifications(app:FastifyInstance,database?:RuntimeDatab
     if(previous && previous.projectId!==body.projectId && body.editing)await presence(previous.projectId);
     await presence(body.projectId);return {status:body.editing?'editing':'ended'};
   });
-  async function publish(projectId:string,version:string,operationId:string){
+  async function publish(projectId:string,version:string,operationId:string,deleted=false){
     for(const [id,item] of editors)if(item.projectId===projectId&&!await database!.readSnapshot(c=>hasProjectAccess(c,projectId,item.actor.id)))editors.delete(id);
-    for(const viewer of [...viewers.values()])if(await allowed(viewer,projectId))send(viewer,'project',{projectId,version,operationId});
+    for(const viewer of [...viewers.values()])if(deleted?await valid(viewer):await allowed(viewer,projectId))send(viewer,'project',{projectId,version,operationId,deleted});
     await presence(projectId);
   }
   // 由写入口在事务提交或回执确认后显式调用；通知失败不改变已提交结果。
@@ -81,9 +81,9 @@ export function registerNotifications(app:FastifyInstance,database?:RuntimeDatab
   })().catch(()=>{}).finally(()=>{ticking=false;});},15000);timer.unref();
   app.addHook('preClose',async()=>{closing=true;clearInterval(timer);for(const viewer of viewers.values())viewer.reply.raw.end();viewers.clear();editors.clear();});
   return {
-    projectChanged(result:{projectId:string;savedVersion:string;operationId:string;changed?:boolean}){
+    projectChanged(result:{projectId:string;savedVersion:string;operationId:string;changed?:boolean;deleted?:boolean}){
       if(result.changed===false || !validId(result.projectId) || !validId(result.savedVersion) || !uuid(result.operationId))return;
-      dispatch(()=>publish(result.projectId,result.savedVersion,result.operationId));
+      dispatch(()=>publish(result.projectId,result.savedVersion,result.operationId,result.deleted));
     },
     resourceChanged(event:ResourceNotification){
       dispatch(async()=>{for(const viewer of [...viewers.values()])if(await valid(viewer))send(viewer,'resource',event);});

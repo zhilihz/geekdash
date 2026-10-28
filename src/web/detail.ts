@@ -1,5 +1,6 @@
+import { saveMembership, hasPendingMembership } from './shared/membership';
 import { validTaskDraft } from './shared/task-text';
-import { taskPanel,putTaskOp,taskCopy,taskText,applyTaskText,confirmTaskDeletes } from './shared/tasks';
+import { changedTaskOps,taskPanel,putTaskOp,taskCopy,taskText,applyTaskText,confirmTaskDeletes } from './shared/tasks';
 import { chipPicker, bindChipPicker, refreshChipOptions } from './shared/chip-picker';
 import './shared/detail.css';
 import './shared/read.css';
@@ -8,7 +9,7 @@ import './shared/reference-picker.css';
 import { mountReferencePickers, syncReferencePickers } from './shared/reference-picker';
 import { basicFields, basicIntent, basicIntentChanged, referenceSelect, type BasicIntent } from './shared/project-form';
 import { scopeFields, scopeChanges, carryInputs } from './shared/scoped-editor';
-import { PersonalDrafts, PersonalPreference, type PersonalDraft } from './shared/personal-state';
+import { meaningfulEditor, PersonalDrafts, PersonalPreference, type PersonalDraft } from './shared/personal-state';
 import { ProjectNotifications, editorBadges } from './shared/notifications';
 import { refreshProjectOptions } from './shared/project-options';
 import { attachStatusMentions } from './shared/status-mentions';
@@ -28,7 +29,7 @@ let flowViewport={x:0,y:0};
 function captureFlowViewport(){const canvas=document.querySelector<HTMLElement>('.flow-canvas');if(canvas)flowViewport={x:canvas.scrollLeft,y:canvas.scrollTop};}
 function rememberReading(){if(snapshot && !authFrozen){captureFlowViewport();readingPreference?.update({projectId:id,tab,scrollY:window.scrollY,viewport:flowViewport});}}
 let generation = 0;
-const titles: Record<keyof EditValues, string> = { name: '项目名称', summary: '项目简介', marketExpectation: '市场预期', detailNote: '详细说明', summaryNote: '状态简要备注', statusDesc: '最新状态说明', signalNote: '灯色说明', chipstatNote: '芯片备注', signal: '信号灯', priority: '优先级', customerIds: '客户', odmFactoryIds: 'ODM 工厂', productLineIds: '产品线', appIds: 'APP', groupIds: '分组', chipSelections: '芯片', tagIds: '项目标签', people: '业务人员', stagePlans: '阶段工期与评述', riskOps: '风险未保存操作', nodeOps: '节点未保存操作', changeOps: '需求变更未保存操作', taskOps:'任务未保存操作' };
+const titles: Record<keyof EditValues, string> = { name: '项目名称', summary: '项目简介', marketExpectation: '市场预期', detailNote: '详细说明', summaryNote: '状态简要备注', statusDesc: '任务清单', signalNote: '灯色说明', chipstatNote: '芯片备注', signal: '信号灯', priority: '优先级', customerIds: '客户', odmFactoryIds: 'ODM 工厂', productLineIds: '产品线', appIds: 'APP', groupIds: '分组', chipSelections: '芯片', tagIds: '项目标签', people: '业务人员', stagePlans: '阶段工期与评述', riskOps: '风险未保存操作', nodeOps: '节点未保存操作', changeOps: '需求变更未保存操作', taskOps:'任务未保存操作' };
 const keys = Object.keys(titles) as (keyof EditValues)[];
 const textKeys = ['name', 'marketExpectation', 'detailNote', 'summaryNote', 'summary', 'statusDesc', 'signalNote', 'chipstatNote'] as const;
 const referenceFields = { customerIds: 'customers', odmFactoryIds: 'odmFactories', productLineIds: 'product_lines', appIds: 'apps', groupIds: 'project_groups', chipSelections: 'chips', tagIds: 'tags', people: 'engineers' } as const;
@@ -99,14 +100,15 @@ function stagePanel() {
     const cls = stage.state === 'completed' ? 'stage-done' : p.status === 'closed' ? 'stage-closed' : stage.state === 'active' && p.status !== 'paused' ? 'stage-current' : 'stage-todo';
     const action = stage.state === 'active' ? 'completeStage' : 'startStage';
     const blocked = action === 'startStage' ? item.startBlocked : item.completeBlocked;
+    const selectedState=queuedCommands.findLast(command=>command.action==='confirmStageState'&&command.stageCode===stage.code);
     const button = `<button type="button" class="choice-btn choice-done" data-stage="${stage.code}" data-stage-action="${action}"${blocked ? ' disabled' : ''}>${action === 'startStage' ? '开始阶段' : '✅ 里程碑完成'}</button>`;
-    return `<div class="stage-card ${cls}"><div class="stage-head"><span class="stage-idx">${esc(stage.code)}</span><span class="stage-name">${esc(s.name)}（${esc(label(stage.state))}${p.status === 'paused' ? '，暂缓保留' : ''}）</span><span class="stage-progress">进度 ${s.progress}%</span></div>
+    return `<div class="stage-card ${cls}"><div class="stage-head"><span class="stage-idx">${esc(stage.code)}</span><span class="stage-name">${esc(s.name)}（${esc(label(selectedState?.action==='confirmStageState'?selectedState.state:stage.state))}${selectedState?'，待保存':''}${p.status === 'paused' ? '，暂缓保留' : ''}）</span><span class="stage-progress">进度 ${s.progress}%</span></div>
       <div class="stage-milestone"><span class="m-label">里程碑：</span>${esc(s.milestone)}</div>
       <details class="stage-lines"><summary>三线工作要点</summary><div class="line"><b>硬件</b>：${esc(s.hw)}</div><div class="line"><b>固件</b>：${esc(s.sw)}</div><div class="line"><b>业务</b>：${esc(s.biz)}</div></details>
       <div class="stage-days">预期天数 <input data-edit data-stage-plan="${stage.code}" type="number" min="0" max="65535" step="1" class="stage-days-input" aria-label="${esc(s.name)}预期天数" value="${esc(stage.plannedDays ?? '')}" placeholder="建议 ${s.mid} 天"${snapshot!.capabilities.editText ? '' : ' readonly'}>（标准 ${esc(s.standard)} / 建议 ${s.mid} 天）</div>
       <div class="stage-note-view">实际开始：${esc(stage.startedOn ?? '—')} · 实际完成：${esc(stage.completedOn ?? '—')} · 预期完成：${esc(stage.expectedEndOn ?? '待确定')}${Number(stage.undatedNodeCount) > 0 ? `（${esc(stage.undatedNodeCount)} 个节点未填目标日期）` : ''}</div>
       <label class="stage-note-view">评述<textarea data-edit data-stage-note="${stage.code}" class="choice-note" aria-label="${esc(s.name)}评述"${snapshot!.capabilities.editText ? '' : ' readonly'}>${esc(stage.note ?? '')}</textarea></label>
-      ${stage.state === 'completed' ? `<div class="stage-done-tag">✅ 里程碑已完成${stage.completedOn ? ' · ' + esc(stage.completedOn) : ''}</div><button type="button" class="choice-btn stage-rollback" data-correction="rollbackStage" data-stage="${stage.code}">回退</button>` : p.status === 'closed' ? '<div class="stage-locked">⏹ 项目已结案</div>' : stage.state === 'unknown' ? `<div class="stage-choice"><label for="stage-known-${stage.code}">历史开始状态</label><select id="stage-known-${stage.code}"><option value="">请选择</option><option value="ready">待开始</option><option value="active">进行中</option></select><button type="button" class="choice-confirm" data-confirm-state="${stage.code}">保存状态</button></div>` : stage.state === 'locked' ? `<div class="stage-locked">🔒 ${esc(stageMessages[blocked ?? 'STAGE_PREDECESSOR_INCOMPLETE'])}</div>` : `<div class="stage-choice">${button}<button type="button" class="choice-btn choice-close" data-closure="closeProject" data-closure-type="terminated">⏹ 中途结案</button></div>${blocked ? `<div class="stage-locked">${esc(stageMessages[blocked] ?? blocked)}</div>` : ''}`}
+      ${stage.state === 'completed' ? `<div class="stage-done-tag">✅ 里程碑已完成${stage.completedOn ? ' · ' + esc(stage.completedOn) : ''}</div><button type="button" class="choice-btn stage-rollback" data-correction="rollbackStage" data-stage="${stage.code}">回退</button>` : p.status === 'closed' ? '<div class="stage-locked">⏹ 项目已结案</div>' : stage.state === 'unknown' ? `<div class="stage-choice"><span>确认当前状态：</span><button type="button" class="choice-btn" data-confirm-state="${stage.code}" data-state="ready" aria-pressed="${selectedState?.action==='confirmStageState'&&selectedState.state==='ready'}">待开始</button><button type="button" class="choice-btn choice-done" data-confirm-state="${stage.code}" data-state="active" aria-pressed="${selectedState?.action==='confirmStageState'&&selectedState.state==='active'}">进行中</button></div>` : stage.state === 'locked' ? `<div class="stage-locked">🔒 ${esc(stageMessages[blocked ?? 'STAGE_PREDECESSOR_INCOMPLETE'])}</div>` : `<div class="stage-choice">${button}<button type="button" class="choice-btn choice-close" data-closure="closeProject" data-closure-type="terminated">⏹ 中途结案</button></div>${blocked ? `<div class="stage-locked">${esc(stageMessages[blocked] ?? blocked)}</div>` : ''}`}
       ${p.status !== 'closed' && stage.state === 'active' ? `<button type="button" class="choice-btn" data-correction="${stage.state === 'active' ? 'undoStageStart' : 'undoStageComplete'}" data-stage="${stage.code}">${stage.state === 'active' ? '撤销误开始' : '撤销误完成'}</button>` : ''}
       <button class="back-btn" data-correction="correctStageFacts" data-stage="${stage.code}">修改实际日期</button><div class="stage-choice-form" id="stage-form-${stage.code}"></div></div>`;
   }).join('');
@@ -787,7 +789,7 @@ async function executeStage(confirm: boolean) {
   if(!confirm&&!isCheckCommand(stagePending)&&preparedActionId!==stagePending.idempotencyKey){
     const {expectedVersion:version,idempotencyKey:operation,draft:personal,...command}=stagePending;
     if(version!==editBaseVersion){stale=true;note('项目已更新，请保留输入并重新进入。',true);return;}
-    queuedCommands.push(command);stagePending=undefined;stageDraft=undefined;correctionDraft=undefined;planDraft=undefined;lifecycleDraft=undefined;closureDraft=undefined;
+    if(command.action==='confirmStageState')queuedCommands=queuedCommands.filter(item=>item.action!=='confirmStageState'||item.stageCode!==command.stageCode);queuedCommands.push(command);stagePending=undefined;stageDraft=undefined;correctionDraft=undefined;planDraft=undefined;lifecycleDraft=undefined;closureDraft=undefined;
     persistStage();persist();render();if(!submittingPage)note('动作已加入本次修改，点击标题栏保存后生效。');return;
   }
   inFlight = true; controls();
@@ -826,6 +828,42 @@ const responsibilityKey = () => `geekdash_responsibility:${account!.id}:${id}`;
 function forgetResponsibility() {
   responsibilityPending = undefined;
   try { sessionStorage.removeItem(responsibilityKey()); } catch { /* 清理失败不改变已确认的操作结果。 */ }
+}
+async function deleteProject() {
+  if(!snapshot || !account?.isMaintenance || inFlight || loading || pending || stagePending || responsibilityPending || authFrozen)return;
+  const key=`geekdash_delete:${account.id}:${id}`;
+  let command:{expectedVersion:string;idempotencyKey:string};
+  try {
+    const stored=sessionStorage.getItem(key);
+    if(stored)command=JSON.parse(stored);
+    else {
+      if(await choose(`删除“${snapshot.project.name}”？项目将从列表、统计和检查中移除。${dirty()?'本页未保存修改不会提交。':''}`, [['cancel','取消'],['delete','删除项目']])!=='delete')return;
+      command={expectedVersion:snapshot.project.version,idempotencyKey:crypto.randomUUID()};
+      sessionStorage.setItem(key,JSON.stringify(command));
+    }
+    inFlight=true;controls();
+    let result=await send<{outcome:string}>(`/api/projects/${id}/delete-results/query`,'POST',command,false);
+    if(result.outcome==='not_found')result=await send(`/api/projects/${id}/delete`,'POST',command);
+    if(result.outcome!=='committed')throw new Error('删除结果待确认，请重试原操作。');
+    sessionStorage.removeItem(key);leaving=true;location.href='/';
+  } catch(error) {
+    if(error instanceof SaveError&&error.outcome==='not_committed'&&error.code!=='OPERATION_KEY_REUSED')sessionStorage.removeItem(key);
+    note((error as Error).message,true);
+  } finally {inFlight=false;controls();}
+}
+function projectAccessControls() {
+  if(!snapshot)return;
+  const blocked=loading||inFlight||stale||!!pending||!!responsibilityPending||!!stagePending||authFrozen;
+  const access=element('project-access');access.hidden=!snapshot.readOnly;
+  access.innerHTML=snapshot.readOnly?`<span>当前为只读。${snapshot.capabilities.join?'加入项目后即可编辑。':'此账号尚未开启项目经理资格。'}</span>${snapshot.capabilities.join?`<button type="button" class="save-btn" id="join-project">${hasPendingMembership(id)?'继续加入项目':'加入项目并编辑'}</button>`:''}`:'';
+  const join=document.getElementById('join-project') as HTMLButtonElement|null;
+  if(join){join.disabled=blocked;join.onclick=async()=>{
+    if(blocked)return;inFlight=true;controls();
+    try{const result=await saveMembership(id,{action:'join'});if(result.outcome!=='committed')throw new Error('加入结果待确认，请重试原操作。');inFlight=false;await load();note('已加入项目，可以编辑并保存。');}
+    catch(error){note((error as Error).message,true);}finally{inFlight=false;controls();}
+  };}
+  const remove=document.getElementById('delete-project') as HTMLButtonElement|null;
+  if(remove){remove.hidden=!account?.isMaintenance;remove.disabled=blocked;remove.onclick=()=>{void deleteProject();};}
 }
 function responsibilityControls() {
   if (!snapshot || !document.getElementById('responsibility')) return;
@@ -930,6 +968,7 @@ function controls() {
   updateEditing();
   showActionForm();
   responsibilityControls();
+  projectAccessControls();
   const frozen = inFlight || !!pending || !!responsibilityPending || !!stagePending || loading || checksLoading;
   const actionOpen = actionFormOpen();
   document.querySelectorAll<HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement|HTMLButtonElement>('form[data-inline="true"] input, form[data-inline="true"] textarea, form[data-inline="true"] select, form[data-inline="true"] button').forEach(input => { input.disabled = frozen || stale || authFrozen; });
@@ -955,7 +994,7 @@ function controls() {
   if (discard) { discard.disabled = frozen || actionOpen || !dirty(); discard.hidden = !dirty(); }
   for (const action of ['confirm', 'retry']) { const button = document.getElementById(action) as HTMLButtonElement | null; if (button) button.disabled = inFlight; }
   (element('reload') as HTMLButtonElement).disabled = frozen;element('reload').hidden=!stale&&!authFrozen;
-  document.querySelectorAll<HTMLButtonElement|HTMLSelectElement>('[data-confirm-state], select[id^="stage-known-"]').forEach(control=>{control.disabled=frozen||actionOpen||stale||authFrozen||!snapshot?.capabilities.editText;});
+  document.querySelectorAll<HTMLButtonElement>('[data-confirm-state]').forEach(control=>{control.disabled=frozen||actionOpen||stale||authFrozen||!snapshot?.capabilities.editText;});
   document.querySelectorAll<HTMLButtonElement>('[data-stage-action]').forEach(button => { const item = snapshot?.stageActions.find(item => item.code === button.dataset.stage); const blocked = button.dataset.stageAction === 'startStage' ? item?.startBlocked : item?.completeBlocked; button.disabled = frozen || stale || authFrozen || !item || !!blocked; });
   const startButton = document.getElementById('project-start') as HTMLButtonElement | null; if (startButton) startButton.disabled = frozen || stale || authFrozen || !!snapshot?.startBlocked;
   document.querySelectorAll<HTMLButtonElement>('[data-correction]').forEach(button => { const status = snapshot!.project.status; button.disabled = frozen || stale || authFrozen || !snapshot?.capabilities.editText || button.dataset.correction === 'rollbackStage' && !['proposal', 'ongoing'].includes(status) || button.dataset.correction !== 'correctStageFacts' && status === 'closed'; });
@@ -1006,15 +1045,18 @@ function persist() {
 function captureDrafts() {
   if(!personalDrafts || !snapshot || !values || pending || stagePending || authFrozen || stale)return;
   const changes=scopeChanges(baseline(),values,'project');
+  if(changes.taskOps){changes.taskOps=changedTaskOps(snapshot.project.tasks??[],changes.taskOps);if(!changes.taskOps.length)delete changes.taskOps;}
+  if(changes.stagePlans){changes.stagePlans=changes.stagePlans.filter(plan=>JSON.stringify(plan)!==JSON.stringify(baseline().stagePlans?.find(old=>old.code===plan.code)));if(!changes.stagePlans.length)delete changes.stagePlans;}
+
   const intent=basicDraft&&basicIntentChanged(snapshot,basicDraft)?structuredClone(basicDraft) as unknown as Record<string,unknown>:undefined;
   const editors:Record<string,unknown>={};
-  if(taskBulk!==undefined)editors.task={text:taskBulk};
-  if(riskDraft)editors.risk=structuredClone(riskDraft);
-  if(changeDraft)editors.change=structuredClone(changeDraft);
-  if(nodeDraft){editors.node=structuredClone(nodeDraft);editors.nodeExtras=structuredClone(nodeRestoreExtras);}
+  if(taskBulk!==undefined && taskBulk!==taskText(taskCopy(snapshot.project.tasks??[],values.taskOps??[])))editors.task={text:taskBulk};
+  if(riskDraft&&meaningfulEditor(riskDraft as unknown as Record<string,unknown>))editors.risk=structuredClone(riskDraft);
+  if(changeDraft&&meaningfulEditor(changeDraft as unknown as Record<string,unknown>))editors.change=structuredClone(changeDraft);
+  if(nodeDraft&&meaningfulEditor(nodeDraft as unknown as Record<string,unknown>)){editors.node=structuredClone(nodeDraft);editors.nodeExtras=structuredClone(nodeRestoreExtras);}
   const input=stageDraft??correctionDraft??planDraft??lifecycleDraft??closureDraft;
   if(input){const command={...input} as Record<string,unknown>;delete command.expectedVersion;delete command.idempotencyKey;delete command.draft;editors.action=command;}
-  personalDrafts.capture('project',undefined,editBaseVersion,{values:changes,...intent?{intent}:{},editors,submission:{scope:'project',changes,...intent?{basicIntent:intent}:{},commands:structuredClone(queuedCommands)}});
+  personalDrafts.capture('project',undefined,editBaseVersion,{values:changes,...intent?{intent:Object.fromEntries(Object.entries(intent).filter(([key,value])=>JSON.stringify(value)!==JSON.stringify((basicIntent(snapshot!) as unknown as Record<string,unknown>)[key])))}:{},editors,submission:{scope:'project',changes,...intent?{basicIntent:intent}:{},commands:structuredClone(queuedCommands)}});
 }
 function canRestoreDraft(version:string|null){return !!values && !stale && !authFrozen && !pending && !stagePending && !responsibilityPending && !inFlight && !loading && !!snapshot?.capabilities.editText && version===editBaseVersion;}
 function recoveryInput(){return JSON.stringify({values,taskBulk,basicDraft,queuedCommands,riskDraft,changeDraft,nodeDraft,nodeRestoreExtras,stageDraft,correctionDraft,planDraft,lifecycleDraft,closureDraft,checkDraft});}
@@ -1031,13 +1073,13 @@ async function restorePersonalDraft(row:PersonalDraft){
     else if(isLifecycleCommand(command)){lifecycleDraft=command;await openLifecycle(command.action,'auditId' in command?command.auditId:undefined);}
     else if(isPlanCommand(command)){planDraft=command;await openPlan(command.action,'recordId' in command?command.recordId:undefined);}
     else if('reason' in command){correctionDraft=command;await openCorrection(command.action,'stageCode' in command?command.stageCode:undefined);}
-    else if(command.action==='confirmStageState'){tab='stages';render();const input=document.getElementById('stage-known-'+command.stageCode) as HTMLSelectElement|null;if(input)input.value=command.state;}
+    else if(command.action==='confirmStageState'){tab='stages';const {expectedVersion,idempotencyKey,...restored}=command;queuedCommands=queuedCommands.filter(item=>item.action!=='confirmStageState'||item.stageCode!==command.stageCode);queuedCommands.push(restored);persist();render();}
     else {stageDraft=command;if(command.action==='startProject')await openStart();else await openStage(command.stageCode,command.action);}
     persistStage();return true;
   }
   const restored=upgradeReferenceValues(row.payload.values ?? {}),base=baseline();
   for(const key of scopeFields[row.formKind]){
-    if(key==='stagePlans' && row.formKind!=='project')values.stagePlans=values.stagePlans?.map(plan=>plan.code===row.payload.target ? structuredClone((restored.stagePlans as EditValues['stagePlans'])?.find(item=>item.code===plan.code) ?? base.stagePlans!.find(item=>item.code===plan.code)!) : plan);
+    if(key==='stagePlans')values.stagePlans=values.stagePlans?.map(plan=>row.formKind==='project'||plan.code===row.payload.target ? structuredClone((restored.stagePlans as EditValues['stagePlans'])?.find(item=>item.code===plan.code) ?? base.stagePlans!.find(item=>item.code===plan.code)!) : plan);
     else if(key!=='nodeOps' || row.formKind==='projectNodes' || row.formKind==='project')Object.assign(values,{[key]:structuredClone(Object.hasOwn(restored,key)?restored[key]:base[key])});
   }
   if(row.formKind==='project'||row.formKind==='status')taskBulk=(row.payload.editors?.task as {text?:string}|undefined)?.text;
@@ -1049,7 +1091,7 @@ async function restorePersonalDraft(row:PersonalDraft){
       if(isClosureCommand(command))closureDraft=command;else if(isLifecycleCommand(command))lifecycleDraft=command;else if(isPlanCommand(command))planDraft=command;else if('reason' in command)correctionDraft=command as CorrectionCommand;else if(!isCheckCommand(command)&&command.action!=='confirmStageState')stageDraft=command;
     }
   }
-  if(row.formKind==='basic'||row.formKind==='project'){basicDraft=row.payload.intent?structuredClone(row.payload.intent) as unknown as BasicIntent:basicIntent(snapshot);tab='info';}
+  if(row.formKind==='basic'||row.formKind==='project'){basicDraft={...basicIntent(snapshot),...structuredClone(row.payload.intent??{})} as BasicIntent;tab='info';}
   if(row.formKind==='status' || row.formKind==='tags')tab='info';
   if(row.formKind==='stage')tab='stages';
   if(row.formKind==='risk'){riskDraft=structuredClone(row.payload.record) as RiskOperation;tab='risk';}
@@ -1136,7 +1178,7 @@ async function copyText() {
 function editor() {
   const editable = snapshot!.capabilities.editText;
   basicDraft ??= basicIntent(snapshot!);
-  return `<section class="trial-editor project-info" aria-label="基本信息与项目分工" data-region="basic"><div class="section-heading"><h2>基本信息与项目分工</h2></div>${basicFields(snapshot!, values!, basicDraft, editable, selectReference, validationErrors)}${editable && catalogMessage ? `<p class="read-message">${esc(catalogMessage)}</p>` : ''}${editable && !catalog ? '<button class="back-btn" id="options-retry">重新读取候选资料</button>' : ''}</section><details id="status-history" class="secondary-section"${statusHistoryOpen ? ' open' : ''}><summary>状态说明历史</summary><div id="status-history-content"></div></details><section class="trial-editor status-editor" data-region="status"><div class="section-heading"><h2>最新状态说明</h2></div>${values!.statusDesc!==snapshot!.project.statusDesc ? `<textarea data-edit data-scope="status" id="edit-statusDesc" rows="6" aria-label="旧说明草稿">${esc(values!.statusDesc)}</textarea><p>这是先前保留的说明草稿，可复制到下方任务后使用标题栏保存。</p><button type="button" id="old-status-copied">已处理旧草稿</button>` : ''}${taskPanel(snapshot!.project.tasks??[],values!.taskOps??[],editable,taskBulk)}<span class="field-error" id="error-taskOps">${esc(validationErrors.taskOps)}</span></section>`;
+  return `<section class="trial-editor project-info" aria-label="基本信息与项目分工" data-region="basic"><div class="section-heading"><h2>基本信息与项目分工</h2></div>${basicFields(snapshot!, values!, basicDraft, editable, selectReference, validationErrors)}${editable && catalogMessage ? `<p class="read-message">${esc(catalogMessage)}</p>` : ''}${editable && !catalog ? '<button class="back-btn" id="options-retry">重新读取候选资料</button>' : ''}</section><details id="status-history" class="secondary-section"${statusHistoryOpen ? ' open' : ''}><summary>状态说明历史</summary><div id="status-history-content"></div></details><section class="trial-editor status-editor" data-region="status"><div class="section-heading"><h2>任务清单</h2></div>${values!.statusDesc!==snapshot!.project.statusDesc ? `<textarea data-edit data-scope="status" id="edit-statusDesc" rows="6" aria-label="旧说明草稿">${esc(values!.statusDesc)}</textarea><p>这是先前保留的说明草稿，可复制到下方任务后使用标题栏保存。</p><button type="button" id="old-status-copied">已处理旧草稿</button>` : ''}${taskPanel(snapshot!.project.tasks??[],values!.taskOps??[],editable,taskBulk)}<span class="field-error" id="error-taskOps">${esc(validationErrors.taskOps)}</span></section>`;
 }
 function selectReference(key: string, table: string, role?: string) {
   if (key === 'chipSelections') return chipPicker(values!.chipSelections, catalog);
@@ -1727,7 +1769,7 @@ function render() {
   const planRestore = document.getElementById('plan-restore'); if (planRestore) planRestore.onclick = () => { if (planDraft) void openPlan(planDraft.action, 'recordId' in planDraft ? planDraft.recordId : undefined); };
   const planDiscard = document.getElementById('plan-discard'); if (planDiscard) planDiscard.onclick = () => { planDraft = undefined; persistStage(); render(); };
   const asNote = document.getElementById('plan-as-note'); if (asNote) asNote.onclick = () => { if (planDraft?.action === 'reschedulePlan') { planDraft = { action: 'notePlan', expectedVersion: planDraft.expectedVersion, idempotencyKey: crypto.randomUUID(), reason: planDraft.reason, measures: planDraft.measures }; persistStage(); void openPlan('notePlan'); } };
-  document.querySelectorAll<HTMLButtonElement>('[data-confirm-state]').forEach(button=>button.onclick=async()=>{const code=button.dataset.confirmState!,state=(element('stage-known-'+code) as HTMLSelectElement).value;if(!['ready','active'].includes(state)){note('请选择这个阶段是否已开始。',true);return;}if(!await prepareAction('confirmStageState',code)||!snapshot)return;stagePending={action:'confirmStageState',stageCode:code,state:state as 'ready'|'active',expectedVersion:snapshot.project.version,idempotencyKey:crypto.randomUUID()};persistStage();await executeStage(false);});
+  document.querySelectorAll<HTMLButtonElement>('[data-confirm-state]').forEach(button=>button.onclick=async()=>{const code=button.dataset.confirmState!,state=button.dataset.state;if(state!=='ready'&&state!=='active')return;if(!await prepareAction('confirmStageState',code)||!snapshot)return;stagePending={action:'confirmStageState',stageCode:code,state:state as 'ready'|'active',expectedVersion:snapshot.project.version,idempotencyKey:crypto.randomUUID()};persistStage();await executeStage(false);});
   document.querySelectorAll<HTMLButtonElement>('[data-stage-action]').forEach(button => button.onclick = () => { void openStage(button.dataset.stage!, button.dataset.stageAction as StageCommand['action']); });
   document.querySelectorAll<HTMLButtonElement>('[data-correction]').forEach(button => button.onclick = () => { void openCorrection(button.dataset.correction as CorrectionCommand['action'], button.dataset.stage); });
   const correctionRestore = document.getElementById('correction-restore'); if (correctionRestore) correctionRestore.onclick = () => { if (correctionDraft) void openCorrection(correctionDraft.action, 'stageCode' in correctionDraft ? correctionDraft.stageCode : undefined); };

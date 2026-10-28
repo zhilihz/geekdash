@@ -60,7 +60,7 @@ function validateWrite(value: unknown): DraftWrite {
 const columns = 'CAST(id AS CHAR) id,client_draft_id clientDraftId,CAST(project_id AS CHAR) projectId,form_kind formKind,CAST(base_version AS CHAR) baseVersion,CAST(draft_version AS CHAR) draftVersion,CAST(client_sequence AS CHAR) clientSequence,payload_json payload,state,CAST(submitted_project_version AS CHAR) submittedProjectVersion,updated_at updatedAt';
 async function rows(c: PoolConnection, sql: string, values: unknown[] = []) { return (await c.query<RowDataPacket[]>({ sql, timeout: 3000 }, values))[0]; }
 async function editable(c: PoolConnection, actor: Actor, id: string) {
-  if (!(await rows(c,'SELECT id FROM projects WHERE id=? FOR SHARE',[id])).length) failure('PROJECT_NOT_FOUND',404);
+  if (!(await rows(c,'SELECT id FROM projects WHERE deleted_at IS NULL AND id=? FOR SHARE',[id])).length) failure('PROJECT_NOT_FOUND',404);
   if (!await hasProjectAccess(c,id,actor.id)) failure('PROJECT_READ_ONLY',403);
 }
 const preferenceKeys: Record<string, string[]> = {
@@ -90,9 +90,9 @@ function preferenceValue(scope: string, value: unknown) {
     if (key==='view' && (typeof item!=='string' || !['active','proposal','closed','maintenance','all'].includes(item))) failure('INVALID_PERSONAL_STATE',400);
     if (scope==='summary' && key==='sort' && (typeof item!=='string' || !['customer','group','chip','stage','dueDate'].includes(item))) failure('INVALID_PERSONAL_STATE',400);
     if (scope==='summary' && ['rowOrder','hiddenRows'].includes(key) && (!Array.isArray(item) || item.some(id=>!validId(id)))) failure('INVALID_PERSONAL_STATE',400);
-    if (scope==='summary-layout' && ['columns','hiddenColumns'].includes(key) && (!Array.isArray(item) || item.some(name=>!['customer','group','name','chips','status','engineers','note','chipNote','stage','node','dueDate','delay'].includes(name)))) failure('INVALID_PERSONAL_STATE',400);
+    if (scope==='summary-layout' && ['columns','hiddenColumns'].includes(key) && (!Array.isArray(item) || item.some(name=>!['customer','group','name','chips','status','projectOwners','engineers','note','chipNote','stage','node','dueDate','delay'].includes(name)))) failure('INVALID_PERSONAL_STATE',400);
     if (key === 'theme' && (typeof item!=='string' || !['dark','light','warm'].includes(item)) || key === 'layout' && (typeof item!=='string' || !['cards','progress'].includes(item))) failure('INVALID_PERSONAL_STATE',400);
-    if (key === 'filters') { if (!object(item) || Object.keys(item).some(name => !['search','contentFrom','contentTo','taskOwner','customer','productLine','odmFactory','app','group','status','priority','signal','stage','progress','chip','tags','owner','deadline','checkToday',...scope==='summary'?['assignment']:[]].includes(name)) || Object.values(item).some(v => typeof v !== 'string' && (!Array.isArray(v) || v.some(x => typeof x !== 'string')))) failure('INVALID_PERSONAL_STATE',400); }
+    if (key === 'filters') { if (!object(item) || Object.keys(item).some(name => !['search','contentFrom','contentTo','taskOwner','customer','productLine','odmFactory','app','group','status','priority','signal','stage','progress','chip','tags','owner','deadline','checkToday',...scope==='checks'?['perspective','checkCycle']:[],...scope==='summary'?['assignment']:[]].includes(name)) || Object.values(item).some(v => typeof v !== 'string' && (!Array.isArray(v) || v.some(x => typeof x !== 'string')))) failure('INVALID_PERSONAL_STATE',400); }
     else if (key === 'viewport') { if (!object(item) || Object.keys(item).some(k => !['x','y','zoom'].includes(k)) || Object.values(item).some(v => typeof v !== 'number' || !Number.isFinite(v))) failure('INVALID_PERSONAL_STATE',400); }
     else if (Array.isArray(item)) { if (item.some(v => typeof v !== 'string' || v.length > 255)) failure('INVALID_PERSONAL_STATE',400); }
     else if (!['string','number','boolean'].includes(typeof item) || typeof item === 'string' && item.length > 2048) failure('INVALID_PERSONAL_STATE',400);
@@ -161,7 +161,7 @@ export function personalState(database: RuntimeDatabase) {
             if (!body.rebaseOperationId) failure('DRAFT_BASE_CHANGED',409);
             const receipt = (await rows(c,"SELECT response_json result FROM command_receipts WHERE actor_id=? AND command_scope IN (?,?) AND idempotency_key=?",[actor.id,`user:${actor.id}:project:${body.projectId}:scoped`,`user:${actor.id}:project:${body.projectId}:actions`,body.rebaseOperationId]))[0]?.result;
             if (!receipt || receipt.baseVersion !== current.baseVersion || receipt.savedVersion !== body.baseVersion || receipt.draft?.instanceId !== current.payload.instanceId || receipt.draft?.clientDraftId === body.clientDraftId) failure('DRAFT_BASE_CHANGED',409);
-            const currentProject = (await rows(c,'SELECT CAST(version AS CHAR) version FROM projects WHERE id=?',[body.projectId]))[0];
+            const currentProject = (await rows(c,'SELECT CAST(version AS CHAR) version FROM projects WHERE deleted_at IS NULL AND id=?',[body.projectId]))[0];
             if (currentProject.version !== body.baseVersion) failure('PROJECT_VERSION_CONFLICT',409);
           }
           if (current.draftVersion === '18446744073709551615') failure('DRAFT_VERSION_EXHAUSTED',422);

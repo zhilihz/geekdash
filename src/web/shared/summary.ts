@@ -3,7 +3,7 @@ import { statusText } from './status-text';
 
 export type SummaryProject=Omit<Project,'checkStatus'> & {summary:string;detailNote:string;summaryNote:string;chipstatNote:string;statusOwners:string[];pendingNodes:{id:string;title:string;targetDate:string|null}[];canEdit:boolean};
 export type SummarySnapshot={items:SummaryProject[];businessDate:string;capturedAt:string;company:Company|null;ownerOptions:string[]};
-export const summaryColumns={customer:'客户',group:'分组',name:'项目名称',chips:'核心芯片',status:'项目最新状态',engineers:'负责人',note:'备注',chipNote:'芯片备注',stage:'当前阶段',node:'关键节点',dueDate:'预计结案日期',delay:'是否延期'};
+export const summaryColumns={customer:'客户',group:'分组',name:'项目名称',chips:'核心芯片',status:'任务清单',projectOwners:'项目负责人',engineers:'执行负责人',note:'备注',chipNote:'芯片备注',stage:'当前阶段',node:'关键节点',dueDate:'预计结案日期',delay:'是否延期'};
 export type SummaryColumn=keyof typeof summaryColumns;
 export const defaultColumns=Object.keys(summaryColumns).filter(key=>key!=='chipNote') as SummaryColumn[];
 export const summaryFilterTitles={customer:'客户',productLine:'产品线',odmFactory:'ODM 工厂',app:'配套 APP',status:'项目状态',priority:'优先级',signal:'信号灯',stage:'项目阶段',progress:'进度',chip:'芯片',tags:'项目标签',group:'分组',assignment:'分工人员',owner:'任务负责人',deadline:'计划结果'};
@@ -17,6 +17,7 @@ export function summaryValue(project:SummaryProject,column:SummaryColumn):string
     case 'name':return project.name;
     case 'chips':return project.chips.map(chip=>chip.name+(chip.note?'（'+chip.note+'）':'')).join('、');
     case 'status':return statusText(project);
+    case 'projectOwners':return project.managers.filter(person=>person.enabled).map(person=>person.name).join('、');
     case 'engineers':return project.statusOwners.join('、');
     case 'note':return project.summaryNote;
     case 'chipNote':return project.chipstatNote;
@@ -112,4 +113,4 @@ export function summaryMarkdown(projects:SummaryProject[],columns:SummaryColumn[
   }
   return '\ufeff'+lines.join('\r\n');
 }
-export const pngColumns:SummaryColumn[]=['name','customer','status','engineers','dueDate','delay'];
+export const pngColumns:SummaryColumn[]=['name','customer','status','projectOwners','engineers','dueDate','delay'];

@@ -12,7 +12,7 @@ type Command = Extract<CheckCommand, { action: 'saveCheck' }>;
 type Pending = { projectId: string; projectName: string; command: Command };
 const element = (id: string) => document.getElementById(id)!;
 const dimensions: Record<string, string> = { customer: '客户', productLine: '产品线', odmFactory: 'ODM 工厂', app: 'APP', group: '分组', status: '状态', priority: '优先级', signal: '信号灯', stage: '当前阶段', progress: '进度', chip: '芯片', tags: '标签', owner: '业务人员' };
-const scopeKeys = ['view', 'search', ...Object.keys(dimensions)];
+const scopeKeys = ['perspective','view', 'search', ...Object.keys(dimensions)];
 const query = new URLSearchParams();
 const originalQuery = new URLSearchParams(location.search);
 for (const key of [...scopeKeys, 'checkCycle', 'page']) if (originalQuery.get(key)) query.set(key, originalQuery.get(key)!);
@@ -207,7 +207,7 @@ async function execute(id: string, confirm: boolean) {
 
 setupTheme();
 const views: Record<string, string> = { active: '进行中', proposal: '提案 / 暂缓', closed: '已结案', maintenance: '量产维护', all: '全部项目' };
-function renderScope() { element('check-scope').textContent = [views[query.get('view')!] ?? query.get('view'), ...scopeKeys.filter(name => name !== 'view' && query.has(name)).map(name => `${name === 'search' ? '搜索' : dimensions[name]}：${list?.optionLabels?.[name]?.[query.get(name)!] ?? label(query.get(name))}`)].join(' · '); }
+function renderScope() { element('check-scope').textContent = [query.get('perspective')==='responsible'?'负责人视角':'管理视角', views[query.get('view')!] ?? query.get('view'), ...scopeKeys.filter(name => !['view','perspective'].includes(name) && query.has(name)).map(name => `${name === 'search' ? '搜索' : dimensions[name]}：${list?.optionLabels?.[name]?.[query.get(name)!] ?? label(query.get(name))}`)].join(' · '); }
 renderScope();
 function restoreBack(){const boardQuery = new URLSearchParams();
 for (const name of scopeKeys) if (query.has(name)) boardQuery.set(name, query.get(name)!);
@@ -244,6 +244,7 @@ document.addEventListener('geekdash-preference-status',event=>note((event as Cus
 void requireIdentity().then(async identity => {
   ownerId = identity.id;preference=new PersonalPreference('checks',text=>note(text,true));const saved=await preference.load();
   if(!originalQuery.size){if(typeof saved.view==='string')query.set('view',saved.view);if(typeof saved.page==='number')query.set('page',String(saved.page));for(const [key,value] of Object.entries(saved.filters ?? {}))if([...scopeKeys,'checkCycle'].includes(key) && typeof value==='string')query.set(key,value);restoredScroll=typeof saved.scrollY==='number'?saved.scrollY:undefined;}
+  if(!identity.isMaintenance || identity.isProjectManager && !query.has('perspective'))query.set('perspective','responsible');
   restoreBack();recover(); renderRecovery(); await load();
   new ProjectNotifications(refresh,refresh,text=>{if(text)element('message').textContent=text;},undefined,undefined,refresh);
   for (const id of pending.keys()) { if (authFrozen || recoveryBroken) break; await execute(id, true); }

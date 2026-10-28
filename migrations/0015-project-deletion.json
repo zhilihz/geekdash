@@ -1,0 +1,15 @@
+{
+  "version": "0015-project-deletion",
+  "steps": [
+    {
+      "table": "projects",
+      "sql": "ALTER TABLE projects ADD COLUMN deleted_at datetime(3) NULL DEFAULT NULL",
+      "columns": [{"name":"deleted_at","type":"datetime(3)","nullable":true,"default":null,"autoIncrement":false,"charset":null,"collation":null}]
+    },
+    {
+      "table": "projects",
+      "sql": "ALTER TABLE projects MODIFY COLUMN name_key VARBINARY(1020) NULL",
+      "columns": [{"name":"name_key","type":"varbinary(1020)","nullable":true,"default":null,"autoIncrement":false,"charset":null,"collation":null}]
+    }
+  ]
+}

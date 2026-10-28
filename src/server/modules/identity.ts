@@ -66,7 +66,7 @@ export function identities(database: RuntimeDatabase, now = () => new Date()) {
     const user=(await rows(c,'SELECT CAST(id AS CHAR) id,login_name loginName,display_name name,enabled,is_admin isAdmin,deleted_at deletedAt,CAST(version AS CHAR) version FROM users WHERE id=?',[id]))[0];
     if(!user)failure('ACCOUNT_NOT_FOUND',404);
     const owned=await rows(c,`SELECT CAST(p.id AS CHAR) id,p.name,CAST(p.version AS CHAR) version FROM projects p
-      JOIN project_responsibilities r ON r.project_id=p.id WHERE r.user_id=? ORDER BY p.id`,[id]);
+      JOIN project_responsibilities r ON r.project_id=p.id WHERE p.deleted_at IS NULL AND r.user_id=? ORDER BY p.id`,[id]);
     const members=owned.length?await rows(c,`SELECT CAST(r.project_id AS CHAR) projectId,CAST(r.user_id AS CHAR) id,u.enabled FROM project_responsibilities r JOIN users u ON u.id=r.user_id WHERE r.project_id IN (?) ORDER BY r.project_id,r.user_id`,[owned.map(v=>v.id)]):[];
     const requests=await rows(c,`SELECT CAST(r.id AS CHAR) id,CAST(r.project_id AS CHAR) projectId,p.name projectName,r.kind,CAST(r.initiator_id AS CHAR) initiatorId,CAST(r.target_user_id AS CHAR) targetUserId
       FROM project_membership_requests r JOIN projects p ON p.id=r.project_id WHERE r.status='pending' AND (r.target_user_id=? OR (r.kind='invitation' AND r.initiator_id=?)) ORDER BY r.id`,[id,id]);
@@ -119,7 +119,7 @@ export function identities(database: RuntimeDatabase, now = () => new Date()) {
         if(!user||user.deletedAt)failure('ACCOUNT_NOT_FOUND',404);
         if(user.version!==body.expectedVersion)failure('ACCOUNT_VERSION_CONFLICT',409);
         if(!user.isAdmin&&!body.isProjectManager)failure('BUSINESS_ROLE_REQUIRED',422);
-        if(user.isProjectManager&&!body.isProjectManager){const owned=await rows(c,'SELECT CAST(p.id AS CHAR) id,p.name FROM projects p JOIN project_responsibilities r ON r.project_id=p.id WHERE r.user_id=?',[id]);if(owned.length)failure('PROJECT_MEMBERSHIP_REMAINS',422,{fields:{isProjectManager:'请先退出负责的项目：'+owned.map(p=>p.name).join('、')}});}
+        if(user.isProjectManager&&!body.isProjectManager){const owned=await rows(c,'SELECT CAST(p.id AS CHAR) id,p.name FROM projects p JOIN project_responsibilities r ON r.project_id=p.id WHERE p.deleted_at IS NULL AND r.user_id=?',[id]);if(owned.length)failure('PROJECT_MEMBERSHIP_REMAINS',422,{fields:{isProjectManager:'请先退出负责的项目：'+owned.map(p=>p.name).join('、')}});}
         const changed=user.loginName!==body.loginName||user.name!==body.name||!!user.isProjectManager!==body.isProjectManager;
         if(changed){
           if(user.version==='18446744073709551615')failure('ACCOUNT_VERSION_EXHAUSTED',422);

@@ -8,16 +8,43 @@ type Write = Omit<PersonalDraft,'draftVersion'|'state'|'updatedAt'> & { expected
 type Slot = { desired: Write; confirmed?: PersonalDraft; pending?: Write; firstAt: number; timer?: ReturnType<typeof setTimeout>; running?: Promise<void>; blocked?: boolean; localStored?: boolean };
 const ordered = (value:unknown):unknown => Array.isArray(value)?value.map(ordered):value && typeof value==='object'?Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b)).map(([key,item])=>[key,ordered(item)])):value;
 const equal = (a: unknown,b: unknown) => JSON.stringify(ordered(a)) === JSON.stringify(ordered(b));
-const emptyProject = (data:DraftData) => !Object.keys(data.values??{}).length && !data.intent && !Object.keys(data.editors??{}).length && !(data.submission?.commands as unknown[]|undefined)?.length;
-const names: Record<string,string> = {project:'项目整页修改',basic:'基本信息与分工',status:'最新状态说明',tags:'项目标签',signal:'灯色与说明',stage:'阶段工期与评述',risk:'风险',change:'需求变更',customerNode:'客户节点',projectNodes:'项目节点与Flow',create:'新建项目',action:'项目动作',summaryNote:'状态简要备注',chipstatNote:'芯片备注'};
-export function draftText(row:PersonalDraft) {
-  const payload=row.payload, fields={...payload.record,...payload.command,...payload.values,...payload.intent};
-  const titles={reason:'原因',correctionReason:'纠正原因',actualDate:'实际日期',stageCode:'阶段',managerIds:'项目经理',maintenance:'结案后维护',code:'阶段',...row.formKind==='basic'?{state:'项目状态'}:{}};
-  if(typeof fields.stageCode==='string')fields.stageCode=label(fields.stageCode);
-  if(typeof fields.maintenance==='boolean')fields.maintenance=fields.maintenance?'开启':'关闭';
-  const action=typeof fields.action==='string'?actionLabels[fields.action]:undefined;
-  return [action,readableFields(fields,titles),...Object.entries(payload.editors??{}).map(([key,value])=>({risk:'风险输入',change:'需求变更输入',node:'节点输入',nodeExtras:'节点联动',action:'阶段与状态输入',task:'整栏任务输入'}[key])+': '+readableFields(value as Record<string,unknown>,titles))].filter(Boolean).join('\n');
+const emptyDraft = (data:DraftData) => !Object.keys(data.values??{}).length && !Object.keys(data.intent??{}).length && !Object.keys(data.record??{}).length && !Object.keys(data.command??{}).length && !Object.keys(data.editors??{}).length && !(data.submission?.commands as unknown[]|undefined)?.length;
+const names: Record<string,string> = {project:'未保存的修改',basic:'基本信息与分工',status:'任务修改',tags:'项目标签',signal:'灯色与说明',stage:'阶段工期与评述',risk:'风险',change:'需求变更',customerNode:'客户节点',projectNodes:'项目节点与Flow',create:'新建项目',action:'未保存的操作',summaryNote:'状态简要备注',chipstatNote:'芯片备注'};
+export function meaningfulEditor(value:Record<string,unknown>) {
+  if(value.op==='correct')return Object.keys(value.changes as object??{}).length>0 || !!String(value.reason??value.correctionReason??'').trim();
+  if(value.op==='add'){
+    const fields=(value.fields??value) as Record<string,unknown>;
+    return ['text','content','title','output','note','reason'].some(key=>!!String(fields[key]??'').trim()) || !!fields.targetDate || fields.level!==undefined&&fields.level!=='mid' || fields.decision!==undefined&&fields.decision!=='accept' || fields.source!==undefined&&fields.source!=='客户' || fields.stage!==undefined&&fields.stage!=='S1';
+  }
+  return true;
 }
+export function draftText(row:PersonalDraft) {
+  const data=row.payload, lines:string[]=[], titles={reason:'原因',correctionReason:'纠正原因',actualDate:'实际日期',stageCode:'阶段',maintenance:'结案后维护',code:'阶段',text:'任务内容',state:row.formKind==='basic'?'项目状态':'阶段状态'};
+  const operations:Record<string,string>={add:'新增',edit:'修改',correct:'修改',complete:'标记完成',reopen:'恢复为待办',delete:'删除',resolve:'解除',undoResolve:'撤销解除',uncomplete:'撤销完成',move:'移动',link:'连接',unlink:'断开连线',restore:'恢复'};
+  const describe=(value:Record<string,unknown>,kind='')=>{
+    const {op,action,id,tempId,expectedVersion,idempotencyKey,...fields}=value;
+    if(kind==='任务')lines.push(`${operations[String(op)]??'修改'}${op==='add'?'待办任务':kind}${typeof fields.text==='string'?'：'+fields.text:''}`);
+    else {
+      const details=readableFields(fields,titles);
+      lines.push([typeof action==='string'?actionLabels[action]??'修改项目状态':(operations[String(op)]??'修改')+kind,details].filter(Boolean).join('：'));
+    }
+  };
+  for(const [key,value] of Object.entries(data.values??{})){
+    if(['taskOps','riskOps','nodeOps','changeOps'].includes(key)&&Array.isArray(value))for(const operation of value)describe(operation,{taskOps:'任务',riskOps:'风险',nodeOps:'节点',changeOps:'需求变更'}[key]);
+    else {const text=readableFields({[key]:value},titles);if(text)lines.push('修改'+text);}
+  }
+  if(data.intent){const text=readableFields(data.intent,titles);if(text)lines.push('修改项目状态与日期：'+text);}
+  if(data.record)describe(data.record,names[row.formKind]);
+  if(data.command)describe(data.command);
+  for(const command of data.submission?.commands as Record<string,unknown>[]??[])describe(command);
+  for(const [key,value] of Object.entries(data.editors??{})){
+    if(key==='task')lines.push('修改待办任务：'+String((value as {text:string}).text));
+    else if(key==='nodeExtras'&&Array.isArray(value))for(const operation of value)describe(operation,'关联节点');
+    else if(value&&typeof value==='object')describe(value as Record<string,unknown>,{risk:'风险',change:'需求变更',node:'节点',action:'阶段与状态'}[key]);
+  }
+  return [...new Set(lines.filter(Boolean))].join('\n');
+}
+
 const messages: Record<string,string> = {DRAFT_CAPACITY_REACHED:'个人草稿已满，请在草稿列表明确丢弃不需要的内容。',DRAFT_TOO_LARGE:'本份草稿过大，请复制或导出后精简输入。',DRAFT_VERSION_CONFLICT:'这份草稿已有新修订，请先核对草稿列表。',DRAFT_TERMINAL:'这份草稿已提交或丢弃，请核对后继续。',DRAFT_BASE_CHANGED:'草稿基线需要重新核对，现有输入保留。',INVALID_PERSONAL_STATE:'这份草稿的格式需要核对，输入仍在本页。'};
 
 type PreferenceValue = Record<string,unknown> & {schemaVersion:1};
@@ -125,7 +152,7 @@ export class PersonalDrafts {
   capture(kind:PersonalDraft['formKind'],target:string|undefined,baseVersion:string|null,data:DraftData) {
     if(this.stopped || !this.context().editable)return;
     const key=this.key(kind,target), old=this.slots.get(key);
-    if(kind==='project' && emptyProject(data) && !old)return;
+    if(emptyDraft(data) && !old)return;
     this.recovery?.remove();
     const payload={schemaVersion:1 as const,instanceId:this.instanceId,...target?{target}:{},...structuredClone(data)};
     if(old && equal(old.desired.payload,payload) && old.desired.baseVersion===baseVersion)return;
@@ -139,7 +166,7 @@ export class PersonalDrafts {
   private async flush(key:string):Promise<void>{
     const slot=this.slots.get(key);if(!slot || this.stopped || slot.blocked)return;
     clearTimeout(slot.timer);if(slot.running){await slot.running;return this.flush(key);}
-    if(slot.desired.formKind==='project' && emptyProject(slot.desired.payload) && !slot.pending){
+    if(emptyDraft(slot.desired.payload) && !slot.pending){
       const empty=structuredClone(slot.desired.payload);
       slot.running=(async()=>{
         try{
@@ -148,7 +175,7 @@ export class PersonalDrafts {
           this.status='没有未保存的修改';
           if(!equal(empty,slot.desired.payload)){
             const {schemaVersion,instanceId,target,...data}=slot.desired.payload;
-            this.capture('project',target,slot.desired.baseVersion,data);
+            this.capture(slot.desired.formKind,target,slot.desired.baseVersion,data);
           }
         }catch{this.status='取消后的草稿清理尚未确认，可在个人草稿重试。';}
         finally{slot.running=undefined;this.updateStatus();}

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import ts from 'typescript';
@@ -73,4 +74,35 @@ assert.equal(summary.summaryRows([dated],{contentTo:'2026-10-14'},'customer').le
 assert.equal(summary.summaryRows([dated,unknown],{},'customer').length,2);
 assert(!summary.summaryCsv(datedRows,['name','status']).includes('未知日期项目'));
 assert(!summary.summaryMarkdown(datedRows,['name','status'],'状态简要',{businessDate:'2026-10-15',capturedAt:first,company:null}).includes('未知日期项目'));
-console.log(JSON.stringify({ status: 'passed', cases: count, displayCases: 4, mentionCases: 8, databaseAccess: false, source: 'audit_log.statusDesc', checks: ['creation', 'changed_lines', 'reorder', 'duplicates', 'empty_lines', 'legacy_unknown', 'no_op', 'remove_and_readd', 'current_body_consistency', 'missing_before', 'audit_gap', 'manual_text_preserved', 'shared_shanghai_dates', 'stale_projection_falls_back', 'html_escaped', 'exports_keep_dates_without_mutating_body_or_filters', 'known_full_name_longest_match', 'mention_boundary', 'literal_special_characters', 'free_name_compatibility', 'no_at_no_mention', 'mention_deduplication', 'full_name_filter_and_export'] }));
+const peopleProject={...project,managers:[{id:'9',name:'项目甲',enabled:true},{id:'10',name:'停用乙',enabled:false}]};
+assert.equal(summary.summaryValue(peopleProject,'projectOwners'),'项目甲');
+assert.equal(summary.summaryValue(peopleProject,'engineers'),'李工');
+assert.match(summary.summaryCsv([peopleProject],['projectOwners','engineers']),/项目负责人.*执行负责人/);
+assert.match(summary.summaryMarkdown([peopleProject],['projectOwners','engineers'],'任务简要',{businessDate:'2026-10-28',capturedAt:first,company:null}),/项目负责人：项目甲/);
+const tasks=await module('src/web/shared/tasks.ts',{'./api':api});
+const taskView=tasks.taskPanel([{id:'done',text:'旧已完成',completedAt:first,createdAt:first,updatedAt:first,deletedAt:''}], [{op:'add',id:'todo',text:'新增待办'}],true);
+assert.equal(tasks.taskCopy([],[{op:'add',id:'todo',text:'新增待办'}])[0].completedAt,'');
+assert(taskView.indexOf('添加待办任务')<taskView.indexOf('task-completed'));
+assert(taskView.indexOf('新增待办')<taskView.indexOf('旧已完成'));
+assert.equal(tasks.changedTaskOps([{id:'t',text:'原文字',completedAt:'',deletedAt:''}],[{id:'t',op:'edit',text:'原文字'}]).length,0);
+assert.equal(tasks.changedTaskOps([],[{id:'new',op:'add',text:''}]).length,0);
+const history=await module('src/web/shared/history.ts',{'./api':api});
+const stored=new Map(),requests=[];
+context.crypto={randomUUID};context.performance={getEntriesByType:()=>[]};
+context.localStorage=context.sessionStorage={getItem:key=>stored.get(key)??null,setItem:(key,v)=>stored.set(key,v),removeItem:key=>stored.delete(key)};
+context.setTimeout=()=>0;context.clearTimeout=()=>{};
+context.document.createElement=()=>({setAttribute(){},querySelector(){return null;},close(){},remove(){}});context.document.body={append(){}};
+const draftApi={...api,account:{id:'test'},send:async(path,bodyMethod,body)=>{requests.push({path,body});return {...body,draftVersion:'1',state:'editing',updatedAt:first};}};
+const draftsModule=await module('src/web/shared/personal-state.ts',{'./api':draftApi,'./history':history});
+for(const formKind of ['project','status','create']){
+ const before=requests.length,store=new draftsModule.PersonalDrafts('1',()=>({editable:true,version:'1'}),()=>true,{button:false});
+ store.capture(formKind,undefined,'1',{values:{},submission:{changes:{},commands:[]}});await store.sync();assert.equal(requests.length,before,'无改动不保存草稿');
+ store.capture(formKind,undefined,'1',{values:{name:'新名称'}});await store.sync();assert.equal(requests.at(-1).path,'/api/personal/drafts/save');
+ store.capture(formKind,undefined,'1',{values:{}});await store.sync();assert.equal(requests.at(-1).path,'/api/personal/drafts/discard','改回原值移除已同步草稿');
+}
+const description=draftsModule.draftText({formKind:'project',payload:{values:{name:'新名称',taskOps:[{op:'add',id:'internal-id',text:'验收样机'}]},submission:{commands:[{action:'confirmStageState',stageCode:'S1',state:'active'}]}}});
+assert.match(description,/修改项目名称：新名称/);assert.match(description,/新增待办任务：验收样机/);assert.match(description,/进行中/);assert(!description.includes('internal-id')&&!description.includes('taskOps'));
+assert.equal(draftsModule.meaningfulEditor({op:'add',tempId:'unused',level:'mid',content:''}),false);
+assert.equal(draftsModule.meaningfulEditor({op:'correct',changes:{},reason:''}),false);
+assert.equal(draftsModule.meaningfulEditor({op:'add',content:'有实际输入'}),true);
+console.log(JSON.stringify({ status: 'passed', cases: count, displayCases: 4, mentionCases: 8, feedbackChecks:['owner_roles_export','new_task_pending','pending_before_completed','no_changes_no_draft','revert_discards_draft','operation_descriptions','empty_editor_ignored'], databaseAccess: false, source: 'audit_log.statusDesc', checks: ['creation', 'changed_lines', 'reorder', 'duplicates', 'empty_lines', 'legacy_unknown', 'no_op', 'remove_and_readd', 'current_body_consistency', 'missing_before', 'audit_gap', 'manual_text_preserved', 'shared_shanghai_dates', 'stale_projection_falls_back', 'html_escaped', 'exports_keep_dates_without_mutating_body_or_filters', 'known_full_name_longest_match', 'mention_boundary', 'literal_special_characters', 'free_name_compatibility', 'no_at_no_mention', 'mention_deduplication', 'full_name_filter_and_export'] }));

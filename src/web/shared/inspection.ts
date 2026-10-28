@@ -11,7 +11,7 @@ export function inspectionContent(detail: Detail) {
   return facts([['客户',p.customer],['分组',p.projectGroup],['产品线',p.productLine],['ODM 工厂',p.odmFactory],['APP',p.app],['芯片',p.chips.map(item=>item.name).join('、')]])
     + facts([['立案日期',p.filingDate],['实际启动',p.startDate],['预计结案',p.dueDate],['实际结案',p.closedOn],['简介',p.summary]])
     + facts([['硬件负责人',people('hardware_owner')],['软件负责人',people('software_owner')],['参与人员',people('participant')]])
-    + (p.statusDesc ? `<div class="check-latest"><h3>最新状态说明</h3><p>${esc(p.statusDesc)}</p></div>` : '')
+    + (p.statusDesc ? `<div class="check-latest"><h3>任务清单</h3><p>${esc(p.statusDesc)}</p></div>` : '')
     + section('当前阶段',detail.stages.filter(s=>s.code===p.stage).length,table(detail.stages.filter(s=>s.code===p.stage),[['code','阶段'],['state','状态'],['expectedEndOn','预计完成'],['undatedNodeCount','缺目标日期节点'],['startedOn','实际开始'],['completedOn','实际完成'],['plannedDays','工期'],['note','评述']]),`${label(p.stage)} · ${label(p.stageState)}`)
     + section('项目节点',projectNodes.length,table(projectNodes,[['title','名称'],['stage','阶段'],['targetDate','目标日期'],['completedOn','实际完成'],['output','成果'],['previous','前置节点'],['next','后续节点']]),projectNodes.length ? `${projectNodes.filter(node=>!node.completedOn).length} 项未完成` : '')
     + section('客户节点',customerNodes.length,table(customerNodes,[['title','名称'],['targetDate','目标日期'],['completedOn','实际完成'],['note','备注']]),customerNodes.length ? `${customerNodes.filter(node=>!node.completedOn).length} 项未完成` : '')

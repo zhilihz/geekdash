@@ -1,5 +1,5 @@
 import { validTaskDraft } from './shared/task-text';
-import { taskPanel,putTaskOp,taskCopy,taskText,applyTaskText,confirmTaskDeletes } from './shared/tasks';
+import { changedTaskOps,taskPanel,putTaskOp,taskCopy,taskText,applyTaskText,confirmTaskDeletes } from './shared/tasks';
 import './shared/board.css';
 import './shared/read.css';
 import './shared/board-page.css';
@@ -21,7 +21,7 @@ let restoredScroll:number|undefined;
 let scrollTimer:ReturnType<typeof setTimeout>|undefined;
 query.set('view', ['active', 'proposal', 'closed', 'maintenance', 'all'].includes(query.get('view') ?? '') ? query.get('view')! : 'active');
 const dimensions = { customer: '客户', productLine: '产品线', odmFactory: 'ODM 工厂', app: '配套 APP', status: '状态', priority: '优先级', signal: '信号灯', stage: '项目阶段', progress: '进度', chip: '芯片', tags: '项目标签', group: '分组', owner: '项目负责与分工', taskOwner:'任务负责人', deadline: '计划结果' };
-const allowed = new Set(['contentFrom','contentTo','view', 'search', 'page', 'layout', ...Object.keys(dimensions)]);
+const allowed = new Set(['perspective','contentFrom','contentTo','view', 'search', 'page', 'layout', ...Object.keys(dimensions)]);
 for (const key of [...query.keys()]) if (!allowed.has(key)) query.delete(key);
 let controller: AbortController | undefined;
 let generation = 0;
@@ -48,9 +48,9 @@ function drafts(id:string){
     const next:StatusEdit={taskBulk:(row.payload.editors?.task as {text?:string}|undefined)?.text,id,value:typeof value==='string'?value:current.statusDesc,ops:Array.isArray(ops)?ops:[],base:current.statusDesc,version:current.version};statusEdits.set(id,next);activeStatus=id;captureStatus(next);preserveStatus();renderProjects();return true;
   },{button:false,kinds:['status']});statusDrafts.set(id,store);return store;
 }
-const statusChanged=(edit:StatusEdit)=>edit.value!==edit.base||!!edit.ops?.length||edit.taskBulk!==undefined&&edit.taskBulk!==taskText(taskCopy(currentProject(edit.id)?.tasks??[],edit.ops??[]));
+const statusChanged=(edit:StatusEdit)=>edit.value!==edit.base||!!changedTaskOps(currentProject(edit.id)?.tasks??[],edit.ops??[]).length||edit.taskBulk!==undefined&&edit.taskBulk!==taskText(taskCopy(currentProject(edit.id)?.tasks??[],edit.ops??[]));
 const statusChanges=(edit:StatusEdit)=>edit.ops?.length?{taskOps:edit.ops}:{statusDesc:edit.value};
-function captureStatus(edit:StatusEdit){if(!frozen && statusChanged(edit) && !edit.pending && !edit.stale)drafts(edit.id).capture('status',undefined,edit.version,{values:statusChanges(edit),...edit.taskBulk!==undefined?{editors:{task:{text:edit.taskBulk}}}:{},submission:{scope:'status',changes:statusChanges(edit)}});}
+function captureStatus(edit:StatusEdit){if(!frozen && !edit.pending && !edit.stale)drafts(edit.id).capture('status',undefined,edit.version,{values:statusChanged(edit)?statusChanges(edit):{},...edit.taskBulk!==undefined&&statusChanged(edit)?{editors:{task:{text:edit.taskBulk}}}:{},submission:{scope:'status',changes:statusChanged(edit)?statusChanges(edit):{}}});}
 function clearEditors(){editors.clear();document.querySelectorAll('[data-project-editors]').forEach(node=>node.replaceChildren());}
 async function loadMentionPeople(){
   if(mentionLoading)return mentionLoading;
@@ -94,13 +94,13 @@ function card(project: ListProject) {
     ${project.marketExpectation ? `<p class="board-card-market"><span>市场预期</span>${esc(project.marketExpectation)}</p>` : ''}</section>
     ${project.managers.length>1?`<p class="read-label">协作者：${project.managers.filter(person=>person.id!==account?.id).map(person=>esc(person.name)+(person.enabled?'':'（已停用）')).join('、')}</p>`:''}
     <div class="board-card-stage"><div class="board-stage-heading"><span>当前阶段：${esc(stageName)}</span><strong>${project.progress}%</strong></div><div class="board-card-progress"><div class="stage-bar-track"><div class="stage-bar-fill" style="width:${Number(project.progress)}%"></div></div></div><p class="board-card-milestone">${stage ? '里程碑：' + esc(stage.milestone) : project.stage === 'completed' ? '七阶段里程碑已全部完成。' : '阶段待确认'}</p></div>
-    <div class="board-card-status"><div class="board-status-heading"><span>最新状态说明</span></div>${statusContent(project)}</div>
+    <div class="board-card-status"><div class="board-status-heading"><span>任务清单</span></div>${statusContent(project)}</div>
     <div class="board-card-footer"><div class="board-check-time">最近检查：${project.checkStatus.latest ? `<time datetime="${esc(project.checkStatus.latest.checkedAt)}">${esc(checkTime(project.checkStatus))}</time>${project.checkStatus.latest.actorName ? ' · ' + esc(project.checkStatus.latest.actorName) : ''}` : '尚未检查'}${project.checkStatus.updatedAfterCheck ? '<span class="board-check-updated">检查后有更新</span>' : ''}</div><a href="project-detail.html?id=${project.id}">查看详情 ↗</a></div></article>`;
 }
 function statusContent(project:ListProject){
   const edit=statusEdits.get(project.id),editable=canEditStatus(project),stale=!!edit && (edit.stale || edit.version!==project.version || !editable);
-  const notice=frozen?(edit?.committed?'状态已保存，无需重新保存。请重新登录后读取结果，输入保留供复制。':'账号状态已改变，输入和原保存请求保留，请重新登录。'):edit?.committed?edit.message ?? '状态已保存，正在读取正式内容。':stale?'项目已被他人更新，请重新进入项目。未保存文字保留供复制。':edit?.message ?? '';
-  if(edit && activeStatus===project.id)return `${edit.value!==edit.base?`<textarea data-status-input="${project.id}" aria-label="旧状态说明草稿" rows="5" ${frozen||stale?'readonly':''}>${esc(edit.value)}</textarea>`:taskPanel(project.tasks??[],edit.ops??[],!frozen&&!stale&&!edit.busy,edit.taskBulk)}<p class="board-status-feedback" role="status">${esc(notice)}</p><div class="board-status-actions">${edit.committed?`<button data-status-action="query" ${edit.busy || frozen?'disabled':''}>读取已保存结果</button>`:edit.pending?`<button data-status-action="query" ${edit.busy || frozen?'disabled':''}>核对原保存结果</button><button data-status-action="retry" ${edit.busy || frozen?'disabled':''}>重试原保存</button>`:`<button data-status-action="save" ${edit.busy || frozen || stale?'disabled':''}>保存状态</button><button data-status-action="cancel" ${edit.busy || frozen?'disabled':''}>取消修改</button><button data-status-action="drafts" ${edit.busy || frozen?'disabled':''}>个人草稿</button>`}${stale || frozen?`<button data-status-action="copy">复制输入</button><a href="project-detail.html?id=${project.id}">重新进入项目</a>`:''}</div>`;
+  const notice=frozen?(edit?.committed?'任务已保存，无需重新保存。请重新登录后读取结果，输入保留供复制。':'账号状态已改变，输入和原保存请求保留，请重新登录。'):edit?.committed?edit.message ?? '任务已保存，正在读取正式内容。':stale?'项目已被他人更新，请重新进入项目。未保存文字保留供复制。':edit?.message ?? '';
+  if(edit && activeStatus===project.id)return `${edit.value!==edit.base?`<textarea data-status-input="${project.id}" aria-label="旧状态说明草稿" rows="5" ${frozen||stale?'readonly':''}>${esc(edit.value)}</textarea>`:taskPanel(project.tasks??[],edit.ops??[],!frozen&&!stale&&!edit.busy,edit.taskBulk)}<p class="board-status-feedback" role="status">${esc(notice)}</p><div class="board-status-actions">${edit.committed?`<button data-status-action="query" ${edit.busy || frozen?'disabled':''}>读取已保存结果</button>`:edit.pending?`<button data-status-action="query" ${edit.busy || frozen?'disabled':''}>核对原保存结果</button><button data-status-action="retry" ${edit.busy || frozen?'disabled':''}>重试原保存</button>`:`<button data-status-action="save" ${edit.busy || frozen || stale?'disabled':''}>保存任务</button><button data-status-action="cancel" ${edit.busy || frozen?'disabled':''}>取消修改</button><button data-status-action="drafts" ${edit.busy || frozen?'disabled':''}>个人草稿</button>`}${stale || frozen?`<button data-status-action="copy">复制输入</button><a href="project-detail.html?id=${project.id}">重新进入项目</a>`:''}</div>`;
   return `<div class="board-status-lines">${taskPanel(project.tasks??[],[],false)}</div>${editable || edit?`<button data-status-action="edit" ${frozen?'disabled':''}>${edit?'继续编辑':'更新状态'}</button>`:''}`;
 }
 function renderProjects() {
@@ -153,9 +153,9 @@ async function saveStatus(edit:StatusEdit,queryResult=false){
     if(!statusChanged(edit)){statusEdits.delete(edit.id);if(activeStatus===edit.id)activeStatus=undefined;}
     else edit.message='上次提交已保存，后来输入仍待保存。';
     preserveStatus();renderProjects();
-    if(await load(false))feedback('状态已保存。');
+    if(await load(false))feedback('任务已保存。');
   }catch(error){
-    edit.message=edit.committed?'状态已保存，正式内容暂未读回，无需重新保存；输入和原结果已保留。':error instanceof SaveError?error.fields?.taskOps ?? error.fields?.statusDesc ?? error.message:(error as Error).message;
+    edit.message=edit.committed?'任务已保存，正式内容暂未读回，无需重新保存；输入和原结果已保留。':error instanceof SaveError?error.fields?.taskOps ?? error.fields?.statusDesc ?? error.message:(error as Error).message;
     if(error instanceof SaveError && ['AUTH_REQUIRED','AUTH_CONTEXT_CHANGED','PASSWORD_CHANGE_REQUIRED','CSRF_INVALID'].includes(error.code))document.dispatchEvent(new Event('geekdash-identity-changed'));
   }finally{edit.busy=false;if(statusEdits.has(edit.id))captureStatus(edit);preserveStatus();renderProjects();}
 }
@@ -222,7 +222,7 @@ function charts(data: Dashboard) {
   element('focus-projects').innerHTML = data.focus.map(project => {const progress=Math.max(0,Math.min(100,Number(project.progress))),color=project.priority==='high'?'var(--red)':project.priority==='mid'?'var(--yellow)':'var(--accent)';return `<a class="pp-item" data-project-id="${project.id}" href="project-detail.html?id=${project.id}"><div class="pp-ring"><svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18" fill="none" stroke="var(--border)" stroke-width="4"/><circle cx="22" cy="22" r="18" fill="none" stroke="${color}" stroke-width="4" pathLength="100" stroke-dasharray="${progress} 100" transform="rotate(-90 22 22)"/></svg><span class="pp-ring-pct">${progress}%</span></div><div class="pp-info"><div class="pp-name">${esc(project.name)}</div><div class="pp-meta">${esc(label(project.stage))} · ${esc(label(project.status))}</div></div></a>`;}).join('') || '<p class="pp-empty">当前范围没有匹配项目</p>';
   const maximum=Math.max(1,...data.managers.map(person=>person.count));
   element('manager-project-counts').innerHTML=`<ul class="board-distribution">${data.managers.map(person=>`<li><button class="legend-filter" data-manager="${esc(person.id)}">${esc(person.name)}</button><span class="board-distribution-track" aria-hidden="true"><i style="width:${person.count/maximum*100}%;background:var(--accent)"></i></span><b>${person.count}</b></li>`).join('')||'<li>暂无负责项目</li>'}</ul>`;
-  element('latest-status').innerHTML = data.latest.length ? `<div class="read-table-wrap"><table class="read-table"><thead><tr><th>项目</th><th>最新状态说明</th><th>更新时间</th></tr></thead><tbody>${data.latest.map(project => `<tr><th scope="row"><a data-project-id="${project.id}" href="project-detail.html?id=${project.id}">${esc(project.name)}</a></th><td>${esc(project.statusDesc || '暂无状态说明')}</td><td>${esc(project.contentUpdatedAt?(project.contentUpdatedAt.includes('T')?new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',dateStyle:'short',timeStyle:'short'}).format(new Date(project.contentUpdatedAt)):project.contentUpdatedAt):'时间未知')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="pp-empty">暂无匹配项目</p>';
+  element('latest-status').innerHTML = data.latest.length ? `<div class="read-table-wrap"><table class="read-table"><thead><tr><th>项目</th><th>任务清单</th><th>更新时间</th></tr></thead><tbody>${data.latest.map(project => `<tr><th scope="row"><a data-project-id="${project.id}" href="project-detail.html?id=${project.id}">${esc(project.name)}</a></th><td>${esc(project.statusDesc || '暂无待办任务')}</td><td>${esc(project.contentUpdatedAt?(project.contentUpdatedAt.includes('T')?new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',dateStyle:'short',timeStyle:'short'}).format(new Date(project.contentUpdatedAt)):project.contentUpdatedAt):'时间未知')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="pp-empty">暂无匹配项目</p>';
   distribution();
 }
 
@@ -249,6 +249,7 @@ async function load(active = true) {
   message.classList.remove('error');
   message.textContent = '正在读取项目…';
   history.replaceState(null, '', location.pathname + '?' + query);
+  document.querySelectorAll<HTMLButtonElement>('[data-perspective]').forEach(button=>{const selected=button.dataset.perspective===query.get('perspective');button.classList.toggle('active',selected);button.setAttribute('aria-pressed',String(selected));});
   document.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(button => { const active = button.dataset.view === query.get('view'); button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
   try {
     const requestQuery = new URLSearchParams(query); requestQuery.delete('layout'); requestQuery.set('dashboard', '1');
@@ -261,6 +262,7 @@ async function load(active = true) {
     for(const project of data.items){const edit=statusEdits.get(project.id);if(edit && !edit.pending && (edit.version!==project.version || !canEditStatus(project)))edit.stale=true;}
     query.set('page', String(pagination.page));
     history.replaceState(null, '', location.pathname + '?' + query);
+
     filters(data.options, data.optionLabels);
     hasResult = true;
     businessDate = data.businessDate;
@@ -272,8 +274,8 @@ async function load(active = true) {
     const selected = selectedFilters();
     element('result-count').textContent = `共 ${pagination.total} 个项目 · 截至 ${businessDate}`;
     element('result-count').title = selected.join(' · ') || '未设置筛选';
-    element('today-check-count').textContent = `全部项目 ${data.globalChecks.total} · ${data.checkPolicy?.frequency==='manual'?'有检查记录':'本期已检查'} ${data.globalChecks.cycleChecked} · ${data.checkPolicy?.frequency==='manual'?'尚无检查记录':'本期待检查'} ${data.globalChecks.cycleUnchecked}`;
-    element<HTMLAnchorElement>('check-entry').href = '/project-checks.html?view=all&checkCycle=unchecked';
+    element('today-check-count').textContent = `${query.get('perspective')==='responsible'?'负责项目':'全部项目'} ${data.globalChecks.total} · ${data.checkPolicy?.frequency==='manual'?'有检查记录':'本期已检查'} ${data.globalChecks.cycleChecked} · ${data.checkPolicy?.frequency==='manual'?'尚无检查记录':'本期待检查'} ${data.globalChecks.cycleUnchecked}`;
+    element<HTMLAnchorElement>('check-entry').href = '/project-checks.html?view=all&checkCycle=unchecked&perspective='+query.get('perspective');
     element('check-entry').removeAttribute('aria-disabled');
     element('page-info').textContent = `${pagination.page} / ${pagination.pageCount} 页`;
     previous.disabled = pagination.page <= 1;
@@ -310,7 +312,7 @@ document.addEventListener('click',event=>{
   location.href='/project-status-summary.html?quick='+key;
 });
 document.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(button => button.onclick = () => {
-  for (const key of [...query.keys()]) if (key !== 'view' && key !== 'layout') query.delete(key);
+  for (const key of [...query.keys()]) if (key !== 'view' && key !== 'layout' && key !== 'perspective') query.delete(key);
   search.value = '';
   change('view', button.dataset.view!);
 });
@@ -321,7 +323,7 @@ filterRows.onclick = event => {
 let searchTimer: ReturnType<typeof setTimeout>;
 search.oninput = () => { clearTimeout(searchTimer); controller?.abort(); generation++; freezeCheckEntry(); searchTimer = setTimeout(() => change('search', search.value), 200); };
 filterRows.addEventListener('change',event=>{const input=event.target as HTMLInputElement;if(input.dataset.contentDate&&input.reportValidity())change(input.dataset.contentDate,input.value);});
-element('clear').onclick = () => { clearTimeout(searchTimer); for (const key of [...query.keys()]) if (key !== 'view' && key !== 'layout') query.delete(key); search.value = ''; remember();void load(); };
+element('clear').onclick = () => { clearTimeout(searchTimer); for (const key of [...query.keys()]) if (key !== 'view' && key !== 'layout' && key !== 'perspective') query.delete(key); search.value = ''; remember();void load(); };
 element('previous').onclick = () => { if (pagination) { query.set('page', String(pagination.page - 1)); remember();void load(); } };
 element('next').onclick = () => { if (pagination) { query.set('page', String(pagination.page + 1)); remember();void load(); } };
 element('filter-toggle').onclick = () => { filterRows.hidden = !filterRows.hidden; filterToggle();remember(); };
@@ -353,7 +355,12 @@ document.addEventListener('geekdash-identity-changed',()=>{frozen=true;generatio
 document.addEventListener('geekdash-preference-status',event=>{feedback((event as CustomEvent<string>).detail);});
 setInterval(() => { if (hasResult && document.visibilityState === 'visible' && businessDate !== new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date())) void load(false); }, 60000);
 void import('./shared/api').then(async ({ requireIdentity }) => {
-  await requireIdentity();preference=new PersonalPreference('board',feedback);const saved=await preference.load();if(Array.isArray(saved.distributions))visibleDistributions=saved.distributions.filter((key:unknown)=>typeof key==='string'&&Object.hasOwn(distributionNames,key));
+  await requireIdentity();
+  const dualRole=!!account?.isMaintenance && !!account?.isProjectManager;
+  query.set('perspective',account?.isMaintenance ? dualRole && query.get('perspective')!=='management'?'responsible':'management':'responsible');
+  element('perspective-switch').hidden=!dualRole;
+  document.querySelectorAll<HTMLButtonElement>('[data-perspective]').forEach(button=>button.onclick=()=>{query.set('perspective',button.dataset.perspective!);query.set('page','1');preserveStatus();void load();});
+  preference=new PersonalPreference('board',feedback);const saved=await preference.load();if(Array.isArray(saved.distributions))visibleDistributions=saved.distributions.filter((key:unknown)=>typeof key==='string'&&Object.hasOwn(distributionNames,key));
   try{const cached=JSON.parse(sessionStorage.getItem(statusCache()) ?? '[]');if(Array.isArray(cached))for(const edit of cached)if(typeof edit.id==='string' && /^[1-9][0-9]*$/.test(edit.id) && typeof edit.value==='string' && typeof edit.base==='string' && validTaskDraft(edit.ops) && (edit.taskBulk===undefined||typeof edit.taskBulk==='string') && typeof edit.version==='string' && (!edit.pending || edit.pending.scope==='status'))statusEdits.set(edit.id,{...edit,busy:false});}catch{}
   if(!explicitQuery){if(typeof saved.view==='string')query.set('view',saved.view);if(typeof saved.page==='number')query.set('page',String(saved.page));for(const [key,value] of Object.entries(saved.filters ?? {}))if(allowed.has(key)){query.delete(key);for(const item of Array.isArray(value)?value:[value])if(typeof item==='string')query.append(key,item)};restoredScroll=typeof saved.scrollY==='number'?saved.scrollY:undefined;}
   if(!query.has('layout') && appearance?.current().layout==='progress')query.set('layout','progress');

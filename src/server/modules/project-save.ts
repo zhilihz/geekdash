@@ -248,7 +248,7 @@ function receiptResult(receipt: RowDataPacket, hash: Buffer): SaveResult {
 }
 async function project(connection: PoolConnection, id: string, locked: boolean, authenticated = false) {
   const row = (await query(connection, `SELECT CAST(id AS CHAR) id,CAST(version AS CHAR) version,data_kind,tasks_unified tasksUnified,
-    ${Object.entries(columns).map(([key, column]) => `${column.endsWith('_id') ? `CAST(\`${column}\` AS CHAR)` : `\`${column}\``} \`${key}\``).join(',')} FROM projects WHERE id=?${locked ? ' FOR UPDATE' : ''}`, [id]))[0];
+    ${Object.entries(columns).map(([key, column]) => `${column.endsWith('_id') ? `CAST(\`${column}\` AS CHAR)` : `\`${column}\``} \`${key}\``).join(',')} FROM projects WHERE deleted_at IS NULL AND id=?${locked ? ' FOR UPDATE' : ''}`, [id]))[0];
   if (!row) failure('PROJECT_NOT_FOUND', 404);
   if (!authenticated && row.data_kind !== 'trial') failure('PROJECT_READ_ONLY', 403);
   return row;
@@ -460,7 +460,7 @@ export function projectSaves(database: RuntimeDatabase) {
     audit(id: string, pageSize: number, before?: string, accountId?:string) {
       return database.readSnapshot(async connection => {
     if(accountId)await assertProjectAccess(connection,id,accountId);
-        if (!(await query(connection, 'SELECT id FROM projects WHERE id=?', [id])).length) failure('PROJECT_NOT_FOUND', 404);
+        if (!(await query(connection, 'SELECT id FROM projects WHERE deleted_at IS NULL AND id=?', [id])).length) failure('PROJECT_NOT_FOUND', 404);
         const items = await query(connection, `SELECT CAST(id AS CHAR) id,actor_display_name actorDisplayName,actor_kind actorKind,action,
           CAST(version_before AS CHAR) versionBefore,CAST(version_after AS CHAR) versionAfter,before_json beforeValues,after_json afterValues,
           DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%s.%fZ') createdAt FROM audit_log WHERE project_id=?${before ? ' AND id<?' : ''} ORDER BY audit_log.id DESC LIMIT ?`, [id, ...(before ? [before] : []), pageSize + 1]);

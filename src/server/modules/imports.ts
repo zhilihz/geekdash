@@ -246,7 +246,7 @@ async function viewItem(c: PoolConnection, actor: Actor, b: RowDataPacket, row: 
   const stored = metadata.sourceNamespace===b.sourceNamespace ? metadata.choice : undefined;
   const choice = input?.mode ? {mode:input.mode,targetId:input.targetId ?? null} : stored;
   const sourceProjectName=row.corrected?.fields?.name ?? row.raw.name;
-  const named=project&&typeof sourceProjectName==='string'&&sourceProjectName.trim()?await rows(c,'SELECT CAST(id AS CHAR) id,name FROM projects WHERE name_key=?',[projectNameKey(sourceProjectName)]):[];
+  const named=project&&typeof sourceProjectName==='string'&&sourceProjectName.trim()?await rows(c,'SELECT CAST(id AS CHAR) id,name FROM projects WHERE deleted_at IS NULL AND name_key=?',[projectNameKey(sourceProjectName)]):[];
   let targetId: string | null = row.kind==='company' ? '1' : choice ? choice.mode==='existing' ? choice.targetId : null : project?named[0]?.id ?? null:null;
   if (targetId!==null && !validId(targetId)) failure('INVALID_IMPORT_TARGET',400);
   let current:Json|null=project&&targetId&&await hasProjectAccess(c,targetId,actor.id)?await readImportProject(c,targetId,b.sourceNamespace):null;
@@ -375,8 +375,8 @@ async function viewItem(c: PoolConnection, actor: Actor, b: RowDataPacket, row: 
   ]).toString('hex');
   const adoptions=await rows(c,'SELECT CAST(id AS CHAR) id,CAST(target_id AS CHAR) targetId,CAST(version_after AS CHAR) savedVersion,adopted_json adopted,JSON_KEYS(history_manifest_json) historyKinds,created_at savedAt FROM import_adoptions WHERE item_id=? ORDER BY id DESC',[row.id]);
   if(project)for(const adoption of adoptions)if(!await hasProjectAccess(c,adoption.targetId,actor.id))delete adoption.adopted;
-  const candidates=project&&typeof sourceProjectName==='string'&&sourceProjectName.trim()?await rows(c,'SELECT CAST(p.id AS CHAR) id,p.name FROM project_name_aliases a JOIN projects p ON p.id=a.project_id WHERE a.name_key=? AND p.name_key<>? ORDER BY p.id',[projectNameKey(sourceProjectName),projectNameKey(sourceProjectName)]):catalog[row.kind]??[];
-  const basic=restricted?(await rows(c,'SELECT CAST(p.id AS CHAR) id,p.name,p.status,p.summary FROM projects p WHERE p.id=?',[targetId]))[0]:undefined;
+  const candidates=project&&typeof sourceProjectName==='string'&&sourceProjectName.trim()?await rows(c,'SELECT CAST(p.id AS CHAR) id,p.name FROM project_name_aliases a JOIN projects p ON p.id=a.project_id WHERE p.deleted_at IS NULL AND a.name_key=? AND p.name_key<>? ORDER BY p.id',[projectNameKey(sourceProjectName),projectNameKey(sourceProjectName)]):catalog[row.kind]??[];
+  const basic=restricted?(await rows(c,'SELECT CAST(p.id AS CHAR) id,p.name,p.status,p.summary FROM projects p WHERE p.deleted_at IS NULL AND p.id=?',[targetId]))[0]:undefined;
   if (basic) for (const link of Object.values(projectReferences)) {
     const values = await rows(c,`SELECT CAST(v.id AS CHAR) id,v.name FROM ${link.table} r JOIN ${link.catalog} v ON v.id=r.${link.reference} WHERE r.project_id=? ORDER BY r.sort_order,v.id`,[targetId]);
     basic[link.dimension+'Items']=values; basic[link.dimension==='group'?'projectGroup':link.dimension]=values.map(v=>v.name).join(' / ');

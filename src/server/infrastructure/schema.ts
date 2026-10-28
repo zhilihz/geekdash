@@ -27,7 +27,7 @@ export async function loadSchema() {
   let manifest = structuredClone(foundation);
   const history = [{ version: foundation.version, checksum: createHash('sha256').update(bytes).digest() }];
   const increments: { previous: Manifest; manifest: Manifest; steps: ResolvedStep[] }[] = [];
-  for (const [version, count] of [['0002-trial-save', 3], ['0003-node-recovery', 1], ['0004-project-compatibility', 2], ['0005-check-facts', 1], ['0006-imports', 11], ['0007-import-executions', 1], ['0008-import-name-bindings', 1], ['0009-project-space', 8], ['0010-project-editing', 9], ['0011-accounts-check-settings', 4], ['0012-account-management', 2], ['0013-account-capabilities', 1], ['0014-project-tasks', 2]] as const) {
+  for (const [version, count] of [['0002-trial-save', 3], ['0003-node-recovery', 1], ['0004-project-compatibility', 2], ['0005-check-facts', 1], ['0006-imports', 11], ['0007-import-executions', 1], ['0008-import-name-bindings', 1], ['0009-project-space', 8], ['0010-project-editing', 9], ['0011-accounts-check-settings', 4], ['0012-account-management', 2], ['0013-account-capabilities', 1], ['0014-project-tasks', 2], ['0015-project-deletion', 2]] as const) {
     const bytes = await readFile(new URL('../../migrations/' + version + '.json', import.meta.url));
     const delta = JSON.parse(bytes.toString('utf8')) as { version: string; steps: MigrationStep[] };
     if (delta.version !== version || delta.steps.length !== count) fail('DB_MIGRATION_RESOURCE_INVALID');

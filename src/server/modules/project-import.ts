@@ -195,14 +195,14 @@ export async function lockImportProject(c: PoolConnection, input: ImportProjectI
   let current: RowDataPacket | null = null;
   if (input.projectId) {
     if (!validId(input.projectId)) failure('INVALID_PROJECT_ID', 400);
-    current = (await rows(c, `SELECT CAST(id AS CHAR) id,CAST(version AS CHAR) version,${selectFields()},CAST(source_import_item_id AS CHAR) sourceImportItemId FROM projects WHERE id=?${lock ? ' FOR UPDATE' : ''}`, [input.projectId]))[0] ?? null;
+    current = (await rows(c, `SELECT CAST(id AS CHAR) id,CAST(version AS CHAR) version,${selectFields()},CAST(source_import_item_id AS CHAR) sourceImportItemId FROM projects WHERE deleted_at IS NULL AND id=?${lock ? ' FOR UPDATE' : ''}`, [input.projectId]))[0] ?? null;
     if (!current) failure('PROJECT_NOT_FOUND', 404);
   }
   return { current, references };
 }
 
 export async function readImportProject(c: PoolConnection, projectId: string, sourceNamespace?: string): Promise<ImportProjectInput | null> {
-  const current = (await rows(c, `SELECT CAST(version AS CHAR) version,${selectFields()} FROM projects WHERE id=?`, [projectId]))[0];
+  const current = (await rows(c, `SELECT CAST(version AS CHAR) version,${selectFields()} FROM projects WHERE deleted_at IS NULL AND id=?`, [projectId]))[0];
   if (!current) return null;
   const fields: ImportProjectFields & Record<string, unknown> = { ...current }; delete fields.version;
   fields.maintenanceEnabled = !!fields.maintenanceEnabled;

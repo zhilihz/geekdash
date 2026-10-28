@@ -1277,3 +1277,6 @@ html, body {
 .ref-pill,.selected-tag { display:inline-flex; align-items:center; justify-content:center; }
 
 .project-exit{padding:24px 32px;border-top:1px solid var(--border);display:flex;gap:12px;justify-content:flex-end}.project-exit:empty{display:none}
+
+.project-access:not([hidden]){display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:16px 24px;border-bottom:1px solid var(--border);background:var(--bg-input);color:var(--text-dim)}
+.stage-choice [data-confirm-state][aria-pressed=true]{outline:3px solid var(--accent);outline-offset:3px}

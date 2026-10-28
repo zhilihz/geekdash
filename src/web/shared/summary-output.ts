@@ -11,7 +11,7 @@ export function printSummary(projects:SummaryProject[],columns:SummaryColumn[],t
 export async function summaryPng(projects:SummaryProject[],visible:SummaryColumn[],title:string,snapshot:SummarySnapshot):Promise<Blob>{
   if(!projects.length)throw new Error('请先选择要导出的项目。');
   await document.fonts?.ready;
-  const columns=pngColumns.filter(c=>visible.includes(c)),widths:Record<string,number>={name:240,customer:180,status:390,engineers:180,dueDate:160,delay:150};
+  const columns=pngColumns.filter(c=>visible.includes(c)),widths:Record<string,number>={name:240,customer:180,status:390,projectOwners:180,engineers:180,dueDate:160,delay:150};
   const width=columns.reduce((sum,c)=>sum+widths[c],0)+48,rowHeight=108,height=164+projects.length*rowHeight;
   // ponytail: 浏览器单张画布有尺寸上限；超出时明确改用完整CSV/PDF，不截掉项目。
   if(height>30000 || width*height>32000000)throw new Error('本次项目过多，无法生成一张完整摘要图，请减少选择或导出 CSV、PDF。');

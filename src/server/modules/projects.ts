@@ -27,7 +27,7 @@ export const stages = [
   { code: 'S6', name: 'PVT量产验证', progress: 90 },
   { code: 'S7', name: 'MP量产维护', progress: 100 },
 ];
-export type ProjectQuery = Partial<Record<'customer' | 'productLine' | 'odmFactory' | 'app' | 'group' | 'status' | 'priority' | 'signal' | 'stage' | 'progress' | 'chip' | 'tags' | 'owner' | 'taskOwner', string | string[]>> & { contentFrom?:string; contentTo?:string; view?: string; search?: string; deadline?: DeadlineKind | DeadlineKind[]; checkToday?: 'unchecked' | 'checked'; checkCycle?: 'unchecked'|'checked'; page?: number; pageSize?: number; dashboard?: '1'; details?: 'checks' };
+export type ProjectQuery = Partial<Record<'customer' | 'productLine' | 'odmFactory' | 'app' | 'group' | 'status' | 'priority' | 'signal' | 'stage' | 'progress' | 'chip' | 'tags' | 'owner' | 'taskOwner', string | string[]>> & { contentFrom?:string; contentTo?:string; perspective?:'responsible'|'management'; view?: string; search?: string; deadline?: DeadlineKind | DeadlineKind[]; checkToday?: 'unchecked' | 'checked'; checkCycle?: 'unchecked'|'checked'; page?: number; pageSize?: number; dashboard?: '1'; details?: 'checks' };
 
 async function rows(connection: PoolConnection, sql: string, values: unknown[] = []) {
   return (await connection.query<RowDataPacket[]>({ sql, timeout: 3000 }, values))[0];
@@ -53,7 +53,7 @@ const stageStateExpression = "COALESCE((SELECT s.state FROM project_stages s WHE
 
 const selectedValues = (value: string | string[] | undefined) => value === undefined ? [] : Array.isArray(value) ? [...new Set(value)] : [value];
 function conditions(query: ProjectQuery, includeFilters: boolean, today: string, accountId?:string, policy?:CheckPolicy) {
-  const clauses: string[] = [];
+  const clauses: string[] = ['p.deleted_at IS NULL'];
   const values: unknown[] = [];
   if(accountId){clauses.push('EXISTS(SELECT 1 FROM project_responsibilities own JOIN users owner ON owner.id=own.user_id WHERE own.project_id=p.id AND own.user_id=? AND owner.enabled=1)');values.push(accountId);}
   switch (query.view ?? 'active') {
@@ -152,7 +152,7 @@ async function readDetail(connection: PoolConnection, id: string, accountId: str
           DATE_FORMAT(p.original_due_date,'%Y-%m-%d') originalDueDate,CAST(p.first_check_rule_version AS CHAR) firstCheckRuleVersion,
           p.signal_note signalNote,p.detail_note detailNote,p.summary_note summaryNote,p.chipstat_note chipstatNote,
           p.pre_close_status preCloseStatus,CAST(p.source_import_item_id AS CHAR) sourceImportItemId,p.closure_note closureNote,p.remaining_work_note remainingWorkNote,CAST(p.created_by AS CHAR) createdBy
-          ${joins} WHERE p.id=?`, [...todayCheck.values, id]), statusEntries === undefined))[0];
+          ${joins} WHERE p.deleted_at IS NULL AND p.id=?`, [...todayCheck.values, id]), statusEntries === undefined))[0];
         if (!project) return null;
         if (statusEntries && !project.tasksUnified) project.statusEntries = statusEntries;
         project.checkedToday = Number(project.checkedToday) === 1;
@@ -190,7 +190,7 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
   return {
     space(query:{search?:string;tags?:string[];customer?:string[];productLine?:string[];chip?:string[];page?:number;pageSize?:number},accountId:string) {
       return database.readSnapshot(async c=>{
-        const clauses: string[] = [], params: unknown[] = [];
+        const clauses: string[] = ['p.deleted_at IS NULL'], params: unknown[] = [];
         if (query.search) {
           const term = '%' + query.search.toLowerCase().replace(/[!%_]/g, char => '!' + char) + '%';
           const refs = Object.values(projectReferences).map(link => `EXISTS(SELECT 1 FROM ${link.table} l JOIN ${link.catalog} r ON r.id=l.${link.reference} WHERE l.project_id=p.id AND LOWER(r.name) LIKE ? ESCAPE '!')`);
@@ -221,9 +221,9 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
 
           }
         }
-        const tagOptions=(await rows(c,'SELECT DISTINCT t.name FROM tags t JOIN project_tags p ON p.tag_id=t.id ORDER BY t.name')).map(row=>row.name);
+        const tagOptions=(await rows(c,'SELECT DISTINCT t.name FROM tags t JOIN project_tags l ON l.tag_id=t.id JOIN projects p ON p.id=l.project_id AND p.deleted_at IS NULL ORDER BY t.name')).map(row=>row.name);
         const filterOptions:Record<string,string[]>={};
-        for (const [key,table,catalog,column] of [['customer','project_customers','customers','customer_id'],['productLine','project_product_lines','product_lines','product_line_id'],['chip','project_chip_selections','chips','chip_id']]) filterOptions[key]=(await rows(c,`SELECT DISTINCT r.name FROM ${catalog} r JOIN ${table} l ON l.${column}=r.id ORDER BY r.name`)).map(row=>row.name);
+        for (const [key,table,catalog,column] of [['customer','project_customers','customers','customer_id'],['productLine','project_product_lines','product_lines','product_line_id'],['chip','project_chip_selections','chips','chip_id']]) filterOptions[key]=(await rows(c,`SELECT DISTINCT r.name FROM ${catalog} r JOIN ${table} l ON l.${column}=r.id JOIN projects p ON p.id=l.project_id AND p.deleted_at IS NULL ORDER BY r.name`)).map(row=>row.name);
         const suggested=await suggestedProjects(c,accountId);for(const item of items)item.suggested=suggested.some(value=>value.id===item.id);
         return {items,tagOptions,filterOptions,suggestedCount:suggested.length,pagination:{page,pageSize,total,pageCount}};
       });
@@ -232,7 +232,7 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
     summary(accountId: string) {
       const now=clock(),today=businessToday(now);
       return database.readSnapshot(async connection=>{
-        const items=await enrich(connection,await rows(connection,`SELECT ${columns},p.summary_note summaryNote,p.chipstat_note chipstatNote,p.detail_note detailNote,${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress ${joins} WHERE (EXISTS(SELECT 1 FROM users admin WHERE admin.id=? AND admin.enabled=1 AND admin.is_admin=1) OR EXISTS(SELECT 1 FROM project_responsibilities own JOIN users owner ON owner.id=own.user_id WHERE own.project_id=p.id AND own.user_id=? AND owner.enabled=1)) ORDER BY p.id`,[accountId,accountId]));
+        const items=await enrich(connection,await rows(connection,`SELECT ${columns},p.summary_note summaryNote,p.chipstat_note chipstatNote,p.detail_note detailNote,${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress ${joins} WHERE p.deleted_at IS NULL AND (EXISTS(SELECT 1 FROM users admin WHERE admin.id=? AND admin.enabled=1 AND admin.is_admin=1) OR EXISTS(SELECT 1 FROM project_responsibilities own JOIN users owner ON owner.id=own.user_id WHERE own.project_id=p.id AND own.user_id=? AND owner.enabled=1)) ORDER BY p.id`,[accountId,accountId]));
         await enrichChecks(connection,items,{businessDate:today});
         const nodes=await rows(connection,"SELECT CAST(project_id AS CHAR) projectId,CAST(id AS CHAR) id,title,DATE_FORMAT(target_date,'%Y-%m-%d') targetDate FROM project_nodes WHERE kind='project' AND deleted_at IS NULL AND completed_on IS NULL ORDER BY project_id,sort_order,id");
         const engineers=await rows(connection,'SELECT name FROM engineers ORDER BY name,id'),engineerNames=engineers.map(item=>String(item.name));
@@ -251,7 +251,7 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
       const now = clock(), today = businessToday(now);
       return database.readSnapshot(async connection => {
         const policy=await readCheckPolicy(connection,now);
-        const scopeAccount = accountId && !await isAdministrator(connection,accountId) ? accountId : undefined;
+        const scopeAccount = accountId && (query.perspective==='responsible' || !await isAdministrator(connection,accountId)) ? accountId : undefined;
         const checkStats = checkConditions();
         const base = conditions(query, false, today, scopeAccount,policy);
         const filtered = conditions(query, true, today, scopeAccount,policy);
@@ -303,7 +303,7 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
           optionQueries.push(`(SELECT DISTINCT '${key}' dimension,r.name value ${joins} JOIN ${link} l ON l.project_id=p.id JOIN ${table} r ON r.id=l.${reference} ${base.sql} ORDER BY value)`);
         }
         for (const option of await rows(connection, optionQueries.join(' UNION ALL ') + ' ORDER BY dimension,value', optionQueries.flatMap(() => base.values))) options[option.dimension].push(option.value);
-        const owners = await rows(connection, `(SELECT DISTINCT CONCAT('user:',u.id) id,CONCAT(u.display_name,'（项目经理）') name ${joins} JOIN project_responsibilities r ON r.project_id=p.id JOIN users u ON u.id=r.user_id ${base.sql}) UNION ALL (SELECT DISTINCT CONCAT('engineer:',e.id) id,CONCAT(e.name,'（业务分工）') name ${joins} JOIN project_people pp ON pp.project_id=p.id AND pp.role<>'pm' JOIN engineers e ON e.id=pp.engineer_id ${base.sql}) ORDER BY name,id`, [...base.values, ...base.values]);
+        const owners = await rows(connection, `(SELECT DISTINCT CONCAT('user:',u.id) id,u.display_name name ${joins} JOIN project_responsibilities r ON r.project_id=p.id JOIN users u ON u.id=r.user_id ${base.sql}) UNION ALL (SELECT DISTINCT CONCAT('engineer:',e.id) id,e.name name ${joins} JOIN project_people pp ON pp.project_id=p.id AND pp.role<>'pm' JOIN engineers e ON e.id=pp.engineer_id ${base.sql}) ORDER BY name,id`, [...base.values, ...base.values]);
         options.taskOwner=[...new Set([...taskOwners.values()].flat())].sort((a,b)=>a.localeCompare(b,'zh-CN'));
         options.owner = owners.map(item => item.id);
         const optionLabels = { owner: Object.fromEntries(owners.map(item => [item.id, item.name])) };

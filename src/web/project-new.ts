@@ -58,7 +58,7 @@ function remember() {
   if (!account || identityChanged) return;
   try { sessionStorage.setItem(key(), JSON.stringify({ fields: fields(), pending }));storageFailed=false; }
   catch { storageFailed=true;message.textContent = '本页恢复存储不可用，请保留页面直到保存完成。'; }
-  if(!pending)personalDrafts?.capture('create',undefined,null,{values:fields(),submission:{fields:fields()}});
+  if(!pending)personalDrafts?.capture('create',undefined,null,{values:hasInput()?fields():{},submission:{fields:hasInput()?fields():{}}});
 }
 function controls() {
   form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input,textarea,select').forEach(input => input.disabled = busy || !!pending || identityChanged || !account || input.dataset.reference === 'true' && !catalog);

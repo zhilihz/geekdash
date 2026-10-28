@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 import type { Notifications } from '../infrastructure/notifications.js';
+import { projectDeletion, validateDeletion } from '../modules/project-deletion.js';
 import { projectReads, type ProjectQuery } from '../modules/projects.js';
 import { projectSaves, validateSave, validId, type SaveRequest } from '../modules/project-save.js';
 import { projectCore, validateCore } from '../modules/project-core.js';
@@ -10,6 +11,15 @@ import { deadlineKinds } from '../modules/project-dates.js';
 import { deletedNodes } from '../modules/project-records.js';
 
 export function registerProjectReads(app: FastifyInstance, database?: RuntimeDatabase, notifications?: Notifications) {
+  const remove=database?projectDeletion(database):undefined;
+  for(const [path,confirm] of [['delete',false],['delete-results/query',true]] as const)app.post<{Params:{id:string};Body:unknown}>('/api/projects/:id/'+path,async(request,reply)=>{
+    if(!request.actor)return reply.code(401).send({code:'AUTH_REQUIRED',outcome:'not_committed'});
+    if(!validId(request.params.id))return reply.code(400).send({code:'INVALID_PROJECT_ID',outcome:'not_committed'});
+    if(!remove)return reply.code(503).send({code:'DATABASE_UNAVAILABLE',outcome:'not_committed'});
+    const result=await remove(request.actor,request.params.id,validateDeletion(request.body),request.id,confirm);
+    if(result.outcome==='committed')notifications?.projectChanged(result.result);
+    return result;
+  });
   const reads = database ? projectReads(database) : undefined;
   const saves = database ? projectSaves(database) : undefined;
   const core = database ? projectCore(database) : undefined;
@@ -138,6 +148,7 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
   for(const key of ['contentFrom','contentTo'])properties[key]={type:'string',pattern:'^\\d{4}-\\d{2}-\\d{2}$'};
   properties.view = { type: 'string', enum: ['active', 'proposal', 'closed', 'maintenance', 'all'] };
   properties.dashboard = { type: 'string', enum: ['1'] };
+  properties.perspective = { type: 'string', enum: ['responsible','management'] };
   properties.details = { type: 'string', enum: ['checks'] };
   properties.status = { type: 'string', enum: ['proposal', 'ongoing', 'paused', 'closed'] };
   properties.priority = { type: 'string', enum: ['high', 'mid', 'low'] };
