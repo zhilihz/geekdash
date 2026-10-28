@@ -34,6 +34,8 @@ function client() {
 }
 try {
   await c.execute('INSERT INTO users(login_name,password_hash,display_name,is_admin,is_project_manager,must_change_password,created_at,updated_at) VALUES (?,?,?,1,1,0,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))', [prefix, await hashPassword(password), '合成管理员']);
+  // 与初始化测试账号命令相同的空企业配置；本脚本仅在隔离实例执行。
+  await c.execute("INSERT IGNORE INTO system_configuration(id,maintenance_user_id,full_name,short_name,manager_text,name_prefix,updated_by,updated_at) SELECT 1,id,'','','','',id,UTC_TIMESTAMP(3) FROM users WHERE login_name=?",[prefix]);
   const runtime = await openRuntimeDatabase('test_app'); app = await createApp(runtime, { origin: 'http://localhost', secure: false }); origin = await app.listen({ host: '127.0.0.1', port: 0 });
   const admin = client(), member = client(), second = client();
   await admin.request('/api/auth/login', 'POST', { loginName: prefix, password }); await admin.request('/api/auth/me');
@@ -227,5 +229,27 @@ try {
   const recreated=(await member.request('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+'反馈删除'}})).result;
   assert.notEqual(recreated.projectId,feedback);
   checks.push('兼任管理员非成员只读、加入后实际保存；历史阶段两种选择共同保存后读回；人员筛选无角色后缀；管理员删除版本冲突/越权/幂等/旧页写入拒绝/全消费端移除/同名新建及审计保留');
+  for(const kind of ['customers','odmFactories','engineers','productLines','apps','tags','groups','chips']){
+    const create={id:null,expectedVersion:'0',idempotencyKey:randomUUID(),changes:{name:prefix+'资料'+kind}};
+    const preview=await member.request(`/api/catalog/${kind}/preview`,'POST',create);
+    const made=(await member.request(`/api/catalog/${kind}/save`,'POST',{...create,impactToken:preview.impactToken})).result;
+    let item=(await member.request(`/api/catalog/${kind}/${made.id}`)).item;assert.equal(item.enabled,true);
+    let linked;
+    if(kind==='customers')linked=(await member.request('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+'保留资料引用',customerIds:[made.id]}})).result.projectId;
+    const remove={id:made.id,expectedVersion:item.version,idempotencyKey:randomUUID(),changes:{enabled:false}};
+    const impact=await member.request(`/api/catalog/${kind}/preview`,'POST',remove);
+    const body={...remove,impactToken:impact.impactToken};
+    const removed=(await member.request(`/api/catalog/${kind}/save`,'POST',body)).result;
+    item=(await member.request(`/api/catalog/${kind}/${made.id}`)).item;assert.equal(item.enabled,false);assert.equal(item.name,create.changes.name);
+    if(linked){
+      assert.equal((await member.request('/api/projects/'+linked)).project.customer,create.changes.name);
+      assert.equal((await member.request(`/api/catalog/${kind}/save`,'POST',body)).result.operationId,removed.operationId);
+      const restore={id:made.id,expectedVersion:item.version,idempotencyKey:randomUUID(),changes:{enabled:true}};
+      const effect=await member.request(`/api/catalog/${kind}/preview`,'POST',restore);
+      await member.request(`/api/catalog/${kind}/save`,'POST',{...restore,impactToken:effect.impactToken});
+      assert.equal((await member.request(`/api/catalog/${kind}/${made.id}`)).item.enabled,true);
+    }
+  }
+  checks.push('普通项目经理实际新增/移除八类业务资料，新请求读取一致；有引用客户删除后项目名称与关联保留、幂等重试和恢复通过');
   console.log(JSON.stringify({ status: 'passed', prefix, httpRequests, checks }));
 } finally { if (app) await app.close(); await c.end(); }
