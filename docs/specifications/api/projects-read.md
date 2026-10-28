@@ -109,3 +109,5 @@ GET `/api/projects/:id/deleted-nodes?pageSize=20&before=字符串ID`；默认20�
 同一快照返回projectVersion/items/nextCursor/pageSize；items为完整原NodeRecord（deletedAt非空）和deletion。deletion有auditId/actorName/createdAt/beforeNode/operations/reason，来自当前页目标最后可信删除审计；无可信审计则null，页面显示来源未知。复用项目前缀索引及目标审计索引，不读取全项目全部历史。普通详情和结案遗留只消费有效节点。
 
 客户端只在页projectVersion等于进入项目版本时接收；不同则冻结原编辑并提示重入，原副本保留供复制。恢复或删除明确保存后清旧分页缓存，再新请求读取；分页GET不产生恢复、历史、项目版本或回执。
+
+2026-10-28（92ecbc4）追加：GET /api/projects接受perspective=responsible|management，可与view/dashboard/details=checks叠加；responsible按本人负责关系筛选，management仍核服务器管理员身份，普通账号不能扩大范围。个人看板在可信身份加载后为兼任账号默认传responsible。所有读取排除deleted_at非空项目。行为归SPEC-022。

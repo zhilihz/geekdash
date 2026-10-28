@@ -36,3 +36,13 @@
 代码5ba3b4c38bc784e0b576ca76dd21814cc6bf6939，clean构建2026-10-27T16:22:38.485Z，schema仍为0014-project-tasks。固定产物为test-results/live-0014-bulk，editing-ui.mjs已指向该目录；仅重启geekdash-editing-20261027-ui，没有运行迁移、清理或用户业务写入。健康接口回读构建一致、ready；首页、详情、简要、账号管理、登录、个人资料及改密页面HTTP200。静态可访问不等于真实操作验收，用户继续负责页面验收。
 
 本次应用更新的前一产物是live-0014-drafts，两者均使用0014结构；必要时可改回该启动入口并仅重启应用，但应先确认问题范围及用户当前未保存输入。原备份仍是首次0014迁移前时点，不代表本次更新时的数据备份。新加坡本轮未更新；阶段main合并和服务器交付仍未完成。
+
+
+## 用户反馈及双视角、资料管理（2026-10-28）
+
+- 产品92ecbc41b9f6c723cb136534e821976600232e3f；clean构建2026-10-28T02:48:19.902Z，0015-project-deletion。固定产物test-results/live-0015-feedback-catalog，editing-ui.mjs已指向此产物。本地入口仍41870。
+- 迁移前加密完整备份：D:/geekwon/geekdash-data/backups/feedback-20261028-110339/full.aes256gcm。AES-256-GCM密钥另存受控credentials文件，不进Git；实际路径归本地receipt。加密文件SHA256为47b4355bd077ebe86dd47f9ea9f4efc60b7d40fdfe9571339e1c18253bc327fb，已解密校验内容摘要一致。
+- 仅停止本项目应用；备份数据库、原始导入文件及运行配置后，执行0015增量。48张表中除迁移登记外的原有列逐表数据摘要全部一致；没有删除用户项目/账号，没有在用户库执行合成测试。结构核验48表/415列/84外键、差异0。
+- 首次迁移入口误用Windows PowerShell，脚本策略在数据库命令执行前拒绝，原应用随即恢复。随后改用本机pwsh（RemoteSigned）且未改系统策略，重新备份当前数据后完成迁移。早期feedback-20261028-102559副本保留，不能把它当作最终迁移前数据。
+- /api/health/live实际返回上述revision、dirty=false及0015；ready返回ready。首页、详情、基础资料、状态简要及其引用静态资源全部HTTP200。真实浏览器使用未代验收。
+- 产品已推送远端codex/project-use-unified-save；main未合并，新加坡未更新。旧0014产物不支持新结构，不能直接回切；恢复应在隔离环境验证匹配应用和此备份，优先向前修正。

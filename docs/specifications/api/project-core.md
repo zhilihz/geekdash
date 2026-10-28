@@ -34,3 +34,5 @@
 ## 0003节点读取兼容补充
 
 E04-B08固定兼容版2dfb17c增加节点响应deletedAt可空字段；正常详情/普通保存候选仅返回deleted_at为NULL的有效节点，结案遗留沿同一条件。既有节点ID/来源/字段与原保存回执不改写；旧结果查询仍返回当次原JSON。此批没有删除/恢复写意图，固定运行状态归系统真相，结构归ERD5.8。
+
+2026-10-28（92ecbc4）追加：POST /api/projects/:id/delete及/delete-results/query，JSON仅含expectedVersion与UUID v4 idempotencyKey；需启用管理员，原会话/CSRF保持。成功outcome=committed，result含projectId/savedVersion/operationId/changed/deleted；查询未发生返回not_found。非管理员403、旧版本409、已删新命令410；重复同命令返回原回执。原详情读取和写入入口对删除项目404。语义与保留历史归SPEC-022。
