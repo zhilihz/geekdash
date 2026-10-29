@@ -955,9 +955,11 @@ DEC-161～165已确认原数据保留、重名处理、新建邀请、停用接�
 #### 1.4.2 目标交付物
 
 - 两个OCI镜像：前端仅静态产物及静态服务器，后端仅Node、生产依赖、服务产物、迁移和初始化命令。迁移Job复用后端镜像；镜像不含桌面EXE、离线原项目、业务备份、数据库服务/数据、凭据、开发测试产物和Agent文档。原版阶段定义仅在构建时提取并编入使用它的前端代码。
-- `deploy/k3s/`：建议使用原生YAML及Kustomize组织同一应用，不为本轮自建Helm平台。包含独立namespace、两组Deployment/ClusterIP Service、实际Ingress、ConfigMap、Secret引用、ServiceAccount、PVC声明及独立Job模板。namespace生命周期与应用版本更新分离，禁止升级时自动删namespace/PVC。
+- `deploy/k3s/`：由`resources.mjs`生成原生Kubernetes JSON资源清单（`kubectl`直接消费），不增加YAML解析器、Kustomize或Helm依赖。包含独立namespace、两组Deployment/ClusterIP Service、实际Ingress、ConfigMap、Secret引用、ServiceAccount、PVC声明及独立Job模板。namespace生命周期与应用版本更新分离，禁止升级时自动删namespace/PVC。
 - 发行清单：同一release标识、Git提交、前后端镜像仓库digest、目标schema及清单摘要。上传入口核验两份镜像并推送；部署入口消费发行清单和该环境配置，不在服务器重新npm构建，也不使用`latest`。
 - 部署配置仅提供样例和Secret名称引用；域名、ingressClass、storageClass、节点架构和资源预算按实际环境填写。运行凭据、迁移凭据、首次管理员输入、Harbor拉取凭据分别管理，不合进一个全权限Secret。
+- 具体入口：`npm run build:split`、`deploy/k3s/Dockerfile.web`与`Dockerfile.api`、`scripts/k3s-release.mjs`（`render/preflight/init/update/resume/status/retry/unlock/push`）。参数和操作顺序唯一维护于运维文档；配置样例位于`deploy/k3s/`，真实配置放仓库外。
+- 数据库入口：`commands/database.ts`负责迁移/验证；`commands/initialize.ts`负责空库首次账号；`commands/import-files.ts`核对上传原文件引用并可执行临时文件存储能力检查。固定文件路径与运行/迁移角色属于部署契约，不新增业务表。
 - 使用与操作文档仍归`docs/operations/`；准确代码落位/恢复方法归本节及运维，测试结果另写reports，不在此宣称完成。
 
 #### 1.4.3 八个内部步骤

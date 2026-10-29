@@ -18,7 +18,9 @@ identity 向项目深模块提供可信 actor，项目写事务再次核验账�
 
 ## 3. 运行结构
 
-### 新部署目标：阿里云K3s与RDS（2026-10-29，已确认部署拆分，未实施）
+### 新部署目标：阿里云K3s与RDS（2026-10-29）
+
+下图为已确认的交付结构。代码和本地技术验证进展查[系统真相](../status/current-system-truth.md)，不能将本地K3s运行作为阿里云目标部署证明。
 
 ```mermaid
 flowchart LR
@@ -36,7 +38,9 @@ flowchart LR
 
 DEC-173已确认前后端独立部署；原“一个镜像同时提供页面和API”的方案被替代。前端仅持静态产物，后端仅持服务产物、运行依赖和迁移资源，两者均不含MySQL服务。迁移Job复用后端镜像，迁移凭据不进入常驻服务；首次账号初始化与后续升级分开。
 
-同一域名由集群实际入口分流，不新增宿主Nginx或Compose发布链。前端静态服务可用非root Nginx，此为实现建议，不意味着集群Ingress也是Nginx。当前代码的页面托管与旧链接重定向需迁往前端，身份、Cookie、CSRF和API业务规则保持。后端通知仍有进程内状态，DEC-174已确认首版后端单副本和维护窗口发布，多副本及无停机更新后置；不限制使用人数，不能把K3s调度等同高可用。完整施工方案归[执行计划1.4](../implementation/execution-plan.md#k3s-delivery-plan)，发布和恢复归[运维方案](../operations/release-maintenance.md#k3s-production-delivery)。
+同一域名由集群实际入口分流，不新增宿主Nginx或Compose发布链。前端采用非root Nginx，这不意味着集群Ingress也是Nginx。新API模式不加载静态插件，前端接管原页面与旧链接；旧本地运行仍保留组合模式。身份、Cookie、CSRF和API业务规则保持。后端通知仍有进程内状态，DEC-174已确认首版后端单副本和维护窗口发布，多副本及无停机更新后置；不限制使用人数，不能把K3s调度等同高可用。完整施工方案归[执行计划1.4](../implementation/execution-plan.md#k3s-delivery-plan)，发布和恢复归[运维方案](../operations/release-maintenance.md#k3s-production-delivery)。
+
+发布器通过独立ConfigMap记录目标发行和恢复阶段，维护标记同时被前端、API和导入执行器消费。先停止所有应用写入者，再建立数据库、文件及配置的对应恢复点；迁移和初始化以独立Job执行。新应用在维护状态下完成健康、构建配对和文件核查后才开放。运行Secret不含迁移权限，初始化Secret只进入初始化Job；业务Pod不挂集群API令牌。上传文件固定挂载PVC，RDS保存引用，二者必须共同恢复。具体失败状态及命令归运维文档，不在此维护第二套发布步骤。
 
 ### 既有运行结构（本地与腾讯云测试机）
 

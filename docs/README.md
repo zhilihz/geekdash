@@ -1,10 +1,12 @@
 # GeekDash 文档目录
 
-导航更新：2026-10-28。项目仓库：[zhilihz/geekdash](https://github.com/zhilihz/geekdash)。全部项目文档在本目录；协作与分类规则只维护于根目录[AGENTS.md](../AGENTS.md)。
+导航更新：2026-10-29。项目仓库：[zhilihz/geekdash](https://github.com/zhilihz/geekdash)。全部项目文档在本目录；协作与分类规则只维护于根目录[AGENTS.md](../AGENTS.md)。
 
 ## 本轮阅读入口
 
 当前接续为正式K3s交付改造（DEC-172～176，2026-10-29用户已授权实施）：[执行计划1.4](implementation/execution-plan.md#k3s-delivery-plan)记录完整实现思路、代码落位、失败恢复和验证顺序，[架构](architecture/architecture.md#3-运行结构)记录已确认前后端独立部署，[运维方案](operations/release-maintenance.md#k3s-production-delivery)记录发布及恢复。准确实施与未验范围归交接和系统真相；[转发简版](evidence/k3s-rds/GeekDash部署交接.md)可供同事核对环境。
+
+本轮源码、隔离MySQL、双镜像和本地K3s的实际覆盖查[技术报告](testing/reports/2026-10-29-k3s-rds-delivery.md)。本地成功不等于已上传Harbor、部署阿里云或通过用户页面验收。
 
 此前DEC-171整轮体验修正：设计查[PRD9.28](product/PRD.md)与[SPEC-022](specifications/specification.md)，实际进度、接口覆盖和用户验收边界查[本轮报告](testing/reports/2026-10-27-experience.md)及[系统真相](status/current-system-truth.md)。以下旧入口保留原阶段来源。
 

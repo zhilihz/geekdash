@@ -446,92 +446,296 @@ MySQL 官方区分“连接加密”和“验证服务端身份”；部署时�
 
 <a id="k3s-production-delivery"></a>
 
-## 阿里云K3s与RDS MySQL目标交付（2026-10-29）
+## 阿里云 K3s 与 RDS MySQL 发布和维护
 
-用户已确定新环境使用阿里云服务器上的K3s与阿里云RDS MySQL，版本范围为“8.0+”，即8.0及以上，不限定8.0.x；DEC-173确认前后端独立Deployment、同域、首版同版本发布，DEC-174确认后端单副本与维护窗口发布。本节是详细讨论方案，不是已经可执行的清单；具体维护时段/时长、存储及恢复目标仍待确认。具体代码落位和八项施工粒度归[执行计划1.4](../implementation/execution-plan.md#k3s-delivery-plan)。新环境不使用旧Compose合一包，现有腾讯云和本地环境保留。
-
-| 交付部分 | 目标内容 |
-|---|---|
-| 镜像 | 前端静态镜像与后端服务镜像，版本配对；迁移Job复用后端镜像，不含MySQL服务。发行清单固定两份仓库digest、提交和schema；不上传桌面安装包、本地数据及凭据 |
-| K3s配置 | 独立namespace、两组Deployment/Service、实际Ingress、ConfigMap、Secret引用、应用ServiceAccount和导入文件PVC。后端单副本，不自动横向扩展，维护窗口发布；不新增宿主Nginx |
-| 数据库初始化 | DEC-176已确认首次空白新库；同事预先建本项目独立空库和授权，Job创建结构并初始化管理员。正常升级不重复seed，运行Pod只挂运行凭据，迁移凭据只给Job |
-| RDS适配 | 连接目标可配置，接入TLS/CA；针对实际部署的MySQL 8.0+版本核对DDL/约束、迁移、身份授权及命名锁，不仅放宽版本字符串。保留独立业务库、InnoDB、utf8mb4及UTC |
-| 文件与备份 | 导入原文件仍用持久目录，设置GEEKDASH_IMPORT_DIR并允许UID 1000写入；RDS备份不覆盖原文件和部署配置 |
-| 入口 | 同域/api原路径转后端，其余页面资源转前端；准确GEEKDASH_ORIGIN、可信代理链和Cookie，支持32MiB上传/SSE及时转发。采用实际Ingress配置，不直接照抄Nginx专有参数 |
-
-部署前由同事核实RDS精确版本、Pod私网连通与白名单实际来源、端点/库名/授权/CA；K3s版本、架构、Ingress/域名证书、StorageClass/回收策略、Harbor节点信任和日志保留。地域不是当前设计阻塞，“应该能连”不算验证。K3s节点使用的containerd拉取与开发机Docker登录分别核验；namespace拉取凭据不替代节点对自签CA的信任。
-
-用户2026-10-29明确域名之后提供。构建产物不写死正式域名；前端沿用相对API路径，部署时统一配置Ingress主机、证书及后端GEEKDASH_ORIGIN。域名未给不阻止构建和隔离技术验证，但正式HTTPS入口、Cookie/Origin和真实域名验收须在域名及证书到位后完成。不默认复用或修改原腾讯云域名，也不在未确认时更改DNS。
-
-### 首次部署流程（空白新库已确认，待环境就绪）
-
-1. 在构建端产出并核验两份镜像，推送Harbor，回读仓库digest；提供发行清单及无凭据的环境配置。Docker仅承担本机构建/上传，服务器运行操作统一走K3s，不依赖Compose或Docker socket。
-2. 核对kubectl context及namespace，建立持久资源、Secret引用和Service；预检目标节点拉取、RDS及实际存储。未知占位值不允许直接apply。集群级组件和付费资源由同事既有管理流程处理。
-3. 按DEC-176核实目标为本项目空白新库，运行一次性迁移/初始化Job，创建结构并初始化管理员。后续业务数据通过现有备份导入入口处理，不自动搬旧库或写入测试项目。若发现非预期旧数据则停止核查，不清库覆盖；已登记的本次迁移中间态按原迁移能力接续，已完成初始化的重试只核验结果，不重复建账号或重置密码。建议Job单并发、Never、backoffLimit为0，失败保留现场；命名锁和幂等仍必需，因为控制器可能重复启动任务。
-4. 等Job明确成功并核验schema，启动后端，再启动配对的前端，等待各自探针通过。创建资源并不代表发布完成，不能用一个递归apply隐含依赖顺序。
-5. 从真实HTTPS入口核对两个构建版本、API就绪、Cookie、SSE、上传与持久回读；开通用户真实验收。记录准确未验项和恢复入口。
-
-### 日常更新流程（维护窗口方式已确认，具体安排待定）
+本节对应当前 `deploy/k3s/` 与 `scripts/k3s-release.mjs` 的操作契约。用户已确认独立前后端部署、同域同版本发布、后端单副本、维护窗口，以及首次使用空白新库（DEC-173/174/176）。旧 Harbor Compose 合一包、现有本地库和腾讯云环境保留，不能用本节的空库初始化覆盖它们。施工范围归[执行计划 1.4](../implementation/execution-plan.md#k3s-delivery-plan)；实际验证结果归[本轮技术报告](../testing/reports/2026-10-29-k3s-rds-delivery.md)，实际部署归[部署记录目录](deployments/)，不以本节存在表示目标云环境已经通过验收。
 
 ```text
-预检配置 / 两镜像与节点拉取
-  → 进入维护窗口，停止接收新写入并排空当前请求
-  → 停止后台任务领取、等待当前条目安全点并停止旧后端
-  → 确认没有其他写入者，获得数据库与原文件可配对的恢复点
-  → 如有结构变化，运行本发行的迁移Job并核验
-  → 启动新后端并等待ready
-  → 发布配对前端，核对页面资源和旧页面兼容
-  → 从域名回读版本与业务结果
-  → 解除维护并记录发布
+同一源码提交、同一次构建
+   ├─ web 镜像：静态页面 / 资源 / 前端构建信息
+   └─ api 镜像：API / SSE / 导入执行器 / 迁移与初始化命令
+                    ↓ 两份不可变 digest + 一份 release.json
+HTTPS 域名 → 实际 Ingress → /api 原路径 → geekdash-api:80 → API:3000 → RDS
+                         └→ 其他路径 → geekdash-web:80 → Nginx:8080
+                                                           API → 导入原文件 PVC
 ```
 
-维护应提供明确反馈，不能长期留下随机502。具体维护入口随实际Ingress实现，不通过删除PVC或改生产数据模拟。当前业务写入开关不阻止全部认证写入，也不能单独证明后台导入已停止；发布备份须将任务领取、当前条目、全部应用写入者及数据库/文件恢复点一起核对。无迁移的更新跳过Job；前后端两个Deployment不是原子更新，发行清单和维护步骤负责防止半更新开放。HTML不长期缓存，摘要资源可缓存；已打开标签页保留未保存输入，不静默强刷。当前schema精确校验意味着变更后通常不能直接启动旧版本。
+前端镜像中的 Nginx 只托管页面，不代理 API；独立 Ingress 负责路由。新环境不包含 MySQL 容器，不要求宿主 Nginx、Compose 或 Docker socket。应用 ServiceAccount 不挂 Kubernetes API token；运维的 kubectl 身份与应用身份分开。现有账号、邀请码、角色、基础资料和 CHECK 等产品功能仍由应用提供，不在业务后台增加集群控制功能。
 
-### 健康、终止与最小运维
+### 1. 环境输入与责任边界
 
-- 前端探针验证静态服务；后端startup给正常启动足够预算，live不依赖RDS，ready不通过则不接业务。数据库短断不是进程故障，不以live错误重启整个应用。
-- Pod终止沿摘流、禁止新写/领取条目、关闭SSE、等待请求/导入当前条目安全点、关闭池执行；K3s宽限大于应用退出预算。强杀仍需靠持久回执和租约恢复，不承诺所有请求必定完成。
-- 设置合理requests/limits、非root、必要写目录和最小权限；ServiceAccount默认不挂API token。网络策略仅允许需要的入口、DNS和RDS路径，按实际插件与网络条件核验，不能配置后未测即称隔离有效。
-- RDS、导入原文件、受控配置分别备份并建立可配对恢复点；旧库绝对文件引用须兼容。PVC不随版本更新删除，默认local-path卷不等于跨节点恢复。备份周期/保留、允许丢失时间与恢复时间待确认。
-- 使用现有集群日志保留/告警设施，确认Pod删除后日志仍可追溯；保留release、Pod、requestId、迁移步骤及脱敏错误。仅`kubectl logs`不是永久日志归档。RDS备份、K3s控制面备份、业务文件备份不可互相替代。
+正式域名、Harbor 目标、集群连接及 RDS 参数由服务器同事提供，文档与脚本不推断原腾讯云配置。仓库示例中的 `REPLACE_*` 必须填写，不能作为可执行部署配置。
+
+| 输入 | 必须核实的内容 |
+|---|---|
+| 集群 | 明确 kubeconfig context、独立 namespace、K3s 版本和节点架构；运行命令始终指定 context，不靠当前默认 context |
+| 入口 | 实际 ingressClass、域名、匹配的 TLS Secret；`/api` 保留原路径，不做前缀剥离；控制器实际支持 32 MiB 上传、SSE 不缓存/不缓冲及时转发，连接超时与应用心跳相容 |
+| 代理信任 | `trustProxy` 填实际可信代理 IP/CIDR。不能填 `true`、全网 `/0` 或任意猜测的网段；同事核对该入口实际来源及转发头，不能用放宽信任解决登录问题 |
+| Harbor | 两个仓库地址与本次独立 tag、节点对仓库 CA 的信任、namespace 拉取 Secret；开发机 Docker 登录成功不代表 K3s 的 containerd 能拉取 |
+| RDS | 精确 MySQL 版本、私网 DNS 地址/端口、独立空库、两个数据库账号、实际白名单来源和 CA；应用使用证书对应的 DNS 地址，不使用 IP 绕过主机名校验 |
+| 持久文件 | 已提供的 CSI StorageClass、容量和回收策略；UID 1000 可写，支持现有 POSIX 文件写入、fsync、硬链接。默认 local-path 不等于跨节点恢复或高可用 |
+| 资源及维护 | 按实际节点容量填写 requests/limits；示例数值是配置起点。确认维护时间和执行人，后端单副本会有明确不可用窗口 |
+| 备份与日志 | 受控归档位置、恢复操作者、集群日志保留和告警接收人。正式备份周期、保留、RPO/RTO 按 DEC-175 待同事反馈能力与成本后确定 |
+
+脚本不安装或升级 Ingress、CSI、K3s、RDS，不修改 DNS，不删除 namespace/PVC。当前清单不生成一份假定通用的 NetworkPolicy；实际 CNI 下的入口、DNS、RDS 网络边界由同事配置并验证。应用的 kubeconfig 发布身份需要目标 namespace 的 Deployment/Service/Ingress/ConfigMap/Job/PVC 操作、Secret 读取、Pod 状态/日志/exec 权限，以及 ingressClass、StorageClass、namespace 的必要读取权限；无需给常驻应用这些权限。
+
+### 2. 构建双镜像与上传发行
+
+从已核对的完整源码提交构建。以下构建示例使用 PowerShell；发行标识、平台由本次交付确定，不能把演示值当正式版本。
+
+```powershell
+$release = '填写本次小写发行标识'
+$platform = 'linux/amd64'
+$revision = (git rev-parse HEAD).Trim()
+if (git status --porcelain) { throw '请先收口源码，不能伪装成干净发行' }
+npm ci
+npm run check
+npm run build:split
+$build = Get-Content dist/build-info.json -Raw | ConvertFrom-Json
+if ($build.dirty -or $build.revision -ne $revision) { throw '构建记录与发行提交不一致' }
+docker build --platform $platform --build-arg "GEEKDASH_REVISION=$revision" -f deploy/k3s/Dockerfile.web -t "geekdash-web:$release" .
+docker build --platform $platform --build-arg "GEEKDASH_REVISION=$revision" -f deploy/k3s/Dockerfile.api -t "geekdash-api:$release" .
+node scripts/verify-split-build.mjs --web-image "geekdash-web:$release" --api-image "geekdash-api:$release"
+node scripts/verify-k3s-release.mjs
+```
+
+两份 Dockerfile 使用各自构建白名单；前端只带页面产物，后端只带编译代码、迁移、构建信息与生产依赖，不携带桌面安装包、本地业务数据、备份、凭据和开发依赖。不要单独重建其中一份前端代码后沿用旧后端构建记录。`verify-split-build` 的隔离检查不能替代目标 RDS、Ingress、CSI 或用户真实页面验收。
+
+在仓库外复制并填写 [push.example.json](../../deploy/k3s/push.example.json)：
+
+| 字段 | 内容 |
+|---|---|
+| `release` | 本次唯一发行标识，1～36 位小写字母、数字和连字符，不以连字符开头或结尾 |
+| `revision`、`schemaVersion` | 直接取本次 `dist/build-info.json`，提交为完整 40 位，不手填旧版本 |
+| `platform` | 与实际节点相符的 `linux/amd64` 或 `linux/arm64` |
+| `webSource`、`apiSource` | 本机已构建的两个镜像名 |
+| `webTarget`、`apiTarget` | 同事确认的完整 Harbor 仓库及独立 tag，不是仓库占位名称 |
+
+完成相应 Harbor 登录后运行，`release.json` 必须是尚不存在的新文件：
+
+```text
+node scripts/k3s-release.mjs push /受控交付目录/push.json /受控交付目录/release.json
+```
+
+入口先读取两镜像内部的 build-info，核对 clean、revision、schema、平台及完整构建信息一致，再上传并回读远端 digest 和内容。同一 tag 若已存在且内容相同可接续部分上传；内容不同则拒绝覆盖。只有两份镜像都确认后才写发行清单，不覆盖既有清单。该清单记录 `release/revision/schemaVersion/platform/webImage/apiImage`，部署使用完整 `仓库@sha256:...`，不以可变 tag 或 `latest` 运行。上传不等于已部署。
+
+交给服务器同事的是发行清单、无凭据环境配置、此操作说明及本仓库发布脚本/资源模块；Secret 材料另走受控渠道。执行端需要 Node.js 24 和 kubectl，并保留 `scripts/k3s-release.mjs` 与 `deploy/k3s/resources.mjs` 的相对目录；只有构建/上传端需要 Docker，K3s 服务器不用安装 Docker。下列 `node scripts/...` 均从交付仓库根目录执行。旧合一包的 `push.bat` 不用于这次双镜像发行。
+
+### 3. RDS、初始管理员与 Secret
+
+RDS 运行版本门槛为 **MySQL 8.0.16 及以上**，因为更早版本不能满足本项目实际执行 CHECK 约束的要求；“8.0+”不是限定为 8.0.x，也不是所有未来版本无条件兼容。MariaDB、系统库和本地 dev/test 库不能作为 RDS 目标。技术验证分别使用真实 MySQL 8.0、8.4 数据库，精确补丁版本、验证范围和结果以测试报告为准；这些隔离数据库不等于阿里云 RDS 服务已经验收。目标 RDS 仍须实际核对 TLS、权限、命名锁、DDL、完整结构和恢复行为。
+
+同事预先创建本项目独立空库，采用 InnoDB、utf8mb4 与迁移要求的排序规则。初始化 Job 建表及开管理员，不能替代云数据库建实例、建库和授权。应用每次建立连接核对实际库、账号、版本、UTC 会话、TLS 密文及授权。
+
+| 数据库身份 | 精确本库权限 | 使用位置 |
+|---|---|---|
+| 运行账号 `rds_app` | SELECT、INSERT、UPDATE、DELETE | 常驻 API、只读预检 |
+| 迁移账号 `rds_migrator` | 上述四项，加 CREATE、DROP、ALTER、INDEX、REFERENCES | 预检/初始化/迁移/结构核验 Job |
+
+不要使用 root、全局权限、`ALL PRIVILEGES`、`GRANT OPTION` 或跨库授权。`SHOW GRANTS` 输出会实际验证。特别注意：`partial_revokes=OFF` 时，数据库级授权中的 `_` 和 `%` 是通配符；库名含下划线时，即使有反引号也要按 MySQL 规则转义，例如精确授权到 `geekdash_prod` 的范围写作 `` ON `geekdash\_prod`.* ``。`partial_revokes=ON` 时按字面库名处理。由同事依据实际参数建立精确授权，不能为了让预检通过而关闭权限核验。
+
+在仓库外受控目录分别准备以下 JSON/PEM 文件。两份数据库 JSON 的 host、port、database 必须相同，user 必须不同；password 不写进命令行参数、日志、Git 或发行清单。
+
+```json
+{
+  "host": "REPLACE_RDS_PRIVATE_DNS",
+  "port": 3306,
+  "database": "REPLACE_DATABASE",
+  "user": "REPLACE_APP_USER",
+  "password": "REPLACE_CONTROLLED_PASSWORD",
+  "ssl": { "caFile": "/run/secrets/rds-ca.pem" }
+}
+```
+
+将其保存为 `rds_app.json`；`rds_migrator.json` 使用迁移账号和该账号密码。`ca.pem` 保存实际 RDS 服务端证书的受信 CA 链。运行时不允许关闭证书验证，最低 TLS 1.2，并校验服务端 DNS 身份。
+
+初始管理员的 `admin_account.json`：
+
+```json
+{
+  "loginName": "REPLACE_INITIAL_LOGIN",
+  "name": "REPLACE_INITIAL_NAME",
+  "password": "REPLACE_CONTROLLED_INITIAL_PASSWORD",
+  "isProjectManager": false
+}
+```
+
+这是本次空库初始化的受控明文初始密码文件，不是旧 Harbor 合一包中的密码哈希文件。登录名为 3～64 位小写字母、数字、下划线或连字符，首位为小写字母或数字；姓名非空且不超过 128 字符；密码遵守现行账号规格。`isProjectManager` 可选，默认 false；是否兼任由实际配置决定，不在初始化时替用户选择。首次初始化写入管理员并要求首次改密，之后重复初始化只核验既有提交标记，不重置已经改过的密码；非空的未识别业务库会拒绝初始化。
+
+以下部署准备示例使用 Bash。先填实际值；Secret 名称要与环境 JSON 对应，凭据文件使用受控 ACL/权限。
+
+```bash
+CONTEXT='填写实际context'
+NAMESPACE='填写独立namespace'
+CONTROLLED='/填写受控目录'
+kubectl --context "$CONTEXT" get namespace "$NAMESPACE"
+# 仅在确认该namespace尚不存在时创建：
+kubectl --context "$CONTEXT" create namespace "$NAMESPACE"
+kubectl --context "$CONTEXT" -n "$NAMESPACE" create secret generic geekdash-rds-app --from-file=rds_app="$CONTROLLED/rds_app.json"
+kubectl --context "$CONTEXT" -n "$NAMESPACE" create secret generic geekdash-rds-migrator --from-file=rds_migrator="$CONTROLLED/rds_migrator.json"
+kubectl --context "$CONTEXT" -n "$NAMESPACE" create secret generic geekdash-rds-ca --from-file=ca.pem="$CONTROLLED/ca.pem"
+kubectl --context "$CONTEXT" -n "$NAMESPACE" create secret generic geekdash-bootstrap-admin --from-file=admin_account="$CONTROLLED/admin_account.json"
+kubectl --context "$CONTEXT" -n "$NAMESPACE" create secret tls geekdash-tls --cert="$CONTROLLED/tls.crt" --key="$CONTROLLED/tls.key"
+kubectl --context "$CONTEXT" -n "$NAMESPACE" create secret generic geekdash-harbor --type=kubernetes.io/dockerconfigjson --from-file=.dockerconfigjson="$CONTROLLED/harbor-config.json"
+```
+
+`harbor-config.json` 必须含对应仓库可用的认证材料，不能只复制一个依赖开发机凭据助手的 `credsStore` 配置。已有 namespace/Secret 不重复 create；轮换按下方流程更新既有资源，不删除环境后重建。初始化完成后的管理员凭据撤销/归档按受控流程处理；常驻 API 从来不挂管理员和迁移凭据，普通升级不需要再挂初始化账号文件。
+
+### 4. 环境配置、渲染和集群预检
+
+复制 [environment.example.json](../../deploy/k3s/environment.example.json) 到受控交付目录，填写实际 context、namespace、domain、ingressClass、Secret 名称、trustProxy、StorageClass、容量和资源配额。`releaseFile` 相对于环境 JSON 所在目录解析，指向本次上传生成的发行清单。`ingressAnnotations` 只能填写实际控制器支持的配置；不把 Nginx 专有参数塞给其他控制器。只有核对该入口的上传和 SSE 配置后，才将 `ingressStreamingConfirmed` 设为 true；这项确认本身不是技术验收结果。
+
+```text
+node scripts/k3s-release.mjs render /受控交付目录/environment.json /尚不存在的审阅目录
+node scripts/k3s-release.mjs preflight /受控交付目录/environment.json
+node scripts/k3s-release.mjs status /受控交付目录/environment.json
+```
+
+`render` 输出原生 `resources.json` 及初始化、迁移、核验、两类预检 Job JSON，用于审阅，不包含 Secret 内容。不要用一次递归 apply 替代发布入口的顺序。脚本固定 API 单副本、Recreate，web/API 分别使用 UID 101/1000、只读根文件系统和 `/tmp` 临时目录，导入目录挂载 `geekdash-imports` PVC 到 `/var/lib/geekdash/imports`。PVC 创建后不随更新删除或重建；容量/StorageClass 与现有对象不同会停止，扩容/迁移由独立运维安排。
+
+`preflight` 会创建短期只读预检 Job，实际验证目标集群拉取两镜像、两份构建信息一致，以及 RDS 两类账号的连接/TLS/权限；不会执行迁移、初始化或写业务数据。它同时检查所指 namespace、IngressClass、StorageClass、Secret 键、入口证书和已有 PVC 配置。预检 Job 留在集群供排错，不能把工作站成功拉镜像当作此步骤已完成。预检不代替真实入口 SSE/上传、业务页面或目标 CSI 验收。
+
+### 5. 首次空库部署
+
+```text
+node scripts/k3s-release.mjs init /受控交付目录/environment.json
+node scripts/k3s-release.mjs status /受控交付目录/environment.json
+```
+
+`init` 在持久发布状态中登记本次目标，设置维护，然后执行同镜像预检、初始化 Job 和独立 schema 核验 Job。数据库 Job 单并发、`restartPolicy=Never`、`backoffLimit=0`；迁移/初始化自身仍有数据库锁和幂等依据，不能只依赖 Job 恰好运行一次。发现已有发布状态或后端 Deployment 时不再 init，先 status，再选择 resume/update。
+
+结构就绪后启动配对的 web/API。维护期间前端返回带 `X-GeekDash-Maintenance: on` 的 503 页面；API 除健康接口外返回维护结果，后台导入停止领取新条目。发布入口等待探针与真实 HTTPS 构建回读，运行原文件核验和存储探测，再解除维护并确认页面 200、API `maintenance=false`。新的空库不需要伪造旧数据备份，也不会搬入测试账号、旧项目或本地数据库；后续业务数据使用现有产品导入流程。
+
+首次部署失败保留 Job/状态/卷。已开始的动作通过 `resume` 接续，失败 Job 按下一节显式 retry，不反复 init，不清库后假装首次成功。新管理员登录、首次改密及业务使用由用户验证；健康检查结果不代替这项验收。
+
+### 6. 日常更新：先停写与备份，再继续迁移
+
+本次使用新的发行标识、两份新 digest 和对应环境配置；同一次更新开始后，保持这些文件内容和 `releaseFile` 引用一致，不能在中途静默换库、换卷或换镜像。
+
+```text
+新镜像/数据库预检
+ → 开启页面/API维护门禁，确认公网维护页
+ → 旧后端缩为0，等待所有旧API Pod终止
+ → 返回paused_for_backup，记录pausedAt
+ → 同事完成数据库、原文件、受控配置的配对备份
+ → resume验证证据，再执行迁移与独立schema核验
+ → 新API和web就绪但仍处于维护
+ → 核对构建、ready、原文件及存储能力
+ → 解除维护，确认页面与API恢复，再登记发行完成
+```
+
+```text
+node scripts/k3s-release.mjs update /受控交付目录/environment.json
+node scripts/k3s-release.mjs status /受控交付目录/environment.json
+```
+
+`update` 正常返回 `paused_for_backup` 就停止在备份入口，并未完成发行。只有旧后端 Pod 全部消失后才记录暂停时间；维护提示、ready 撤流量或一个写入开关不能单独证明所有应用写入者已经停止。还需由同事确认该库没有此应用之外的写入者。
+
+按 [backup-evidence.example.json](../../deploy/k3s/backup-evidence.example.json) 准备受控证据：
+
+| 字段 | 必须对应的事实 |
+|---|---|
+| `context`、`namespace` | 本次目标环境 |
+| `databaseTarget`、`volumeUid` | 从 status 中复制本次数据库目标摘要与 PVC UID，不能套用另一个库或卷的证据 |
+| `recoveryPoint`、`completedAt` | ISO 时间；恢复点不早于 `pausedAt`，备份完成不早于恢复点，不能是未来时间 |
+| `applicationConsistent` | 同事已经核对数据库、文件和配置是可配对的完整恢复点后才为 true |
+| `database` | RDS 方案填 provider=`rds`、实际 backupId，并由同事核实可恢复到 recoveryPoint 后填写 `recoveryPointVerifiedByOperator=true`；或提供数据库受控归档的绝对 `path` 与 `sha256` |
+| `files`、`configuration` | 受控归档绝对路径和 SHA-256。运行发布命令的机器必须能读取，用于存在性和内容摘要检查；原始密码或业务数据不附到公开报告 |
+
+脚本不生成 RDS 备份，不把人工填写的 backupId 宣称为已经查询云平台核验；它验证环境/库/卷/时间及本机归档哈希，RDS 恢复点由同事实际核对。备份存放与加密方式沿实际受控设施确定，不能用空文件、复制日志或承诺“稍后备份”越过门禁。
+
+```text
+node scripts/k3s-release.mjs resume /受控交付目录/environment.json /受控交付目录/backup-evidence.json
+node scripts/k3s-release.mjs status /受控交付目录/environment.json
+```
+
+正常更新都运行迁移命令及独立核验；没有新迁移时，迁移命令核对既有版本，不创建重复记录。API 启动时再次校验结构版本。发布恢复阶段运行：
+
+```bash
+kubectl --context "$CONTEXT" -n "$NAMESPACE" exec deployment/geekdash-api -- node dist/server/commands/import-files.js rds_app --probe-storage
+```
+
+该命令只在自己唯一命名的探测文件上测试写入、fsync、硬链接并清理自己的探测文件，随后核对所有 `import_batches` 的文件引用、范围、字节数和 SHA-256。缺失/损坏会使发布保持维护；未引用文件和 `.partial` 只统计，不顺便清理业务数据。历史绝对文件路径不匹配时先核对恢复映射，不能把文件复制到容器临时层掩盖缺口。
+
+### 7. 中断、失败 Job、凭据纠正和残留锁
+
+每次先 `status`，看实际 phase、Job、Pod、镜像与锁；不能把上次终端退出码当作数据库一定未提交。ConfigMap `geekdash-release-state` 保存发布状态，`geekdash-release-lock` 串行化本工具的发布；它们不阻止其他人在工具之外直接操作集群，所以同事仍须遵守同一维护入口。
+
+| 情况 | 操作 |
+|---|---|
+| 终端中断，原 Job 还在运行或已完成 | 使用相同配置 `resume`；沿原 Job 读取结果，不新建一次初始化/迁移 |
+| `opening` / `opening_failed`，解除维护期间结果不确定 | `resume` 先重新设置维护并回读页面/API，恢复后停在 `maintenance_restored_review_required`，不会自动再次开放。核对可能开放期间的业务写入和当前状态，再在 retry 证据中额外填写 `openingReviewed=true` 明确继续 |
+| Job 明确 Failed | 保留日志和实际结构，处理根因；填写 `retry.json`，核过 schema 后显式创建新 attempt。旧 Failed Job 不删除 |
+| 同一目标库的密码或 CA 配置纠正 | 目标库/PVC 不变时，在 retry 明确 `acceptCredentialChanges=true`；重新做连接预检，记录恢复原因，API 凭据摘要变化使消费者重建 |
+| 数据库目标或 PVC UID 变化 | 普通 resume/retry 拒绝。按完整恢复/迁移重新评估，不能拿旧备份证据继续迁移另一个库 |
+| 进程被强杀留下锁 | 确认没有发布进程且没有未结束 Job，准确指定 status 中的 lock owner，再执行 unlock；不按超时自动偷锁 |
+| 新镜像自身错误或需要恢复数据 | 保留失败现场及当前业务变化，按下方回退边界处理；不能改一份正在执行的发行文件后继续冒充同一版本 |
+
+复制 [retry.example.json](../../deploy/k3s/retry.example.json)，填写实际 `reason`、`schemaReviewed=true`；仅在凭据确实变更并经核对时才设 `acceptCredentialChanges=true`。尚未登记备份的更新同时通过 `backupEvidenceFile` 指向该受控证据文件，该路径相对于 retry JSON 解析。
+
+```text
+node scripts/k3s-release.mjs retry /受控交付目录/environment.json /受控交付目录/retry.json
+```
+
+解除维护前先持久记录 `opening`；解除命令、页面/API确认或 `complete` 写入任一失败，都尝试恢复维护并回读，保留原错误和恢复错误。ConfigMap、HTTP 回读与发布状态不是一个原子事务，不能承诺失败时必然从未开放；若完成写入返回未知但维护恢复成功，也先核对实际状态，不自动宣布交付。无法确认维护已经恢复时，立即由运维停止本项目后端并核对 Pod，再排查入口/集群通信；不要因为终端已退出就假定服务已关闭：
+
+```bash
+kubectl --context "$CONTEXT" -n "$NAMESPACE" scale deployment/geekdash-api --replicas=0
+kubectl --context "$CONTEXT" -n "$NAMESPACE" get pods -l app.kubernetes.io/name=geekdash,app.kubernetes.io/component=api
+```
+
+仍有未结束 Job 时不能创建下一 attempt；若旧 Job 正在等待镜像或网络，先修复依赖并等待实际终态，或按受控故障处置结束该 Job，不能仅为解锁强删仍可能写库的 Pod。
+
+复制 [unlock.example.json](../../deploy/k3s/unlock.example.json)，填写 `lockOwner`、`noPublisherRunning=true` 和原因。解锁记录最后一次原因；删除使用原锁 UID 和 resourceVersion 作为原子前提，锁已变化则拒绝删除。
+
+```text
+node scripts/k3s-release.mjs unlock /受控交付目录/environment.json /受控交付目录/unlock.json
+node scripts/k3s-release.mjs status /受控交付目录/environment.json
+```
+
+unlock 只解除已确认失去发布进程的锁，不重跑任务、不完成发布，也不删除 PVC。之后依据实际阶段 resume/retry。
+
+### 8. 排错与版本回读
+
+下面命令不打印 Secret 内容。Job 名称使用 status 返回的实际名称，不能猜一个新 Job 然后重复执行。
+
+```bash
+kubectl --context "$CONTEXT" -n "$NAMESPACE" get deploy,pods,svc,ingress,pvc,jobs -l app.kubernetes.io/name=geekdash
+kubectl --context "$CONTEXT" -n "$NAMESPACE" logs deployment/geekdash-api --timestamps --tail=200
+kubectl --context "$CONTEXT" -n "$NAMESPACE" logs deployment/geekdash-web --timestamps --tail=100
+kubectl --context "$CONTEXT" -n "$NAMESPACE" logs job/填写实际Job名称 --timestamps --tail=200
+kubectl --context "$CONTEXT" -n "$NAMESPACE" describe pod 填写实际Pod名称
+kubectl --context "$CONTEXT" -n "$NAMESPACE" get events --sort-by=.metadata.creationTimestamp
+curl -fsS "https://填写实际域名/build-info.json"
+curl -fsS "https://填写实际域名/api/health/live"
+curl -fsS "https://填写实际域名/api/health/ready"
+```
+
+前端 build-info 与 API live 中的 `build` 应属于同一发行；ready 反映数据库就绪，不与 live 响应结构混用。维护时页面 503 是预期结果，不能因 `curl -f` 失败就把它当随机网关故障。保留错误时间、发行 ID、两份 digest、Pod/Job、迁移步骤、响应 requestId 和脱敏日志。Job 失败时工具给出具体日志入口；命令失败保留操作类别/资源和退出信息，不回显 Secret 内容。`kubectl logs` 不是永久日志归档，Pod 删除或日志轮转前按既有日志设施保留必要证据。
+
+### 9. 回退与持续运行边界
+
+- **应用回退：**只有旧 API 与当前 schema 兼容才可退镜像。当前启动精确核对结构；`rollout undo` 不回退数据库，也不能恢复原文件。两份镜像必须按同一发行配对回退，保持维护直到核对完成。
+- **数据恢复：**由已确认操作者选择恢复点，先保留失败现场，再成对恢复数据库、原文件和必要受控配置；核对账号、项目、历史与所有文件引用。恢复会影响该恢复点之后的数据，不能由发布脚本自动覆盖。
+- **RDS 短断：**ready 撤流量，live 保留进程存活语义；恢复做完整结构/依赖复核。请求结果未知时复用原操作号和持久回执查结果，不另建一次写操作。
+- **正常终止：**应用退出预算 55 秒、Pod 宽限 70 秒是当前配置起点；停止新请求/导入领取，关闭 SSE，等待当前操作，最后关闭池。强杀和节点故障仍依赖持久回执及导入租约，不保证每个在途请求都完成。
+- **PVC 与节点：**持久卷保留，节点排空及跨节点挂载由实际 CSI 能力决定；单副本和节点本地卷不构成高可用。实际 CSI 的 fsync/硬链接、重建挂载与恢复必须验收，不能用本地测试卷代替。
 
 <a id="k3s-maintenance-coverage"></a>
 
-### 正式使用的维护覆盖（2026-10-29补充讨论，未实施）
+### 10. 持续维护的已接入口与待落实项
 
-维护分为产品管理和基础设施运维。原账号/邀请码/角色/资料/CHECK管理按已确认SPEC承接并验证，不能因K3s拆分丢失；发布、备份、证书、节点和RDS维护交由受权运维入口，不在业务后台增加集群控制功能。下表是本轮发现必须补齐的操作设计，责任划分是建议，具体执行人/频次/保留期仍需确认。
-
-| 维护项 | 实际链路与完成依据 | 建议责任与待补输入 |
-|---|---|---|
-| 维护停写与恢复使用 | 维护提示→停止新请求/新导入条目→排空现有请求和当前条目→确认全部应用写入者停止→建立恢复点；发布核验后恢复。不把业务开关、静态提示页或ready变化单独当作全部写入停止 | 应用侧落实排空/回执，发布人执行维护；窗口仍待用户确认 |
-| 定时备份和恢复演练 | 确认RDS可用备份策略；原文件与受控配置独立备份并记录恢复点、摘要、最后成功时间和失败状态。恢复到隔离库/卷后核对项目、账号、历史及原文件引用，再记录实际耗时；不能以“生成了备份”替代“恢复成功” | 同事管理存放、权限和定时设施；用户确认RPO/RTO/保留期。优先已有设施，缺少时再使用CronJob，避免两套任务重复跑 |
-| 告警与故障响应 | 至少覆盖公网不可达/API错误持续增加、Pod反复重启/OOM、RDS连接或容量异常、卷空间不足、备份失败/长期无成功、证书即将过期。告警附版本、时间、受影响环节和恢复入口；明确接收人/替补/恢复通知并做一次告警送达验证 | 复用集群/云已有平台；阈值、接收渠道、值守责任待落实，不新增未获批准的消息发送或监控平台 |
-| HTTPS证书及凭据更换 | 分清域名证书、RDS CA/密码、Harbor凭据及kubeconfig。先验证新材料→更新引用→明确重载/重启消费者→健康及业务回读→撤销旧材料；失败保留受控回退。Secret内容变化不等于进程连接池自动切换；使用集群实际Secret保护/RBAC，base64不是加密 | 同事负责证书/云账号及到期；应用侧落实受控重启/连接验证。轮换周期与旧材料撤销条件待确认 |
-| 磁盘和保留管理 | 区分上传临时片段、被项目/批次引用的原文件、个人草稿、审计/回执、过期会话与备份。只能按确认过的规则清理可证明无活跃任务且无引用的临时内容；先预览统计并留执行结果。身份是否过期仍实时判定，不依赖清理任务才能拒绝登录 | 业务历史/草稿/原文件保留期是待决；当前不自动清理旧镜像/容器/卷，也不把本轮方案当作解除此前暂停清理的授权 |
-| 管理员无法登录的恢复 | 保留正常改密和账号管理链路；紧急情况下建议受权运维用一次性受控命令恢复明确账号、撤销其旧会话并审计，保留账号ID及项目关系；不重跑seed、不清库、不设置通用后门 | 紧急恢复资格、凭据交付和触发边界待用户确认；属于待设计能力，不宣称现有后台已提供 |
-| 节点/集群/RDS维护 | 同事在维护前核对K3s版本支持、节点排空条件、卷挂载及备份。应用容忍RDS短断并回读未知结果。节点本地卷失效按独立恢复方案处理，RDS切换/节点重建都要实际演练，不能用Pod自动重建代替可用性保证 | 同事负责基础设施版本/窗口，应用侧给兼容范围和验证；不由项目发布脚本自动升级共享集群或RDS |
-| 运行任务归属 | 实时通知/编辑心跳留在后端；现有导入执行器继续用持久进度和租约恢复。低频备份/已批准清理使用既有调度或独立Job/CronJob，不绑在某个常驻Pod的内存定时器上；记录幂等键/锁、最后成功、并发和失败恢复，维护/恢复时可暂停 | 不为此引入Redis或重复队列；只有产生实际任务才生成相应CronJob，不建立空壳定时功能 |
-| 依赖和发行维护 | 前后端、Node/静态服务器/依赖和清单按固定版本维护；安全更新先隔离核验再安排发布。保留当前及可用回退发行的digest和变更记录；上传、Git合并、部署分别有结果，不自动以推送触发生产更新 | 应用开发与发布人维护；Harbor保留策略须保护运行/回退镜像，实际清理仍需既定授权 |
-
-完整恢复的范围包含RDS业务数据、导入文件及必要受控配置；集群控制面恢复归同事管理，并核对部署声明和Secret的可恢复性。任何自动化保留/删除、管理员紧急恢复等新增行为只列为方案，未经确认不实施。
-
-DEC-175明确正式RPO/RTO及保留策略先不定值，待同事提供备份能力和成本后讨论。需提供RDS可用数据/日志备份与实际可恢复区间、文件卷备份方式和存放位置、恢复步骤与耗时依据、现有调度/告警及预计费用。此前建议的1小时/4小时/14天不是已确认正式目标；原测试首版策略仍只适用于原范围。
-
-参考：[Kubernetes CronJob](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/)、[Secret](https://kubernetes.io/docs/concepts/configuration/secret/)、[K3s升级](https://docs.k3s.io/upgrades/manual)。这些机制不替代任务幂等、应用恢复与人工责任落实。
-
-### 故障与回退边界
-
-| 故障 | 处理与恢复 |
+| 维护事项 | 当前操作入口与边界 |
 |---|---|
-| 镜像拉取失败/架构不符 | 预检阶段停止，不进入维护；核对节点containerd、凭据和CA，不关闭TLS校验 |
-| RDS不可达/权限证书不符 | 不执行迁移或写入；报告具体连接阶段；运行中暂断由ready撤流量并受控复核恢复 |
-| PVC挂载或文件语义不支持 | 不落到容器临时层；修正实际存储并重做能力预检，已有文件不删除 |
-| 迁移中断/DDL部分生效 | 保留Job日志与结构，按版本/摘要/中间态核对后接续；不清库、不盲目自动重跑 |
-| 新后端/前端不就绪 | 保持维护，核对配置/产物；兼容当前schema才可退应用镜像，不将rollout undo当数据库回退 |
-| 数据恢复必要 | 明确恢复点和业务影响，数据库与文件成对恢复并核对引用；先保留失败现场，不能自动覆盖上线后新写入 |
-| 写请求结果未知 | 复用原操作号及持久回执查结果，不显示“确定没保存”或另建操作重复执行 |
-| Pod强杀/节点故障 | 卷能力范围内恢复；导入可能等待租约到期再接续；节点本地卷失败需独立备份恢复，不宣称HA |
+| 发布与中断接续 | 本节 CLI、持久发布状态、同镜像 Job、维护文件门禁和显式 retry/unlock；真实环境验证结果另记报告 |
+| 凭据/证书轮换 | 域名证书、RDS CA/账号密码、Harbor 凭据、kubeconfig 分开管理。先验证新材料，再更新引用、明确重载消费者、回读健康，最后撤销旧材料；已有连接池不会因 Secret 内容变化自行换密码 |
+| 定时备份及演练 | 复用同事现有 RDS 数据/日志备份、文件卷备份和受控配置备份。优先既有调度；只有确有任务才配置 Job/CronJob，不另建备份平台。发布前仍按本节等待停写后的配对证据 |
+| 日常备份是否停服 | 不把每天停服当固定要求。现有已发布导入原文件不可变，具备可靠 RDS 恢复点、覆盖该点引用的文件副本及完整清单时可设计在线配对备份；实际设施未证明一致性前，不宣称在线备份已经成立 |
+| 告警和责任 | 复用既有集群/云平台，落实公网/API、OOM/重启、RDS连接与容量、卷空间、备份失败/久未成功、证书到期的接收人和恢复通知；渠道、阈值及送达验证待同事落实 |
+| 清理与保留 | 原文件、个人草稿、审计、回执、会话及备份的保留规则不能相互套用。当前发布工具不自动清理业务历史、无引用原文件、旧镜像、容器或 PVC；不沿本轮操作解除原有暂停清理要求 |
+| 管理员紧急恢复 | 正常改密和账号管理继续使用现有产品入口；受控恢复目标沿已确认的 SPEC-001 F07，命令入口尚未实现，具体运行环境与操作者仍需落实。初始化命令不是找回密码后门，不重跑 seed 或清库恢复登录 |
+| 集群/RDS升级 | 同事安排基础设施维护窗口，核对支持版本、备份、节点排空、卷和RDS切换；本项目脚本不升级共享集群、云实例或付费资源 |
 
-首次空白新库已由DEC-176确认；完整方案收口仍需确定维护时段/时长、存储方案及恢复目标。当前未生成可执行清单、未新建云资源、未制作双镜像、未连接RDS或部署K3s。
+正式备份周期、保留、允许数据丢失时间及恢复时间仍按 DEC-175 待定；此前测试环境的策略不自动变为阿里云正式承诺。同事需提供实际可恢复区间、文件/配置备份方式、存放与权限、恢复耗时依据、现有调度/告警和成本，再确定服务目标。RDS 备份不覆盖导入文件；K3s 控制面备份不替代业务备份，反之亦然。
 
-参考：[RDS连接](https://www.alibabacloud.com/help/en/rds/apsaradb-rds-for-mysql/how-do-i-connect-to-an-apsaradb-rds-instance)、[K3s入口](https://docs.k3s.io/networking/networking-services)、[K3s私有仓库](https://docs.k3s.io/installation/private-registry)、[探针语义](https://kubernetes.io/docs/concepts/workloads/pods/probes/)、[Job重复执行边界](https://kubernetes.io/docs/concepts/workloads/controllers/job/)、[持久卷](https://kubernetes.io/docs/concepts/storage/persistent-volumes/)。默认组件不代表该集群实际配置。
+目标域名、Harbor、实际 Ingress/CSI、RDS 版本与连接仍以同事提供并现场验证为准。隔离的本机 K3s、MySQL 8.0/8.4、Docker 或脚本检查只证明对应测试范围，不自动成为阿里云上线、完整恢复演练或用户业务验收的结论。

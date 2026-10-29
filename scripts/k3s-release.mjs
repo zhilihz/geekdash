@@ -26,6 +26,30 @@ async function hashFile(path) {
   return hash.digest('hex');
 }
 
+async function restoreMaintenance(maintenance, verifyClosed) {
+  const errors=[];
+  try { await maintenance(true); } catch(error) { errors.push(`恢复维护命令失败：${error.message}`); }
+  let verified=false;
+  try { await verifyClosed(); verified=true; } catch(error) { errors.push(`维护回读失败：${error.message}`); }
+  return {verified,errors};
+}
+
+export async function openRelease(state, {saveState,maintenance,verifyOpen,verifyClosed}) {
+  const opening={...state,phase:'opening',openingAt:new Date().toISOString()};
+  try {
+    await saveState(opening);
+    await maintenance(false);
+    await verifyOpen();
+    await saveState({...state,phase:'complete',completedAt:new Date().toISOString()});
+  } catch(error) {
+    const restored=await restoreMaintenance(maintenance,verifyClosed);
+    try { await saveState({...opening,phase:'opening_failed',openingError:error.message,maintenanceRestored:restored.verified,recoveryErrors:[...restored.errors]}); }
+    catch(stateError) { restored.errors.push(`失败状态写入失败：${stateError.message}`); }
+    const message=`解除维护未完成：${error.message}；${restored.verified?'已回读确认恢复维护，须status核对后显式retry':'无法确认维护已恢复，立即由运维停止geekdash-api并核对Pod，禁止自动续接'}${restored.errors.length?'；'+restored.errors.join('；'):''}`;
+    throw Object.assign(new Error(message,{cause:error}),{maintenanceRestored:restored.verified,recoveryErrors:restored.errors});
+  }
+}
+
 export async function verifyBackup(evidence, state, config) {
   const paused = Date.parse(state.pausedAt), point = Date.parse(evidence.recoveryPoint), completed = Date.parse(evidence.completedAt);
   if (evidence.context !== config.context || evidence.namespace !== config.namespace || evidence.databaseTarget!==state.databaseTarget || evidence.volumeUid!==state.volumeUid || !state.databaseTarget || !state.volumeUid || !Number.isFinite(paused)
@@ -91,8 +115,10 @@ function cluster(config, release) {
   async function lock(action) {
     const owner=randomUUID();
     create(map('geekdash-release-lock',{owner,release:release.release,createdAt:new Date().toISOString()}));
-    try{return await action();}finally{
-      const current=get('configmap','geekdash-release-lock');if(current?.data?.owner===owner)deleteLock(current);
+    let original;
+    try{return await action();}catch(error){original=error;throw error;}finally{
+      try{const current=get('configmap','geekdash-release-lock');if(current?.data?.owner===owner)deleteLock(current);}
+      catch(error){if(original)throw new Error(`${original.message}；发布锁清理另失败：${error.message}`,{cause:original});throw error;}
     }
   }
   async function databaseJob(object) {
@@ -135,6 +161,15 @@ function cluster(config, release) {
     await until(()=>pods().length===0,'后端Pod未全部停止，未允许迁移',120000);
     state={...state,phase:'paused',pausedAt:new Date().toISOString()};saveState(state);return state;
   }
+  async function verifyClosed() {
+    await pageMaintenance(true);
+    if(get('deployment','geekdash-api')?.spec.replicas===0&&pods().length===0)return;
+    await until(async()=>{const r=await request('/api/health/live');return r?.ok&&(await r.json()).maintenance===true;},'API维护状态无法确认');
+  }
+  async function verifyOpen() {
+    await pageMaintenance(false);
+    await until(async()=>{const r=await request('/api/health/live');return r?.ok&&(await r.json()).maintenance===false;},'API仍在维护中，未标记发行完成');
+  }
   async function finish(state, manifest) {
     state={...state,phase:'starting'};saveState(state);
     maintenance(true);
@@ -150,15 +185,13 @@ function cluster(config, release) {
     },'真实入口前后端构建/schema未一致或数据库未就绪，维护保持');
     const files=JSON.parse(kubectl(['exec','deployment/geekdash-api','--','node','dist/server/commands/import-files.js','rds_app','--probe-storage']));
     if(files.status!=='verified')fail('导入文件与数据库引用核验未通过，维护保持');
-    maintenance(false);await pageMaintenance(false);
-    await until(async()=>{const r=await request('/api/health/live');return r?.ok&&(await r.json()).maintenance===false;},'API仍在维护中，未标记发行完成');
-    saveState({...state,phase:'complete',volumeUid:get('pvc','geekdash-imports')?.metadata.uid,files,completedAt:new Date().toISOString()});
+    await openRelease({...state,volumeUid:get('pvc','geekdash-imports')?.metadata.uid,files},{saveState,maintenance,verifyClosed,verifyOpen});
     return {status:'released',release:release.release,revision:release.revision,url:`https://${config.domain}`,businessAcceptance:'待用户实际业务验收'};
   }
   function applyInfra(manifest) {
     for(const item of manifest.infra){if(item.kind==='Namespace')continue;if(item.kind==='PersistentVolumeClaim'&&get('pvc',item.metadata.name))continue;apply(item);}
   }
-  return {kubectl,get,preflight,lock,readState,saveState,maintenance,databaseJob,recoverJob,checkImages,unlock,pause,finish,applyInfra,pods};
+  return {kubectl,get,preflight,lock,readState,saveState,maintenance,verifyClosed,verifyOpen,databaseJob,recoverJob,checkImages,unlock,pause,finish,applyInfra,pods};
 }
 
 async function push(file, destination) {
@@ -211,14 +244,23 @@ export async function main(args=process.argv.slice(2)) {
     return output({status:'rendered',directory:resolve(extra),note:'清单用于审阅；发布使用init/update/resume保证维护与迁移顺序'});
   }
   const c=cluster(config,release),key=fingerprint(config,release);
-  if(command==='status')return output({state:c.readState()??null,lock:c.get('configmap','geekdash-release-lock')?.data??null,recovery:c.get('configmap','geekdash-release-recovery')?.data??null,deployments:['web','api'].map(part=>{const d=c.get('deployment',`geekdash-${part}`);return {part,image:d?.spec.template.spec.containers[0].image,replicas:d?.spec.replicas,ready:d?.status?.readyReplicas??0};}),jobs:JSON.parse(c.kubectl(['get','jobs','-l','app.kubernetes.io/name=geekdash','-o','json'])).items.map(j=>({name:j.metadata.name,conditions:j.status?.conditions??[]})),recoveryEntry:'中断用resume；Failed Job核schema后用retry（新attempt）；残留lock核实没有发布进程和运行Job后用unlock，准确提供owner'});
+  if(command==='status')return output({state:c.readState()??null,maintenance:c.get('configmap','geekdash-maintenance')?.data??null,lock:c.get('configmap','geekdash-release-lock')?.data??null,recovery:c.get('configmap','geekdash-release-recovery')?.data??null,deployments:['web','api'].map(part=>{const d=c.get('deployment',`geekdash-${part}`);return {part,image:d?.spec.template.spec.containers[0].image,replicas:d?.spec.replicas,ready:d?.status?.readyReplicas??0};}),jobs:JSON.parse(c.kubectl(['get','jobs','-l','app.kubernetes.io/name=geekdash','-o','json'])).items.map(j=>({name:j.metadata.name,conditions:j.status?.conditions??[]})),recoveryEntry:'opening/opening_failed先resume恢复维护并核对，再显式retry并提供openingReviewed；其他中断用resume；Failed Job核schema后retry；残留lock核实无发布进程/未结束Job后unlock'});
   if(command==='unlock'){if(!extra)fail('unlock需要恢复证据.json');return output(await c.unlock(await readJson(extra)));}
   const recovery=command==='retry'?(extra?await readJson(extra):fail('retry需要恢复证据.json')):undefined;
-  const initial=command==='init'||['resume','retry'].includes(command)&&c.readState()?.mode==='init';
-  const preflight=await c.preflight(initial);
-  if(command==='preflight')return output(await c.lock(async()=>{await c.checkImages(manifest);return {...preflight,imagePullAndDatabaseConnections:'verified_in_cluster'};}));
+  if(command==='preflight')return output(await c.lock(async()=>{const result=await c.preflight();await c.checkImages(manifest);return {...result,imagePullAndDatabaseConnections:'verified_in_cluster'};}));
   return output(await c.lock(async()=>{
     let state=c.readState();
+    if(['resume','retry'].includes(command)&&state&&(['opening','opening_failed'].includes(state.phase)||state.phase==='complete'&&c.get('configmap','geekdash-maintenance')?.data?.enabled)){
+      if(state.fingerprint!==key)fail('解除维护结果未核实；请使用原发行配置恢复维护，不能直接换版本续接');
+      const restored=await restoreMaintenance(c.maintenance,c.verifyClosed);
+      state={...state,phase:'opening_failed',maintenanceRestored:restored.verified,recoveryErrors:restored.errors};
+      try{c.saveState(state);}catch(error){fail(`未继续开闸；${restored.verified?'已确认维护':'无法确认维护，立即由运维停止geekdash-api并核对Pod'}；${restored.errors.join('；')}；失败状态写入失败：${error.message}`);}
+      if(!restored.verified)fail(`无法确认维护恢复，立即由运维停止geekdash-api并核对Pod，禁止自动续接；${restored.errors.join('；')}`);
+      if(command==='resume')return {status:'maintenance_restored_review_required',phase:state.phase,note:'先核对可能开放期间的业务写入及当前状态，再retry并明确openingReviewed=true；没有自动重新开放'};
+      if(recovery?.openingReviewed!==true)fail('维护已恢复；需先核对可能开放期间的业务写入及当前状态，再在retry证据中明确openingReviewed=true');
+      state={...state,phase:'starting'};
+    }
+    const preflight=await c.preflight(command==='init'||state?.mode==='init'&&state.phase==='initializing');
     if(command==='init'){
       if(state||c.get('deployment','geekdash-api'))fail('已有发布状态或后端部署；请先status核对，使用resume/update，不能再次初始化');
       state={mode:'init',phase:'initializing',fingerprint:key,release,databaseTarget:preflight.databaseTarget,credentials:preflight.credentials,startedAt:new Date().toISOString()};c.saveState(state);c.maintenance(true);c.applyInfra(manifest);
@@ -233,7 +275,7 @@ export async function main(args=process.argv.slice(2)) {
       return {status:'paused_for_backup',pausedAt:state.pausedAt,note:'后端已停止。完成数据库、导入文件及配置的可恢复备份后，使用resume和备份证据续接'};
     }else{
       if(!state||state.fingerprint!==key)fail('没有与本次配置和发行一致的可续接状态，先status核对');
-      if(state.phase==='complete')return {status:'already_released',release:release.release};
+      if(state.phase==='complete'){await c.verifyOpen();return {status:'already_released',release:release.release};}
       if(state.databaseTarget!==preflight.databaseTarget||state.volumeUid&&state.volumeUid!==preflight.volumeUid)fail('数据库目标或持久卷发生变化，保留维护，不能自动续接');
       if(recovery){
         if(recovery.schemaReviewed!==true||typeof recovery.reason!=='string'||!recovery.reason.trim())fail('retry必须先核对Job日志/实际schema并填写恢复原因');

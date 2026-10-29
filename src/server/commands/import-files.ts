@@ -21,6 +21,8 @@ export async function verifyImportFiles(profile: 'rds_app' | 'test_app', probeSt
         try { await handle.writeFile('geekdash-storage-probe'); await handle.sync(); } finally { await handle.close(); }
         await link(source, target);
         if ((await readFile(target, 'utf8')) !== 'geekdash-storage-probe') throw new Error('IMPORT_STORAGE_PROBE_FAILED');
+        const parent = await open(directory, 'r');
+        try { await parent.sync(); } finally { await parent.close(); }
       } finally {
         await unlink(target).catch(error => { if (error.code !== 'ENOENT') throw error; });
         if (created) await unlink(source);

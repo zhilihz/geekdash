@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { validate, resources, fingerprint } from '../deploy/k3s/resources.mjs';
-import { verifyBackup } from './k3s-release.mjs';
+import { verifyBackup, openRelease } from './k3s-release.mjs';
 
 const config={context:'geekdash-k3s',namespace:'geekdash',domain:'geekdash.zhiluan.cool',ingressClass:'traefik',ingressAnnotations:{},ingressStreamingConfirmed:true,tlsSecret:'geekdash-tls',pullSecret:'geekdash-harbor',databaseSecret:'geekdash-rds-app',migrationSecret:'geekdash-rds-migrator',databaseCaSecret:'geekdash-rds-ca',adminSecret:'geekdash-bootstrap-admin',trustProxy:['10.42.0.0/16'],storageClass:'csi-disk',storageSize:'10Gi',resources:{web:{requests:{cpu:'50m',memory:'64Mi'},limits:{cpu:'500m',memory:'128Mi'}},api:{requests:{cpu:'250m',memory:'256Mi'},limits:{cpu:'1000m',memory:'768Mi'}}},releaseFile:'release.json'};
 const release={release:'k3s-verify',revision:'a'.repeat(40),schemaVersion:'0015-project-deletion',platform:'linux/amd64',webImage:'registry.zhiluan.cool/geekdash/web@sha256:'+'b'.repeat(64),apiImage:'registry.zhiluan.cool/geekdash/api@sha256:'+'c'.repeat(64)};
@@ -41,6 +41,45 @@ for(const mode of ['initialize','migrate','verify']){
 assert.throws(()=>rendered.job('seed'));assertions++;
 for(const part of ['web','api']){const j=rendered.preflightJob(part,'12345678');check(j.spec.template.spec.containers[0].image===release[`${part}Image`]&&j.spec.backoffLimit===0);check(!j.spec.template.spec.containers[0].command.join(' ').includes('initialize.js'));}
 check(fingerprint(config,release)!==fingerprint({...config,domain:'new.zhiluan.cool'},release));
+async function gateScenario(problem={}){
+  const calls=[];let maintenance=true,persisted={phase:'starting'},caught;
+  const original=new Error(problem.failAt??'no failure');
+  try{await openRelease({phase:'starting',release}, {
+    saveState:async state=>{
+      calls.push(state.phase);
+      if(state.phase==='opening_failed'&&problem.failedStateWrite)throw new Error('failed-state-write');
+      persisted=state;
+      if(state.phase===problem.failAt)throw original;
+    },
+    maintenance:async enabled=>{
+      calls.push(`maintenance:${enabled}`);
+      if(enabled&&problem.restoreCommandFail)throw new Error('restore-command');
+      maintenance=enabled;
+      if(!enabled&&problem.failAt==='disable-maintenance')throw original;
+    },
+    verifyOpen:async()=>{calls.push('verify-open');if(problem.failAt==='verify-open')throw original;assert.equal(maintenance,false);},
+    verifyClosed:async()=>{calls.push('verify-closed');if(problem.closedReadFail)throw new Error('closed-read');if(!maintenance)throw new Error('still-open');},
+  });}catch(error){caught=error;}
+  return {calls,maintenance,persisted,caught,original};
+}
+const successfulGate=await gateScenario();
+check(!successfulGate.caught&&successfulGate.persisted.phase==='complete'&&successfulGate.maintenance===false);
+assert.deepEqual(successfulGate.calls,['opening','maintenance:false','verify-open','complete']);assertions++;
+for(const failAt of ['disable-maintenance','verify-open','complete','opening']){
+  const result=await gateScenario({failAt});
+  check(result.caught?.cause===result.original&&result.caught.message.includes(failAt));
+  check(result.persisted.phase==='opening_failed'&&result.maintenance===true&&result.caught.maintenanceRestored===true);
+  check(result.calls.includes('maintenance:true')&&result.calls.includes('verify-closed'));
+  if(failAt==='opening')check(!result.calls.includes('maintenance:false'));
+}
+const restoreFailed=await gateScenario({failAt:'verify-open',restoreCommandFail:true});
+check(restoreFailed.caught.cause===restoreFailed.original&&restoreFailed.caught.maintenanceRestored===false&&restoreFailed.maintenance===false);
+check(restoreFailed.caught.message.includes('restore-command')&&restoreFailed.caught.message.includes('still-open')&&restoreFailed.caught.message.includes('立即由运维停止'));
+const closedReadFailed=await gateScenario({failAt:'verify-open',closedReadFail:true});
+check(closedReadFailed.maintenance===true&&closedReadFailed.caught.maintenanceRestored===false&&closedReadFailed.caught.message.includes('closed-read'));
+const failedState=await gateScenario({failAt:'complete',failedStateWrite:true});
+check(failedState.persisted.phase==='complete'&&failedState.maintenance===true&&failedState.caught.cause===failedState.original);
+check(failedState.caught.message.includes('failed-state-write')&&failedState.caught.recoveryErrors.length===1);
 const directory=await mkdtemp(resolve(tmpdir(),'geekdash-k3s-check-'));
 try{
   const content='synthetic encrypted archive evidence',archive=resolve(directory,'archive.enc'),sha=createHash('sha256').update(content).digest('hex');
@@ -58,7 +97,7 @@ try{
   check(JSON.parse(await readFile(resolve(out,'initialize-job.json'),'utf8')).kind==='Job');
   const overwrite=spawnSync(process.execPath,[command,'render',resolve(directory,'environment.json'),out],{encoding:'utf8'});check(overwrite.status===1);
   const invalid=spawnSync(process.execPath,[command,'preflight',resolve('deploy/k3s/environment.example.json')],{encoding:'utf8'});check(invalid.status===1);
-  console.log(JSON.stringify({status:'passed',assertions,scope:'纯资源渲染、拒绝无效参数、备份文件hash门禁；未连接K3s/Harbor/RDS，不代表发布验收'}));
+  console.log(JSON.stringify({status:'passed',assertions,scope:'资源/参数、备份hash门禁、开闸确认与完成写入失败后的维护恢复；未连接K3s/Harbor/RDS，不代表发布验收'}));
 }finally{
   // 本脚本仅删除自己在系统临时目录创建的唯一测试目录。
   if(!directory.startsWith(resolve(tmpdir())+ (process.platform==='win32'?'\\':'/')))throw new Error('临时路径超出范围');

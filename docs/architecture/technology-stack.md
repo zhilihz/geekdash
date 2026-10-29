@@ -1,6 +1,6 @@
 # 技术栈基线
 
-版本：D0.38；日期：2026-10-08；状态：本地工程、独立 MySQL、运行连接池及就绪已验证；认证和业务接入待实施。
+日期：2026-10-29；本文维护技术路线和部署边界，实际实现、测试及环境版本统一查[系统真相](../status/current-system-truth.md)。早期工程验证记录保留在第3节，不表示当前认证或业务仍未实施。
 
 ## 1. 已确定的方向
 
@@ -10,15 +10,15 @@
 
 | 层次 | 首版选型 | 使用边界 |
 |---|---|---|
-| 页面 | 现有六个 HTML 页面、CSS、原生 DOM，新增共享模块使用 TypeScript | 保留入口、布局和操作习惯，逐页迁移；是否合并单页应用由实际切页体验决定 |
+| 页面 | 现有多页面 HTML、CSS、原生 DOM及TypeScript共享模块；当前构建入口14页 | 保留入口、布局和操作习惯；页面清单由Vite构建配置维护，不引入单页重写 |
 | 前端构建 | Vite 8 多页面构建 | 编译共享模块、处理静态资源；不引入 Vue、React、Pinia 或前端路由框架 |
 | 后端 | Node.js 24 LTS + TypeScript + Fastify 5 | 一个常驻应用进程，内部按业务划分深模块；REST JSON API，JSON Schema 校验输入 |
 | 数据访问 | mysql2 连接池、参数化 SQL、版本化 SQL 迁移 | 事务在业务模块内统一控制，SQL 封装在模块内部；首版不叠加 ORM |
-| 数据库 | 新环境为阿里云RDS MySQL 8.0+（8.0及以上）；按实际部署版本验证兼容性 | 使用本项目独立数据库和运行/迁移身份；本地及既有腾讯云环境仍为MySQL 8.4，不据目标修改已运行的库 |
+| 数据库 | 新环境为阿里云RDS MySQL 8.0+；最低8.0.16以执行现有CHECK约束，实际目标版本仍须验证 | 独立数据库，运行/迁移账号分开，TLS校验CA和主机名；本地及既有腾讯云环境仍为MySQL 8.4，不据目标修改已运行的库 |
 | 身份认证 | 服务端会话 + HttpOnly / Secure / SameSite Cookie；密码采用 Argon2id 哈希 | MySQL 保存会话校验信息、期限和撤销状态；写请求增加 CSRF 防护；期限与恢复采用 SPEC-001 已确认契约 |
 | 多人通知 | SSE + 浏览器 EventSource | 提交后推送资源 ID、版本和变更类型，浏览器按需重新查询 |
-| 部署 | 阿里云K3s：前端、后端独立镜像及Deployment，RDS独立 | 同域按页面与/api分流；首版同版本发布，迁移Job复用后端镜像。入口控制器、存储及升级窗口待核对，详见执行计划1.4；本地Compose和腾讯云旧环境不自动迁移或停用 |
-| 测试 | Vitest + 真实 MySQL 集成测试 + Playwright 浏览器测试 | 核心业务通过真实写入、新请求回读与第二个用户查看验证 |
+| 部署 | 阿里云K3s：前端Nginx与后端Node独立镜像及Deployment，RDS独立；原生资源JSON由Node标准库生成 | 同域按页面与/api分流；首版同版本、后端单副本、维护窗口发布，迁移Job复用后端镜像。入口控制器、存储及升级窗口按实际集群核对；原Compose环境不自动迁移或停用 |
+| 测试 | TypeScript检查、Node断言脚本、真实隔离MySQL/API及K3s技术验证 | 核心写入持久化后以新请求回读；用户负责真实浏览器操作，助手不以接口结果替代业务体验验收；不为本轮新增测试框架 |
 | 依赖与代码管理 | npm、package-lock.json、GitHub | 首次工程初始化生成锁文件，CI 用 npm ci；本文不是已生成锁文件的证明 |
 
 Node.js 24 当前属于 LTS，采用该版本线有明确支持周期，见 [Node.js 官方发布表](https://nodejs.org/en/about/previous-releases)。后端框架遵循 [Fastify 支持策略](https://fastify.dev/docs/latest/Reference/LTS/)。Vite 用作[多页面构建](https://vite.dev/guide/build.html#multi-page-app)，不会强制改变现有页面形态。

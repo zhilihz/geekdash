@@ -420,6 +420,11 @@ async function receiveFile(stream: Readable, actor: Actor, key: string) {
       if (!createHash('sha256').update(existing).digest().equals(sha)) failure('OPERATION_KEY_REUSED',409);
     }
     await unlink(temporary);
+    // Linux部署先持久化正式目录项，再允许数据库保存引用；Windows原生开发沿用原文件写入路径。
+    if (process.platform !== 'win32') {
+      const parent=await open(directory,'r');
+      try { await parent.sync(); } finally { await parent.close(); }
+    }
     return {file:final,bytes,sha,parsed};
   } catch(error) { await file.close().catch(()=>{}); await unlink(temporary).catch(()=>{}); throw error; }
 }
