@@ -1,10 +1,14 @@
 # E03 项目主干与最小身份 API
 
-日期：2026-10-26候选更新，0009未部署；最小身份沿E03-W09～W12，归属接口已替换，部署构建版本见系统真相。行为权威为SPEC-001/002/014，字段字典为ERD。
+本页保留E03以来的接口及后续增量；2026-10-29补充K3s专用模式。最小身份沿E03-W09～W12，归属接口已替换，各环境实际部署构建版本见系统真相。行为权威为SPEC-001/002/014，字段字典为ERD。
 
 ## 身份入口
 
 所有响应 no-store。公网 Cookie 为 __Host-geekdash（HttpOnly/Secure/Path=/）与独立 CSRF Cookie；本地 HTTP 使用 geekdash_dev 前缀。POST 带同源 Origin、X-GeekDash-Request: 1；已认证请求再带 X-GeekDash-Account 和 X-GeekDash-CSRF。账号上下文只供核对，身份来自服务器会话。X-GeekDash-Active: 1 仅由本人前台操作发出，后台确认/自动刷新不续期。
+
+**2026-10-29 K3s分离部署增量（产品f55d950）：**API专用运行模式中，所有非GET/HEAD/OPTIONS的`/api/`请求另带`X-GeekDash-Release`，值为前端构建的完整revision。共享客户端自动发送；缺失或与API构建不符返回409 `FRONTEND_RELEASE_MISMATCH`、`outcome:not_committed`及requestId，不进入业务处理。页面保留未保存输入，提示更新后重新进入；不能把请求结果未知当作可直接重发。旧组合模式保留原兼容性。
+
+维护文件生效时，除live/ready外的API（包括登录和读取）返回503 `BUSINESS_WRITES_PAUSED`及`Retry-After:60`，不执行业务。live另返回`maintenance`供发布入口核对，ready继续表示数据库能否服务；仅探针200不表示维护已经结束。准确运行覆盖见[K3s技术报告](../../testing/reports/2026-10-29-k3s-rds-delivery.md)，运维顺序见[发布维护](../../operations/release-maintenance.md#k3s-production-delivery)。
 
 | 方法/路径 | 输入 | 成功及后续消费 |
 |---|---|---|

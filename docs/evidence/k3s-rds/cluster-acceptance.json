@@ -1,0 +1,140 @@
+{
+  "status": "passed_local_infrastructure_acceptance",
+  "observedAt": "2026-10-29T10:46:59.551Z",
+  "testedVersion": "f55d9500918eb11436da03677282536373d2d1af",
+  "schema": "0015-project-deletion",
+  "context": "k3d-geekdash-verify2-20261029",
+  "namespace": "geekdash-verify",
+  "runtime": {
+    "k3s": "v1.35.5+k3s1",
+    "mysql": "8.4",
+    "ingress": "Traefik",
+    "database": "geekdash_k3s_verify_cluster",
+    "webReplicas": 1,
+    "apiReplicas": 1,
+    "pvc": "0007bd5b-94f2-47bf-b12e-2d23b25d4978"
+  },
+  "checks": [
+    {
+      "check": "同镜像preflight与空库init",
+      "status": "passed",
+      "version": "4a92ca7b8b79f6c9c6a31d0ebd425af09449dc42",
+      "evidence": [
+        "preflight.log",
+        "init.log"
+      ]
+    },
+    {
+      "check": "首次发布维护保持至验收完成",
+      "status": "passed",
+      "evidence": [
+        "init-maintenance-observation.json",
+        "init.log"
+      ]
+    },
+    {
+      "check": "HTTPS身份、首次改密、Cookie、CSRF、旧构建门禁、项目保存/回读、幂等/冲突、Ingress SSE",
+      "status": "passed",
+      "requests": 22,
+      "evidence": [
+        "http-result.json"
+      ]
+    },
+    {
+      "check": "32MiB实际上传与超限413",
+      "status": "passed",
+      "evidence": [
+        "upload-limit-result.json"
+      ]
+    },
+    {
+      "check": "重建Pod后PVC、原会话、项目、导入回执与文件持久",
+      "status": "passed",
+      "pvcUid": "0007bd5b-94f2-47bf-b12e-2d23b25d4978",
+      "evidence": [
+        "pvc-restart-result.json",
+        "readback-1793269762972.json",
+        "readback-1793270604125.json"
+      ]
+    },
+    {
+      "check": "update停止API、保持维护、无备份证据拒绝resume",
+      "status": "passed",
+      "evidence": [
+        "update.log",
+        "paused-observation.json",
+        "resume-without-backup.log"
+      ]
+    },
+    {
+      "check": "真实数据库、PVC文件和配置归档；独立空库恢复全表核对",
+      "status": "passed",
+      "tables": 48,
+      "importFiles": 2,
+      "hashes": {
+        "database": "db17bb56d79af7bd717faa0317e04eb7a7ec3b5d0a1aa320adb14e674f47fe26",
+        "files": "fff16794544cfbca0b4f15e69fff4ea3ba122b184a9bb128820069c0abf259fe",
+        "configuration": "516c7465fa5ba86dc93a766eb8aea9bdf5b05bd90064cca5d9ee73f1072f44d2"
+      },
+      "evidence": [
+        "restore-result.json"
+      ]
+    },
+    {
+      "check": "真实schema锁占用导致迁移Job失败，维护不解除；核schema后显式retry新attempt成功",
+      "status": "passed",
+      "schemaTables": 48,
+      "schemaColumns": 415,
+      "schemaForeignKeys": 84,
+      "evidence": [
+        "resume-lock-failure.log",
+        "failure-observation.json",
+        "schema-review-after-failure.log",
+        "retry.log"
+      ]
+    },
+    {
+      "check": "新配对版本上线，旧项目/回执可读，新上传执行回读成功，文件父目录sync路径可运行",
+      "status": "passed",
+      "evidence": [
+        "updated-upload-result.json"
+      ],
+      "fileProbe": {
+        "status": "verified",
+        "storageProbe": true,
+        "checked": 3,
+        "failures": [],
+        "partialFiles": 0,
+        "unreferencedFiles": 0
+      }
+    },
+    {
+      "check": "真实断库ready503/live200、Ingress移除故障端点；恢复后readiness及项目新请求回读，不重启Pod",
+      "status": "passed",
+      "ingressRecoveryStatuses": [
+        503,
+        503,
+        200
+      ],
+      "evidence": [
+        "database-outage-result.json"
+      ]
+    }
+  ],
+  "limitations": [
+    "仅本机独立K3s与MySQL8.4合成数据；未访问阿里云或腾讯云",
+    "镜像通过本地containerd预载，未验目标Harbor证书/鉴权/拉取",
+    "local-path只验同节点Pod重建；未验目标存储/跨节点恢复",
+    "目标RDS实例/网络/权限/备份与恢复仍需同事实际验收",
+    "不包含用户真实业务UI验收",
+    "首次断库脚本遗漏账号头并未等待Ingress传播，已保留原失败日志并修正重跑；不是业务代码修改",
+    "无断电破坏测试，不宣称断电容错已验证"
+  ],
+  "preserved": [
+    "失败迁移Job",
+    "隔离库及恢复库",
+    "受控备份与凭据",
+    "原41873实例未改动",
+    "默认kubeconfig未改动"
+  ]
+}

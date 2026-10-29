@@ -1,0 +1,16 @@
+{
+  "observedAt": "2026-10-29T10:32:19.296Z",
+  "revision": "4a92ca7b8b79f6c9c6a31d0ebd425af09449dc42",
+  "checks": [
+    {
+      "bytes": 33554432,
+      "status": 200,
+      "batchId": "2"
+    },
+    {
+      "bytes": 33554433,
+      "status": 413,
+      "code": "IMPORT_FILE_TOO_LARGE"
+    }
+  ]
+}

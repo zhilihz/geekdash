@@ -1,0 +1,12 @@
+{
+  "observedAt": "2026-10-29T10:28:07.723Z",
+  "revision": "4a92ca7b8b79f6c9c6a31d0ebd425af09449dc42",
+  "requests": 22,
+  "checks": [
+    "真实HTTPS登录、首次改密、会话Cookie、同源与CSRF、旧构建门禁",
+    "Ingress SSE收到实际项目事件；项目写入新请求回读；幂等与版本冲突",
+    "真实原始备份上传、执行入库、后台回执与新请求回读"
+  ],
+  "projectId": "1",
+  "batchId": "1"
+}

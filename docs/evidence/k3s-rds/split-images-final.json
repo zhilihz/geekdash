@@ -1,0 +1,26 @@
+{
+  "status": "verified",
+  "scope": "静态前端与无数据库后端镜像边界；不含业务验收或RDS验证",
+  "requests": 71,
+  "pages": 14,
+  "assets": 37,
+  "build": {
+    "revision": "f55d9500918eb11436da03677282536373d2d1af",
+    "dirty": false,
+    "builtAt": "2026-10-29T10:32:21.679Z",
+    "stage": "K3s-runtime-delivery",
+    "schemaVersion": "0015-project-deletion"
+  },
+  "images": {
+    "web": {
+      "id": "sha256:0ade24ea7ebd6b33d1398bb385efa203db5af6cfe796eb05287a4fb84d42a3d8",
+      "bytes": 66520715,
+      "architecture": "amd64"
+    },
+    "api": {
+      "id": "sha256:2b6012434f67f1a37e8506c365858aa9f7678a74e975fdd7baaa876add4d0741",
+      "bytes": 83571294,
+      "architecture": "amd64"
+    }
+  }
+}

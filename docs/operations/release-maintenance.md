@@ -477,7 +477,7 @@ HTTPS 域名 → 实际 Ingress → /api 原路径 → geekdash-api:80 → API:3
 | 资源及维护 | 按实际节点容量填写 requests/limits；示例数值是配置起点。确认维护时间和执行人，后端单副本会有明确不可用窗口 |
 | 备份与日志 | 受控归档位置、恢复操作者、集群日志保留和告警接收人。正式备份周期、保留、RPO/RTO 按 DEC-175 待同事反馈能力与成本后确定 |
 
-脚本不安装或升级 Ingress、CSI、K3s、RDS，不修改 DNS，不删除 namespace/PVC。当前清单不生成一份假定通用的 NetworkPolicy；实际 CNI 下的入口、DNS、RDS 网络边界由同事配置并验证。应用的 kubeconfig 发布身份需要目标 namespace 的 Deployment/Service/Ingress/ConfigMap/Job/PVC 操作、Secret 读取、Pod 状态/日志/exec 权限，以及 ingressClass、StorageClass、namespace 的必要读取权限；无需给常驻应用这些权限。
+脚本不安装或升级 Ingress、CSI、K3s、RDS，不修改 DNS，不删除 namespace/PVC。当前清单不生成一份假定通用的 NetworkPolicy；实际 CNI 下的入口、DNS、RDS 网络边界由同事配置并验证。运维的 kubeconfig 发布身份需要目标 namespace 的 Deployment/Service/Ingress/ConfigMap/Job/PVC 操作、ServiceAccount 的 get/create/patch、Secret 读取、Pod 状态/日志/exec 权限，以及 ingressClass、StorageClass、namespace 的必要读取权限；`deployments/scale` 子资源还需 get/update/patch，不能只授予 Deployment 本体。首次创建 namespace 和准备 Secret 的权限属于准备操作者；无需给常驻应用这些集群操作权限。
 
 ### 2. 构建双镜像与上传发行
 

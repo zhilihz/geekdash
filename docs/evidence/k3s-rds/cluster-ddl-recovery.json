@@ -1,0 +1,57 @@
+{
+  "status": "verified",
+  "scope": "isolated-k3s-partial-ddl-and-runtime-budgets",
+  "namespace": "geekdash-ddl-verify-20261029b",
+  "database": "geekdash_k3s_verify_ddl_20261029b",
+  "revision": "f55d9500918eb11436da03677282536373d2d1af",
+  "image": "registry.geekdash.test/geekdash/api@sha256:2b6012434f67f1a37e8506c365858aa9f7678a74e975fdd7baaa876add4d0741",
+  "results": [
+    {
+      "job": "ddl-interrupted",
+      "condition": "Failed",
+      "exitCode": 137
+    },
+    {
+      "job": "ddl-explicit-resume",
+      "condition": "Complete",
+      "exitCode": 0,
+      "result": {
+        "status": "verified",
+        "scope": "k3s-job-partial-ddl-explicit-resume",
+        "partialTables": 2,
+        "partialRegisteredVersions": 0,
+        "registeredVersions": 15,
+        "structure": {
+          "database": "geekdash_k3s_verify_ddl_20261029b",
+          "version": "0015-project-deletion",
+          "checksum": "24285c65d6b6b1997fe06378bc949a29c82b254e09bec8f17f7df165660c7d52",
+          "tables": 48,
+          "columns": 415,
+          "foreignKeys": 84,
+          "differences": 0
+        },
+        "repeatApplied": false,
+        "historyUnchanged": true
+      }
+    },
+    {
+      "job": "runtime-budget-check",
+      "condition": "Complete",
+      "exitCode": 0,
+      "result": {
+        "status": "verified",
+        "scope": "isolated-pool-exhaustion-and-slow-full-recovery",
+        "database": "geekdash_k3s_verify_ddl_20261029b",
+        "poolConnections": 8,
+        "busyReason": "database_busy",
+        "busyMs": 1,
+        "busyRecovered": true,
+        "concurrentRecoveryRequests": 20,
+        "recoveryConnections": 1,
+        "realSqlSleepSeconds": 4,
+        "recoveryMs": 4091,
+        "migrationHistoryUnchanged": true
+      }
+    }
+  ]
+}

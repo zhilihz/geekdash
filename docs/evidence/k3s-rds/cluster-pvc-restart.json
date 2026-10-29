@@ -1,0 +1,13 @@
+{
+  "observedAt": "2026-10-29T10:31:19.464Z",
+  "uidBefore": "0007bd5b-94f2-47bf-b12e-2d23b25d4978",
+  "uidAfter": "0007bd5b-94f2-47bf-b12e-2d23b25d4978",
+  "storageProbe": {
+    "status": "verified",
+    "storageProbe": true,
+    "checked": 1,
+    "failures": [],
+    "partialFiles": 0,
+    "unreferencedFiles": 0
+  }
+}
