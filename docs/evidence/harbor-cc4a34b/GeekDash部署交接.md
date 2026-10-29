@@ -1,5 +1,7 @@
 # GeekDash 部署。
 
+> 旧Compose合一包说明。新目标已改为阿里云K3s+RDS，此包不适用于该新环境；当前目标见[新部署说明](../k3s-rds/GeekDash部署交接.md)。
+
 ## 部署步骤
 
 镜像：以随包 `.env.example` 中的 `GEEKDASH_IMAGE` 为准。

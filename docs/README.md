@@ -4,7 +4,9 @@
 
 ## 本轮阅读入口
 
-当前接续为DEC-171整轮体验修正：设计查[PRD9.28](product/PRD.md)与[SPEC-022](specifications/specification.md)，实际进度、接口覆盖和用户验收边界查[本轮报告](testing/reports/2026-10-27-experience.md)及[系统真相](status/current-system-truth.md)。以下旧入口保留原阶段来源。
+当前接续为正式K3s交付改造（DEC-172～176，2026-10-29用户已授权实施）：[执行计划1.4](implementation/execution-plan.md#k3s-delivery-plan)记录完整实现思路、代码落位、失败恢复和验证顺序，[架构](architecture/architecture.md#3-运行结构)记录已确认前后端独立部署，[运维方案](operations/release-maintenance.md#k3s-production-delivery)记录发布及恢复。准确实施与未验范围归交接和系统真相；[转发简版](evidence/k3s-rds/GeekDash部署交接.md)可供同事核对环境。
+
+此前DEC-171整轮体验修正：设计查[PRD9.28](product/PRD.md)与[SPEC-022](specifications/specification.md)，实际进度、接口覆盖和用户验收边界查[本轮报告](testing/reports/2026-10-27-experience.md)及[系统真相](status/current-system-truth.md)。以下旧入口保留原阶段来源。
 
 2026-10-27新增修正讨论：先读[DEC-167/168](decisions/decisions.md#2026-10-27-现有页面与操作统一修正)、[PRD9.25](product/PRD.md#925-现有页面与操作统一修正2026-10-27已确认未实施)、[ERD5.15](data/ERD.md#515-多值资料与统一操作的结构影响dec-167168待详细收敛)及[计划1.2](implementation/execution-plan.md#12-p04完整实施计划2026-10-15)的修正输入；设计与现行运行状态分开。下方为既有P05交付来源。
 

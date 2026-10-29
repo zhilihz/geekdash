@@ -14,9 +14,31 @@ identity 向项目深模块提供可信 actor，项目写事务再次核验账�
 
 采用模块化单体：一个常驻业务应用，内部按业务职责约束依赖。用户已明确保留现有页面与操作习惯，抽出数据访问、状态管理与业务规则后调用 API；是否进一步合并为单页应用，根据实际切页体验决定。
 
-工程基线采用 Node.js 24 LTS + TypeScript + Fastify 5，mysql2 访问 MySQL 8.4；前端使用原生页面与 TypeScript 共享模块，Vite 多页面构建。部署采用 Docker Compose，使用 SSE 通知变更。具体范围、选型来源及版本锁定方式见[技术栈基线](technology-stack.md)。
+工程基线采用 Node.js 24 LTS + TypeScript + Fastify 5，mysql2访问MySQL；前端使用原生页面与TypeScript共享模块，Vite多页面构建，使用SSE通知变更。新部署目标按DEC-172改为K3s和阿里云RDS MySQL；实际本地与腾讯云旧环境仍使用Compose/MySQL 8.4。具体版本和兼容边界见[技术栈基线](technology-stack.md)。
 
 ## 3. 运行结构
+
+### 新部署目标：阿里云K3s与RDS（2026-10-29，已确认部署拆分，未实施）
+
+```mermaid
+flowchart LR
+    Browser[浏览器] --> Entry[集群既有 HTTPS 入口]
+    Entry -->|页面与静态资源| WebService[前端 Service]
+    WebService --> Web[前端 Deployment]
+    Entry -->|/api 包括SSE与上传| ApiService[后端 Service]
+    ApiService --> Api[后端 Deployment]
+    Api --> RDS[(阿里云 RDS MySQL 8.0+)]
+    Api --> Files[导入原文件 · 独立持久存储]
+    BackendImage[后端镜像] -.常驻运行.-> Api
+    BackendImage -.发布时运行.-> Migration[一次性迁移/初始化 Job]
+    Migration --> RDS
+```
+
+DEC-173已确认前后端独立部署；原“一个镜像同时提供页面和API”的方案被替代。前端仅持静态产物，后端仅持服务产物、运行依赖和迁移资源，两者均不含MySQL服务。迁移Job复用后端镜像，迁移凭据不进入常驻服务；首次账号初始化与后续升级分开。
+
+同一域名由集群实际入口分流，不新增宿主Nginx或Compose发布链。前端静态服务可用非root Nginx，此为实现建议，不意味着集群Ingress也是Nginx。当前代码的页面托管与旧链接重定向需迁往前端，身份、Cookie、CSRF和API业务规则保持。后端通知仍有进程内状态，DEC-174已确认首版后端单副本和维护窗口发布，多副本及无停机更新后置；不限制使用人数，不能把K3s调度等同高可用。完整施工方案归[执行计划1.4](../implementation/execution-plan.md#k3s-delivery-plan)，发布和恢复归[运维方案](../operations/release-maintenance.md#k3s-production-delivery)。
+
+### 既有运行结构（本地与腾讯云测试机）
 
 ```mermaid
 flowchart TB
