@@ -5,6 +5,7 @@ import { assertActor, type Actor } from './identity.js';
 import { canonical } from './personal-state.js';
 import { failure, validId } from './project-save.js';
 import { imports } from './imports.js';
+import { isMaintenanceActive } from '../infrastructure/config.js';
 
 type Json=Record<string,any>;
 const decode=(value:any)=>typeof value==='string'?JSON.parse(value):value;
@@ -46,7 +47,7 @@ export function importExecutions(database:RuntimeDatabase,committed:(result:Json
     wake();return value;
   }
   async function step(){
-    if(stopped||process.env.GEEKDASH_IMPORT_WRITES==='disabled'||process.env.GEEKDASH_BUSINESS_WRITES==='disabled')return;
+    if(stopped||isMaintenanceActive()||process.env.GEEKDASH_IMPORT_WRITES==='disabled'||process.env.GEEKDASH_BUSINESS_WRITES==='disabled')return;
     const token=randomUUID();
     const job=await database.writeTransaction(async c=>{
       const found=(await rows(c,`SELECT ${columns} FROM import_executions WHERE status='accepted' OR (status='running' AND lease_until<UTC_TIMESTAMP(3)) ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED`))[0];
@@ -62,7 +63,7 @@ export function importExecutions(database:RuntimeDatabase,committed:(result:Json
       if(result.affectedRows!==1)failure('IMPORT_EXECUTION_LEASE_LOST',409);
     });
     for(const entry of job.command.entries){
-      if(stopped||process.env.GEEKDASH_IMPORT_WRITES==='disabled'||process.env.GEEKDASH_BUSINESS_WRITES==='disabled')break;
+      if(stopped||isMaintenanceActive()||process.env.GEEKDASH_IMPORT_WRITES==='disabled'||process.env.GEEKDASH_BUSINESS_WRITES==='disabled')break;
       let progress=job.progress[entry.id] ??= {status:'pending'};
       if(['committed','failed'].includes(progress.status))continue;
       try {

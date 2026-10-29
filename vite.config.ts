@@ -22,7 +22,7 @@ export default defineConfig({
       return html.replace(link[0], '').replace('</head>', `  ${link[0]}\n</head>`);
     } } },
   ],
-  define: { __GEEKDASH_STAGES__: JSON.stringify(stages) },
+  define: { __GEEKDASH_STAGES__: JSON.stringify(stages), __GEEKDASH_RELEASE__: JSON.stringify(process.env.GEEKDASH_SOURCE_REVISION ?? '') },
   root: fileURLToPath(new URL('./src/web/', import.meta.url)),
   envDir: false,
   build: {

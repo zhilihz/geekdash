@@ -1,6 +1,7 @@
 export type ProjectTask = {id:string;text:string;createdAt:string;updatedAt:string;completedAt:string;deletedAt:string};
 export type TaskOperation = {op:'add'|'edit';id:string;text:string}|{op:'complete'|'reopen'|'delete';id:string};
 import { loginTarget, accountLinkTarget } from './auth-return';
+declare const __GEEKDASH_RELEASE__: string;
 
 export type DeadlineKind = 'upcoming' | 'due' | 'overdue' | 'unset' | 'closed_on_time' | 'closed_late' | 'closed_unplanned' | 'closed_unknown' | 'terminated';
 export type Deadline = { kind: DeadlineKind; asOfDate: string; days: number | null; label: string };
@@ -151,7 +152,7 @@ function clearLocalAccountState(){
 function headers(active: boolean) {
   if (contextChanged) { identityRecovery(); throw new SaveError('AUTH_CONTEXT_CHANGED', 'not_committed'); }
   const csrf = document.cookie.split(';').map(item => item.trim()).find(item => item.startsWith('__Host-geekdash_csrf=') || item.startsWith('geekdash_dev_csrf='))?.split('=')[1];
-  return { 'Content-Type': 'application/json', 'X-GeekDash-Request': '1', ...(account ? { 'X-GeekDash-Account': account.id } : {}), ...(csrf ? { 'X-GeekDash-CSRF': csrf } : {}), ...(active ? { 'X-GeekDash-Active': '1' } : {}) };
+  return { 'Content-Type': 'application/json', 'X-GeekDash-Request': '1', 'X-GeekDash-Release': __GEEKDASH_RELEASE__, ...(account ? { 'X-GeekDash-Account': account.id } : {}), ...(csrf ? { 'X-GeekDash-CSRF': csrf } : {}), ...(active ? { 'X-GeekDash-Active': '1' } : {}) };
 }
 const authMessages: Record<string, string> = { AUTH_REQUIRED: '登录已失效，请登录后重新进入。未保存内容请先复制。', AUTH_CONTEXT_CHANGED: '账号已发生变化，请先复制未保存内容，再重新进入。', PASSWORD_CHANGE_REQUIRED: '请先修改临时密码。', CSRF_INVALID: '登录凭据不完整，请重新登录。', LAST_RESPONSIBLE: '请先由其他人加入负责范围，再退出。', INVALID_CREDENTIALS: '登录名或密码不正确。', CURRENT_PASSWORD_INCORRECT: '当前密码不正确。', INVALID_PASSWORD: '至少8个字符，数字、大写字母、小写字母、特殊字符中至少包含两类。', PASSWORD_CONFIRM_MISMATCH: '两次新密码不一致。', PASSWORD_UNCHANGED: '新密码不能与当前密码相同。', AUTH_RATE_LIMITED: '尝试过于频繁，请稍后再试。', AUTH_BUSY: '身份服务忙，请稍后再试。' };
 export async function requireIdentity() {
@@ -188,6 +189,7 @@ export function setupAccountHeader() {
 export function setAccount(value: Account) { account = value; contextChanged = false; }
 export function notifyIdentityChange(clearCache=false) { context.postMessage(clearCache?{type:'changed',clearCache:true}:'changed');if(clearCache)clearLocalAccountState(); }
 stageMessages.BUSINESS_WRITES_PAUSED = '系统维护中，暂时只可查看。本次修改未提交，请保留输入，恢复后再保存。';
+stageMessages.FRONTEND_RELEASE_MISMATCH = '系统已更新，此页面的修改尚未提交。请先保留未保存内容，再刷新页面后继续。';
 export class SaveError extends Error {
   constructor(public code: string, public outcome: string, public fields?: Record<string, string>) {
     super(authMessages[code] ?? stageMessages[code] ?? ({ TASK_PROTOCOL_CHANGED:'任务结构已经更新，请保留旧输入并重新进入项目；旧说明可复制到任务中。', TASK_INPUT_CONFLICT:'请先处理保留的旧说明草稿，再保存任务。', TASK_NOT_FOUND:'这条任务已不存在，请保留输入后重新读取。', PROJECT_VERSION_CONFLICT: '项目已被他人更新，请重新进入项目。', OPERATION_KEY_REUSED: '操作编号与原请求不一致，请保留文字并核对原操作。', PROJECT_READ_ONLY: '此项目只能查看。', INVALID_PROJECT_FIELDS: '请修正标出的字段。', DATABASE_UNAVAILABLE: '数据库暂时不可用，请重试。', SAVE_ROLLED_BACK: '保存未完成，修改已保留。' } as Record<string, string>)[code] ?? '保存结果尚未确认，请确认结果或重试原操作。');

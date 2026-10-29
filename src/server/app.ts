@@ -1,7 +1,5 @@
 import Fastify from 'fastify';
-import staticFiles from '@fastify/static';
 import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import type { RuntimeDatabase } from './infrastructure/runtime-database.js';
 import { registerProjectReads } from './routes/projects.js';
@@ -12,10 +10,14 @@ import { registerNotifications } from './infrastructure/notifications.js';
 import { registerCatalog } from './routes/catalog.js';
 import { registerImports } from './routes/imports.js';
 import { registerMembership } from './routes/membership.js';
+import { readHttpConfig, isMaintenanceActive } from './infrastructure/config.js';
 
 export async function createApp(database?: RuntimeDatabase, auth?: AuthConfig) {
   const build = JSON.parse(await readFile(new URL('../build-info.json', import.meta.url), 'utf8'));
+  const http = readHttpConfig();
+  isMaintenanceActive();
   const app = Fastify({
+    trustProxy: http.trustProxy,
     genReqId: () => randomUUID(),
     ajv: { customOptions: { removeAdditional: false } },
     logger: { redact: ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]'] },
@@ -24,6 +26,13 @@ export async function createApp(database?: RuntimeDatabase, auth?: AuthConfig) {
   if (process.env.GEEKDASH_BUSINESS_WRITES && !['enabled','disabled'].includes(process.env.GEEKDASH_BUSINESS_WRITES)) throw new Error('INVALID_BUSINESS_WRITES_MODE');
   app.addHook('onRequest', async (request, reply) => {
     const path = request.url.split('?')[0];
+    if (path.startsWith('/api/') && !['/api/health/live', '/api/health/ready'].includes(path) && isMaintenanceActive()) {
+      return reply.code(503).header('Cache-Control', 'no-store').header('Retry-After', '60').send({ code: 'BUSINESS_WRITES_PAUSED', outcome: 'not_committed', requestId: request.id });
+    }
+    if (!http.serveStatic && path.startsWith('/api/') && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)
+      && request.headers['x-geekdash-release'] !== build.revision) {
+      return reply.code(409).header('Cache-Control', 'no-store').send({ code: 'FRONTEND_RELEASE_MISMATCH', outcome: 'not_committed', requestId: request.id });
+    }
     if (process.env.GEEKDASH_BUSINESS_WRITES === 'disabled' && path.startsWith('/api/') && !['GET','HEAD','OPTIONS'].includes(request.method)
       && !path.startsWith('/api/auth/') && !path.endsWith('/query') && !path.endsWith('/preview')) {
       return reply.code(503).header('Cache-Control','no-store').send({code:'BUSINESS_WRITES_PAUSED',outcome:'not_committed',requestId:request.id});
@@ -44,7 +53,7 @@ export async function createApp(database?: RuntimeDatabase, auth?: AuthConfig) {
 
   app.get('/api/health/live', async (_request, reply) => {
     reply.header('Cache-Control', 'no-store');
-    return { status: 'alive', stage: build.stage, build };
+    return { status: 'alive', stage: build.stage, build, maintenance: isMaintenanceActive() };
   });
   let previousReason: string | undefined;
   app.get('/api/health/ready', async (_request, reply) => {
@@ -56,11 +65,7 @@ export async function createApp(database?: RuntimeDatabase, auth?: AuthConfig) {
     }
     return result.ready ? { status: 'ready' } : reply.code(503).send({ status: 'unavailable', reason: result.reason });
   });
-  await app.register(staticFiles, {
-    root: fileURLToPath(new URL('../web/', import.meta.url)),
-    index: 'index.html',
-    dotfiles: 'deny',
-  });
+  if (http.serveStatic) await (await import('./static.js')).registerStaticPages(app);
   const notifications = registerNotifications(app, database);
   // 旧匿名回归仅在隔离 test 库运行；实际 dev 服务默认要求身份。
   if (database && (auth || database.fact.database !== 'geekdash_test')) registerIdentity(app, database, auth ?? readAuthConfig(), notifications);
@@ -70,7 +75,5 @@ export async function createApp(database?: RuntimeDatabase, auth?: AuthConfig) {
   registerPersonalState(app, database);
   registerCatalog(app, database, notifications);
   registerImports(app, database, notifications);
-  app.get('/GeekDash.html', (_request, reply) => reply.sendFile('index.html'));
-  app.get('/chip-statistics.html', (_request, reply) => reply.redirect('/project-status-summary.html'));
   return app;
 }

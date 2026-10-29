@@ -9,6 +9,9 @@
   "scripts": {
     "check": "tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.web.json --noEmit",
     "build": "node scripts/build.mjs",
+    "build:split": "node scripts/build.mjs --split",
+    "test:k3s-release": "node scripts/verify-k3s-release.mjs",
+    "test:rds-config": "node scripts/verify-rds-config.mjs",
     "start": "node dist/server/start.js",
     "test": "node scripts/verify-foundation.mjs",
     "db:check": "node scripts/check-database.mjs",

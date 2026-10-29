@@ -1,0 +1,12 @@
+FROM nginx:1.31.5@sha256:05b8cb60c354a44ab824ea6e7dc69b46d50762cdbe728a347a5b656e6fb3d7c4
+COPY deploy/k3s/nginx.conf /etc/nginx/nginx.conf
+RUN rm -rf /usr/share/nginx/html/*
+COPY dist/web/ /usr/share/nginx/html/
+ARG GEEKDASH_REVISION
+RUN test "${#GEEKDASH_REVISION}" -eq 40 \
+ && grep -Fq "\"revision\": \"${GEEKDASH_REVISION}\"" /usr/share/nginx/html/build-info.json
+LABEL org.opencontainers.image.revision=$GEEKDASH_REVISION
+USER 101:101
+EXPOSE 8080
+ENTRYPOINT ["nginx"]
+CMD ["-g", "daemon off;"]

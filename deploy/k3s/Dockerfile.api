@@ -1,0 +1,24 @@
+FROM node:24-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 AS dependencies
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN cp package-lock.json /tmp/geekdash-package-lock.json \
+ && npm ci --omit=dev --ignore-scripts --no-audit --no-fund \
+ && npm uninstall @fastify/static --offline --omit=dev --ignore-scripts --no-audit --no-fund \
+ && node -e "const assert=require('node:assert/strict'),before=require('/tmp/geekdash-package-lock.json').packages,after=require('./package-lock.json').packages;for(const [name,pkg] of Object.entries(after)){if(!name)continue;assert(before[name],name);for(const field of ['version','integrity','resolved'])assert.equal(pkg[field],before[name][field],name+':'+field);}assert(!after['node_modules/@fastify/static']);" \
+ && npm cache clean --force
+
+FROM node:24-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20
+WORKDIR /app
+COPY --from=dependencies /app/package.json ./package.json
+COPY --from=dependencies /app/package-lock.json ./package-lock.json
+COPY --from=dependencies /app/node_modules/ ./node_modules/
+COPY dist/server/ ./dist/server/
+COPY dist/migrations/ ./dist/migrations/
+COPY dist/build-info.json ./dist/build-info.json
+ARG GEEKDASH_REVISION
+RUN node -e "const b=require('./dist/build-info.json');if(!/^[a-f0-9]{40}$/.test(process.env.GEEKDASH_REVISION)||b.revision!==process.env.GEEKDASH_REVISION)process.exit(1)"
+LABEL org.opencontainers.image.revision=$GEEKDASH_REVISION
+ENV HOST=0.0.0.0 PORT=3000 GEEKDASH_SERVE_STATIC=disabled GEEKDASH_IMPORT_DIR=/var/lib/geekdash/imports
+USER node
+EXPOSE 3000
+CMD ["node", "dist/server/start.js"]

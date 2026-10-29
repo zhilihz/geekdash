@@ -2,13 +2,14 @@ import mysql, { type PoolConnection } from 'mysql2/promise';
 import { readDatabaseConfig, validateDatabaseConnection } from './db.js';
 import { loadSchema, verifySchemaConnection } from './schema.js';
 
-export type RuntimeProfile = 'dev_app' | 'test_app';
+export type RuntimeProfile = 'dev_app' | 'test_app' | 'rds_app';
 type Readiness = { ready: boolean; reason?: string; code?: string };
 
 export async function openRuntimeDatabase(profile: RuntimeProfile) {
-  if (!['dev_app', 'test_app'].includes(profile)) throw Object.assign(new Error('DB_RUNTIME_PROFILE_INVALID'), { code: 'DB_RUNTIME_PROFILE_INVALID' });
+  if (!['dev_app', 'test_app', 'rds_app'].includes(profile)) throw Object.assign(new Error('DB_RUNTIME_PROFILE_INVALID'), { code: 'DB_RUNTIME_PROFILE_INVALID' });
   const resource = await loadSchema();
-  const pool = mysql.createPool({ ...await readDatabaseConfig(profile), connectionLimit: 8, waitForConnections: false, connectTimeout: 3000 });
+  const config = await readDatabaseConfig(profile);
+  const pool = mysql.createPool({ ...config, connectionLimit: 8, waitForConnections: false, connectTimeout: 3000 });
   let closing = false;
   let fullVerified = false;
   let lastSuccess = 0;
@@ -41,7 +42,7 @@ export async function openRuntimeDatabase(profile: RuntimeProfile) {
   let fact;
   try {
     fact = await useConnection(15000, async connection => {
-      const identity = await validateDatabaseConnection(connection, profile);
+      const identity = await validateDatabaseConnection(connection, profile, config);
       const structure = await verifySchemaConnection(connection, resource, true);
       return { ...identity, ...structure };
     });
@@ -100,8 +101,9 @@ export async function openRuntimeDatabase(profile: RuntimeProfile) {
       if (closing) return { ready: false, reason: 'closing' };
       if (pending) return pending;
       if (state.ready && performance.now() - lastSuccess < 2000) return state;
-      pending = useConnection(3000, async connection => {
-        if (!fullVerified) await validateDatabaseConnection(connection, profile);
+      // 故障恢复需要重验完整结构，不能复用轻量 SELECT 1 的三秒预算。
+      pending = useConnection(fullVerified ? 3000 : 15000, async connection => {
+        if (!fullVerified) await validateDatabaseConnection(connection, profile, config);
         await connection.query({ sql: 'SELECT 1', timeout: 3000 });
         await verifySchemaConnection(connection, resource, !fullVerified);
       }).then(() => {

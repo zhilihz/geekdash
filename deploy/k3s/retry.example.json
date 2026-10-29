@@ -1,0 +1,6 @@
+{
+  "reason": "REPLACE_WITH_REVIEWED_JOB_SCHEMA_AND_REPAIR_REASON",
+  "schemaReviewed": false,
+  "acceptCredentialChanges": false,
+  "backupEvidenceFile": "backup-evidence.json"
+}

@@ -1,4 +1,5 @@
 import { isIP } from 'node:net';
+import { statSync } from 'node:fs';
 import type { RuntimeProfile } from './runtime-database.js';
 
 export function readConfig(env = process.env) {
@@ -9,6 +10,32 @@ export function readConfig(env = process.env) {
     throw Object.assign(new Error('PORT 必须为 1～65535 的整数'), { code: 'APP_CONFIG_INVALID', field: 'PORT' });
   }
   const databaseProfile = env.GEEKDASH_DB_PROFILE ?? 'dev_app';
-  if (!['dev_app', 'test_app'].includes(databaseProfile)) throw Object.assign(new Error('GEEKDASH_DB_PROFILE 必须为 dev_app 或 test_app'), { code: 'APP_CONFIG_INVALID', field: 'GEEKDASH_DB_PROFILE' });
+  if (!['dev_app', 'test_app', 'rds_app'].includes(databaseProfile)) throw Object.assign(new Error('GEEKDASH_DB_PROFILE 必须为 dev_app、test_app 或 rds_app'), { code: 'APP_CONFIG_INVALID', field: 'GEEKDASH_DB_PROFILE' });
   return { host, port: Number(port), databaseProfile: databaseProfile as RuntimeProfile };
+}
+
+export function readHttpConfig(env = process.env) {
+  const mode = env.GEEKDASH_SERVE_STATIC ?? 'enabled';
+  if (!['enabled', 'disabled'].includes(mode)) throw Object.assign(new Error('APP_CONFIG_INVALID'), { code: 'APP_CONFIG_INVALID', field: 'GEEKDASH_SERVE_STATIC' });
+  const trustProxy = env.GEEKDASH_TRUST_PROXY?.split(',').map(value => value.trim());
+  if (trustProxy?.some(value => {
+    const [address, bits, extra] = value.split('/');
+    const version = isIP(address);
+    return !version || extra !== undefined || bits !== undefined && (!/^\d+$/.test(bits) || Number(bits) < 1 || Number(bits) > (version === 4 ? 32 : 128));
+  })) throw Object.assign(new Error('APP_CONFIG_INVALID'), { code: 'APP_CONFIG_INVALID', field: 'GEEKDASH_TRUST_PROXY' });
+  return { serveStatic: mode === 'enabled', trustProxy: trustProxy ?? false };
+}
+
+export function isMaintenanceActive() {
+  const file = process.env.GEEKDASH_MAINTENANCE_FILE;
+  if (!file) return false;
+  if (file !== '/run/geekdash-maintenance/enabled') throw Object.assign(new Error('APP_CONFIG_INVALID'), { code: 'APP_CONFIG_INVALID', field: 'GEEKDASH_MAINTENANCE_FILE' });
+  try { statSync(file); return true; }
+  catch (error) { return (error as NodeJS.ErrnoException).code !== 'ENOENT'; }
+}
+
+export function readShutdownTimeout(env = process.env) {
+  const value = env.GEEKDASH_SHUTDOWN_TIMEOUT_MS ?? '55000';
+  if (!/^\d+$/.test(value) || Number(value) < 1000 || Number(value) > 120000) throw Object.assign(new Error('APP_CONFIG_INVALID'), { code: 'APP_CONFIG_INVALID', field: 'GEEKDASH_SHUTDOWN_TIMEOUT_MS' });
+  return Number(value);
 }

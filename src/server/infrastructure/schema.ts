@@ -277,7 +277,8 @@ export async function migrateDatabase(profile: DatabaseProfile) {
   if (!profile.endsWith('_migrator')) fail('DB_MIGRATION_IDENTITY_INVALID');
   const { manifest: target, foundation: manifest, history, increments } = await loadSchema();
   const { connection, fact } = await connectDatabase(profile);
-  const lockName = `geekdash:${fact.database}:schema`;
+  const lockDatabase = profile.startsWith('rds_') ? createHash('sha256').update(fact.database).digest('hex').slice(0, 32) : fact.database;
+  const lockName = `geekdash:${lockDatabase}:schema`;
   let locked = false;
   let step = 'lock';
   let applied = false;

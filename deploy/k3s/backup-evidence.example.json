@@ -1,0 +1,22 @@
+{
+  "context": "REPLACE_CONTEXT",
+  "namespace": "geekdash",
+  "databaseTarget": "REPLACE_DATABASE_TARGET_FROM_STATUS",
+  "volumeUid": "REPLACE_VOLUME_UID_FROM_STATUS",
+  "recoveryPoint": "REPLACE_AFTER_PAUSED_AT_ISO_TIME",
+  "completedAt": "REPLACE_BACKUP_COMPLETED_ISO_TIME",
+  "applicationConsistent": true,
+  "database": {
+    "provider": "rds",
+    "backupId": "REPLACE_CONFIRMED_RDS_BACKUP_ID",
+    "recoveryPointVerifiedByOperator": false
+  },
+  "files": {
+    "path": "REPLACE_ABSOLUTE_CONTROLLED_IMPORT_FILES_ARCHIVE_PATH",
+    "sha256": "REPLACE_ARCHIVE_SHA256"
+  },
+  "configuration": {
+    "path": "REPLACE_ABSOLUTE_CONTROLLED_CONFIG_ARCHIVE_PATH",
+    "sha256": "REPLACE_ARCHIVE_SHA256"
+  }
+}

@@ -50,9 +50,10 @@ try {
   }
   assert.equal((await fetch(`${origin}/.env`)).status, 403);
   assert.equal((await fetch(`${origin}/api/projects`)).status, 503);
-  for (const path of ['/AGENTS.md', '/src/server/start.ts', '/build-info.json']) {
+  for (const path of ['/AGENTS.md', '/src/server/start.ts']) {
     assert.equal((await fetch(origin + path)).status, 404);
   }
+  assert.deepEqual(await (await fetch(origin + '/build-info.json')).json(), JSON.parse(before));
   console.log('通过：真实 HTTP、构建资源、未就绪反馈、源码隔离、无效配置与失败构建保留旧产物。');
 } finally {
   await app.close();

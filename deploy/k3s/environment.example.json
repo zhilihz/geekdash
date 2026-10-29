@@ -1,0 +1,22 @@
+{
+  "context": "REPLACE_CONTEXT",
+  "namespace": "geekdash",
+  "domain": "REPLACE_DOMAIN",
+  "ingressClass": "REPLACE_INGRESS_CLASS",
+  "ingressAnnotations": {},
+  "ingressStreamingConfirmed": false,
+  "tlsSecret": "geekdash-tls",
+  "pullSecret": "geekdash-harbor",
+  "databaseSecret": "geekdash-rds-app",
+  "migrationSecret": "geekdash-rds-migrator",
+  "databaseCaSecret": "geekdash-rds-ca",
+  "adminSecret": "geekdash-bootstrap-admin",
+  "trustProxy": ["REPLACE_INGRESS_SOURCE_CIDR"],
+  "storageClass": "REPLACE_STORAGE_CLASS",
+  "storageSize": "10Gi",
+  "resources": {
+    "web": {"requests": {"cpu": "50m", "memory": "64Mi"}, "limits": {"cpu": "500m", "memory": "128Mi"}},
+    "api": {"requests": {"cpu": "250m", "memory": "256Mi"}, "limits": {"cpu": "1000m", "memory": "768Mi"}}
+  },
+  "releaseFile": "release.json"
+}

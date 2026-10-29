@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { access, cp, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { access, cp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -9,6 +9,8 @@ const current = new URL('../dist/', import.meta.url);
 const previous = new URL('../dist.previous/', import.meta.url);
 
 try {
+  if (process.argv.slice(2).some(arg => arg !== '--split')) throw new Error('仅支持 --split 构建参数');
+  const split = process.argv.includes('--split');
   let revision = process.env.GEEKDASH_SOURCE_REVISION;
   let dirty = process.env.GEEKDASH_SOURCE_DIRTY;
   if (!revision || !dirty) {
@@ -18,6 +20,7 @@ try {
   if (!/^[a-f0-9]{40}$/.test(revision) || !['true', 'false'].includes(dirty)) {
     throw new Error('源码版本或未提交状态无效');
   }
+  process.env.GEEKDASH_SOURCE_REVISION = revision;
   await rm(candidate, { recursive: true, force: true });
   execFileSync(process.execPath, ['node_modules/typescript/bin/tsc', '-p', 'tsconfig.server.json', '--noEmit'], { stdio: 'inherit' });
   execFileSync(process.execPath, ['node_modules/typescript/bin/tsc', '-p', 'tsconfig.web.json', '--noEmit'], { stdio: 'inherit' });
@@ -27,24 +30,29 @@ try {
   const schemaVersion = JSON.parse(await readFile(new URL('migrations/0015-project-deletion.json', candidate), 'utf8')).version;
   if (schemaVersion !== '0015-project-deletion') throw new Error('迁移资源目标版本无效');
   await access(new URL('server/start.js', candidate));
-  const html = await readFile(new URL('web/index.html', candidate), 'utf8');
-  const checksHtml = await readFile(new URL('web/project-checks.html', candidate), 'utf8');
-  const importsHtml = await readFile(new URL('web/imports.html', candidate), 'utf8');
-  const profileHtml = await readFile(new URL('web/profile.html', candidate), 'utf8');
-  const assets = [...new Set([html, checksHtml, importsHtml, profileHtml].flatMap(markup => [...markup.matchAll(/(?:src|href)="(\/assets\/[^"?#]+)"/g)].map(match => match[1])))];
+  const pages = (await readdir(new URL('../src/web/', import.meta.url))).filter(path => path.endsWith('.html')).sort();
+  const markup = await Promise.all(pages.map(path => readFile(new URL(`web/${path}`, candidate), 'utf8')));
+  const assets = [...new Set(markup.flatMap(html => [...html.matchAll(/(?:src|href)="(\/assets\/[^"?#]+)"/g)].map(match => match[1])))];
   if (!assets.some(path => path.endsWith('.js')) || !assets.some(path => path.endsWith('.css'))) {
     throw new Error('前端脚本或样式产物缺失');
   }
   for (const asset of assets) await access(new URL(`web${asset}`, candidate));
-  const build = { revision, dirty: dirty === 'true', builtAt: new Date().toISOString(), stage: 'P05-project-editing', schemaVersion };
+  const build = { revision, dirty: dirty === 'true', builtAt: new Date().toISOString(), stage: split ? 'K3s-runtime-delivery' : 'P05-project-editing', schemaVersion };
   await writeFile(new URL('build-info.json', candidate), JSON.stringify(build, null, 2) + '\n');
+  await writeFile(new URL('web/build-info.json', candidate), JSON.stringify(build, null, 2) + '\n');
+  process.env.GEEKDASH_SERVE_STATIC = split ? 'disabled' : 'enabled';
   const { createApp } = await import(new URL('server/app.js', candidate));
   const app = await createApp();
   try {
     const origin = await app.listen({ host: '127.0.0.1', port: 0 });
-    for (const path of ['/', '/GeekDash.html', '/project-detail.html', '/project-checks.html', '/imports.html', '/profile.html', '/password.html', '/register.html', '/accounts.html', '/settings.html', '/api/health/live', ...assets]) {
+    for (const path of ['/api/health/live', ...(split ? [] : ['/', '/GeekDash.html', '/build-info.json', ...pages.map(path => '/' + path), ...assets])]) {
       const response = await fetch(origin + path, { signal: AbortSignal.timeout(5000) });
       if (!response.ok) throw new Error(`候选产物 HTTP 核验失败：${path}`);
+      await response.arrayBuffer();
+    }
+    if (split) for (const path of ['/', '/index.html', '/build-info.json']) {
+      const response = await fetch(origin + path, { signal: AbortSignal.timeout(5000) });
+      if (response.status !== 404) throw new Error(`独立后端仍在托管页面：${path}`);
       await response.arrayBuffer();
     }
   } finally {
@@ -58,7 +66,7 @@ try {
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
   try { await rename(candidate, current); }
   catch (error) { if (moved) await rename(previous, current); throw error; }
-  console.log(JSON.stringify({ status: 'built', output: 'dist', build, businessReady: false }));
+  console.log(JSON.stringify({ status: 'built', output: 'dist', mode: split ? 'split' : 'combined', pages: pages.length, assets: assets.length, build, businessReady: false }));
 } catch (error) {
   console.error('构建失败，未提升候选产物：', error.message);
   process.exitCode = 1;

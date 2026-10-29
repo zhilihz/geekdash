@@ -1,0 +1,10 @@
+{
+  "release": "REPLACE_RELEASE",
+  "revision": "REPLACE_40_CHARACTER_GIT_REVISION",
+  "schemaVersion": "0015-project-deletion",
+  "platform": "linux/amd64",
+  "webSource": "geekdash-web:REPLACE_RELEASE",
+  "apiSource": "geekdash-api:REPLACE_RELEASE",
+  "webTarget": "REPLACE_HARBOR/REPLACE_PROJECT/geekdash-web:REPLACE_RELEASE",
+  "apiTarget": "REPLACE_HARBOR/REPLACE_PROJECT/geekdash-api:REPLACE_RELEASE"
+}

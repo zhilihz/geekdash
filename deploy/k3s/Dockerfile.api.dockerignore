@@ -1,0 +1,10 @@
+**
+!package.json
+!package-lock.json
+!dist/
+!dist/server/
+!dist/server/**
+dist/server/static.js
+!dist/migrations/
+!dist/migrations/**
+!dist/build-info.json
