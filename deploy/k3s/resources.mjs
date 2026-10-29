@@ -2,7 +2,9 @@ import { createHash } from 'node:crypto';
 import { isIP } from 'node:net';
 
 const name = /^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$/;
-const image = /^[a-z0-9][a-z0-9.:/-]+@sha256:[a-f0-9]{64}$/;
+const repository = '[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?(?::[0-9]+)?(?:/[a-z0-9]+(?:(?:[._]|__|-+)[a-z0-9]+)*)+';
+const imageReferences = {tag:new RegExp(`^${repository}:[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$`),digest:new RegExp(`^${repository}@sha256:[a-f0-9]{64}$`)};
+export const validRegistryImage = (value,kind='digest') => typeof value==='string' && !!imageReferences[kind]?.test(value) && /[.:]/.test(value.split('/')[0]);
 const missing = value => typeof value !== 'string' || !value.trim() || /CHANGE_ME|REPLACE|<|>|\$\{|example\.(com|org)/i.test(value);
 const requireValue = (condition, message) => { if (!condition) throw new Error(message); };
 
@@ -24,7 +26,7 @@ export function validate(config, release) {
   requireValue(!missing(release.release) && name.test(release.release) && release.release.length <= 36, '发行标识须为1至36位小写字母、数字或连字符');
   requireValue(/^[a-f0-9]{40}$/.test(release.revision), '必须提供完整Git提交');
   requireValue(/^\d{4}-[a-z0-9-]+$/.test(release.schemaVersion), '数据库版本无效');
-  requireValue([release.webImage,release.apiImage].every(value=>image.test(value)&&value.includes('/')&&/[.:]/.test(value.split('/')[0])) && release.webImage !== release.apiImage, '前后端必须提供不同的完整仓库镜像digest（含注册表域名）');
+  requireValue([release.webImage,release.apiImage].every(value=>validRegistryImage(value)) && release.webImage !== release.apiImage, '前后端必须提供不同的完整仓库镜像digest（含注册表域名）');
   requireValue(/^linux\/(amd64|arm64)$/.test(release.platform), '必须明确镜像平台linux/amd64或linux/arm64');
   return { config, release };
 }

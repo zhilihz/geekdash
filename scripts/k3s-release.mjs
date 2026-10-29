@@ -4,7 +4,7 @@ import { resolve, dirname, isAbsolute } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createHash, randomUUID, X509Certificate } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { validate, fingerprint, resources, selector } from '../deploy/k3s/resources.mjs';
+import { validate, fingerprint, resources, selector, validRegistryImage } from '../deploy/k3s/resources.mjs';
 
 const fail = message => { throw new Error(message); };
 const readJson = async file => JSON.parse(await readFile(file, 'utf8'));
@@ -203,7 +203,7 @@ async function push(file, destination) {
   const builds=[], locals=new Map();
   for(const part of ['web','api']){
     const source=input[`${part}Source`],target=input[`${part}Target`];
-    if(typeof source!=='string'||!/^[a-z0-9][a-z0-9.:/_-]+$/.test(source)||typeof target!=='string'||!target.includes('/')||!/^[a-z0-9][a-z0-9.:/_-]+:[a-zA-Z0-9_.-]+$/.test(target)||/REPLACE|CHANGE_ME|example\./i.test(target))fail(`${part}镜像源或明确上传目标无效`);
+    if(typeof source!=='string'||!/^[a-z0-9][a-z0-9.:/_-]+$/.test(source)||!validRegistryImage(target,'tag')||/REPLACE|CHANGE_ME|example\./i.test(target))fail(`${part}镜像源或明确上传目标无效`);
     const [local]=JSON.parse(run('docker',['image','inspect',source]));
     if(`${local.Os}/${local.Architecture}`!==release.platform||local.Config.Labels?.['org.opencontainers.image.revision']!==release.revision)fail(`${part}本地镜像平台或源码标记不符`);
     const path=part==='web'?'/usr/share/nginx/html/build-info.json':'/app/dist/build-info.json';
