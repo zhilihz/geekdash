@@ -358,3 +358,86 @@ P05部署增加`/var/lib/geekdash/imports`持久目录，应用的`GEEKDASH_IMPO
 GEEKDASH_ORIGIN固定应用真实Origin，公网https://geekdash.zhiluan.cool，本机HTTP只允许环回；修改端口须同时更新Origin，不能任意信任代理来源。服务器Cookie必须Secure，业务401由正常登录恢复、首次改密403由改密后重新登录恢复；数据库503保留上下文不能清成退出。live读取build版本，ready读取status与真实依赖，两响应结构不同。
 
 没有邀请码/完整账号维护或F07维护恢复命令，不能手改SQL当成已验收恢复。发布前备份仍按原流程，实际进程会话恢复不替代隔离数据库恢复。
+
+## Harbor 独立交付与云数据库选项（2026-10-29）
+
+本节适用于产品构建 `cc4a34b`、结构 `0015-project-deletion` 的独立空白部署。既有新加坡实例的发布流程仍按前文；本节不表示已经部署到目标服务器。
+
+### 交付版本与执行顺序
+
+- 当前镜像：`harbor.geekwontek.com/geek-dash/geekdash:V0.1.1-cc4a34b`，平台 `linux/amd64`，包含应用、MySQL 8.4 和初始化程序；Nginx 在镜像外。
+- 交付目录：`D:\geekwon\geekdash-data\harbor-cc4a34b\package`。上传者在此运行 `push.bat`，上传成功后再通知服务器拉取；`-CheckOnly` 只检查，不上传。
+- 给服务器的文件：`compose.yaml`、`.env.example`、`admin-account.json`。账号文件包含受控密码哈希，单独安全传递，不放进镜像或代码仓库。
+- 本次包初始化空白环境：仅保留 `admin` 及原密码、既有权限，不携带原项目、资料、其他账号或旧历史。不要把本次初始化用于覆盖已有业务库。
+
+在服务器的本次独立部署目录执行：
+
+```bash
+cp .env.example .env
+```
+
+填写 `.env`，其中 `GEEKDASH_ORIGIN` 必须是使用者实际访问的网址，不带末尾斜线。示例域名需替换为此次实际域名：
+
+```dotenv
+GEEKDASH_IMAGE=harbor.geekwontek.com/geek-dash/geekdash:V0.1.1-cc4a34b
+GEEKDASH_ORIGIN=https://实际域名
+GEEKDASH_BIND=127.0.0.1
+GEEKDASH_PORT=41860
+```
+
+```bash
+docker login harbor.geekwontek.com
+docker compose pull
+docker compose up -d --wait --wait-timeout 300
+```
+
+容器自动生成数据库技术账号、建库、执行迁移并初始化管理员；不需要服务器安装 Node 或手工导入建表 SQL。端口冲突时调整 `GEEKDASH_PORT`，同步修改反向代理上游；外部域名不变则 Origin 不变。
+
+### 此项目的特殊配置
+
+| 项目 | 本次要求 |
+|---|---|
+| HTTPS 反向代理 | 同机宿主 Nginx 转到 `127.0.0.1:41860`，传递 `Host`、`X-Real-IP`、`X-Forwarded-For`、`X-Forwarded-Proto`。Nginx 若运行在另一个容器，需要配置到应用的实际网络地址，不能使用其自身的 127.0.0.1。 |
+| 更新通知 SSE | `/api/events` 使用 HTTP/1.1，清空 `Connection` 请求头，关闭 `proxy_buffering` 和 `proxy_cache`，`proxy_read_timeout 60s`。 |
+| 备份上传 | 代理上传上限 `client_max_body_size 32m`，与应用一致。 |
+| 数据存储 | Compose 的 `data` 卷挂载到 `/var/lib/mysql`，同时存数据库、运行配置和导入原文件。保持 Compose 项目名 `geekdash-harbor` 和原卷，不执行 `down -v`。内置 MySQL 不对外暴露端口。 |
+| 备份与更新 | 数据库逻辑备份、导入原文件、受控配置需一起保留；运行中的数据库目录不能简单复制当完整备份。更换应用前留备份和旧镜像，数据库回退另行核对，不能用旧备份覆盖更新后的业务记录。 |
+| 实例数量 | 当前只启动一个应用实例。编辑在线状态、SSE 连接等保存在进程内，不直接横向扩多个副本。 |
+| 日志 | Docker 日志每文件 10 MB、最多 3 个；重建前导出所需旧日志。现有部分 500 错误只记错误码，没有完整堆栈。 |
+
+启动后核对：
+
+```bash
+docker compose ps
+curl -fsS http://127.0.0.1:41860/api/health/ready
+curl -fsS http://127.0.0.1:41860/api/health/live
+docker compose logs --timestamps --tail 200 geekdash
+```
+
+预期：容器 healthy，ready 正常；live 的产品版本为 `cc4a34b`、schema 为 `0015-project-deletion`。镜像标签是 `V0.1.1`，产品构建仍是 `cc4a34b`，二者不同不是部署错误。随后从实际 HTTPS 域名读取同样的健康接口；页面与业务操作由使用者验收。排错时保留报错时间、页面、响应 `requestId`、对应日志和上述版本信息。
+
+### 如果采用云 MySQL（待适配方案，不能直接套用当前包）
+
+建议拓扑：
+
+```text
+浏览器 → HTTPS / Nginx → GeekDash 应用容器（单实例）→ 云 MySQL
+                             └→ 导入原文件持久目录
+```
+
+服务器只拉取应用镜像，MySQL 服务及数据由云数据库承载。应用镜像可以继续减小，但目标镜像尚未制作，不能把当前 146 MB 压缩内容的合一镜像当成云库版本。适配后另出构建与镜像标签，不能沿用本次“111 个业务文件哈希不变”的验证结论。
+
+| 部分 | 需要落实的变化 |
+|---|---|
+| 镜像与启动 | 另交付应用镜像、云库 Compose 和一次性初始化入口；移除启动内置 MySQL 的流程及 `mysql:127.0.0.1` 映射。当前 `push.bat` 仍只上传合一版。 |
+| 连接与版本 | 当前代码固定主机、端口、库名、账号及 `@%` 身份，且只接受 MySQL `8.4.x`。改为读取明确的部署目标并核验身份，保留开发/测试隔离。目标若是 8.0 或厂商兼容内核，先做兼容适配，不能只跳过版本检查。 |
+| 网络与 TLS | 建议应用与数据库同地域、通过可达的私有网络连接；只放行应用来源。接入厂商 CA 并验证服务端证书及主机名，不能关闭验证来绕过连接失败。当前 Node 连接配置尚未接入 TLS。 |
+| 数据库与账号 | 使用独立数据库，InnoDB、`utf8mb4_0900_ai_ci`，会话 UTC。运行账号仅需本库 SELECT/INSERT/UPDATE/DELETE；迁移账号另需 CREATE/DROP/ALTER/INDEX/REFERENCES，只在初始化或升级时挂载。目标平台的授权输出、information_schema 和命名锁能力要实测适配，不能照搬当前“SHOW GRANTS 恰两行”的校验。 |
+| 初始化 | 新空库由一次性任务执行迁移和 admin 初始化，成功后应用只挂运行凭据。若承接已有数据，使用受控完整备份恢复并核对，不能执行空库初始化覆盖。 |
+| 文件与备份 | 保留独立持久目录，设置 `GEEKDASH_IMPORT_DIR` 并允许应用 UID 1000 写入。云库备份不包含导入原文件及应用配置，仍需另行备份。 |
+
+MySQL 官方区分“连接加密”和“验证服务端身份”；部署时应同时检查证书与目标主机名。依据：[MySQL 加密连接说明](https://dev.mysql.com/doc/refman/8.4/en/using-encrypted-connections.html)。
+
+云库交付顺序：确认厂商/地域/版本和私网连通 → 提供库名、运行及迁移账号、CA → 适配并构建应用镜像 → 隔离验证迁移、读写回读、断线恢复及完整备份恢复 → 初始化目标库 → 启动应用并核对公网入口。凭据另行传递，不填写进本说明。
+
+**需要服务器同事反馈的云库信息只有：厂商与引擎版本、地域与连接方式、地址端口及库名、账号授权方式、TLS/CA 要求。** 在这些信息和适配完成前，可执行交付仍是上面的内置 MySQL 方案；本轮仅整理文档，未切库、未上传或部署。

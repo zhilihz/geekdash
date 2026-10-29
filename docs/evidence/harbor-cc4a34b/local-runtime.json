@@ -1,0 +1,11 @@
+{
+  "origin": "http://127.0.0.1:41873",
+  "checkedAt": "2026-10-29T03:22:06.106Z",
+  "htmlPages": 14,
+  "staticResources": 37,
+  "allResponses200": true,
+  "ready": true,
+  "unauthenticatedRequestRejected": true,
+  "errorRequestIdLogged": true,
+  "browserAcceptance": false
+}

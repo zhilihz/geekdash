@@ -1,0 +1,24 @@
+name: geekdash-harbor
+services:
+  geekdash:
+    image: ${GEEKDASH_IMAGE:-harbor.geekwontek.com/geek-dash/geekdash:V0.1.1-cc4a34b}
+    restart: unless-stopped
+    init: true
+    security_opt: [no-new-privileges:true]
+    environment:
+      GEEKDASH_ORIGIN: ${GEEKDASH_ORIGIN:?请填写实际访问网址}
+    ports: ["${GEEKDASH_BIND:-127.0.0.1}:${GEEKDASH_PORT:-41860}:3000"]
+    extra_hosts: ["mysql:127.0.0.1"]
+    volumes:
+      - data:/var/lib/mysql
+      - type: bind
+        source: ./admin-account.json
+        target: /run/seed/admin-account.json
+        read_only: true
+        bind: {create_host_path: false}
+    stop_grace_period: 60s
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}
+volumes:
+  data:

@@ -9,3 +9,8 @@
 /.env.*
 !/.env.*.example
 /test-results/
+
+# Harbor 部署中的运行数据和初始化账号凭据。
+/deploy/harbor/.env
+/deploy/harbor/admin-account.json
+/deploy/harbor/state/

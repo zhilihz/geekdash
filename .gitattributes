@@ -13,5 +13,7 @@ docs/evidence/diagrams/*.json text eol=lf
 /deploy/*.sh text eol=lf
 /deploy/*.yml text eol=lf
 /deploy/*.conf text eol=lf
+/deploy/harbor/*.bat text eol=crlf
+/deploy/harbor/*.sh text eol=lf
 
 /migrations/0015-project-deletion.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
