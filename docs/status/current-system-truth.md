@@ -1,6 +1,8 @@
 # 当前系统真相
 
-## 当前修复：导入与面板（2026-11-02，本地程序验证通过，待用户验收）
+## 当前修复：导入与面板（2026-11-02，本地测试入口已部署，待用户验收）
+
+用户随后要求部署供测试，现已在独立本地入口 `http://localhost:41874` 运行 clean 产品 `8a43e33` / schema0016。新库仅一个兼任项目经理的管理员账号，无项目；登录、查询、退出与导入目录权限已核对。运行路径、镜像及核对范围归[本地部署记录](../operations/deployments/2026-11-02-import-panel-local.md)。原41873不变，未上传Harbor或更新公网。
 
 修复基于Docker产品main的`813f4d8`，工作树`D:/geekwon/geekdash-repair-20261102`，分支`codex/import-panel-repair-20261102`；原K3s工作树及用户实例保持。准确检查及未测分支归[本轮报告](../testing/reports/2026-11-02-import-panel-repair.md)，接手归[handoff](../handoff/handoff.md)。
 

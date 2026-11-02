@@ -2,12 +2,13 @@
 
 ## 当前修复：导入与面板（2026-11-02，本地修复候选）
 
+- 最新接手：用户已要求本地部署，`http://localhost:41874` 运行 clean `8a43e33` / 0016，供用户实际验收。独立用户测试库与下述程序验证库分开；启动配置、UUID和已核对项见[本地部署记录](../operations/deployments/2026-11-02-import-panel-local.md)。不得清空或向该用户测试库写入合成数据。原41873和线上保持；Harbor/服务器交同事。
 - 工作树：`D:/geekwon/geekdash-repair-20261102`；分支`codex/import-panel-repair-20261102`；Docker基线`813f4d8`。原`D:/geekwon/geekdash`的K3s分支及未提交文件保持。
 - 施工入口：[计划1.5](../implementation/execution-plan.md#import-usability-repair-plan)、[PRD9.29](../product/PRD.md#import-usability-results)、TEST-045。两步导入、删除恢复、任务与入口合并已改；不得按旧混合导入或删除释放名称继续。
 - 用户已授权代码修复；只在本轮独立MySQL进行API/迁移验证。真实页面由用户验收，Harbor上传、发布和线上SQL均交同事。
 - 隔离容器`geekdash-repair-mysql-20261102`/`geekdash-repair-tools-20261102`，数据在`D:/geekwon/geekdash-data/repair-20261102`，UUID `d4a0d9ce-d6a3-11f1-a298-4a1aca926e84`。严禁代换用户41873或原库。
 - 已验证范围及准确证据：[本轮报告](../testing/reports/2026-11-02-import-panel-repair.md)、[脱敏汇总](../evidence/2026-11-02-import-panel-repair/summary.json)。包括真实SQL/HTTP、85请求前端执行模型、名称升级及只读重启恢复；不是原生页面UAT。
-- 构建`dist/build-info.json`：2026-11-02T11:22:52.337Z，813f4d8加修复、dirty=true、schema0016。当前Git状态须在接手时用`git status --short`与`git log -1`重核；候选提交不表示合并main或部署。修改清单以候选相对813f4d8的diff为准，测试日志及凭据不纳入Git。
+- 构建`dist/build-info.json`：2026-11-02T11:41:04.390Z，8a43e33、dirty=false、schema0016，已用于上述独立本地部署。当前Git状态须在接手时用`git status --short`与`git log -1`重核；候选提交不表示合并main或公网部署。修改清单以候选相对813f4d8的diff为准，测试日志及凭据不纳入Git。
 - 未完成：用户真实页面和真实备份操作验收、同事部署环境差异合并、Harbor/服务器发布及线上升级。仍未覆盖的程序分支明确列在报告4节，不因构建成功关闭整阶段。没有等待用户决定的新业务取舍。
 - 接手顺序：先核分支/差异→按[使用入口](../usage/user-guide.md#2026-11-02修复候选的操作入口)验收两步导入、历史恢复和卡片任务→反馈实际问题→验收后按同事发布流程交付。数据库按[升级要求](../operations/release-maintenance.md#2026-11-02-导入与面板修复的升级要求)执行0016，保留服务器现有连接/启动改动；不可用SQL替代导入目录权限。
 - 独立验证容器保留；所有脚本运行的短期app/worker已关闭。需要重跑时严格使用本节UUID及test_migrator/test_app，串行执行worker测试；不得把测试命令用于用户库。
