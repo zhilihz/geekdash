@@ -89,3 +89,20 @@ node scripts/verify-write-recovery.mjs
 前端模型还需要 `GEEKDASH_JSDOM_PATH` 指向测试工具的 JSDOM `api.js`，该工具不进入运行镜像。结构升级演练 `node scripts/verify-project-name-reservation-migration.mjs` 另需 `GEEKDASH_NAME_MIGRATION_PROBE=1`，会模拟 0015 结构及中断，必须独占隔离实例，不与其他测试／应用并行。
 
 语法复核可逐文件执行 `node --check <上述旧脚本路径>`。编译入口为 `node node_modules/typescript/bin/tsc -p tsconfig.server.json --noEmit` 和 `node node_modules/typescript/bin/tsc -p tsconfig.web.json --noEmit`；这些命令不会证明真实页面已通过。
+
+## 6. 本地反馈修正（PRD FB-01～13）
+
+本节是同一修复阶段的用户反馈接续。卡片将原简介字段的项目状态和任务操作合并一处，单任务保存不夹带状态文字；个人草稿移至标题栏且只显示实际差异；任务编号允许即时删除；摘要增加真实硬件/软件分工、排除后的参与者及风险/变更；历史可辨认姓名与账号；统计次序、颜色、字号、自动换行和删除确认居中已调整。继续允许同时编辑，版本保护保持，不加锁。本次反馈没有新增迁移。
+
+| 结果映射 | 实际程序验证 | 结果与限制 |
+|---|---|---|
+| FB-01～03、13 | `verify-board-state.mjs`执行真实board.ts事件与真实后端，82次HTTP，独立SQL回读；单任务仅保存taskOps，状态输入和云稿保持；随后同区保存；新增任务直接完成/编辑；提交成功但读回失败；其他窗口更新冲突 | 4组链通过。合成项目在隔离库建立和清理；不是用户真实浏览器或布局验收 |
+| FB-04 | `verify-task-input.mjs`共享事件9项；`verify-task-text.mjs`逐行对应14例 | 编号/空编号可删、回车续号、空行、中文组合、光标和只读分支通过 |
+| FB-05～06 | `verify-draft-feedback.mjs`真实差异函数、旧副本、关联名称、仅任务改动、空编号、同/异版本与入口位置 | 通过纯代码检查。旧版本无基线保留下载而不伪造差异；跨设备真实操作尚待用户 |
+| FB-07～09、11 | `verify-summary-feedback.mjs`13次HTTP、2次独立SQL回读；真实分工/风险/变更→摘要新读→筛选/CSV；历史账号改名、停用、软删除、空关联 | 5组链通过；无越权项目、删除风险不展示、读导出不写版本；原姓名快照不随账号改名改写 |
+| FB-07～09、11 | `verify-status-entries.mjs`、`verify-history.mjs`（10组） | 人员排除、旧列偏好、风险变更筛选/导出和同名账号分组、HTML转义通过 |
+| FB-10、12 | 代码核查共用对话框定位、统计key/顺序/色组、三主题与自适应网格 | 类型检查通过。居中效果、黄色对比、字号和窄屏体感由用户验收，未宣称原生通过 |
+
+本节程序库固定为`geekdash_test`，服务器UUID为`d4a0d9ce-d6a3-11f1-a298-4a1aca926e84`。用户41874已经开始录入，不运行任何合成夹具。脱敏结果见[反馈证据](../../evidence/2026-11-02-import-panel-repair/feedback.json)，运行入口沿`docker exec`独立tools容器；数据库脚本必须同时设置既有probe开关和该隔离UUID。
+
+完整旧`verify-catalog.mjs`未通过：先遇到JSDOM缺少ResizeObserver，后停于过时的`#edit-chipIds-source`页面就绪选择器；本轮没有扩大为整套旧页面夹具迁移。聚焦摘要及卡片检查已改用当前入口并完成真实HTTP/SQL，不把旧测试失败隐藏为通过。最后完整构建和本地更新结果归部署记录，真实使用交用户。

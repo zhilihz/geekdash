@@ -42,7 +42,7 @@ html body .page.auth-page { max-width: 840px; padding-top: 32px; }
 .page.password-page .auth-panel { max-width: 720px; margin-inline: auto; }
 .task-history-switch { display: flex; gap: 8px; margin: 12px 0 16px; flex-wrap: wrap; }
 .task-history-switch [aria-pressed=true] { background: var(--accent-dim); color: #fff; border-color: var(--accent-dim); }
-.space-delete-dialog { max-width: min(520px,90vw); border: 1px solid var(--border); border-radius: 12px; padding: 24px; background: var(--card); color: var(--text); }
+.space-delete-dialog { position: fixed; inset: 0; margin: auto; width: min(520px,calc(100vw - 32px)); height: fit-content; max-height: calc(100dvh - 48px); box-sizing: border-box; overflow: auto; border: 1px solid var(--border); border-radius: 12px; padding: 24px; background: var(--card); color: var(--text); }
 .space-delete-dialog::backdrop { background: #0007; }
 .space-delete-dialog form { display: flex; justify-content: flex-end; gap: 12px; }
 @media(max-width:1100px) { .page .app-header { align-items: flex-start; } .app-header .primary-nav { width: 100%; justify-content: flex-end; } }
@@ -76,3 +76,19 @@ html body .page.auth-page { max-width: 840px; padding-top: 32px; }
 @media(max-width:700px) { .page .invite-table { table-layout: auto; font-size: 12px; } .page .invite-table th, .page .invite-table td { padding: 10px 5px; } }
 
 .draft-change-summary { white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; margin: 16px 0; border: 1px solid var(--border); border-radius: 8px; line-height: 1.8; }
+
+.page .board-card-status textarea, .page .task-panel textarea, .page .task-row textarea { border-style: dashed; }
+.board-project-state { margin-bottom: 16px; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* 统计卡按紧急程度排列；余下卡片沿用同一列宽，不拉伸占满最后一行。 */
+.page .board-stat-line { display: grid; grid-template-columns: repeat(auto-fill,minmax(min(100%,180px),1fr)); gap: 14px; overflow: visible; }
+.page .board-stat-line .stat { min-width: 0; min-height: 112px; padding: 18px 20px; gap: 10px; background: color-mix(in srgb,var(--kpi-color) 7%,var(--card)); border-color: color-mix(in srgb,var(--kpi-color) 30%,var(--border)); }
+.page .board-stat-line .stat-label { color: var(--kpi-color); font-size: 17px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+.page .board-stat-line .stat-label::after { font-size: 13px; color: inherit; }
+.page .board-stat-line .stat b { font-size: 36px; line-height: 1.1; }
+.board-stat-line [data-tone="red"] { --kpi-color: #ff7b72; }
+.board-stat-line [data-tone="yellow"] { --kpi-color: #e3b341; }
+.board-stat-line [data-tone="green"] { --kpi-color: #56d364; }
+[data-theme="light"] .board-stat-line [data-tone="red"], [data-theme="warm"] .board-stat-line [data-tone="red"] { --kpi-color: #b42318; }
+[data-theme="light"] .board-stat-line [data-tone="yellow"], [data-theme="warm"] .board-stat-line [data-tone="yellow"] { --kpi-color: #805400; }
+[data-theme="light"] .board-stat-line [data-tone="green"], [data-theme="warm"] .board-stat-line [data-tone="green"] { --kpi-color: #166534; }

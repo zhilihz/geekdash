@@ -1,7 +1,7 @@
 import { esc, label, actionLabels, dateTitles, closureTitles, type AuditPage } from './api';
 import './history.css';
 
-const names: Record<string, string> = { ...dateTitles, ...closureTitles, name: '项目名称', summary: '项目简介', marketExpectation: '市场预期', detailNote: '详细说明', summaryNote: '状态简要备注', chipstatNote: '芯片备注', statusDesc: '最新状态说明', signal: '信号灯', signalNote: '灯色说明', priority: '优先级', customerIds:'客户',odmFactoryIds:'ODM 工厂',productLineIds:'产品线',appIds:'APP',groupIds:'分组',chipSelections:'芯片',customerId: '客户', odmCustomerId: 'ODM 工厂', productLineId: '产品线', appId: 'APP', groupId: '分组', chipIds: '芯片', tagIds: '标签', people: '项目分工', managers: '项目经理', status: '项目状态', progress: '进度', startedOn: '实际开始日期', completedOn: '实际完成日期', plannedDays: '计划工期', note: '说明', state: '阶段状态', completionNote: '完成说明', content: '内容', level: '等级', resolved: '风险状态', resolution: '解除说明', source: '来源', decision: '决定', title: '节点名称', stage: '所属阶段', targetDate: '目标完成日期', output: '成果', previousNodeId: '前置节点', nextNodeId: '后续节点', x: '横向位置', y: '纵向位置', deletedAt: '记录状态', enabled: '是否启用', maintenanceEnabled: '结案后维护', oldDate: '调整前日期', newDate: '调整后日期', measures: '应对措施', conclusion: '检查结论', responsible: '本人负责资格' };
+const names: Record<string, string> = { ...dateTitles, ...closureTitles, name: '项目名称', summary: '项目状态', marketExpectation: '市场预期', detailNote: '详细说明', summaryNote: '状态简要备注', chipstatNote: '芯片备注', statusDesc: '最新状态说明', signal: '信号灯', signalNote: '灯色说明', priority: '优先级', customerIds:'客户',odmFactoryIds:'ODM 工厂',productLineIds:'产品线',appIds:'APP',groupIds:'分组',chipSelections:'芯片',customerId: '客户', odmCustomerId: 'ODM 工厂', productLineId: '产品线', appId: 'APP', groupId: '分组', chipIds: '芯片', tagIds: '标签', people: '项目分工', managers: '项目经理', status: '整体状态', progress: '进度', startedOn: '实际开始日期', completedOn: '实际完成日期', plannedDays: '计划工期', note: '说明', state: '阶段状态', completionNote: '完成说明', content: '内容', level: '等级', resolved: '风险状态', resolution: '解除说明', source: '来源', decision: '决定', title: '节点名称', stage: '所属阶段', targetDate: '目标完成日期', output: '成果', previousNodeId: '前置节点', nextNodeId: '后续节点', x: '横向位置', y: '纵向位置', deletedAt: '记录状态', enabled: '是否启用', maintenanceEnabled: '结案后维护', oldDate: '调整前日期', newDate: '调整后日期', measures: '应对措施', conclusion: '检查结论', responsible: '本人负责资格' };
 const metadata = new Set(['id','createdBy','actorId','actorName','createdByName','createdAt','updatedAt','sourceKey','sourceImportItemId','sortOrder','resolvedAt','resolvedByName','operations','closureSource','firstCheckWeek','firstCheckRuleVersion','resumeStatus','preCloseStatus','responsibleUserId','ruleVersion','observedVersion','resultVersion','weekStart','checkedAt','kind','code']);
 type Facts = Record<string, unknown>;
 export function historyTime(value: string) {
@@ -55,9 +55,12 @@ function changes(before: Facts, after: Facts, catalog = false, reasonTitle = '')
   }
   return { before: left, after: right };
 }
+function auditActor(item: AuditPage['items'][number]) {
+  return esc(item.actorDisplayName) + (item.actorLoginName ? `<span title="此账号当前的登录名">（账号：${esc(item.actorLoginName)}）</span>` : '');
+}
 export function auditHistory(items: AuditPage['items']) {
   const groups = new Map<string, AuditPage['items']>();
-  for (const item of items) { const key = JSON.stringify([item.versionBefore,item.versionAfter,item.actorDisplayName,item.createdAt]); groups.set(key,[...groups.get(key) ?? [],item]); }
+  for (const item of items) { const key = JSON.stringify([item.versionBefore,item.versionAfter,item.actorId ?? [item.actorKind,item.actorDisplayName],item.createdAt]); groups.set(key,[...groups.get(key) ?? [],item]); }
   return [...groups.values()].map(group => {
     const entries = new Map<string, { title: string; before: Facts; after: Facts; reasons: string[]; catalog:boolean; checkOnly:boolean }>();
     for (const item of [...group].reverse()) {
@@ -81,11 +84,11 @@ export function auditHistory(items: AuditPage['items']) {
       return `<tr><th scope="row">${esc(entry.title)}</th><td>${esc(Object.keys(entry.before).length ? entry.diff.before.join('\n') || '—' : '无记录')}</td><td>${esc(entry.diff.after.join('\n'))}${entry.reasons.length ? `<p class="history-reason">说明：${esc([...new Set(entry.reasons)].join('；'))}</p>` : ''}</td></tr>`;
     }).join('');
     const first = group[0], time = historyTime(first.createdAt);
-    return `<article class="audit-entry audit-timeline-entry" data-audit-version="${esc(first.versionAfter)}"><h3><time datetime="${esc(first.createdAt)}">${esc(time)}</time> · ${esc(first.actorDisplayName)}</h3>${summary}${rows ? `<details class="audit-comparison"><summary>查看修改前后</summary><div class="read-table-wrap"><table class="read-table comparison-table"><thead><tr><th>修改事项</th><th>修改前</th><th>修改后</th></tr></thead><tbody>${rows}</tbody></table></div></details>` : ''}</article>`;
+    return `<article class="audit-entry audit-timeline-entry" data-audit-version="${esc(first.versionAfter)}"><h3><time datetime="${esc(first.createdAt)}">${esc(time)}</time> · ${auditActor(first)}</h3>${summary}${rows ? `<details class="audit-comparison"><summary>查看修改前后</summary><div class="read-table-wrap"><table class="read-table comparison-table"><thead><tr><th>修改事项</th><th>修改前</th><th>修改后</th></tr></thead><tbody>${rows}</tbody></table></div></details>` : ''}</article>`;
   }).join('');
 }
 
 export function statusDescriptionHistory(items: AuditPage['items']) {
   const snapshots = items.filter(item => typeof item.afterValues?.statusDesc === 'string' && item.afterValues.statusDesc !== (item.beforeValues?.statusDesc ?? ''));
-  return '<p class="history-scope">仅显示已读取记录中的状态说明。</p>' + (snapshots.map(item => `<article class="audit-entry audit-timeline-entry"><h3><time datetime="${esc(item.createdAt)}">${esc(historyTime(item.createdAt))}</time> · ${esc(item.actorDisplayName)}${item.action === 'project.import' ? ' · 采用本地状态说明' : ''}</h3><p class="status-history-text">${esc(item.afterValues!.statusDesc || '（已清空状态说明）')}</p></article>`).join('') || '<p class="history-empty">已读取记录中暂无状态说明变更。</p>');
+  return '<p class="history-scope">仅显示已读取记录中的状态说明。</p>' + (snapshots.map(item => `<article class="audit-entry audit-timeline-entry"><h3><time datetime="${esc(item.createdAt)}">${esc(historyTime(item.createdAt))}</time> · ${auditActor(item)}${item.action === 'project.import' ? ' · 采用本地状态说明' : ''}</h3><p class="status-history-text">${esc(item.afterValues!.statusDesc || '（已清空状态说明）')}</p></article>`).join('') || '<p class="history-empty">已读取记录中暂无状态说明变更。</p>');
 }

@@ -1,15 +1,23 @@
-import { label, type Project, type Company } from './api';
+import { label, type Project, type Company, type RiskRecord, type ChangeFields } from './api';
 import { statusText } from './status-text';
 
-export type SummaryProject=Omit<Project,'checkStatus'> & {summary:string;detailNote:string;summaryNote:string;chipstatNote:string;statusOwners:string[];pendingNodes:{id:string;title:string;targetDate:string|null}[];canEdit:boolean};
+export type SummaryProject=Omit<Project,'checkStatus'> & {summary:string;detailNote:string;summaryNote:string;chipstatNote:string;statusOwners:string[];pendingNodes:{id:string;title:string;targetDate:string|null}[];risks:Pick<RiskRecord,'id'|'content'|'level'|'resolved'|'resolution'>[];changes:(ChangeFields&{id:string})[];canEdit:boolean};
 export type SummarySnapshot={items:SummaryProject[];businessDate:string;capturedAt:string;company:Company|null;ownerOptions:string[]};
-export const summaryColumns={customer:'客户',group:'分组',name:'项目名称',chips:'核心芯片',status:'任务清单',projectOwners:'项目负责人',engineers:'执行负责人',note:'备注',chipNote:'芯片备注',stage:'当前阶段',node:'关键节点',dueDate:'预计结案日期',delay:'是否延期'};
+export const summaryColumns={customer:'客户',group:'分组',name:'项目名称',chips:'核心芯片',status:'任务清单',projectOwners:'项目负责人',hardwareOwners:'硬件负责人',softwareOwners:'软件负责人',participants:'参与者',risks:'项目风险',changes:'需求变更',note:'备注',chipNote:'芯片备注',stage:'当前阶段',node:'关键节点',dueDate:'预计结案日期',delay:'是否延期'};
 export type SummaryColumn=keyof typeof summaryColumns;
 export const defaultColumns=Object.keys(summaryColumns).filter(key=>key!=='chipNote') as SummaryColumn[];
-export const summaryFilterTitles={customer:'客户',productLine:'产品线',odmFactory:'ODM 工厂',app:'配套 APP',status:'项目状态',priority:'优先级',signal:'信号灯',stage:'项目阶段',progress:'进度',chip:'芯片',tags:'项目标签',group:'分组',assignment:'分工人员',owner:'任务负责人',deadline:'计划结果'};
+export const summaryFilterTitles={customer:'客户',productLine:'产品线',odmFactory:'ODM 工厂',app:'配套 APP',status:'项目状态',priority:'优先级',signal:'信号灯',stage:'项目阶段',progress:'进度',chip:'芯片',tags:'项目标签',group:'分组',assignment:'分工人员',owner:'任务负责人',risk:'项目风险',change:'需求变更',deadline:'计划结果'};
 export type SummaryFilter=keyof typeof summaryFilterTitles;
 export type SummaryFilters=Partial<Record<SummaryFilter,string[]>> & {search?:string;contentFrom?:string;contentTo?:string};
 export type SummarySort='customer'|'group'|'chip'|'stage'|'dueDate';
+const personName=(name:string)=>name.trim()!==''&&name.trim()!=='-';
+function assignmentNames(project:SummaryProject,role:string){return [...new Set(project.people.filter(person=>person.role===role&&personName(person.name)).map(person=>person.name))];}
+export function summaryParticipants(project:SummaryProject){
+  const owners=new Set(project.people.filter(person=>['hardware_owner','software_owner'].includes(person.role)).map(person=>person.id));
+  // 账号与工程师不是同一编号空间；此处只按完整姓名去除重复展示，不建立人员或权限关联。
+  const managers=new Set(project.managers.filter(person=>person.enabled&&personName(person.name)).map(person=>person.name));
+  return [...new Set(project.people.filter(person=>person.role==='participant'&&personName(person.name)&&!owners.has(person.id)&&!managers.has(person.name)).map(person=>person.name))];
+}
 export function summaryValue(project:SummaryProject,column:SummaryColumn):string {
   switch(column){
     case 'customer':return project.customer || '未指定客户';
@@ -17,8 +25,12 @@ export function summaryValue(project:SummaryProject,column:SummaryColumn):string
     case 'name':return project.name;
     case 'chips':return project.chips.map(chip=>chip.name+(chip.note?'（'+chip.note+'）':'')).join('、');
     case 'status':return statusText(project);
-    case 'projectOwners':return project.managers.filter(person=>person.enabled).map(person=>person.name).join('、');
-    case 'engineers':return project.statusOwners.join('、');
+    case 'projectOwners':return [...new Set(project.managers.filter(person=>person.enabled&&personName(person.name)).map(person=>person.name))].join('、');
+    case 'hardwareOwners':return assignmentNames(project,'hardware_owner').join('、');
+    case 'softwareOwners':return assignmentNames(project,'software_owner').join('、');
+    case 'participants':return summaryParticipants(project).join('、');
+    case 'risks':return (project.risks??[]).map(risk=>`${risk.resolved?'已解除':'未解除'} · ${label(risk.level)}风险：${risk.content}${risk.resolution?'\n解除说明：'+risk.resolution:''}`).join('\n\n');
+    case 'changes':return (project.changes??[]).map(change=>`${change.decision==='accept'?'已接受':'已拒绝'}${change.source?' · '+change.source:''}：${change.content}${change.reason?'\n理由：'+change.reason:''}`).join('\n\n');
     case 'note':return project.summaryNote;
     case 'chipNote':return project.chipstatNote;
     case 'stage':return project.status==='closed' ? '整体结案' : label(project.stage);
@@ -29,7 +41,11 @@ export function summaryValue(project:SummaryProject,column:SummaryColumn):string
 }
 const compare=(a:string|null|undefined,b:string|null|undefined)=>String(a ?? '').localeCompare(String(b ?? ''),'zh-CN',{numeric:true});
 const deadlineNames={upcoming:'未到期',due:'今日到期',overdue:'已超期',unset:'计划未定',closed_on_time:'按期结案',closed_late:'超期结案',closed_unplanned:'无计划结案',closed_unknown:'结案日期待核对',terminated:'终止结案'};
+const riskNames={present:'有风险记录',none:'无风险记录',unresolved:'有未解除风险',resolved:'有已解除风险'};
+const changeNames={present:'有变更记录',none:'无变更记录',accept:'有已接受变更',reject:'有已拒绝变更'};
 function filterChoices(project:SummaryProject,kind:SummaryFilter):[string,string][]{
+  if(kind==='risk'){const risks=project.risks??[];return (!risks.length?['none']:['present',...new Set(risks.map(risk=>risk.resolved?'resolved':'unresolved'))]).map(value=>[value,riskNames[value as keyof typeof riskNames]]);}
+  if(kind==='change'){const changes=project.changes??[];return (!changes.length?['none']:['present',...new Set(changes.map(change=>change.decision))]).map(value=>[value,changeNames[value as keyof typeof changeNames]]);}
   if(kind==='chip' || kind==='tags')return (kind==='chip'?project.chips:project.tags).map(item=>[item.id,item.name]);
   if(kind==='assignment')return [...project.managers.map(person=>['user:'+person.id,person.name] as [string,string]),...project.people.filter(person=>person.role!=='pm').map(person=>['engineer:'+person.id,person.name] as [string,string])];
   if(kind==='owner')return project.statusOwners.map(name=>[name,name]);
@@ -40,9 +56,9 @@ function filterChoices(project:SummaryProject,kind:SummaryFilter):[string,string
   return value ? [[value,kind==='progress'?value+'%':['status','priority','signal','stage'].includes(kind)?label(value):value]] : [];
 }
 export function summaryFilterOptions(snapshot:SummarySnapshot):Record<SummaryFilter,[string,string][]>{
-  const fixed:Partial<Record<SummaryFilter,string[]>>={status:['proposal','ongoing','paused','closed'],priority:['high','mid','low'],signal:['green','yellow','red'],stage:['S1','S2','S3','S4','S5','S6','S7','completed','unconfigured'],progress:['0','5','10','20','60','80','90','100'],deadline:Object.keys(deadlineNames)};
+  const fixed:Partial<Record<SummaryFilter,string[]>>={status:['proposal','ongoing','paused','closed'],priority:['high','mid','low'],signal:['green','yellow','red'],stage:['S1','S2','S3','S4','S5','S6','S7','completed','unconfigured'],progress:['0','5','10','20','60','80','90','100'],risk:Object.keys(riskNames),change:Object.keys(changeNames),deadline:Object.keys(deadlineNames)};
   return Object.fromEntries((Object.keys(summaryFilterTitles) as SummaryFilter[]).map(kind=>{
-    const values=fixed[kind]?.map(value=>[value,kind==='deadline'?deadlineNames[value as keyof typeof deadlineNames]:kind==='progress'?value+'%':label(value)] as [string,string])
+    const values=fixed[kind]?.map(value=>[value,kind==='risk'?riskNames[value as keyof typeof riskNames]:kind==='change'?changeNames[value as keyof typeof changeNames]:kind==='deadline'?deadlineNames[value as keyof typeof deadlineNames]:kind==='progress'?value+'%':label(value)] as [string,string])
       ?? [...new Map([...snapshot.items.flatMap(project=>filterChoices(project,kind)),...(kind==='owner'?snapshot.ownerOptions.map(name=>[name,name] as [string,string]):[])]).entries()].sort((a,b)=>compare(a[1],b[1]));
     return [kind,values];
   })) as Record<SummaryFilter,[string,string][]>;
@@ -64,9 +80,10 @@ export function selectedSummary(rows:SummaryProject[],selected:ReadonlySet<strin
   return structuredClone(result);
 }
 export function visibleColumns(order:unknown,hidden:unknown):SummaryColumn[]{
-  const source=Array.isArray(order)?order.filter((key):key is SummaryColumn=>typeof key==='string' && Object.hasOwn(summaryColumns,key)):Object.keys(summaryColumns) as SummaryColumn[];
+  const expand=(keys:unknown[])=>keys.flatMap(key=>key==='engineers'?['hardwareOwners','softwareOwners']:key);
+  const source=Array.isArray(order)?expand(order).filter((key):key is SummaryColumn=>typeof key==='string' && Object.hasOwn(summaryColumns,key)):Object.keys(summaryColumns) as SummaryColumn[];
   const columns=[...new Set([...source,...Object.keys(summaryColumns) as SummaryColumn[]])];
-  const excluded=new Set(Array.isArray(hidden)?hidden:['chipNote']);
+  const excluded=new Set(Array.isArray(hidden)?expand(hidden):['chipNote']);
   return columns.filter(key=>key==='name' || !excluded.has(key));
 }
 function csvCell(value:string){
@@ -113,4 +130,4 @@ export function summaryMarkdown(projects:SummaryProject[],columns:SummaryColumn[
   }
   return '\ufeff'+lines.join('\r\n');
 }
-export const pngColumns:SummaryColumn[]=['name','customer','status','projectOwners','engineers','dueDate','delay'];
+export const pngColumns:SummaryColumn[]=['name','customer','status','projectOwners','hardwareOwners','softwareOwners','participants','risks','changes','dueDate','delay'];

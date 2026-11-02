@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-02",
+  "scope": "本地反馈修正；隔离程序验证，不代表用户页面验收",
+  "board": {
+    "status": "passed",
+    "database": {
+      "db": "geekdash_test",
+      "uuid": "d4a0d9ce-d6a3-11f1-a298-4a1aca926e84"
+    },
+    "requests": 82,
+    "checks": [
+      "真实卡片单任务完成只提交taskOps，SQL状态文字不变，未保存summary输入/云稿保留并推进版本；后续区域保存只提交summary，新请求读回一致",
+      "新任务尚未整体保存时可以直接完成或编辑保存，只保存这条任务，另有summary输入保留",
+      "同区明确保存summary与任务，实际项目事务写入，两类内容相互独立，新GET与SQL一致",
+      "已提交但新读失败可核对原结果，无重复PATCH/版本；其他窗口更新产生真实冲突并保留未保存文字，不能覆盖"
+    ],
+    "productBrowserTested": false
+  },
+  "summary": {
+    "status": "passed",
+    "database": "geekdash_test",
+    "serverUuid": "d4a0d9ce-d6a3-11f1-a298-4a1aca926e84",
+    "httpRequests": 13,
+    "independentSqlReadbacks": 2,
+    "checks": [
+      "真实 HTTP 保存分工、风险及变更，独立 test_app 连接读回版本、关联、解除和删除事实",
+      "新摘要请求只返回本人可见项目；风险排除已删除记录并与 SQL 内容一致，变更保留接受/拒绝",
+      "真实摘要数据进入同一前端投影/筛选/CSV：分工拆列、参与者排除已负责者、风险与变更完整导出",
+      "无记录项目可按无风险/无变更筛选；摘要读取、展示与导出不修改项目版本、分工及审计",
+      "历史 API 返回账号 ID 与当前登录名；改名、停用、软删除不丢旧姓名与历史，缺失账号只保留原姓名"
+    ],
+    "productBrowserTested": false
+  },
+  "taskInputChecks": 9,
+  "taskTextCases": 14,
+  "draftCheck": "passed",
+  "historyGroups": 10,
+  "schemaChange": false,
+  "userBrowserTested": false
+}

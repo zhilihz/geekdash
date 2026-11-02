@@ -8,6 +8,14 @@ type Write = Omit<PersonalDraft,'draftVersion'|'state'|'updatedAt'> & { expected
 type Slot = { desired: Write; confirmed?: PersonalDraft; pending?: Write; firstAt: number; timer?: ReturnType<typeof setTimeout>; running?: Promise<void>; blocked?: boolean; localStored?: boolean };
 const ordered = (value:unknown):unknown => Array.isArray(value)?value.map(ordered):value && typeof value==='object'?Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b)).map(([key,item])=>[key,ordered(item)])):value;
 const equal = (a: unknown,b: unknown) => JSON.stringify(ordered(a)) === JSON.stringify(ordered(b));
+// 完整页面副本只有在原版本可核对时才能称为“修改”。旧版无基线副本继续保留，但不猜测差异。
+export function draftDifference(values:Record<string,unknown>,base?:Record<string,unknown>):Record<string,unknown> {
+  if(!base)return {};
+  return Object.fromEntries(Object.entries(values).filter(([key,value])=>!equal(value,base[key])).map(([key,value])=>[key,key==='stagePlans'&&Array.isArray(value)?value.flatMap(plan=>{
+    const old=(base.stagePlans as Record<string,unknown>[]|undefined)?.find(item=>item.code===plan.code);
+    const changed=draftDifference(plan,old??{});return Object.keys(changed).length?[{code:plan.code,...changed}]:[];
+  }):value]));
+}
 const emptyDraft = (data:DraftData) => !Object.keys(data.values??{}).length && !Object.keys(data.intent??{}).length && !Object.keys(data.record??{}).length && !Object.keys(data.command??{}).length && !Object.keys(data.editors??{}).length && !(data.submission?.commands as unknown[]|undefined)?.length;
 const names: Record<string,string> = {project:'未保存的修改',basic:'基本信息与分工',status:'任务修改',tags:'项目标签',signal:'灯色与说明',stage:'阶段工期与评述',risk:'风险',change:'需求变更',customerNode:'客户节点',projectNodes:'项目节点与Flow',create:'新建项目',action:'未保存的操作',summaryNote:'状态简要备注',chipstatNote:'芯片备注'};
 export function meaningfulEditor(value:Record<string,unknown>) {
@@ -124,7 +132,7 @@ export class PersonalDrafts {
   private dialog: HTMLDialogElement;
   private recovery: HTMLElement | undefined;
   private status = '查看和恢复个人草稿';
-  constructor(private projectId: string | null,private context: () => {version:string|null;editable:boolean},private restore: (row:PersonalDraft)=>boolean|Promise<boolean>,private options:{button?:boolean;kinds?:PersonalDraft['formKind'][]}={}) {
+  constructor(private projectId: string | null,private context: () => {version:string|null;editable:boolean},private restore: (row:PersonalDraft)=>boolean|Promise<boolean>,private options:{button?:boolean;kinds?:PersonalDraft['formKind'][];describe?:(row:PersonalDraft)=>string}={}) {
     const key = `geekdash_page:${this.actor}:${projectId ?? 'new'}`;
     let instance: string = crypto.randomUUID();
     try {
@@ -287,7 +295,7 @@ export class PersonalDrafts {
     const usable=this.context().editable && (!!local || !!row && row.baseVersion===this.context().version);
     this.recovery?.remove();
     const box=this.recovery=document.createElement('aside');box.className='draft-recovery';box.setAttribute('aria-label','恢复未保存的输入');
-    box.innerHTML=`<strong>${usable?'有未保存的'+(local?'输入':esc(names[row!.formKind])):'有个人草稿可查看'}</strong><p>${usable?esc((local?.text ?? draftText(row!)).slice(0,140)):'可查看内容；旧版本的输入仅供复制核对。'}</p><div class="entry-actions"><button type="button" class="back-btn" data-continue>${usable?'继续编辑':'查看草稿'}</button>${usable?'<button type="button" class="back-btn" data-discard>丢弃</button>':''}<button type="button" class="back-btn" data-later>稍后</button></div>`;
+    box.innerHTML=`<strong>${usable?'有未保存的'+(local?'输入':esc(names[row!.formKind])):'有个人草稿可查看'}</strong><p>${usable?esc((local?.text ?? (this.options.describe??draftText)(row!)).slice(0,140)):'可查看内容；旧版本的输入仅供复制核对。'}</p><div class="entry-actions"><button type="button" class="back-btn" data-continue>${usable?'继续编辑':'查看草稿'}</button>${usable?'<button type="button" class="back-btn" data-discard>丢弃</button>':''}<button type="button" class="back-btn" data-later>稍后</button></div>`;
     box.querySelector<HTMLButtonElement>('[data-continue]')!.onclick=()=>{void(async()=>{try{if(local && usable){if(!this.stopped && this.context().editable && await local.restore())box.remove();else box.querySelector('p')!.textContent='页面内容已变化，请从个人草稿核对保留的输入。';}else await (usable?this.continueDraft(row!):this.open());}catch(error){box.querySelector('p')!.textContent=(error as Error).message;}})();};
     box.querySelector<HTMLButtonElement>('[data-later]')!.onclick=()=>box.remove();
     const discard=box.querySelector<HTMLButtonElement>('[data-discard]');if(discard)discard.onclick=()=>{void(async()=>{try{const warning=local?await local.discard():await this.discardListed(row!);if(warning){box.querySelector('strong')!.textContent='服务器草稿已丢弃';box.querySelector('p')!.textContent=warning;box.querySelector('[data-continue]')?.remove();discard.remove();box.querySelector('[data-later]')!.textContent='关闭';}else box.remove();}catch(error){box.querySelector('p')!.textContent=(error as Error).message;}})();};
@@ -306,7 +314,7 @@ export class PersonalDrafts {
       const box=document.createElement('section');box.className='project-info';
       box.dataset.draftId=row.clientDraftId;box.dataset.source=row.state;
       const usable=this.context().editable && row.baseVersion===this.context().version;
-      const preview=draftText(row);
+      const preview=(this.options.describe??draftText)(row);
       box.innerHTML=`<h3>${esc(names[row.formKind] ?? row.formKind)}</h3><p>${candidates.length>1?(row.state==='local'?'此设备保留':'已同步')+' · ':''}${row.updatedAt?esc(new Date(row.updatedAt).toLocaleString('zh-CN')):''}${usable?'':' · 项目已变化或当前只读，仅供复制核对'}</p>${preview?`<pre>${esc(preview)}</pre>`:''}<div class="entry-actions"><button class="back-btn" data-restore ${usable?'':'disabled'}>继续编辑</button><button class="back-btn" data-copy>复制内容</button><button class="back-btn" data-export>导出备份</button><button class="back-btn" data-discard>丢弃</button></div><pre data-copy-fallback hidden></pre>`;
       box.querySelector<HTMLButtonElement>('[data-restore]')!.onclick=()=>{void this.continueDraft(row);};
       const content=JSON.stringify(row.payload,null,2);

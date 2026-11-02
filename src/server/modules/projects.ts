@@ -252,11 +252,16 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
         const items=await enrich(connection,await rows(connection,`SELECT ${columns},p.summary_note summaryNote,p.chipstat_note chipstatNote,p.detail_note detailNote,${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress ${joins} WHERE p.deleted_at IS NULL AND (EXISTS(SELECT 1 FROM users admin WHERE admin.id=? AND admin.enabled=1 AND admin.is_admin=1) OR EXISTS(SELECT 1 FROM project_responsibilities own JOIN users owner ON owner.id=own.user_id WHERE own.project_id=p.id AND own.user_id=? AND owner.enabled=1 AND owner.is_project_manager=1)) ORDER BY p.id`,[accountId,accountId]));
         await enrichChecks(connection,items,{businessDate:today});
         const nodes=await rows(connection,"SELECT CAST(project_id AS CHAR) projectId,CAST(id AS CHAR) id,title,DATE_FORMAT(target_date,'%Y-%m-%d') targetDate FROM project_nodes WHERE kind='project' AND deleted_at IS NULL AND completed_on IS NULL ORDER BY project_id,sort_order,id");
+        const ids=items.map(item=>item.id);
+        const risks=ids.length?await rows(connection,'SELECT CAST(project_id AS CHAR) projectId,CAST(id AS CHAR) id,content,level,resolved,resolution FROM project_risks WHERE project_id IN (?) AND deleted_at IS NULL ORDER BY project_id,sort_order,id',[ids]):[];
+        const changes=ids.length?await rows(connection,'SELECT CAST(project_id AS CHAR) projectId,CAST(id AS CHAR) id,source,content,decision,reason FROM project_changes WHERE project_id IN (?) ORDER BY project_id,sort_order,id',[ids]):[];
         const engineers=await rows(connection,'SELECT name FROM engineers ORDER BY name,id'),engineerNames=engineers.map(item=>String(item.name));
         for(const item of items){
           item.deadline=deadlineResult(item as RowDataPacket & DateFacts,today);
           item.canEdit=item.managers.some((manager:{id:string;enabled:number})=>manager.id===accountId && !!manager.enabled);
           item.pendingNodes=nodes.filter(node=>node.projectId===item.id).map(({projectId:_projectId,...node})=>node);
+          item.risks=risks.filter(risk=>risk.projectId===item.id).map(({projectId:_projectId,...risk})=>risk);
+          item.changes=changes.filter(change=>change.projectId===item.id).map(({projectId:_projectId,...change})=>change);
           // 继承1051的当前说明提名语义；不写人员库，不授予责任或账号权限。
           item.statusOwners=projectStatusOwners(String(item.statusDesc ?? ''),engineerNames);
         }

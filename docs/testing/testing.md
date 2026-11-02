@@ -473,6 +473,8 @@ TEST-044统一设计与1056展示承接追加（PRD9.28.1）：
 <a id="test-045"></a>
 ## TEST-045 导入分级、历史恢复与面板操作收敛
 
+2026-11-02本地验收反馈追加：映射REQ-049 / PRD FB-01～13。卡片真实前端事件配合隔离HTTP与SQL验证状态文字、单任务保存互不夹带、草稿保留、共同保存、读回失败与版本冲突；任务输入及草稿纯代码验证编号删除、空编号不写、中文组合、真实差异与旧副本保护；摘要API验证分工排除、权限、风险变更及导出；历史验证同名不同账号、当前登录名改名/停用/软删除/缺账号与原姓名快照。统计、虚线输入、标题按钮顺序和居中确认框做代码核查，真实视觉交用户。此反馈不要求新增锁、数据库迁移或线上发布；实际通过范围只归报告。
+
 映射REQ-048及受影响REQ-022/025/034；逐结果依据[PRD9.29](../product/PRD.md#import-usability-results)，准确契约归[SPEC-009](../specifications/specification.md#import-repair-contract)、[SPEC-022](../specifications/specification.md#panel-repair-contract)、[SPEC-023](../specifications/specification.md#operation-feedback-contract)。实施入口归[执行计划](../implementation/execution-plan.md#import-usability-repair-plan)。本节维护验证方案，实际结果另归本轮报告；不把旧TEST-044报告当作本轮通过记录。
 
 后续启动实施后的程序检查仅在本地使用隔离数据库和脱敏／合成文件，覆盖输入→真实命令→持久结果→新请求回读→下游消费。用户负责真实文件采用、点击、输入、布局和操作体感验收；助手可提供精确步骤和预期，不能替用户完成或凭接口通过宣称真实页面通过。Harbor上传、服务器发布及线上数据库操作由同事负责，不列为本轮助手修正的验收条件；可交接准确变更和本地证据，但不代执行上线。

@@ -13,7 +13,7 @@ async function module(path, dependencies) {
 const api = await module('src/web/shared/api.ts', {});
 const { auditHistory, statusDescriptionHistory } = await module('src/web/shared/history.ts', { './api': api });
 const at = '2026-10-20T04:05:06.000Z';
-const audit = (id, action, beforeValues, afterValues, extra = {}) => ({ id, action, beforeValues, afterValues, actorDisplayName: '李工', actorKind: 'user', versionBefore: '1', versionAfter: '2', createdAt: at, ...extra });
+const audit = (id, action, beforeValues, afterValues, extra = {}) => ({ id, action, beforeValues, afterValues, actorId: '1', actorDisplayName: '李工', actorLoginName: 'ligong', actorKind: 'user', versionBefore: '1', versionAfter: '2', createdAt: at, ...extra });
 let passed = 0;
 function check(name, fn) { fn(); passed++; }
 check('默认时间线且对比表折叠', () => {
@@ -68,4 +68,17 @@ check('纠正计划说明保留真实原新值', () => {
   assert.match(html, /计划说明：等待客户确定交期/); assert.match(html, /计划说明：客户确认交期为周五/);
   assert(!html.split('<details')[0].includes('等待客户确定交期'));
 });
-console.log(JSON.stringify({ status: 'passed', cases: passed, databaseAccess: false, checks: ['timeline_default', 'comparison_collapsed', 'same_record_grouped', 'no_change_hidden', 'check_fact_only', 'html_escaped', 'raw_status_snapshots', 'loaded_range_explicit', 'plan_reason_only_preserved', 'corrected_plan_reason_before_after'] }));
+check('更新与状态说明历史均显示姓名和当前账号', () => {
+  const record = audit('15', 'project.ordinary.save', { statusDesc: '旧状态' }, { statusDesc: '新状态' });
+  for (const render of [auditHistory, statusDescriptionHistory]) {
+    const html = render([record]); assert.match(html, /李工<span title="此账号当前的登录名">（账号：ligong）<\/span>/);
+    const escaped = render([{ ...record, actorLoginName: '<img onerror=1>' }]); assert.match(escaped, /账号：&lt;img onerror=1&gt;/); assert(!escaped.includes('<img'));
+    const missing = render([{ ...record, actorId: null, actorLoginName: null }]); assert.match(missing, /李工/); assert(!missing.includes('账号：'));
+  }
+});
+check('同名不同账号不会合并历史', () => {
+  const first = audit('16', 'project.ordinary.save', { name: '旧甲' }, { name: '新甲' });
+  const second = audit('17', 'project.ordinary.save', { name: '旧乙' }, { name: '新乙' }, { actorId: '2', actorLoginName: 'ligong2' });
+  const html = auditHistory([first, second]); assert.equal((html.match(/audit-timeline-entry/g) ?? []).length, 2); assert.match(html, /账号：ligong2/);
+});
+console.log(JSON.stringify({ status: 'passed', cases: passed, databaseAccess: false, checks: ['timeline_default', 'comparison_collapsed', 'same_record_grouped', 'no_change_hidden', 'check_fact_only', 'html_escaped', 'raw_status_snapshots', 'loaded_range_explicit', 'plan_reason_only_preserved', 'corrected_plan_reason_before_after', 'actor_name_and_current_login', 'distinct_same_name_accounts', 'missing_actor_preserves_snapshot'] }));

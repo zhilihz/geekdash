@@ -558,7 +558,9 @@ try{
   const fullNameFilter=[...mw.document.querySelectorAll('[data-filter="owner"]')].find(input=>input.value===mentionedName);assert(fullNameFilter);
   fullNameFilter.checked=true;fullNameFilter.dispatchEvent(new mw.Event('change',{bubbles:true}));
   assert.deepEqual([...mw.document.querySelectorAll('tbody tr[data-row]')].map(row=>row.dataset.row),[cardId],'按完整提及姓名筛选命中已保存项目');
-  assert.equal(m$(`tr[data-row="${cardId}"] [data-column="engineers"]`).textContent,mentionedName,'负责人显示完整姓名且不加@');
+  assert(m$(`tr[data-row="${cardId}"] [data-column="status"]`).textContent.includes(mentionedName),'任务清单显示完整提名姓名');
+  assert.equal(m$(`tr[data-row="${cardId}"] [data-column="hardwareOwners"]`).textContent,'—','提名不冒充硬件负责人');
+  assert.equal(m$(`tr[data-row="${cardId}"] [data-column="softwareOwners"]`).textContent,'—','提名不冒充软件负责人');
   const mentionPick=m$(`[data-select="${cardId}"]`);mentionPick.checked=true;mentionPick.dispatchEvent(new mw.Event('change',{bubbles:true}));
   mw.Blob=Blob;let mentionCsvBytes;
   mw.showDirectoryPicker=async()=>({name:'完整姓名输出验证',async getFileHandle(){return {async createWritable(){return {async write(blob){mentionCsvBytes=Buffer.from(await blob.arrayBuffer());},async close(){},async abort(){}};}};}});

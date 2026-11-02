@@ -461,9 +461,9 @@ export function projectSaves(database: RuntimeDatabase) {
       return database.readSnapshot(async connection => {
     if(accountId)await assertProjectAccess(connection,id,accountId);
         if (!(await query(connection, 'SELECT id FROM projects WHERE deleted_at IS NULL AND id=?', [id])).length) failure('PROJECT_NOT_FOUND', 404);
-        const items = await query(connection, `SELECT CAST(id AS CHAR) id,actor_display_name actorDisplayName,actor_kind actorKind,action,
-          CAST(version_before AS CHAR) versionBefore,CAST(version_after AS CHAR) versionAfter,before_json beforeValues,after_json afterValues,
-          DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%s.%fZ') createdAt FROM audit_log WHERE project_id=?${before ? ' AND id<?' : ''} ORDER BY audit_log.id DESC LIMIT ?`, [id, ...(before ? [before] : []), pageSize + 1]);
+        const items = await query(connection, `SELECT CAST(a.id AS CHAR) id,CAST(a.actor_id AS CHAR) actorId,a.actor_display_name actorDisplayName,u.login_name actorLoginName,a.actor_kind actorKind,a.action,
+          CAST(a.version_before AS CHAR) versionBefore,CAST(a.version_after AS CHAR) versionAfter,a.before_json beforeValues,a.after_json afterValues,
+          DATE_FORMAT(a.created_at,'%Y-%m-%dT%H:%i:%s.%fZ') createdAt FROM audit_log a LEFT JOIN users u ON u.id=a.actor_id WHERE a.project_id=?${before ? ' AND a.id<?' : ''} ORDER BY a.id DESC LIMIT ?`, [id, ...(before ? [before] : []), pageSize + 1]);
         const hasMore = items.length > pageSize;
         if (hasMore) items.pop();
         return { items, nextCursor: hasMore ? items.at(-1)!.id : null, pageSize };

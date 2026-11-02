@@ -203,7 +203,7 @@ async function initialize(){if(await requireIdentity()){
   }
   filtersOpen=state.filtersOpen===true;
   if(['customer','group','chip','stage','dueDate'].includes(String(state.sort)))sort=state.sort as SummarySort;
-  order=strings(state.rowOrder);hidden=strings(state.hiddenRows);columnOrder=visibleColumns(view.columns,[]);hiddenColumns=view.hiddenColumns===undefined?['chipNote']:strings(view.hiddenColumns);
+  order=strings(state.rowOrder);hidden=strings(state.hiddenRows);columnOrder=visibleColumns(view.columns,[]);hiddenColumns=(view.hiddenColumns===undefined?['chipNote']:strings(view.hiddenColumns)).flatMap(key=>key==='engineers'?['hardwareOwners','softwareOwners']:key);
   (element('summary-sort') as HTMLSelectElement).value=sort;
   try{const saved=JSON.parse(sessionStorage.getItem(cacheKey()) ?? '[]');if(Array.isArray(saved))for(const edit of saved)if(typeof edit.id==='string' && ['summaryNote','chipstatNote'].includes(edit.kind) && typeof edit.value==='string' && typeof edit.version==='string')edits.set(key(edit.id,edit.kind),{...edit,busy:false});}catch{}
   if(await load()){
