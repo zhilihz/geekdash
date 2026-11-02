@@ -106,3 +106,5 @@ node scripts/verify-write-recovery.mjs
 本节程序库固定为`geekdash_test`，服务器UUID为`d4a0d9ce-d6a3-11f1-a298-4a1aca926e84`。用户41874已经开始录入，不运行任何合成夹具。脱敏结果见[反馈证据](../../evidence/2026-11-02-import-panel-repair/feedback.json)，运行入口沿`docker exec`独立tools容器；数据库脚本必须同时设置既有probe开关和该隔离UUID。
 
 完整旧`verify-catalog.mjs`未通过：先遇到JSDOM缺少ResizeObserver，后停于过时的`#edit-chipIds-source`页面就绪选择器；本轮没有扩大为整套旧页面夹具迁移。聚焦摘要及卡片检查已改用当前入口并完成真实HTTP/SQL，不把旧测试失败隐藏为通过。最后完整构建和本地更新结果归部署记录，真实使用交用户。
+
+最终clean产品`d928b1a`完整构建于`2026-11-02T13:21:27.832Z`通过，已更新41874。运行健康、版本、5个页面及23个直接资源读取成功，35个用户项目与账号保留；详见[本地运行回读](../../operations/deployments/2026-11-02-import-panel-local.md)。不据此关闭第4节及本节仍未验收的真实操作范围。
