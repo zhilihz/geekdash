@@ -29,7 +29,7 @@ try{
   const original=await api('/api/projects/'+id),history=await api('/api/projects/'+id+'/audit');
   const bytes=JSON.stringify({projects:[{name:prefix+' 待完成任务'}]}),upload='/api/imports/upload?'+new URLSearchParams({name:prefix+'.json',operation:randomUUID()});
   const batchId=(await api(upload,'POST',bytes,200,true)).result.batchId,data=await api('/api/imports/'+batchId);
-  const body={formatVersion:2,idempotencyKey:randomUUID(),items:data.items.map(item=>({id:item.id,command:{expectedBatchVersion:data.batch.version,expectedReviewVersion:item.reviewVersion,expectedVersion:item.expectedVersion,basis:item.basis,selected:item.defaultSelected,idempotencyKey:randomUUID()},resolveReferences:true}))};
+  const body={formatVersion:2,stage:'projects',idempotencyKey:randomUUID(),items:data.items.map(item=>({id:item.id,command:{expectedBatchVersion:data.batch.version,expectedReviewVersion:item.reviewVersion,expectedVersion:item.expectedVersion,basis:item.basis,selected:item.defaultSelected,idempotencyKey:randomUUID()},resolveReferences:true}))};
   holdAccepted=true;const accepted=await api(`/api/imports/${batchId}/executions`,'POST',body,202);await app.close();app=undefined;
   holdAccepted=false;delete process.env.GEEKDASH_IMPORT_WRITES;process.env.GEEKDASH_BUSINESS_WRITES='disabled';await start();await login();
   assert.equal((await api('/api/health/ready')).status,'ready');

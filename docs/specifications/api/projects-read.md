@@ -113,3 +113,12 @@ GET `/api/projects/:id/deleted-nodes?pageSize=20&before=字符串ID`；默认20�
 2026-10-28（92ecbc4）追加：GET /api/projects接受perspective=responsible|management，可与view/dashboard/details=checks叠加；responsible按本人负责关系筛选，management仍核服务器管理员身份，普通账号不能扩大范围。个人看板在可信身份加载后为兼任账号默认传responsible。所有读取排除deleted_at非空项目。行为归SPEC-022。
 
 2026-10-28统一设计接续：`manager`接受账号ID字符串或数组，选项在options.manager及optionLabels.manager；options.owner只列业务分工资料（engineer:ID）。旧owner=user:ID读取兼容保留。GET /api/project-space的items新增version字符串，空间管理员删除沿既有删除事务/回执，不另设删除接口。
+
+## 2026-11-02 任务汇总与历史空间
+
+代码对应本轮修复分支；实际交付版本查系统真相。规则引用SPEC-022及PRD9.29。
+
+- `GET /api/projects/tasks-summary?perspective=responsible|management`：按当前身份视角返回有未完成任务的项目与任务；不接收看板搜索/筛选，管理视角必须管理员。只读，不新增检查或版本。
+- `GET /api/project-space?view=history`：只列已删除项目，沿空间基础信息权限；其他查询条件仍复用既有协议。恢复入口只给管理员，不能把删除项目重新创建为另一ID。
+- `POST /api/projects/:id/restore`与`POST /api/projects/:id/restore-results/query`：输入`expectedVersion,idempotencyKey`，沿管理员权限、项目锁、审计与原回执。成功返回`outcome:committed`、`result:{projectId,savedVersion,operationId,changed,deleted:false,unowned}`；无有效负责人不自动加入恢复者。
+- 恢复出现版本变化返回`PROJECT_VERSION_CONFLICT`，已恢复但另一个请求重试返回`PROJECT_ALREADY_RESTORED`；原键重试返回原成功结果。未确认提交先查询原键，不能重新生成恢复请求。

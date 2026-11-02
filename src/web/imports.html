@@ -2,10 +2,10 @@
 <html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GeekDash · 导入项目</title></head>
 <body class="imports-page"><main class="page">
   <header class="app-header" data-app-header></header>
-  <div class="imports-page-title"><div><a id="imports-back" href="/imports.html" hidden>← 返回导入批次</a><h1 id="imports-title">导入项目</h1><p id="imports-subtitle">选择本地备份，系统核对后导入；有冲突的内容再处理。</p></div><button class="head-btn" id="imports-reload">刷新</button></div>
+  <div class="imports-page-title"><div><a id="imports-back" href="/imports.html" hidden>← 返回导入批次</a><h1 id="imports-title">导入项目</h1><p id="imports-subtitle">上传本地备份，先保存资料，再确认项目变化。</p></div><button class="head-btn" id="imports-reload">刷新</button></div>
   <div id="imports-message" role="status" aria-live="polite"></div>
   <section id="imports-entry" aria-label="选择备份"></section>
   <section id="imports-batch" hidden aria-label="当前导入批次"></section>
   <section id="imports-list" aria-label="已有批次"></section>
-  <footer id="imports-savebar" hidden><button class="save-btn" id="imports-save">确认导入</button><span id="imports-save-status">新增项目默认选中，已有项目仅更新所选内容。</span></footer>
+  <footer id="imports-savebar" hidden><button class="save-btn" id="imports-save">保存资料并查看项目</button><span id="imports-save-status">正常资料先保存；仅受影响的项目等待处理。</span></footer>
 </main><script type="module" src="/imports.ts"></script></body></html>

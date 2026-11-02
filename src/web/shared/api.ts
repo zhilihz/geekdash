@@ -188,9 +188,28 @@ export function setupAccountHeader() {
 export function setAccount(value: Account) { account = value; contextChanged = false; }
 export function notifyIdentityChange(clearCache=false) { context.postMessage(clearCache?{type:'changed',clearCache:true}:'changed');if(clearCache)clearLocalAccountState(); }
 stageMessages.BUSINESS_WRITES_PAUSED = '系统维护中，暂时只可查看。本次修改未提交，请保留输入，恢复后再保存。';
+Object.assign(stageMessages, {
+  RESOURCE_NOT_FOUND:'这项内容已不存在，请返回列表重新读取。',READ_FAILED:'本次数据没有读出，原输入已保留，请重新读取。',
+  INVALID_IMPORT_COMMAND:'这次导入选择已失效，请重新读取预览；已保存内容不会重复导入。',
+  IMPORT_STAGE_MISMATCH:'请先保存资料，再在项目步骤确认导入。',IMPORT_ITEM_CONFIRMING:'这个项目或资料的上一操作仍在核对，请查询结果或继续原操作。其他项目可继续处理。',
+  IMPORT_EXECUTION_ACTIVE:'本批还有正在保存的内容，请先查看本次保存进度。',IMPORT_EXECUTION_NOT_FOUND:'没有找到这次保存记录，请重新读取批次并核对结果。',
+  IMPORT_DEPENDENCY_CONFIRMING:'关联资料的保存结果尚未确认，请先在资料步骤查询结果。',
+  IMPORT_BINDING_CHANGED:'相关资料或项目已经变化，本次尚未保存。请重新读取前后差异再确认。',
+  IMPORT_TARGET_NOT_FOUND:'原对应内容已不存在，请重新读取；已删除项目请到历史项目恢复。',
+  CATALOG_DISABLED:'这条资料已删除，可在原位置恢复并使用，或不使用这条资料。',
+  CATALOG_NAME_CONFLICT:'已有同名资料，请使用已有资料；确实是另一份资料时再修改名称。',
+  SYSTEM_CONFIGURATION_REQUIRED:'系统初始化配置缺失，请管理员补齐配置后重新读取。',
+  DATABASE_SCHEMA_INCOMPATIBLE:'数据库结构与本版程序不一致，请管理员完成迁移后重试。',
+  DATABASE_PERMISSION_DENIED:'应用缺少此数据库操作权限，请管理员核对授权后重试。',
+  IMPORT_STORAGE_UNAVAILABLE:'备份目录不可写或空间不足，请管理员检查导入目录后重试原文件。',
+  SERVER_OPERATION_FAILED:'服务器未能完成这次操作，输入已保留。请将请求编号交管理员排查后重试。',
+  DATABASE_BUSY:'数据库正在处理其他操作，本次未保存，请稍后重试。',
+  PROJECT_NAME_TAKEN:'这个名称已被现存或历史项目使用，请到项目空间查看；已删除项目可由管理员恢复。'
+});
 export class SaveError extends Error {
-  constructor(public code: string, public outcome: string, public fields?: Record<string, string>) {
-    super(authMessages[code] ?? stageMessages[code] ?? ({ TASK_PROTOCOL_CHANGED:'任务结构已经更新，请保留旧输入并重新进入项目；旧说明可复制到任务中。', TASK_INPUT_CONFLICT:'请先处理保留的旧说明草稿，再保存任务。', TASK_NOT_FOUND:'这条任务已不存在，请保留输入后重新读取。', PROJECT_VERSION_CONFLICT: '项目已被他人更新，请重新进入项目。', OPERATION_KEY_REUSED: '操作编号与原请求不一致，请保留文字并核对原操作。', PROJECT_READ_ONLY: '此项目只能查看。', INVALID_PROJECT_FIELDS: '请修正标出的字段。', DATABASE_UNAVAILABLE: '数据库暂时不可用，请重试。', SAVE_ROLLED_BACK: '保存未完成，修改已保留。' } as Record<string, string>)[code] ?? '保存结果尚未确认，请确认结果或重试原操作。');
+  constructor(public code: string, public outcome: string, public fields?: Record<string, string>, public requestId?: string) {
+    super(authMessages[code] ?? stageMessages[code] ?? ({ TASK_PROTOCOL_CHANGED:'任务结构已经更新，请保留旧输入并重新进入项目；旧说明可复制到任务中。', TASK_INPUT_CONFLICT:'请先处理保留的旧说明草稿，再保存任务。', TASK_NOT_FOUND:'这条任务已不存在，请保留输入后重新读取。', PROJECT_VERSION_CONFLICT: '项目已被他人更新，请重新进入项目。', OPERATION_KEY_REUSED: '操作编号与原请求不一致，请保留文字并核对原操作。', PROJECT_READ_ONLY: '此项目只能查看。', INVALID_PROJECT_FIELDS: '请修正标出的字段。', DATABASE_UNAVAILABLE: '数据库暂时不可用，请重试。', SAVE_ROLLED_BACK: '保存未完成，修改已保留。' } as Record<string, string>)[code] ?? (outcome==='unknown'?'暂未收到保存结果，请查询本次操作的结果；不要重新创建。':'本次操作未完成，输入已保留。请根据提示修正后重试。'));
+    if(requestId)this.message += `（请求编号：${requestId}）`;
   }
 }
 export async function send<T>(path: string, method: 'PATCH' | 'POST', body: unknown, active = true): Promise<T> {
@@ -202,7 +221,7 @@ export async function send<T>(path: string, method: 'PATCH' | 'POST', body: unkn
   let data;
   try { data = await response.json(); } catch { throw new SaveError('RESPONSE_UNKNOWN', 'unknown'); }
   if (contextChanged) throw new SaveError('AUTH_CONTEXT_CHANGED', 'unknown');
-  if (!response.ok) { if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'PASSWORD_CHANGE_REQUIRED', 'CSRF_INVALID'].includes(data.code)) identityRecovery(); const code=response.status===413 && path==='/api/personal/drafts/save'?'DRAFT_TOO_LARGE':data.code;throw new SaveError(code, data.outcome ?? 'unknown', data.fields); }
+  if (!response.ok) { if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'PASSWORD_CHANGE_REQUIRED', 'CSRF_INVALID'].includes(data.code)) identityRecovery(); const code=response.status===413 && path==='/api/personal/drafts/save'?'DRAFT_TOO_LARGE':data.code;throw new SaveError(code, data.outcome ?? 'unknown', data.fields, data.requestId); }
   return data as T;
 }
 export async function get<T>(path: string, signal?: AbortSignal, active = true): Promise<T> {
@@ -211,7 +230,7 @@ export async function get<T>(path: string, signal?: AbortSignal, active = true):
   try { response = await fetch(path, { headers: requestHeaders, cache: 'no-store', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(10000)]) : AbortSignal.timeout(10000) }); }
   catch { throw new Error('读取超时或网络暂时不可用，请重试。'); }
   if (contextChanged) throw new SaveError('AUTH_CONTEXT_CHANGED', 'not_committed');
-  if (!response.ok) { const data = await response.json().catch(() => ({})); if (data.code && authMessages[data.code]) { if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'PASSWORD_CHANGE_REQUIRED', 'CSRF_INVALID'].includes(data.code)) identityRecovery(); throw new SaveError(data.code, 'not_committed'); } throw new Error(response.status === 404 ? '未找到该项目，请返回列表重新选择。' : response.status === 400 ? '查询条件无效，请重新选择。' : '服务器暂时无法读取数据，请重试。'); }
+  if (!response.ok) { const data = await response.json().catch(() => ({})); if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'PASSWORD_CHANGE_REQUIRED', 'CSRF_INVALID'].includes(data.code)) identityRecovery(); throw new SaveError(data.code ?? (response.status===404?'RESOURCE_NOT_FOUND':'READ_FAILED'),'not_committed',data.fields,data.requestId); }
   try { return await response.json(); } catch { throw new Error('服务器响应未能读取，请重试。'); }
 }
 export async function sendFile<T>(path: string, file: File): Promise<T> {
@@ -224,7 +243,7 @@ export async function sendFile<T>(path: string, file: File): Promise<T> {
   if (contextChanged) throw new SaveError('AUTH_CONTEXT_CHANGED', 'unknown');
   if (!response.ok) {
     if (['AUTH_REQUIRED','AUTH_CONTEXT_CHANGED','PASSWORD_CHANGE_REQUIRED','CSRF_INVALID'].includes(data.code)) identityRecovery();
-    throw new SaveError(data.code ?? 'UPLOAD_FAILED', data.outcome ?? 'unknown', data.fields);
+    throw new SaveError(data.code ?? 'UPLOAD_FAILED', data.outcome ?? 'unknown', data.fields, data.requestId);
   }
   return data as T;
 }

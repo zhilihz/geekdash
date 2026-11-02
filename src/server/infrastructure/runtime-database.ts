@@ -68,7 +68,7 @@ export async function openRuntimeDatabase(profile: RuntimeProfile) {
             try { await connection.rollback(); } catch { /* 未发送 COMMIT，连接销毁后事务回滚。 */ }
             const sqlError = error as { code?: string; sqlMessage?: string };
             if (sqlError.code === 'ER_DUP_ENTRY' && sqlError.sqlMessage?.includes('uk_projects_name_key')) {
-              throw Object.assign(new Error('PROJECT_NAME_TAKEN'), { code: 'PROJECT_NAME_TAKEN', status: 409, fields: { name: '已有同名项目，请使用可区分的名称' } });
+              throw Object.assign(new Error('PROJECT_NAME_TAKEN'), { code: 'PROJECT_NAME_TAKEN', status: 409, fields: { name: '名称已被现存或历史项目使用，请到项目空间查看；历史项目可由管理员恢复原项目' } });
             }
             throw error;
           }

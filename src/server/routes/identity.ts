@@ -36,8 +36,9 @@ export function registerIdentity(app: FastifyInstance, database: RuntimeDatabase
   app.setErrorHandler((error, request, reply) => {
     const known = error as { status?: number; code?: string; statusCode?: number; fields?: Record<string, string>; currentVersion?: string };
     const status = known.status ?? (known.statusCode && known.statusCode < 500 ? known.statusCode : 503);
-    if (status >= 500) app.log.warn({ code: known.code }, '请求未完成');
-    reply.code(status).send({ code: known.status ? known.code : status < 500 ? 'INVALID_REQUEST' : known.code === 'COMMIT_UNKNOWN' ? 'COMMIT_UNKNOWN' : 'DATABASE_UNAVAILABLE', outcome: known.code === 'COMMIT_UNKNOWN' ? 'unknown' : 'not_committed', fields: known.status ? known.fields : undefined, currentVersion: known.status ? known.currentVersion : undefined, requestId: request.id });
+    if (status >= 500) app.log.warn({ code: known.code, requestId: request.id }, '请求未完成');
+    const failureCode=known.code==='COMMIT_UNKNOWN'?'COMMIT_UNKNOWN': ['EACCES','EROFS','ENOSPC'].includes(known.code ?? '')?'IMPORT_STORAGE_UNAVAILABLE': ['ER_NO_SUCH_TABLE','ER_BAD_FIELD_ERROR'].includes(known.code ?? '')?'DATABASE_SCHEMA_INCOMPATIBLE': ['ER_TABLEACCESS_DENIED_ERROR','ER_ACCESS_DENIED_ERROR','ER_DBACCESS_DENIED_ERROR'].includes(known.code ?? '')?'DATABASE_PERMISSION_DENIED': ['ER_LOCK_DEADLOCK','ER_LOCK_WAIT_TIMEOUT','DB_POOL_BUSY'].includes(known.code ?? '')?'DATABASE_BUSY': /^(ECONN|ETIMEDOUT|DB_OPERATION_TIMEOUT|PROTOCOL_CONNECTION_LOST)/.test(known.code ?? '')?'DATABASE_UNAVAILABLE':'SERVER_OPERATION_FAILED';
+    reply.code(status).send({ code: known.status ? known.code : status < 500 ? 'INVALID_REQUEST' : failureCode, outcome: known.code === 'COMMIT_UNKNOWN' ? 'unknown' : 'not_committed', fields: known.status ? known.fields : undefined, currentVersion: known.status ? known.currentVersion : undefined, requestId: request.id });
   });
   app.addHook('preHandler', async request => {
     const path = request.url.split('?')[0];

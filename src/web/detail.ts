@@ -11,7 +11,7 @@ import './shared/design.css';
 import { mountReferencePickers, syncReferencePickers } from './shared/reference-picker';
 import { basicFields, basicIntent, basicIntentChanged, referenceSelect, type BasicIntent } from './shared/project-form';
 import { scopeFields, scopeChanges, carryInputs } from './shared/scoped-editor';
-import { meaningfulEditor, PersonalDrafts, PersonalPreference, type PersonalDraft } from './shared/personal-state';
+import { draftText, meaningfulEditor, PersonalDrafts, PersonalPreference, type PersonalDraft, type DraftData } from './shared/personal-state';
 import { ProjectNotifications, editorBadges } from './shared/notifications';
 import { refreshProjectOptions } from './shared/project-options';
 import { attachStatusMentions } from './shared/status-mentions';
@@ -344,7 +344,7 @@ async function loadDeletedNodes(more = false) {
   try {
     const page = await get<import('./shared/api').DeletedNodePage>('/api/projects/' + id + '/deleted-nodes?kind=' + kind + (more && deletedNodes?.nextCursor ? '&before=' + deletedNodes.nextCursor : ''));
     if (current !== deletedGeneration) return;
-    if (page.projectVersion !== version || snapshot.project.version !== version) { stale = true; throw new Error('项目已被他人更新，请重新进入项目；旧副本保留供复制。'); }
+    if (page.projectVersion !== version || snapshot.project.version !== version) { stale = true; throw new Error('项目已被他人更新，请查看更新；旧副本保留供复制。'); }
     deletedNodes = { ...page, items: more ? [...deletedNodes?.items ?? [], ...page.items] : page.items }; deletedMessage = '';
   } catch (error) { if (current === deletedGeneration) { if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'PASSWORD_CHANGE_REQUIRED'].includes((error as SaveError).code)) authFrozen = true; deletedMessage = (error as Error).message; } }
   finally { if (current === deletedGeneration) { deletedLoading = false; refreshReadView(); } }
@@ -516,7 +516,7 @@ async function loadChecks(more = false) {
   try {
     const page = await get<CheckPage>(`/api/projects/${id}/checks${cursor ? '?before=' + encodeURIComponent(cursor) : ''}`);
     if (current !== checksGeneration) return;
-    if (page.projectVersion !== base) { stale = true; checksMessage = '项目已更新，请复制输入并重新进入，检查历史未混入旧视图。'; return; }
+    if (page.projectVersion !== base) { stale = true; checksMessage = '项目已更新，请复制输入并查看更新，检查历史未混入旧视图。'; return; }
     checks = { ...page, items: more ? [...(checks?.items ?? []), ...page.items] : page.items }; checksMessage = '';
   } catch (error) { checksMessage = (error as Error).message + '，原展示保留，可重新读取。'; }
   finally { checksLoading = false; if (current === checksGeneration) refreshCheckHistory(); }
@@ -614,7 +614,7 @@ async function openLifecycle(action: LifecycleCommand['action'], auditId?: strin
     editProjectState(action === 'pauseProject' ? 'paused' : snapshot.project.resumeStatus ?? 'ongoing'); return;
   }
   const original = snapshot.lifecycleNotes.find(item => item.id === auditId);
-  if (!original) { note('未找到原记录，请重新进入核对。', true); return; }
+  if (!original) { note('未找到原记录，请查看更新核对。', true); return; }
   if (!lifecycleDraft || lifecycleDraft.action !== action) lifecycleDraft = { action, auditId: auditId!, note: original.note, reason: '', expectedVersion: snapshot.project.version, idempotencyKey: crypto.randomUUID() };
   const draft = lifecycleDraft; render();
   element('lifecycle-form').innerHTML = `<form id="lifecycle-edit" data-inline="true" class="stage-card"><h3>修改操作说明</h3><label for="lifecycle-note">说明</label><textarea class="choice-note" id="lifecycle-note">${esc(draft.note)}</textarea><p id="lifecycle-error" class="field-error" role="alert"></p><button type="submit" class="choice-confirm">保存说明</button><button type="button" id="lifecycle-cancel" class="choice-cancel">取消</button></form>`;
@@ -642,7 +642,7 @@ async function openPlan(action: PlanCommand['action'], recordId?: string) {
     planDraft = undefined; persistStage(); tab = 'info'; render(); element('edit-dueDate').focus(); return;
   }
   const record = snapshot.delays.find(item => item.id === recordId);
-  if (action !== 'notePlan' && !record) { note('未找到原记录，请重新进入核对。', true); return; }
+  if (action !== 'notePlan' && !record) { note('未找到原记录，请查看更新核对。', true); return; }
   const base = { expectedVersion: snapshot.project.version, idempotencyKey: crypto.randomUUID() };
   if (!planDraft) planDraft = action === 'notePlan' ? { ...base, action, reason:'',measures:'' } : action === 'correctScheduleRecord' ? { ...base, action, recordId: recordId!, changes: {}, reason: '' } : { ...base, action:'voidScheduleRecord',recordId:recordId!,reason:'' };
   const draft = planDraft;
@@ -770,7 +770,7 @@ async function openStage(code: string, action: StageCommand['action']) {
     event.preventDefault(); capture();
     if (inFlight || loading || stagePending || pending || responsibilityPending) return;
 
-    if (stale || authFrozen || draft.expectedVersion !== snapshot!.project.version) { element('stage-error').textContent = '项目或账号已变化，请复制输入并重新进入。'; return; }
+    if (stale || authFrozen || draft.expectedVersion !== snapshot!.project.version) { element('stage-error').textContent = '项目或账号已变化，请复制输入并查看更新。'; return; }
     stagePending = { ...draft, idempotencyKey: crypto.randomUUID() }; persistStage(); await executeStage(false);
   };
   persistStage(); controls();
@@ -791,7 +791,7 @@ async function executeStage(confirm: boolean) {
   if (!stagePending || inFlight) return;
   if(!confirm&&!isCheckCommand(stagePending)&&preparedActionId!==stagePending.idempotencyKey){
     const {expectedVersion:version,idempotencyKey:operation,draft:personal,...command}=stagePending;
-    if(version!==editBaseVersion){stale=true;note('项目已更新，请保留输入并重新进入。',true);return;}
+    if(version!==editBaseVersion){stale=true;note('项目已更新，请保留输入并查看更新。',true);return;}
     if(command.action==='confirmStageState')queuedCommands=queuedCommands.filter(item=>item.action!=='confirmStageState'||item.stageCode!==command.stageCode);queuedCommands.push(command);stagePending=undefined;stageDraft=undefined;correctionDraft=undefined;planDraft=undefined;lifecycleDraft=undefined;closureDraft=undefined;
     persistStage();persist();render();if(!submittingPage)note('动作已加入本次修改，点击标题栏保存后生效。');return;
   }
@@ -821,7 +821,7 @@ async function executeStage(confirm: boolean) {
     inFlight = false;
     render();
     if (original.action === 'saveCheck') note(refreshed ? '今日已检查。' : '检查已保存，重新进入可查看结果。', !refreshed);
-    else note(`${actionLabels[original.action]}${result.changed === false ? isPlanCommand(original) ? '无实际变化，副本已保留；如需记录原因/措施请选择补充说明。' : '无实际变化，副本已保留。' : '已确认保存'}版本${result.savedVersion}。${refreshed ? original.action === 'startProject' ? 'S2仍待开始，请单独保存开始阶段。' : original.action === 'completeStage' && original.stageCode === 'S1' ? '下一步需明确启动项目，项目仍为提案中。' : '' : '后续刷新失败，请重新进入查看；无需再次保存。'}`, !refreshed);
+    else note(`${actionLabels[original.action]}${result.changed === false ? isPlanCommand(original) ? '无实际变化，副本已保留；如需记录原因/措施请选择补充说明。' : '无实际变化，副本已保留。' : '已确认保存'}版本${result.savedVersion}。${refreshed ? original.action === 'startProject' ? 'S2仍待开始，请单独保存开始阶段。' : original.action === 'completeStage' && original.stageCode === 'S1' ? '下一步需明确启动项目，项目仍为提案中。' : '' : '后续刷新失败，请点击“查看更新”；无需再次保存。'}`, !refreshed);
     controls();
   }
 }
@@ -847,7 +847,7 @@ function projectAccessControls() {
 function responsibilityControls() {
   if (!snapshot || !document.getElementById('responsibility')) return;
   const members=snapshot.responsible??[],others=members.filter(user=>user.id!==account?.id);
-  element('collaborators').innerHTML=members.length>1?`<span class="read-label">协作者：${others.map(user=>esc(user.name)+(user.enabled?'':'（已停用）')).join('、')}</span>`:'';
+  element('collaborators').innerHTML=members.length>1?`<span class="read-label">协作者：${others.map(user=>esc(user.name)+(user.enabled?'':'（当前不可管理）')).join('、')}</span>`:'';
   element('responsibility').innerHTML=snapshot.capabilities.leave?`<button class="back-btn" id="responsibility-save">退出项目</button>${responsibilityPending?'<button class="back-btn" id="responsibility-confirm">核对原操作</button><button class="back-btn" id="responsibility-retry">重试原操作</button>':''}`:'';
   if (!snapshot.capabilities.leave) return;
   (element('responsibility-save') as HTMLButtonElement).disabled = loading || inFlight || stale || !!pending || !!responsibilityPending || !!stagePending || authFrozen;
@@ -867,7 +867,7 @@ function responsibilityControls() {
   for (const [name, confirm] of [['responsibility-confirm', true], ['responsibility-retry', false]] as const) { const button = document.getElementById(name) as HTMLButtonElement | null; if (button) { button.disabled = inFlight; button.onclick = () => { void changeResponsibility(confirm); }; } }
   if (legacyCopy?.pending) {
     const button = document.createElement('button'); button.className = 'back-btn'; button.textContent = '确认旧试用保存结果'; button.disabled = inFlight;
-    button.onclick = async () => { try { const response = await send<{ outcome: string }>(`/api/projects/${id}/save-results/query`, 'POST', legacyCopy!.pending!, false); note(response.outcome === 'committed' ? '旧试用保存已经确认。旧文字保留供复制核对，不会作为实名请求重放。' : '暂未查到旧试用保存；旧文字可复制核对，请重新进入后明确保存。'); } catch (error) { note((error as Error).message, true); } };
+    button.onclick = async () => { try { const response = await send<{ outcome: string }>(`/api/projects/${id}/save-results/query`, 'POST', legacyCopy!.pending!, false); note(response.outcome === 'committed' ? '旧试用保存已经确认。旧文字保留供复制核对，不会作为实名请求重放。' : '暂未查到旧试用保存；旧文字可复制核对，请查看更新后明确保存。'); } catch (error) { note((error as Error).message, true); } };
     element('responsibility').append(button);
   }
 }
@@ -923,7 +923,7 @@ function baseline(): EditValues {
   return { ...ordinary, summary: p.summary ?? '', chipSelections: (p.chipSelections ?? []) as import('./shared/api').ChipSelection[], tagIds: p.tags.map(item => item.id), people: p.people.filter(person => person.role !== 'pm').map(({ id, role }) => ({ id, role })), riskOps: [], nodeOps: [], changeOps: [], taskOps: [], stagePlans: snapshot!.stages.map(stage => ({ code: String(stage.code), plannedDays: stage.plannedDays == null ? null : Number(stage.plannedDays), note: String(stage.note ?? '') })) };
 }
 function changes() { const base = baseline(); return Object.fromEntries(keys.filter(key => JSON.stringify(values![key]) !== JSON.stringify(base[key])).map(key => [key, values![key]])) as Partial<EditValues>; }
-function dirty() { return !!values && !!snapshot && (taskBulk!==undefined&&taskBulk!==taskText(taskCopy(snapshot.project.tasks??[],values.taskOps??[])) || !!riskDraft || !!nodeDraft || !!changeDraft || queuedCommands.length > 0 || !!stageDraft || !!correctionDraft || !!planDraft || !!lifecycleDraft || !!closureDraft || !!basicDraft && basicIntentChanged(snapshot, basicDraft) || Object.keys(changes()).length > 0); }
+function dirty() { return !!values && !!snapshot && (taskBulk!==undefined&&taskBulk!==taskText(taskCopy(snapshot.project.tasks??[],values.taskOps??[])) || !!riskDraft && meaningfulEditor(riskDraft as unknown as Record<string,unknown>) || !!nodeDraft && meaningfulEditor(nodeDraft as unknown as Record<string,unknown>) || !!changeDraft && meaningfulEditor(changeDraft as unknown as Record<string,unknown>) || queuedCommands.length > 0 || !!stageDraft || !!correctionDraft || !!planDraft || !!lifecycleDraft || !!closureDraft || !!basicDraft && basicIntentChanged(snapshot, basicDraft) || Object.keys(changes()).length > 0); }
 function scopeDirty(scope: SaveScope, target?: string) { return !!snapshot && !!values && (Object.keys(scopeChanges(baseline(), values, scope, target)).length > 0 || scope === 'basic' && !!basicDraft && basicIntentChanged(snapshot, basicDraft)); }
 function actionFormOpen() { return !!document.querySelector('#stage-form, #start-form, #correction-edit, #plan-edit, #lifecycle-edit, #closure-edit, #check-edit, #risk-edit, #node-edit, #change-edit'); }
 function refreshReadView() { if (actionFormOpen()) controls(); else render(); }
@@ -997,7 +997,7 @@ function controls() {
   for (const name of ['checks-refresh', 'checks-more']) { const button = document.getElementById(name) as HTMLButtonElement | null; if (button) button.disabled = frozen || actionOpen || stale || authFrozen; }
   document.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLButtonElement>('#check-edit input,#check-edit textarea,#check-edit select,#check-edit button').forEach(input => { input.disabled = frozen || stale || authFrozen; });
   for (const name of ['stage-confirm' , 'stage-retry']) { const button = document.getElementById(name) as HTMLButtonElement | null; if (button) button.disabled = inFlight || loading || authFrozen; }
-  element('copy').hidden = !nodeDraft && !riskDraft && !changeDraft && !dirty() && !candidate && !legacyCopy && !pending && !stageDraft && !stagePending && !correctionDraft && !planDraft && !lifecycleDraft && !closureDraft && !checkDraft;
+  element('drafts').hidden = !personalDrafts && !dirty() && !candidate && !legacyCopy && !pending && !stageDraft && !stagePending && !correctionDraft && !planDraft && !lifecycleDraft && !closureDraft && !checkDraft;
   (element('drafts') as HTMLButtonElement).disabled = inFlight || loading || actionOpen;
   if (storageFailed && !storageNotice) note('本标签页无法保留副本。未保存内容只在当前页面，请及时复制。', true);
   storageNotice = storageFailed;
@@ -1006,7 +1006,7 @@ function controls() {
   for (const name of ['action-close', 'action-copy', 'action-confirm', 'action-retry']) (element(name) as HTMLButtonElement).disabled = inFlight || loading;
   element('action-reload').hidden = !stale && !authFrozen;
   (element('action-reload') as HTMLButtonElement).disabled = frozen;
-  if ((element('action-dialog') as HTMLDialogElement).open && (stale || authFrozen || inFlight || stagePending)) note(authFrozen ? '账号已变化或登录失效，保存已暂停。请复制输入后重新登录。' : stale ? '项目已被他人更新，旧内容已保留。请复制输入并重新进入项目。' : inFlight ? '正在处理，请等待结果。' : '保存结果尚未确认，请确认原结果或重试原操作。', stale || authFrozen || !inFlight);
+  if ((element('action-dialog') as HTMLDialogElement).open && (stale || authFrozen || inFlight || stagePending)) note(authFrozen ? '账号已变化或登录失效，保存已暂停。请复制输入后重新登录。' : stale ? '项目已被他人更新，旧内容已保留。请复制输入并查看更新。' : inFlight ? '正在处理，请等待结果。' : '保存结果尚未确认，请确认原结果或重试原操作。', stale || authFrozen || !inFlight);
   else if (!frozen && element('message').textContent === '正在处理，请等待结果。') note('');
   flushContextRefresh();
 }
@@ -1146,13 +1146,26 @@ function choose(text: string, options: [string, string][], extra = ''): Promise<
     dialog.showModal();
   });
 }
+function unsavedText(){
+  const describe=(data:DraftData)=>draftText({formKind:'project',payload:{schemaVersion:1,instanceId:'',...data}});
+  const lines:string[]=[];
+  if(snapshot && values){
+    const editors:Record<string,unknown>={};
+    if(taskBulk!==undefined)editors.task={text:taskBulk};
+    if(riskDraft&&meaningfulEditor(riskDraft as unknown as Record<string,unknown>))editors.risk=riskDraft;
+    if(changeDraft&&meaningfulEditor(changeDraft as unknown as Record<string,unknown>))editors.change=changeDraft;
+    if(nodeDraft&&meaningfulEditor(nodeDraft as unknown as Record<string,unknown>))editors.node=nodeDraft;
+    const action=stagePending??stageDraft??correctionDraft??planDraft??lifecycleDraft??closureDraft??checkDraft;
+    if(action)editors.action=action;
+    const intent=basicDraft&&basicIntentChanged(snapshot,basicDraft)?Object.fromEntries(Object.entries(basicDraft).filter(([key,value])=>JSON.stringify(value)!==JSON.stringify((basicIntent(snapshot!) as unknown as Record<string,unknown>)[key]))):undefined;
+    lines.push(describe({values:changes(),editors,...intent?{intent}:{},submission:{commands:queuedCommands}}));
+  }
+  if(candidate)lines.push('此前保留的内容（仅供核对）\n'+describe({values:candidate.values as unknown as Record<string,unknown>,editors:{...candidate.taskBulk!==undefined?{task:{text:candidate.taskBulk}}:{},...candidate.riskDraft?{risk:candidate.riskDraft}:{},...candidate.changeDraft?{change:candidate.changeDraft}:{},...candidate.nodeDraft?{node:candidate.nodeDraft}:{}}}));
+  if(legacyCopy)lines.push('旧试用内容（仅供核对）\n'+describe({values:legacyCopy.values as unknown as Record<string,unknown>}));
+  return lines.filter(Boolean).join('\n\n')||'当前没有未保存的修改。';
+}
 async function copyText() {
-  const changeCopyText = changeDraft ? '未确认需求变更表单\n' + JSON.stringify(changeDraft, null, 2) + '\n\n' : '';
-  const nodeCopyText = nodeDraft ? '未确认节点表单\n' + JSON.stringify({ nodeDraft, nodeRestoreExtras }, null, 2) + '\n\n' : '';
-  const riskCopy = riskDraft ? '未确认风险表单\n' + JSON.stringify(riskDraft, null, 2) + '\n\n' : '';
-  const stageCopy = stagePending ?? stageDraft ?? correctionDraft ?? planDraft ?? lifecycleDraft ?? closureDraft ?? checkDraft;
-  const text = (candidate?.taskBulk!==undefined?'恢复候选整栏输入\n'+candidate.taskBulk+'\n\n':'') + (taskBulk!==undefined?'整栏未保存输入\n'+taskBulk+'\n\n':'') + changeCopyText + nodeCopyText + riskCopy + (stageCopy ? (stageCopy.action==='confirmStageState' || isPlanCommand(stageCopy) || isLifecycleCommand(stageCopy) || isClosureCommand(stageCopy) || isCheckCommand(stageCopy)) ? `${actionLabels[stageCopy.action]}副本\n${JSON.stringify(stageCopy, null, 2)}\n\n` : 'reason' in stageCopy ? `${actionLabels[stageCopy.action]}副本\n原因：${stageCopy.reason}\n进入版本：${stageCopy.expectedVersion}\n${stageCopy.action === 'correctStageFacts' ? JSON.stringify(stageCopy.changes) : label(stageCopy.stageCode) + (stageCopy.undoStart ? '（开始也误记）' : '')}\n\n` : stageCopy.action === 'startProject' ? `启动项目副本\n实际启动：${stageCopy.actualDate}\n预计结案：${stageCopy.dueDate}\n调整原因：${stageCopy.planReason ?? ''}\n进入版本：${stageCopy.expectedVersion}\n\n` : `阶段操作副本\n${label(stageCopy.stageCode)} · ${stageCopy.action === 'startStage' ? '开始' : '完成'}\n实际日期：${stageCopy.actualDate}\n说明：${stageCopy.completionNote ?? ''}\n进入版本：${stageCopy.expectedVersion}\n\n` : '') + keys.map(key => `${titles[key]}\n${showValue(key, values?.[key])}`).join('\n\n') + (candidate ? '\n\n——恢复候选副本——\n' + keys.map(key => `${titles[key]}\n${showValue(key, candidate!.values[key])}`).join('\n\n') + (candidate.changeDraft ? '\n未确认需求变更表单\n' + JSON.stringify(candidate.changeDraft, null, 2) : '') + (candidate.riskDraft ? '\n未确认风险表单\n' + JSON.stringify(candidate.riskDraft, null, 2) : '') + (candidate.nodeDraft ? '\n未确认节点表单\n' + JSON.stringify({ nodeDraft: candidate.nodeDraft, nodeRestoreExtras: candidate.nodeRestoreExtras }, null, 2) : '') : '') + (legacyCopy ? '\n\n——旧匿名试用副本（仅供核对）——\n' + keys.map(key => `${titles[key]}\n${showValue(key, legacyCopy!.values[key])}`).join('\n\n') : '');
-  await choose('以下文字可选择后复制；复制不会保存项目。', [['cancel', '关闭']], `<textarea class="copy-text" readonly aria-label="未保存文字">${esc(text)}</textarea>`);
+  await choose('以下文字可选择后复制；复制不会保存项目。', [['cancel', '关闭']], `<textarea class="copy-text" readonly aria-label="未保存文字">${esc(unsavedText())}</textarea>`);
 }
 function editor() {
   const editable = snapshot!.capabilities.editText;
@@ -1392,7 +1405,7 @@ async function readAfterOwnSave(version: string, request?: SaveRequest, result?:
   const input = structuredClone(values!);
   if (BigInt(current.project.version) > BigInt(version) || BigInt(observedVersion) > BigInt(version)) {
     stale = true;
-    note('本次保存已成功，项目随后被更新。其他输入已保留，请复制并重新进入。', true);
+    note('本次保存已成功，项目随后被更新。其他输入已保留，请复制并查看更新。', true);
     return false;
   }
   if (current.project.version !== version) throw new Error('本次已保存，但详情版本尚未同步，请重新读取。');
@@ -1428,7 +1441,7 @@ async function execute(confirm: boolean) {
       if (tab === 'history') void loadAudit();
     } else { note('暂未查到原操作回执，结果仍未确认。可稍后确认或重试原操作。', true); persist(); }
   } catch (error) {
-    if (committed) { stale = true; note('本次保存已成功，详情读取失败。输入仍保留，请重新进入查看；无需重复保存。', true); }
+    if (committed) { stale = true; note('本次保存已成功，详情读取失败。输入仍保留，请点击“查看更新”；无需重复保存。', true); }
     else {
       const failure = error instanceof SaveError ? error : new SaveError('TRANSPORT_UNKNOWN', 'unknown');
       if (['AUTH_REQUIRED', 'AUTH_CONTEXT_CHANGED', 'CSRF_INVALID', 'PASSWORD_CHANGE_REQUIRED'].includes(failure.code)) authFrozen = true;
@@ -1457,7 +1470,7 @@ async function observe(afterSave = false, active = true) {
     if (token !== generation || snapshot !== entry) return;
 
     if (BigInt(current.project.version) > BigInt(observedVersion)) observedVersion = current.project.version;
-    if (BigInt(observedVersion) > BigInt(entry.project.version)) { stale = true; note('项目已被他人更新，请重新进入项目。未保存文字已保留供复制。', true); controls(); }
+    if (BigInt(observedVersion) > BigInt(entry.project.version)) { stale = true; note('项目已被他人更新，请查看更新。未保存文字已保留供复制。', true); controls(); }
     else if (current.project.version === entry.project.version) {
       const changed=current.businessDate!==entry.businessDate;
       entry.project.deadline = current.project.deadline; entry.project.checkStatus = current.project.checkStatus; entry.project.checkedToday = current.project.checkedToday; entry.businessDate = current.businessDate;
@@ -1467,7 +1480,7 @@ async function observe(afterSave = false, active = true) {
   } catch (error) {
     if(token!==generation || snapshot!==entry)return;
     if(error instanceof SaveError && ['AUTH_REQUIRED','AUTH_CONTEXT_CHANGED','CSRF_INVALID','PASSWORD_CHANGE_REQUIRED'].includes(error.code)){persist();authFrozen=true;note(error.message,true);}
-    else note(afterSave?'本次保存已确认，后续详情刷新失败。可重新进入查看；无需重复保存。':'暂时无法核对项目更新，输入已保留。可继续编辑，恢复连接后重新核对。',true);
+    else note(afterSave?'本次保存已确认，后续详情刷新失败。可点击“查看更新”；无需重复保存。':'暂时无法核对项目更新，输入已保留。可继续编辑，恢复连接后重新核对。',true);
     controls();
   }
 }
@@ -1519,7 +1532,7 @@ async function loadSourceHistory(kind: SourceHistoryPage['kind'], adoption?: str
     const query = new URLSearchParams({ kind }); if (adoption) query.set('adoption', adoption); if (more && current?.nextCursor) query.set('before', current.nextCursor);
     const page = await get<SourceHistoryPage>('/api/projects/' + id + '/source-history?' + query);
     if (snapshot !== entered || sourceHistoryRequests[kind]?.token !== token) return;
-    if (page.projectVersion !== entered?.project.version) { stale = true; note('项目已被他人更新，请重新进入项目。未保存文字已保留供复制。', true); controls(); return; }
+    if (page.projectVersion !== entered?.project.version) { stale = true; note('项目已被他人更新，请查看更新。未保存文字已保留供复制。', true); controls(); return; }
     sourceHistoryViews[kind] = more && current ? { ...current, versions: [...current.versions, ...page.versions.filter(version => !current.versions.some(prior => prior.id === version.id))], nextCursor: page.nextCursor } : current ? { ...page, versions: current.versions, nextCursor: current.nextCursor } : page;
     if (!more) sourceHistorySelection[kind] = adoption ?? '';
     sourceHistoryMessages[kind] = '';
@@ -1703,7 +1716,7 @@ function render() {
   if (correctionDraft && !stagePending) recovery += `<p>${esc(actionLabels[correctionDraft.action])}</p><button class="back-btn" id="correction-restore">继续编辑</button><button class="back-btn" id="correction-discard">放弃副本</button>`;
   if (stagePending) recovery += `<p>${esc(actionLabels[stagePending.action])}结果待确认。请确认原结果或重试原操作。</p><button class="back-btn" id="stage-confirm">确认原结果</button><button class="back-btn" id="stage-retry">重试原操作</button>`;
   element('draft-actions').innerHTML = recovery;
-  element('drafts').hidden = !recovery;
+  element('drafts').hidden = !personalDrafts && !recovery && !dirty() && !pending && !candidate && !legacyCopy;
   element('detail-body').innerHTML = content;
   document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => button.classList.toggle('active', button.dataset.tab === tab));
   bindEditor();
@@ -1750,7 +1763,7 @@ function render() {
   }
   controls();
   const signature = [stageDraft?.action, correctionDraft?.action, planDraft?.action, lifecycleDraft?.action, closureDraft?.action, checkDraft?.action, nodeDraft?.op, changeDraft?.op, riskDraft?.op, stagePending?.action].filter(Boolean).join('|');
-  if (signature && (signature !== draftNotice || hadForm) && !loading && !stale && !authFrozen) note(stagePending ? '保存结果尚未确认，请确认原结果或重试原操作。' : '本次输入尚未保存到项目，可继续编辑；个人草稿入口可核对同步与恢复。', !!stagePending, true);
+  if (signature && (signature !== draftNotice || hadForm) && !loading && !stale && !authFrozen) note(stagePending ? '保存结果尚未确认，请确认原结果或重试原操作。' : '本次输入尚未保存到项目，可继续编辑；未保存修改入口可核对同步与恢复。', !!stagePending, true);
   draftNotice = signature;
 }
 async function load(initial = false) {
@@ -1791,21 +1804,23 @@ document.addEventListener('focusin',updateEditing);
 document.addEventListener('focusout',()=>queueMicrotask(updateEditing));
 element('notice-close').onclick = closeNotice;
 const draftDialog = element('draft-dialog') as HTMLDialogElement;
-element('drafts').onclick = element('notice-drafts').onclick = () => { closeNotice(); if (!draftDialog.open) draftDialog.showModal(); };
+const otherDrafts=document.createElement('button');otherDrafts.className='back-btn';otherDrafts.type='button';otherDrafts.textContent='其他未保存修改';otherDrafts.onclick=()=>{draftDialog.close();void personalDrafts?.open();};draftDialog.querySelector('.edit-actions')!.append(otherDrafts);
+draftDialog.querySelector('.feedback-detail')!.textContent='这些修改尚未保存到正式项目。可以继续编辑，或查看已保留的修改。';
+element('drafts').onclick = element('notice-drafts').onclick = () => { closeNotice();if(!dirty()&&!pending&&!candidate&&!legacyCopy&&!stagePending&&!checkDraft){void personalDrafts?.open();return;}element('draft-summary').textContent=unsavedText(); if (!draftDialog.open) draftDialog.showModal(); };
 for (const name of ['draft-close', 'draft-later']) element(name).onclick = () => draftDialog.close();
 element('draft-copy').onclick = () => { draftDialog.close(); void copyText(); };
 element('draft-actions').addEventListener('click', event => { if ((event.target as HTMLElement).closest('button')) draftDialog.close(); }, true);
 element('reload').onclick = async () => {
   if (pending || stagePending || inFlight) return;
   if (dirty()) {
-    const choice = await choose('重新进入前请处理未保存文字。保留后可通过复制入口核对，不会自动带入新版本。', [['cancel', '继续编辑'], ['keep', '保留副本并重新进入'], ['discard', '放弃并重新进入']]);
+    const choice = await choose('查看更新前请处理未保存文字。保留后可通过复制入口核对，不会自动带入新版本。', [['cancel', '继续编辑'], ['keep', '保留副本并查看更新'], ['discard', '放弃并查看更新']]);
     if (choice === 'cancel') return;
     if (choice === 'keep') { persist();await personalDrafts?.sync();candidate = { format: 2, taskBulk, baseVersion: editBaseVersion, values: structuredClone(values!), basicDraft: basicDraft && structuredClone(basicDraft), changeDraft, riskDraft, nodeDraft, nodeRestoreExtras }; }
     else { if(!await discardPersonal())return;candidate = undefined; try { sessionStorage.removeItem(bufferKey); } catch { storageFailed = true; } }
   }
   await load();
 };
-document.querySelectorAll<HTMLAnchorElement>('.project-nav a, .top-sticky a').forEach(link=>{link.onclick = async event => {
+document.querySelectorAll<HTMLAnchorElement>('.project-nav a, .top-sticky a, #back').forEach(link=>{link.onclick = async event => {
   if (leaving && new URL(link.href).pathname === '/login.html') return;
   if (!dirty() && !pending && !stagePending && !stageDraft && !correctionDraft && !planDraft && !lifecycleDraft && !closureDraft && !checkDraft) return;
   event.preventDefault(); persist();
@@ -1819,7 +1834,6 @@ document.querySelectorAll<HTMLAnchorElement>('.project-nav a, .top-sticky a').fo
   leaving = true;
   location.href = link.href;
 };});
-element('copy').onclick = () => { void copyText(); };
 window.addEventListener('focus', refreshContext);
 setInterval(() => { if (snapshot && !inFlight && !loading && document.visibilityState === 'visible' && snapshot.businessDate !== new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date())) void observe(false, false); }, 60000);
 window.addEventListener('beforeunload', event => { if (!leaving && (dirty() || pending || stagePending || stageDraft || correctionDraft || planDraft || lifecycleDraft || closureDraft || checkDraft)) { persist(); persistStage(); event.preventDefault(); } });
@@ -1833,7 +1847,7 @@ void requireIdentity().then(async () => {
   }
   const requestedTab=new URLSearchParams(location.search).get('tab') ?? (reading.projectId===id?String(reading.tab ?? ''):'');
   if([...document.querySelectorAll<HTMLElement>('[data-tab]')].some(button=>button.dataset.tab===requestedTab))tab=requestedTab;
-  personalDrafts=new PersonalDrafts(id,()=>({version:editBaseVersion,editable:!!snapshot?.capabilities.editText && !authFrozen && !stale}),restorePersonalDraft);
+  personalDrafts=new PersonalDrafts(id,()=>({version:editBaseVersion,editable:!!snapshot?.capabilities.editText && !authFrozen && !stale}),restorePersonalDraft,{button:false});
   bufferKey = `geekdash_project_buffer:${account!.id}:${id}`;
   // 匿名副本不归属任一账号；只提示保留供核对，不自动作为实名编辑恢复。
   try { if (sessionStorage.getItem(`geekdash_trial_text_v1:${id}`)) note('发现旧试用副本，请保留原标签页内容供核对；新编辑按当前账号隔离。'); }
@@ -1864,8 +1878,8 @@ void requireIdentity().then(async () => {
   if(reading.projectId===id && !new URLSearchParams(location.search).has('tab') && typeof reading.scrollY==='number')window.scrollTo(0,reading.scrollY);
   if(tab==='history' && !audit)void loadAudit();
   const online=element('project-editors');
-  notifications=new ProjectNotifications((event,own)=>{if(event.projectId!==id || own || !snapshot || BigInt(event.version)<=BigInt(snapshot.project.version))return;stale=true;persist();note('项目已被他人更新，请重新进入项目。未保存输入保留供复制。',true);controls();},refreshContext,text=>{online.textContent=text;online.classList.toggle('presence-unavailable',!!text);},id,personalDrafts.instanceId,refreshContext,event=>{online.classList.remove('presence-unavailable');online.innerHTML=editorBadges(event.users);});
+  notifications=new ProjectNotifications((event,own)=>{if(event.projectId!==id || own || !snapshot || BigInt(event.version)<=BigInt(snapshot.project.version))return;stale=true;persist();note('项目已被他人更新，请查看更新。未保存输入保留供复制。',true);controls();},refreshContext,text=>{online.textContent=text;online.classList.toggle('presence-unavailable',!!text);},id,personalDrafts.instanceId,refreshContext,event=>{online.classList.remove('presence-unavailable');online.innerHTML=editorBadges(event.users);});
   updateEditing();
   if(!dirty() && !pending && !stagePending && !stageDraft && !correctionDraft && !planDraft && !lifecycleDraft && !closureDraft && !checkDraft){if(candidate)offerSessionDraft();else void personalDrafts.offer();}
-  if (!element('drafts').hidden && !stagePending && !(element('editor-dialog') as HTMLDialogElement).open && element('project-notice').hidden) note('发现本标签页未保存的操作，可继续编辑或查看并复制。', false, true);
+  if ((dirty() || candidate || legacyCopy || pending) && !stagePending && !(element('editor-dialog') as HTMLDialogElement).open && element('project-notice').hidden) note('发现本标签页未保存的操作，可继续编辑或查看并复制。', false, true);
 }).catch(error => { note((error as Error).message, true); if (!document.getElementById('identity-login')) { const link = document.createElement('a'); link.href = loginUrl(); link.textContent = '登录 GeekDash'; element('message').append(' ', link); } });

@@ -12,7 +12,7 @@ export function numberTaskInput(text:string) {
 function fit(input:HTMLTextAreaElement){input.style.height='0px';input.style.height=Math.max(input.scrollHeight, input.hasAttribute('data-task-bulk')?160:64)+'px';}
 
 // 卡片和详情共用输入、预览、逐条动作；原文未通过匹配时不改变正式任务操作。
-export function bindTaskEditor(root:HTMLElement,read:()=>State,write:(ops:TaskOperation[],bulk?:string)=>void,people:()=>{name:string}[]) {
+export function bindTaskEditor(root:HTMLElement,read:()=>State,write:(ops:TaskOperation[],bulk?:string)=>void,people:()=>{name:string}[],saveOne?:(op:TaskOperation)=>void) {
   bindings.get(root)?.abort();const controller=new AbortController();bindings.set(root,controller);const options={signal:controller.signal};
   const input=root.querySelector<HTMLTextAreaElement>('[data-task-bulk]');
   const panel=input?.closest<HTMLElement>('.task-panel');let previewOps=read().ops,issue='';
@@ -49,12 +49,22 @@ export function bindTaskEditor(root:HTMLElement,read:()=>State,write:(ops:TaskOp
     const row=button.closest<HTMLElement>('[data-task-row]')!,id=row.dataset.taskRow!,action=button.dataset.taskAction!;
     if(action==='edit'){
       const task=taskCopy(state.tasks,previewOps).find(task=>task.id===id);if(!task)return;
+      const previousOps=structuredClone(previewOps.filter(op=>op.id===id));
       write(previewOps,undefined);if(input){input.value=taskText(taskCopy(read().tasks,read().ops));fit(input);}
       const text=document.createElement('textarea');text.value=task.text;text.setAttribute('aria-label','编辑这条任务');text.dataset.taskText='true';text.dataset.edit='true';
       row.querySelector('.task-text')?.replaceWith(text);button.hidden=true;attachStatusMentions(text,people);fit(text);text.focus();
+      if(saveOne){
+        const actions=row.querySelector('.task-actions')!;
+        actions.querySelectorAll<HTMLButtonElement>('[data-task-action]').forEach(action=>{if(action!==button){action.disabled=true;action.title='请先保存或取消本条文字修改';}});
+        const save=document.createElement('button'),cancel=document.createElement('button');save.type=cancel.type='button';save.textContent='保存';cancel.textContent='取消';
+        save.onclick=()=>{if(read().editable)saveOne({op:'edit',id,text:text.value});};
+        cancel.onclick=()=>{write([...read().ops.filter(op=>op.id!==id),...previousOps],undefined);previewOps=read().ops;row.outerHTML=taskList(taskCopy(read().tasks,read().ops).filter(task=>task.id===id),read().editable);};
+        actions.prepend(save,cancel);
+      }
       text.addEventListener('input',()=>{if(!read().editable)return;write(putTaskOp(read().ops,{op:'edit',id,text:text.value}),undefined);previewOps=read().ops;if(input){input.value=taskText(taskCopy(read().tasks,read().ops));fit(input);}fit(text);},options);
       return;
     }
+    if(saveOne){write(previewOps,undefined);saveOne({op:action as 'complete'|'reopen'|'delete',id});return;}
     write(putTaskOp(previewOps,{op:action as 'complete'|'reopen'|'delete',id}),undefined);resetText();
     const complete=root.querySelector('.task-history-list');if(complete)complete.innerHTML=taskList(taskCopy(read().tasks,read().ops),read().editable,true);
   },options);

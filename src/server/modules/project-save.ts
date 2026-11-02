@@ -331,9 +331,9 @@ export function projectSaves(database: RuntimeDatabase) {
     options() {
       return database.readSnapshot(async connection => {
         const result: Record<string, RowDataPacket[]> = {};
-        for (const table of [...new Set(Object.values(referenceFields))].sort()) result[table] = await query(connection, `SELECT CAST(id AS CHAR) id,name,enabled${table === 'chips' ? ',original_model originalModel,manufacturer,firmware_version firmwareVersion' : ''} FROM ${table} ORDER BY name,${table}.id`);
-        result.odmFactories = await query(connection, 'SELECT CAST(c.id AS CHAR) id,c.name,c.enabled FROM customers c WHERE c.is_odm=1 OR EXISTS(SELECT 1 FROM project_odm_factories l WHERE l.customer_id=c.id) ORDER BY c.name,c.id');
-        result.customers = await query(connection, 'SELECT CAST(id AS CHAR) id,name,enabled FROM customers WHERE is_customer=1 ORDER BY name,id');
+        for (const table of [...new Set(Object.values(referenceFields))].sort()) result[table] = await query(connection, `SELECT CAST(id AS CHAR) id,CAST(version AS CHAR) version,name,enabled${table === 'chips' ? ',original_model originalModel,manufacturer,firmware_version firmwareVersion' : ''} FROM ${table} ORDER BY name,${table}.id`);
+        result.odmFactories = await query(connection, 'SELECT CAST(c.id AS CHAR) id,CAST(c.version AS CHAR) version,c.name,c.enabled FROM customers c WHERE c.is_odm=1 OR EXISTS(SELECT 1 FROM project_odm_factories l WHERE l.customer_id=c.id) ORDER BY c.name,c.id');
+        result.customers = await query(connection, 'SELECT CAST(id AS CHAR) id,CAST(version AS CHAR) version,name,enabled FROM customers WHERE is_customer=1 ORDER BY name,id');
         result.managerAccounts = await query(connection, 'SELECT CAST(id AS CHAR) id,display_name name,enabled FROM users WHERE enabled=1 ORDER BY display_name,id');
         return { ...result, businessDate: businessToday() };
       });

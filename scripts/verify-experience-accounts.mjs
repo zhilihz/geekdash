@@ -103,7 +103,7 @@ try {
   assert.equal((await member.request(`/api/imports/${batchId}/items/${item.id}/ignore/results/query`,'POST',ignoreAgain)).outcome,'committed');
   batch=await member.request('/api/imports/'+batchId);assert.deepEqual(batch.items[1].payload.fields.customerIds,[]);
   const chosen = batch.items.map(item => ({ id: item.id, command: { expectedBatchVersion: batch.batch.version, expectedReviewVersion: item.reviewVersion, expectedVersion: item.expectedVersion, idempotencyKey: randomUUID(), basis: item.basis, selected: item.defaultSelected }, resolveReferences: true }));
-  const execution = { formatVersion: 2, idempotencyKey: randomUUID(), items: chosen };
+  const execution = { formatVersion: 2, stage: 'projects', idempotencyKey: randomUUID(), items: chosen };
   await member.request(`/api/imports/${batchId}/executions`, 'POST', execution, 202);
   let result; for (let n = 0; n < 80; n++) { result = await member.request(`/api/imports/${batchId}/executions?operation=${execution.idempotencyKey}`); if (result.status === 'finished') break; await new Promise(r => setTimeout(r, 100)); }
   assert.equal(result.status, 'finished');
@@ -164,7 +164,7 @@ try {
   const taskBatch=await admin.request('/api/imports/'+taskBatchId),taskItem=taskBatch.items[0];
   assert.equal(taskItem.payload.fields.statusDesc,undefined);assert(taskItem.defaultSelected.includes('tasks'));
   const taskCmd={expectedBatchVersion:taskBatch.batch.version,expectedReviewVersion:taskItem.reviewVersion,expectedVersion:taskItem.expectedVersion,basis:taskItem.basis,selected:taskItem.defaultSelected,idempotencyKey:randomUUID()};
-  const taskExecution={formatVersion:2,idempotencyKey:randomUUID(),items:[{id:taskItem.id,command:taskCmd,resolveReferences:true}]};
+  const taskExecution={formatVersion:2,stage:'projects',idempotencyKey:randomUUID(),items:[{id:taskItem.id,command:taskCmd,resolveReferences:true}]};
   await admin.request(`/api/imports/${taskBatchId}/executions`,'POST',taskExecution,202);
   let taskResult;for(let n=0;n<80;n++){taskResult=await admin.request(`/api/imports/${taskBatchId}/executions?operation=${taskExecution.idempotencyKey}`);if(taskResult.status==='finished')break;await new Promise(r=>setTimeout(r,100));}
   const adopted={result:(await admin.request('/api/imports/'+taskBatchId)).items[0].previousResult};assert(adopted.result,JSON.stringify(taskResult));

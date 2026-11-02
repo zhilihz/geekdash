@@ -18,7 +18,7 @@ export function meaningfulEditor(value:Record<string,unknown>) {
   }
   return true;
 }
-export function draftText(row:PersonalDraft) {
+export function draftText(row:Pick<PersonalDraft,'formKind'|'payload'>) {
   const data=row.payload, lines:string[]=[], titles={reason:'原因',correctionReason:'纠正原因',actualDate:'实际日期',stageCode:'阶段',maintenance:'结案后维护',code:'阶段',text:'任务内容',state:row.formKind==='basic'?'项目状态':'阶段状态'};
   const operations:Record<string,string>={add:'新增',edit:'修改',correct:'修改',complete:'标记完成',reopen:'恢复为待办',delete:'删除',resolve:'解除',undoResolve:'撤销解除',uncomplete:'撤销完成',move:'移动',link:'连接',unlink:'断开连线',restore:'恢复'};
   const describe=(value:Record<string,unknown>,kind='')=>{

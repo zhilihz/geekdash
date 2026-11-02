@@ -18,3 +18,4 @@ docs/evidence/diagrams/*.json text eol=lf
 /deploy/harbor/*.sh text eol=lf
 
 /migrations/0015-project-deletion.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/migrations/0016-project-name-reservation.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

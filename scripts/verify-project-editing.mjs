@@ -110,12 +110,18 @@ try{
   const importName=prefix+'导入项目',chipName=prefix+'导入芯片';
   const file={version:2,chips:[{name:chipName}],customers:[{name:prefix+'导入客户'}],projects:[{id:1,name:importName,status:'已结案',customer:[prefix+'导入客户'],odmFactory:prefix+'导入工厂',chipSelections:[{id:randomUUID(),name:chipName,note:'导入主控'},{id:randomUUID(),name:chipName,note:'导入备用'}],pm:users[1],summary:'合成备份'}]};
   const batchId=await a.upload(file);let batch=await a.api('/api/imports/'+batchId);
-  const ready=[...batch.items,...batch.catalogRows].filter(item=>item.canAdopt&&!item.targetId&&item.kind!=='company'&&!item.needsMapping&&item.issues.every(v=>v.code==='IMPORT_REFERENCE_REQUIRED'));
-  assert(ready.some(item=>item.kind==='project'),JSON.stringify(batch.items.map(({name,issues,canAdopt,needsMapping})=>({name,issues,canAdopt,needsMapping}))));
-  const operation=randomUUID();
-  await a.api('/api/imports/'+batchId+'/executions','POST',{formatVersion:2,idempotencyKey:operation,items:ready.map(item=>({id:item.id,command:{expectedBatchVersion:batch.batch.version,expectedReviewVersion:item.reviewVersion,expectedVersion:item.expectedVersion,idempotencyKey:randomUUID(),basis:item.basis,selected:item.defaultSelected},resolveReferences:true}))},202);
-  let run;for(let n=0;n<100;n++){run=await a.api('/api/imports/'+batchId+'/executions?operation='+operation);if(run.status==='finished')break;await new Promise(resolve=>setTimeout(resolve,100));}
-  assert.equal(run.status,'finished');assert(run.items.every(item=>item.status==='committed'),JSON.stringify(run));
+  async function importStage(stage,items){
+    const operation=randomUUID();
+    await a.api('/api/imports/'+batchId+'/executions','POST',{formatVersion:2,stage,idempotencyKey:operation,items:items.map(item=>({id:item.id,command:{expectedBatchVersion:batch.batch.version,expectedReviewVersion:item.reviewVersion,expectedVersion:item.expectedVersion,idempotencyKey:randomUUID(),basis:item.basis,selected:item.defaultSelected},resolveReferences:true}))},202);
+    let run;for(let n=0;n<100;n++){run=await a.api('/api/imports/'+batchId+'/executions?operation='+operation);if(run.status==='finished')break;await new Promise(resolve=>setTimeout(resolve,100));}
+    assert.equal(run.status,'finished');assert(run.items.every(item=>item.status==='committed'),JSON.stringify(run));return run;
+  }
+  const catalogs=batch.catalogRows.filter(item=>item.canAdopt&&!item.targetId&&item.kind!=='company'&&!item.needsMapping&&item.issues.every(v=>v.code==='IMPORT_REFERENCE_REQUIRED'));
+  assert(catalogs.length>0,'该备份应包含先保存的芯片、客户及ODM资料');await importStage('catalogs',catalogs);
+  batch=await a.api('/api/imports/'+batchId);
+  const ready=batch.items.filter(item=>item.canAdopt&&!item.targetId&&!item.needsMapping&&!item.issues.length);
+  assert(ready.length>0,JSON.stringify(batch.items.map(({name,issues,canAdopt,needsMapping})=>({name,issues,canAdopt,needsMapping}))));
+  const run=await importStage('projects',ready);
   const imported=run.items.find(item=>item.kind==='project').result.projectId;
   const importedDetail=await a.api('/api/projects/'+imported);
   assert.deepEqual(importedDetail.project.chipSelections.map(item=>item.note),['导入主控','导入备用']);assert.equal(importedDetail.responsible.length,1);assert.equal(importedDetail.responsible[0].id,actor);

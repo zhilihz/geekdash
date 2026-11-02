@@ -40,6 +40,10 @@ export function registerImports(app:FastifyInstance,database?:RuntimeDatabase,no
     if(!request.actor)failure('AUTH_REQUIRED',401);writable();if(!executions)failure('DATABASE_UNAVAILABLE',503);
     return reply.code(202).send(await executions.submit(request.actor,request.params.batchId,request.body));
   });
+  app.post<{Params:{batchId:string;operation:string}}>('/api/imports/:batchId/executions/:operation/resume',async request=>{
+    if(!request.actor)failure('AUTH_REQUIRED',401);writable();if(!executions)failure('DATABASE_UNAVAILABLE',503);
+    return executions.resume(request.actor,request.params.batchId,request.params.operation);
+  });
   app.get<{Params:{batchId:string};Querystring:{operation?:string}}>('/api/imports/:batchId/executions',request=>{
     if(!request.actor)failure('AUTH_REQUIRED',401);if(!executions)failure('DATABASE_UNAVAILABLE',503);
     return executions.read(request.actor,request.params.batchId,request.query.operation);

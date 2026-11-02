@@ -11,3 +11,5 @@
 .account-impact{margin:12px 0 24px;padding:20px;border:1px solid var(--border);border-left:3px solid var(--p-mid);border-radius:8px;background:var(--card)}.account-impact button{margin:8px 10px 0 0}.account-impact h3{margin-top:0}
 
 .space-filter-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:18px 0}.space-filter-grid label{display:block;color:var(--text-dim);margin-bottom:8px}@media(max-width:650px){.space-filter-grid{grid-template-columns:1fr}}
+
+.space-view-tabs{display:flex;flex-wrap:wrap;gap:12px;margin:0 0 24px}.space-view-tabs [aria-pressed="true"]{background:var(--accent);color:var(--bg);border-color:var(--accent)}

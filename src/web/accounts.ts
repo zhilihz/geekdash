@@ -51,26 +51,25 @@ list.addEventListener('click',event=>{
     if(button.hasAttribute('data-confirm')&&impact){const command={id:impact.account.id,deleting,body:{enabled:deleting?false:!impact.account.enabled,expectedVersion:impact.account.version,impactToken:impact.impactToken,idempotencyKey:crypto.randomUUID()}};try{localStorage.setItem(key(),JSON.stringify(command));}catch{throw new Error('本机无法保留原操作，本次未发送修改。请恢复浏览器存储后重试。');}pending=command;await execute();}
   })().catch(error=>{message.textContent=error instanceof SaveError?Object.values(error.fields??{})[0]??errors[error.code]??error.message:(error as Error).message;});
 });
-document.getElementById('account-refresh')!.onclick=()=>{if(!busy)void load();};
+document.getElementById('account-refresh')!.onclick=()=>{if(!busy&&!inviteBusy)void Promise.all([load(),loadInvites()]).catch(error=>{inviteResult.textContent='邀请码列表尚未读出：'+(error as Error).message;});};
 document.addEventListener('geekdash-identity-changed',()=>{frozen=true;identityChanged=true;document.getElementById('admin-content')!.hidden=true;list.replaceChildren();message.textContent='账号已变化，请重新登录。';});
 setupTheme();void requireIdentity().then(async()=>{if(!account!.isMaintenance){message.textContent='只有管理员可以管理账号。';return;}document.getElementById('admin-content')!.hidden=false;try{const cached=localStorage.getItem(key());pending=cached?JSON.parse(cached):undefined;}catch{frozen=true;message.textContent='本机操作记录无法读取，本页暂不修改账号。请恢复浏览器存储后刷新，现有账号仍可查看。';}await load();await loadInvites();if(pending)await execute(true);}).catch(error=>{message.textContent=(error as Error).message;});
 
 type Invite={id:string;code:string|null;role:string;expiresAt:string;revoked:number;registrations:number};
-let inviteKey:string|undefined,inviteBusy=false;
+let inviteKey:string|undefined,inviteBusy=false,inviteCreated=false;
 const inviteResult=document.getElementById('invite-result')!;
 async function loadInvites(){
  const {items}=await get<{items:Invite[]}>('/api/accounts/invites');
- document.getElementById('invite-list')!.innerHTML=`<div class="invite-scroll"><table class="invite-table"><thead><tr><th>权限</th><th>邀请码</th><th>注册人数</th><th>到期时间</th><th>状态 / 操作</th></tr></thead><tbody>${items.map(item=>`<tr><td>${item.role==='admin'?'管理员':'项目经理'}</td><td>${item.code?`<code>${esc(item.code)}</code>`:'旧码未保存，请重新生成'}</td><td>${item.registrations}</td><td>${new Date(item.expiresAt).toLocaleString('zh-CN')}</td><td>${item.revoked?'已撤销':new Date(item.expiresAt).getTime()<=Date.now()?'已过期':`有效 <button class="head-btn" data-invite="${item.id}">撤销</button>`}</td></tr>`).join('')||'<tr><td colspan="5">还没有邀请码</td></tr>'}</tbody></table></div>`;
+ document.getElementById('invite-list')!.innerHTML=`<div class="invite-scroll"><table class="invite-table"><thead><tr><th>权限</th><th>邀请码</th><th>注册人数</th><th>到期时间</th><th>状态</th><th>操作</th></tr></thead><tbody>${items.map(item=>`<tr><td>${item.role==='admin'?'管理员':'项目经理'}</td><td>${item.code?`<code>${esc(item.code)}</code>`:'旧码未保存，请重新生成'}</td><td>${item.registrations}</td><td>${new Date(item.expiresAt).toLocaleString('zh-CN')}</td><td>${item.revoked?'已撤销':new Date(item.expiresAt).getTime()<=Date.now()?'已过期':'有效'}</td><td>${item.revoked||new Date(item.expiresAt).getTime()<=Date.now()?'—':`<button class="head-btn" data-invite="${item.id}">撤销</button>`}</td></tr>`).join('')||'<tr><td colspan="6">还没有邀请码</td></tr>'}</tbody></table></div>`;
 }
 document.getElementById('invite-create')!.onclick=async()=>{
  if(inviteBusy||frozen||!account?.isMaintenance)return;inviteBusy=true;
  const button=document.getElementById('invite-create') as HTMLButtonElement,role=document.getElementById('invite-role') as HTMLSelectElement;
  button.disabled=true;role.disabled=true;inviteKey??=crypto.randomUUID();
- try{await send<{id:string;code?:string;replayed:boolean}>('/api/accounts/invites','POST',{role:role.value,idempotencyKey:inviteKey});
- inviteResult.textContent='邀请码已生成，可从下表复制。';
- inviteKey=undefined;await loadInvites();
- }catch(error){inviteResult.textContent=(error as Error).message+' 请重试生成以核对原结果。';}
- finally{inviteBusy=false;button.disabled=false;role.disabled=!!inviteKey;}
+ try{if(!inviteCreated){await send<{id:string;code?:string;replayed:boolean}>('/api/accounts/invites','POST',{role:role.value,idempotencyKey:inviteKey});inviteCreated=true;}
+ await loadInvites();inviteKey=undefined;inviteCreated=false;inviteResult.textContent='邀请码已生成，可从下表复制。';
+ }catch(error){inviteResult.textContent=inviteCreated?'邀请码已经生成，但列表尚未读取。请点击“重新读取邀请码”，不会重复生成。 '+(error as Error).message:(error as Error).message+' 请核对本次生成结果，原操作已保留。';}
+ finally{inviteBusy=false;button.disabled=false;role.disabled=!!inviteKey;button.textContent=inviteCreated?'重新读取邀请码':inviteKey?'核对邀请码生成结果':'生成邀请码';}
 };
 document.getElementById('invite-list')!.onclick=async event=>{
  const button=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-invite]');if(!button||inviteBusy||frozen)return;button.disabled=true;

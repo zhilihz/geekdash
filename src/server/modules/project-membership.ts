@@ -10,7 +10,7 @@ type Command = { action: 'join' | 'claim' | 'apply' | 'invite' | 'accept' | 'rej
 export const membershipRows = async (c: PoolConnection, sql: string, values: unknown[] = []) => (await c.query<RowDataPacket[]>({ sql, timeout: 3000 }, values))[0];
 const rows = membershipRows;
 export async function hasProjectAccess(c:PoolConnection,projectId:string,accountId:string) {
-  return !!(await rows(c,'SELECT r.project_id FROM project_responsibilities r JOIN users u ON u.id=r.user_id JOIN projects p ON p.id=r.project_id AND p.deleted_at IS NULL WHERE r.project_id=? AND r.user_id=? AND u.enabled=1',[projectId,accountId])).length;
+  return !!(await rows(c,'SELECT r.project_id FROM project_responsibilities r JOIN users u ON u.id=r.user_id JOIN projects p ON p.id=r.project_id AND p.deleted_at IS NULL WHERE r.project_id=? AND r.user_id=? AND u.enabled=1 AND u.is_project_manager=1',[projectId,accountId])).length;
 }
 // 首次注册姓名只提供归属提示；点击加入仍走统一成员事务。
 export async function suggestedProjects(c:PoolConnection,accountId:string) {
@@ -45,7 +45,7 @@ export function validateMembership(value: unknown): Command {
 export async function lockMembershipAccounts(c: PoolConnection, ids: string[]) {
   const users = new Map<string, RowDataPacket>();
   for (const id of [...new Set(ids)].sort((a,b) => BigInt(a) < BigInt(b) ? -1 : 1)) {
-    const user = (await rows(c,'SELECT CAST(id AS CHAR) id,display_name name,enabled,CAST(version AS CHAR) version FROM users WHERE id=? FOR UPDATE',[id]))[0];
+    const user = (await rows(c,'SELECT CAST(id AS CHAR) id,display_name name,enabled,is_project_manager,CAST(version AS CHAR) version FROM users WHERE id=? FOR UPDATE',[id]))[0];
     if (user) users.set(id,user);
   }
   return users;
@@ -82,7 +82,7 @@ export function projectMembership(database:RuntimeDatabase) {
       await assertBusinessActor(c,actor);
       const project=await lockMembershipProject(c,projectId,users,body.action==='join');
       const prior=await lookup(c,true);if(prior)return {outcome:'committed',result:prior};
-      const member=project.members.some(v=>v.id===actor.id), enabled=project.members.filter(v=>v.enabled);
+      const member=project.members.some(v=>v.id===actor.id), enabled=project.members.filter(v=>v.enabled&&v.is_project_manager);
       let status:string='member', request:string|null=null, changed=false, target=actor.id;
       if(body.action==='join') {
         if(!member) {

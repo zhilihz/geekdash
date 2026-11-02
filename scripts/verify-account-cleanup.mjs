@@ -53,7 +53,7 @@ try{
  let command={expectedBatchVersion:batch.batch.version,expectedReviewVersion:item.reviewVersion,expectedVersion:null,idempotencyKey:randomUUID(),basis:item.basis,selected:['name'],mode:'new',targetId:null};
  const conflict=await admin.api(`/api/imports/${batchId}/items/${item.id}/preview`,'POST',command);assert(conflict.issues.some(i=>i.code==='CATALOG_NAME_CONFLICT'&&i.message.includes('已有同名资料')));
  command={...command,payload:{name:name+'修正'},idempotencyKey:randomUUID()};const corrected=await admin.api(`/api/imports/${batchId}/items/${item.id}/preview`,'POST',command);assert.deepEqual(corrected.issues,[]);command.basis=corrected.basis;
- const request={formatVersion:2,idempotencyKey:randomUUID(),items:[{id:item.id,command,resolveReferences:true}]};await admin.api(`/api/imports/${batchId}/executions`,'POST',request,202);
+ const request={formatVersion:2,stage:'catalogs',idempotencyKey:randomUUID(),items:[{id:item.id,command,resolveReferences:true}]};await admin.api(`/api/imports/${batchId}/executions`,'POST',request,202);
  let result;for(let i=0;i<80;i++){result=await admin.api(`/api/imports/${batchId}/executions?operation=${request.idempotencyKey}`);if(result.status==='finished')break;await new Promise(r=>setTimeout(r,100));}
  assert.equal(result.status,'finished');assert.equal(Number((await c.query('SELECT COUNT(*) n FROM customers WHERE name=?',[name+'修正']))[0][0].n),1);
  const fresh=await admin.api('/api/catalog/customers');assert(fresh.items.some(c=>c.name===name+'修正'));

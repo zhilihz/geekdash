@@ -10,7 +10,7 @@ type Check = { name: string; expression: string };
 type ForeignKey = { name: string; columns: string[]; parent: string; references: string[]; onUpdate: string; onDelete: string; sql: string };
 type Table = { name: string; columns: Column[]; indexes: Index[]; checks: Check[]; foreignKeys: ForeignKey[]; sql: string };
 type Manifest = { version: string; tables: Table[] };
-type DataStep = 'initialize-administrators' | 'expand-project-references' | 'retire-membership-requests' | 'seed-import-sources' | 'freeze-legacy-history-source' | 'remember-import-catalog-names' | 'check-project-names' | 'fill-project-name-keys' | 'remember-project-names';
+type DataStep = 'initialize-administrators' | 'expand-project-references' | 'retire-membership-requests' | 'seed-import-sources' | 'freeze-legacy-history-source' | 'remember-import-catalog-names' | 'check-project-names' | 'check-reserved-project-names' | 'fill-project-name-keys' | 'remember-project-names';
 type MigrationStep = { table: string; sql?: string; create?: Table; columns?: Column[]; indexes?: Index[]; checks?: Check[]; foreignKeys?: ForeignKey[]; dropIndexes?: string[]; data?: DataStep };
 type ResolvedStep = MigrationStep & { before: Table | undefined; after: Table };
 type ActualTable = { name: string; engine: string; collation: string; columns: Column[]; indexes: Index[]; checks: Check[]; foreignKeys: Omit<ForeignKey, 'sql'>[] };
@@ -27,7 +27,7 @@ export async function loadSchema() {
   let manifest = structuredClone(foundation);
   const history = [{ version: foundation.version, checksum: createHash('sha256').update(bytes).digest() }];
   const increments: { previous: Manifest; manifest: Manifest; steps: ResolvedStep[] }[] = [];
-  for (const [version, count] of [['0002-trial-save', 3], ['0003-node-recovery', 1], ['0004-project-compatibility', 2], ['0005-check-facts', 1], ['0006-imports', 11], ['0007-import-executions', 1], ['0008-import-name-bindings', 1], ['0009-project-space', 8], ['0010-project-editing', 9], ['0011-accounts-check-settings', 4], ['0012-account-management', 2], ['0013-account-capabilities', 1], ['0014-project-tasks', 2], ['0015-project-deletion', 2]] as const) {
+  for (const [version, count] of [['0002-trial-save', 3], ['0003-node-recovery', 1], ['0004-project-compatibility', 2], ['0005-check-facts', 1], ['0006-imports', 11], ['0007-import-executions', 1], ['0008-import-name-bindings', 1], ['0009-project-space', 8], ['0010-project-editing', 9], ['0011-accounts-check-settings', 4], ['0012-account-management', 2], ['0013-account-capabilities', 1], ['0014-project-tasks', 2], ['0015-project-deletion', 2], ['0016-project-name-reservation', 3]] as const) {
     const bytes = await readFile(new URL('../../migrations/' + version + '.json', import.meta.url));
     const delta = JSON.parse(bytes.toString('utf8')) as { version: string; steps: MigrationStep[] };
     if (delta.version !== version || delta.steps.length !== count) fail('DB_MIGRATION_RESOURCE_INVALID');
@@ -41,7 +41,7 @@ export async function loadSchema() {
         table = structuredClone(step.create); manifest.tables.push(table);
       }
       if (!table) fail('DB_MIGRATION_RESOURCE_INVALID');
-      if (step.data && (!['initialize-administrators', 'expand-project-references', 'retire-membership-requests', 'seed-import-sources', 'freeze-legacy-history-source', 'remember-import-catalog-names', 'check-project-names', 'fill-project-name-keys', 'remember-project-names'].includes(step.data) || step.sql || step.create)
+      if (step.data && (!['initialize-administrators', 'expand-project-references', 'retire-membership-requests', 'seed-import-sources', 'freeze-legacy-history-source', 'remember-import-catalog-names', 'check-project-names', 'check-reserved-project-names', 'fill-project-name-keys', 'remember-project-names'].includes(step.data) || step.sql || step.create)
         || !step.data && !step.sql) fail('DB_MIGRATION_RESOURCE_INVALID');
       for (const name of step.dropIndexes ?? []) {
         if (!table.indexes.some(index => index.name === name)) fail('DB_MIGRATION_RESOURCE_INVALID');
@@ -104,7 +104,7 @@ async function migrateImportData(connection: Connection, data: DataStep) {
     return;
   }
 
-  if (data === 'check-project-names' || data === 'fill-project-name-keys') {
+  if (data === 'check-project-names' || data === 'check-reserved-project-names' || data === 'fill-project-name-keys') {
     if (data === 'check-project-names' && (await query(connection, "SELECT id FROM import_executions WHERE status<>'finished' LIMIT 1")).length) fail('DB_IMPORT_EXECUTION_PENDING');
     const projects = await query(connection, 'SELECT CAST(id AS CHAR) id,name FROM projects ORDER BY id');
     const keys = new Map<string, string>();
@@ -117,7 +117,7 @@ async function migrateImportData(connection: Connection, data: DataStep) {
       keys.set(key.toString('hex'), row.id);
       return { id: row.id, key };
     });
-    if (data === 'check-project-names') return;
+    if (data === 'check-project-names' || data === 'check-reserved-project-names') return;
     await connection.beginTransaction();
     try {
       for (const { id, key } of values) await query(connection, 'UPDATE projects SET name_key=? WHERE id=? AND NOT (name_key <=> ?)', [key, id, key]);

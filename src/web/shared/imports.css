@@ -1,4 +1,4 @@
-/* Figma 原 W19/W20：同页文件、共享资料、项目卡与共同保存。 */
+/* 沿用三主题控件；同页先资料、后项目，保存范围各自明确。 */
 .imports-page .page{max-width:1440px;padding:0 48px 100px;margin:auto}
 .imports-page-title{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:16px 0}
 .imports-page-title>div{min-width:0;overflow-wrap:anywhere}
@@ -11,7 +11,7 @@
 #imports-subtitle,.import-muted{color:var(--text-dim);font-size:13px}
 #imports-message:not(:empty){padding:12px 16px;margin:14px 0;border:1px solid var(--border);border-radius:8px;background:var(--bg-soft);white-space:pre-wrap}
 #imports-message.error,.import-error{color:var(--p-high)}
-.import-panel,.import-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px 24px;margin:16px 0;min-width:0}
+.import-panel,.import-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin:24px 0;min-width:0}
 .import-heading,.import-actions,.import-source-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .import-heading{justify-content:space-between;margin-bottom:12px}
 .import-heading h2{display:flex;gap:10px;align-items:flex-start;min-width:0;flex:1;overflow-wrap:anywhere}
@@ -92,3 +92,19 @@
 .import-badge[data-state=ready],.import-badge[data-state=processed]{color:var(--p-low)}
 .import-result{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:10px 0;color:var(--text-dim);font-size:13px}
 @media(max-width:760px){.import-diff table{min-width:0}.import-diff thead{display:none}.import-diff tr{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border)}.import-diff td:first-child{grid-column:1/-1;background:var(--bg-soft)}.import-diff td[data-label]:before{content:attr(data-label);display:block;color:var(--text-dim);font-size:12px;margin-bottom:6px}.import-diff td{border:0;padding:8px}.import-causal-chain li{grid-template-columns:1fr}.import-causal-chain b{transform:rotate(90deg)}}
+
+.import-steps{display:flex;align-items:center;flex-wrap:wrap;gap:16px;margin:24px 0;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.import-steps [aria-current=step]{background:var(--accent-dim);color:#fff;border-color:var(--accent-dim)}
+.import-catalog-summary{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:16px 0;border-bottom:1px solid var(--border-soft)}
+.import-catalog-summary strong{min-width:0;flex:1;overflow-wrap:anywhere}
+.import-catalog-summary span{color:var(--text-dim)}
+.import-choice{display:block;margin-top:10px;white-space:normal}
+.import-stage-choice{margin:14px 0;padding:12px 0;border-top:1px solid var(--border-soft)}
+.import-stage-choice button+button{margin-left:12px}
+.import-card{scroll-margin-top:100px}
+#import-execution-recovery .head-btn+.head-btn{margin-left:12px}
+.import-catalog-problem>.field{max-width:680px;margin:20px 0}
+#import-catalog-cards{padding:16px 0 24px}
+#import-project-step{padding-top:16px}
+.import-actions{gap:12px;margin-top:20px}
+@media(max-width:560px){.import-panel,.import-card{padding:20px 16px}.import-catalog-summary{gap:10px}.import-diff{overflow:visible}}

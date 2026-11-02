@@ -53,12 +53,24 @@ const membership=async id=>(await fresh('SELECT CAST(user_id AS CHAR) id FROM pr
 const version=async id=>(await fresh('SELECT CAST(version AS CHAR) version FROM projects WHERE id=?',[id]))[0].version;
 async function create(client,name,inviteeIds=[]) {return (await client.api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix+' '+name,inviteeIds}})).result.projectId;}
 const bodyFor=(batch,item,selected=item.defaultSelected)=>({expectedBatchVersion:batch.batch.version,expectedReviewVersion:item.reviewVersion,expectedVersion:item.expectedVersion,idempotencyKey:randomUUID(),basis:item.basis,selected});
-async function execute(client,batch,items) {
-  const body={formatVersion:2,idempotencyKey:randomUUID(),items};
+async function executeStage(client,batch,items,stage) {
+  const body={formatVersion:2,stage,idempotencyKey:randomUUID(),items};
   await client.api('/api/imports/'+batch.batch.id+'/executions','POST',body,202);
   let result;const end=Date.now()+60000;
   while(Date.now()<end){result=await client.api('/api/imports/'+batch.batch.id+'/executions?operation='+body.idempotencyKey);if(result.status==='finished')return result;await new Promise(resolve=>setTimeout(resolve,150));}
   assert.fail('持久导入未完成：'+JSON.stringify(result));
+}
+async function execute(client,batch,items) {
+  const catalogIds=new Set(batch.catalogRows.map(item=>item.id)),catalogs=items.filter(item=>catalogIds.has(item.id)),projects=items.filter(item=>!catalogIds.has(item.id));
+  const saved=catalogs.length?await executeStage(client,batch,catalogs,'catalogs'):undefined;
+  if(!projects.length)return saved;
+  if(saved){
+    assert(saved.items.every(item=>item.status==='committed'),'资料步骤未完成：'+JSON.stringify(saved));
+    batch=await client.api('/api/imports/'+batch.batch.id);
+    for(const entry of projects){const item=batch.items.find(item=>item.id===entry.id);assert(item,'资料保存后项目仍应存在');entry.command={...entry.command,expectedBatchVersion:batch.batch.version,expectedReviewVersion:item.reviewVersion,expectedVersion:item.expectedVersion,basis:item.basis};}
+  }
+  const result=await executeStage(client,batch,projects,'projects');
+  return saved?{...result,items:[...saved.items,...result.items]}:result;
 }
 const readyItems=batch=>[...batch.items,...batch.catalogRows].filter(item=>item.canAdopt&&!item.targetId&&item.kind!=='company'&&!item.needsMapping&&item.issues.every(v=>v.code==='IMPORT_REFERENCE_REQUIRED')).map(item=>({id:item.id,command:bodyFor(batch,item),resolveReferences:true}));
 try {
@@ -121,7 +133,7 @@ try {
   checks.push('经理同名只在原结果确认一次，同批后续项目复用已确认账号，另一同名账号未获得请求');
 
   const foreign=await b.upload(Buffer.from(JSON.stringify(updated)));const hidden=(await b.api('/api/imports/'+foreign)).items[0];assert.equal(hidden.restricted,true);assert.equal(hidden.target,null);assert.deepEqual(hidden.diffs,[]);assert(hidden.basic.name);assert.equal(hidden.canAdopt,false);
-  await b.api('/api/imports/'+foreign+'/executions','POST',{formatVersion:2,idempotencyKey:randomUUID(),items:[{id:hidden.id,command:{expectedBatchVersion:'1',expectedReviewVersion:hidden.reviewVersion,expectedVersion:null,idempotencyKey:randomUUID(),basis:hidden.basis,selected:['fields.summary']}}]},403);
+  await b.api('/api/imports/'+foreign+'/executions','POST',{formatVersion:2,stage:'projects',idempotencyKey:randomUUID(),items:[{id:hidden.id,command:{expectedBatchVersion:'1',expectedReviewVersion:hidden.reviewVersion,expectedVersion:null,idempotencyKey:randomUUID(),basis:hidden.basis,selected:['fields.summary']}}]},403);
   checks.push('上传同名已有项目不授予权限，非成员只见基础信息且不能提交更新');
 
   const beforeRename=await version(first);await a.api('/api/projects/'+first,'PATCH',{scope:'basic',changes:{name:prefix+' 线上已改名'},expectedVersion:beforeRename,idempotencyKey:randomUUID()});
@@ -205,7 +217,7 @@ try {
   await b.api('/api/projects/'+handed+'/membership','POST',{action:'accept',requestId:handedRequest.id,idempotencyKey:randomUUID()});
   const handoffBefore=await membership(handed),pausedBatch=await stopping.upload(Buffer.from(JSON.stringify({projects:[{name:prefix+' 停用后待接管'}]})));
   const pausedView=await stopping.api('/api/imports/'+pausedBatch),jobKey=randomUUID(),gate=pauseWrite('lease');
-  await stopping.api('/api/imports/'+pausedBatch+'/executions','POST',{formatVersion:2,idempotencyKey:jobKey,items:readyItems(pausedView)},202);
+  await stopping.api('/api/imports/'+pausedBatch+'/executions','POST',{formatVersion:2,stage:'projects',idempotencyKey:jobKey,items:readyItems(pausedView)},202);
   await gate.entered;
   const changeState=(impact,enabled)=>({enabled,expectedVersion:impact.account.version,impactToken:impact.impactToken,idempotencyKey:randomUUID()});
   try{const impact=await maint.api('/api/accounts/'+users[6].id+'/impact');assert.equal(impact.unhandedProjects.length,0);await maint.api('/api/accounts/'+users[6].id+'/state','POST',changeState(impact,false));}finally{gate.release();}

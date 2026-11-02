@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { RuntimeDatabase } from '../infrastructure/runtime-database.js';
 import type { Notifications } from '../infrastructure/notifications.js';
-import { projectDeletion, validateDeletion } from '../modules/project-deletion.js';
+import { projectDeletion, projectRestoration, validateDeletion } from '../modules/project-deletion.js';
 import { projectReads, type ProjectQuery } from '../modules/projects.js';
 import { projectSaves, validateSave, validId, type SaveRequest } from '../modules/project-save.js';
 import { projectCore, validateCore } from '../modules/project-core.js';
@@ -11,12 +11,12 @@ import { deadlineKinds } from '../modules/project-dates.js';
 import { deletedNodes } from '../modules/project-records.js';
 
 export function registerProjectReads(app: FastifyInstance, database?: RuntimeDatabase, notifications?: Notifications) {
-  const remove=database?projectDeletion(database):undefined;
-  for(const [path,confirm] of [['delete',false],['delete-results/query',true]] as const)app.post<{Params:{id:string};Body:unknown}>('/api/projects/:id/'+path,async(request,reply)=>{
+  const remove=database?projectDeletion(database):undefined,restore=database?projectRestoration(database):undefined;
+  for(const [path,confirm,operation] of [['delete',false,remove],['delete-results/query',true,remove],['restore',false,restore],['restore-results/query',true,restore]] as const)app.post<{Params:{id:string};Body:unknown}>('/api/projects/:id/'+path,async(request,reply)=>{
     if(!request.actor)return reply.code(401).send({code:'AUTH_REQUIRED',outcome:'not_committed'});
     if(!validId(request.params.id))return reply.code(400).send({code:'INVALID_PROJECT_ID',outcome:'not_committed'});
-    if(!remove)return reply.code(503).send({code:'DATABASE_UNAVAILABLE',outcome:'not_committed'});
-    const result=await remove(request.actor,request.params.id,validateDeletion(request.body),request.id,confirm);
+    if(!operation)return reply.code(503).send({code:'DATABASE_UNAVAILABLE',outcome:'not_committed'});
+    const result=await operation(request.actor,request.params.id,validateDeletion(request.body),request.id,confirm);
     if(result.outcome==='committed')notifications?.projectChanged(result.result);
     return result;
   });
@@ -25,12 +25,20 @@ export function registerProjectReads(app: FastifyInstance, database?: RuntimeDat
   const core = database ? projectCore(database) : undefined;
   const checks = database ? projectChecks(database) : undefined;
   const actions = database ? projectActions(database) : undefined;
-  app.get<{Querystring:{search?:string;tags?:string[];customer?:string[];productLine?:string[];chip?:string[];page?:number;pageSize?:number}}>('/api/project-space',{
-    schema:{querystring:{type:'object',additionalProperties:false,properties:{search:{type:'string',maxLength:255},tags:{type:'array',items:{type:'string',maxLength:255}},...Object.fromEntries(['customer','productLine','chip'].map(key=>[key,{type:'array',items:{type:'string',maxLength:255},maxItems:100}])),page:{type:'integer',minimum:1,maximum:1000000},pageSize:{type:'integer',minimum:1,maximum:100}}}},
+  app.get<{Querystring:{view?:'current'|'history';search?:string;tags?:string[];customer?:string[];productLine?:string[];chip?:string[];page?:number;pageSize?:number}}>('/api/project-space',{
+    schema:{querystring:{type:'object',additionalProperties:false,properties:{view:{type:'string',enum:['current','history']},search:{type:'string',maxLength:255},tags:{type:'array',items:{type:'string',maxLength:255}},...Object.fromEntries(['customer','productLine','chip'].map(key=>[key,{type:'array',items:{type:'string',maxLength:255},maxItems:100}])),page:{type:'integer',minimum:1,maximum:1000000},pageSize:{type:'integer',minimum:1,maximum:100}}}},
   },request=>{
     if(!request.actor)throw Object.assign(new Error('AUTH_REQUIRED'),{code:'AUTH_REQUIRED',status:401});
     if(!reads)throw Object.assign(new Error('DATABASE_UNAVAILABLE'),{code:'DATABASE_UNAVAILABLE',status:503});
     return reads.space(request.query,request.actor.id);
+  });
+  app.get<{Querystring:{perspective?:'responsible'|'management'}}>('/api/projects/tasks-summary',{
+    schema:{querystring:{type:'object',additionalProperties:false,properties:{perspective:{type:'string',enum:['responsible','management']}}}},
+  },(request,reply)=>{
+    reply.header('Cache-Control','no-store');
+    if(!request.actor)return reply.code(401).send({code:'AUTH_REQUIRED'});
+    if(!reads)return reply.code(503).send({code:'DATABASE_UNAVAILABLE'});
+    return reads.tasksSummary(request.actor.id,request.query.perspective);
   });
   app.get<{ Params: { id: string }; Querystring: { kind: 'mixed' | 'status_description'; source?: string; adoption?: string; before?: string } }>('/api/projects/:id/source-history', {
     schema: { querystring: { type: 'object', additionalProperties: false, required: ['kind'], properties: { kind: { type: 'string', enum: ['mixed', 'status_description'] }, source: { type: 'string', minLength: 1, maxLength: 64 }, adoption: { type: 'string', pattern: '^(legacy|[1-9][0-9]{0,19})$' }, before: { type: 'string', pattern: '^[1-9][0-9]{0,19}$' } } } },

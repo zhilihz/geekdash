@@ -50,8 +50,29 @@ html body .page.auth-page { max-width: 840px; padding-top: 32px; }
   html body .page.page { padding-inline: 16px; }
   .page .app-header { gap: 12px; flex-wrap: wrap; }
   .app-header .head-actions { width: 100%; justify-content: space-between; }
-  .app-header .primary-nav { justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; }
+  .app-header .primary-nav { justify-content: flex-start; flex-wrap: wrap; }
   .page .clock-block { gap: 12px; padding: 16px; }
   .clock-block .clock-date { width: 100%; }
   .page .topbar .clock-block { min-width: 0; flex-basis: 100%; }
 }
+
+/* 同一操作组自然换行；信息分组保留均衡留白。 */
+.page .primary-nav, .page .detail-tabs, .page .view-switch { flex-wrap: wrap; overflow-x: visible; }
+.page .detail-tabs { gap: 4px 12px; }
+.page .detail-tabs button { white-space: normal; }
+.page .project-title-row { gap: 12px; }
+.page .project-title-row #back { margin-left: auto; }
+.page .detail-recovery:has(> :not([hidden])) { padding-block: 8px; }
+.page .project-toolbar:not(:has(.detail-recovery > :not([hidden]))) { display: none; }
+.page .invite-create-section, .page .invite-list-section { margin-bottom: 24px; padding: 24px; }
+.page .invite-create-section .head-actions { display: flex; align-items: end; gap: 16px; flex-wrap: wrap; }
+.page .invite-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.page .invite-table th, .page .invite-table td { padding: 14px 12px; text-align: left; vertical-align: middle; overflow-wrap: anywhere; border-bottom: 1px solid var(--border); }
+.page .invite-table code { font: inherit; font-weight: 600; }
+.page .invite-scroll { overflow: visible; }
+.page .board-latest { margin: 20px 0 28px; }
+.page .board-latest > summary { font-size: 18px; font-weight: 600; cursor: pointer; }
+.page .board-latest .activity-item { margin-top: 20px; }
+@media(max-width:700px) { .page .invite-table { table-layout: auto; font-size: 12px; } .page .invite-table th, .page .invite-table td { padding: 10px 5px; } }
+
+.draft-change-summary { white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; margin: 16px 0; border: 1px solid var(--border); border-radius: 8px; line-height: 1.8; }

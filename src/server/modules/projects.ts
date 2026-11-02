@@ -55,7 +55,7 @@ const selectedValues = (value: string | string[] | undefined) => value === undef
 function conditions(query: ProjectQuery, includeFilters: boolean, today: string, accountId?:string, policy?:CheckPolicy) {
   const clauses: string[] = ['p.deleted_at IS NULL'];
   const values: unknown[] = [];
-  if(accountId){clauses.push('EXISTS(SELECT 1 FROM project_responsibilities own JOIN users owner ON owner.id=own.user_id WHERE own.project_id=p.id AND own.user_id=? AND owner.enabled=1)');values.push(accountId);}
+  if(accountId){clauses.push('EXISTS(SELECT 1 FROM project_responsibilities own JOIN users owner ON owner.id=own.user_id WHERE own.project_id=p.id AND own.user_id=? AND owner.enabled=1 AND owner.is_project_manager=1)');values.push(accountId);}
   switch (query.view ?? 'active') {
     case 'active': clauses.push("p.status='ongoing'"); break;
     case 'proposal': clauses.push("p.status IN ('proposal','paused')"); break;
@@ -119,7 +119,8 @@ async function enrich(connection: PoolConnection, projects: RowDataPacket[], inc
   const chips = await rows(connection, `SELECT CAST(pc.project_id AS CHAR) projectId, CAST(c.id AS CHAR) id,c.name,pc.selection_id selectionId,pc.note FROM project_chip_selections pc JOIN chips c ON c.id=pc.chip_id WHERE pc.project_id IN (${slots}) ORDER BY pc.sort_order,c.id`, ids);
   const people = await rows(connection, `SELECT CAST(pp.project_id AS CHAR) projectId,CAST(e.id AS CHAR) id,e.name,pp.role FROM project_people pp JOIN engineers e ON e.id=pp.engineer_id WHERE pp.project_id IN (${slots}) ORDER BY pp.sort_order,e.id,pp.role`, ids);
   const tags = await rows(connection, `SELECT CAST(pt.project_id AS CHAR) projectId,CAST(t.id AS CHAR) id,t.name FROM project_tags pt JOIN tags t ON t.id=pt.tag_id WHERE pt.project_id IN (${slots}) ORDER BY pt.sort_order,t.id`, ids);
-  const responsible = await rows(connection, `SELECT CAST(r.project_id AS CHAR) projectId,CAST(u.id AS CHAR) id,u.display_name name,u.enabled FROM project_responsibilities r JOIN users u ON u.id=r.user_id WHERE r.project_id IN (${slots}) ORDER BY u.id`, ids);
+  const responsible = await rows(connection, `SELECT CAST(r.project_id AS CHAR) projectId,CAST(u.id AS CHAR) id,u.display_name name,(u.enabled=1 AND u.is_project_manager=1) enabled FROM project_responsibilities r JOIN users u ON u.id=r.user_id WHERE r.project_id IN (${slots}) ORDER BY u.id`, ids);
+  for (const user of responsible) user.enabled = Number(user.enabled) === 1;
   const statusChanges = new Map<string, StatusChange[]>();
   const sourceBaselines = includeStatusEntries ? await statusSourceBaselines(connection, ids) : new Map();
   if (includeStatusEntries) {
@@ -175,7 +176,8 @@ async function readDetail(connection: PoolConnection, id: string, accountId: str
         const sourceHistories = withHistory ? { mixed: await sourceHistory(connection, id, 'mixed'), status_description: await sourceHistory(connection, id, 'status_description') } : undefined;
         const history = sourceHistories?.mixed.sources.flatMap(source => source.entries) ?? [];
         const localMarks = withHistory ? await localCheckMarks(connection, id) : [];
-        const responsible = await rows(connection, 'SELECT CAST(u.id AS CHAR) id,u.display_name name,u.enabled FROM project_responsibilities r JOIN users u ON u.id=r.user_id WHERE r.project_id=? ORDER BY u.id', [id]);
+        const responsible = await rows(connection, 'SELECT CAST(u.id AS CHAR) id,u.display_name name,(u.enabled=1 AND u.is_project_manager=1) enabled FROM project_responsibilities r JOIN users u ON u.id=r.user_id WHERE r.project_id=? ORDER BY u.id', [id]);
+        for (const user of responsible) user.enabled = Number(user.enabled) === 1;
         const editable = accountId ? responsible.some(user => user.id === accountId && !!user.enabled) : project.dataKind === 'trial';
         const stageActions = projectStages.map(stage => ({ code: stage.code,
           startBlocked: !accountId || !editable ? 'PROJECT_READ_ONLY' : stageBlock(project.status, projectStages as (RowDataPacket & StageFact)[], stage.code, 'startStage'),
@@ -190,9 +192,10 @@ async function readDetail(connection: PoolConnection, id: string, accountId: str
 
 export function projectReads(database: RuntimeDatabase, clock = () => new Date()) {
   return {
-    space(query:{search?:string;tags?:string[];customer?:string[];productLine?:string[];chip?:string[];page?:number;pageSize?:number},accountId:string) {
+    space(query:{view?:'current'|'history';search?:string;tags?:string[];customer?:string[];productLine?:string[];chip?:string[];page?:number;pageSize?:number},accountId:string) {
       return database.readSnapshot(async c=>{
-        const clauses: string[] = ['p.deleted_at IS NULL'], params: unknown[] = [];
+        const active=query.view==='history'?'IS NOT NULL':'IS NULL';
+        const clauses: string[] = [`p.deleted_at ${active}`], params: unknown[] = [];
         if (query.search) {
           const term = '%' + query.search.toLowerCase().replace(/[!%_]/g, char => '!' + char) + '%';
           const refs = Object.values(projectReferences).map(link => `EXISTS(SELECT 1 FROM ${link.table} l JOIN ${link.catalog} r ON r.id=l.${link.reference} WHERE l.project_id=p.id AND LOWER(r.name) LIKE ? ESCAPE '!')`);
@@ -206,13 +209,14 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
         const where = clauses.length ? 'WHERE ' + clauses.join(' AND ') : '';
         const total=Number((await rows(c,`SELECT COUNT(*) total FROM projects p ${where}`,params))[0].total);
         const pageSize=query.pageSize??24,pageCount=Math.max(1,Math.ceil(total/pageSize)),page=Math.min(query.page??1,pageCount);
-        const items=await rows(c,`SELECT CAST(p.id AS CHAR) id,CAST(p.version AS CHAR) version,p.name,p.status,p.summary FROM projects p ${where} ORDER BY p.id DESC LIMIT ? OFFSET ?`,[...params,pageSize,(page-1)*pageSize]);
+        const items=await rows(c,`SELECT CAST(p.id AS CHAR) id,CAST(p.version AS CHAR) version,p.name,p.status,p.summary,DATE_FORMAT(p.deleted_at,'%Y-%m-%dT%H:%i:%s.%fZ') deletedAt FROM projects p ${where} ORDER BY p.id DESC LIMIT ? OFFSET ?`,[...params,pageSize,(page-1)*pageSize]);
         await enrichReferenceNames(c, items);
         if(items.length) {
           const ids=items.map(v=>v.id);
           const chips=await rows(c,'SELECT CAST(pc.project_id AS CHAR) projectId,CAST(c.id AS CHAR) id,c.name,pc.selection_id selectionId,pc.note FROM project_chip_selections pc JOIN chips c ON c.id=pc.chip_id WHERE pc.project_id IN (?) ORDER BY pc.sort_order,c.id',[ids]);
           const tags=await rows(c,'SELECT CAST(pt.project_id AS CHAR) projectId,CAST(t.id AS CHAR) id,t.name FROM project_tags pt JOIN tags t ON t.id=pt.tag_id WHERE pt.project_id IN (?) ORDER BY pt.sort_order,t.id',[ids]);
-          const members=await rows(c,'SELECT CAST(r.project_id AS CHAR) projectId,CAST(u.id AS CHAR) id,u.display_name name,u.enabled FROM project_responsibilities r JOIN users u ON u.id=r.user_id WHERE r.project_id IN (?) ORDER BY u.id',[ids]);
+          const members=await rows(c,'SELECT CAST(r.project_id AS CHAR) projectId,CAST(u.id AS CHAR) id,u.display_name name,(u.enabled=1 AND u.is_project_manager=1) enabled FROM project_responsibilities r JOIN users u ON u.id=r.user_id WHERE r.project_id IN (?) ORDER BY u.id',[ids]);
+          for(const user of members)user.enabled=Number(user.enabled)===1;
 
           for(const item of items){
             const own=members.filter(v=>v.projectId===item.id),member=own.some(v=>v.id===accountId&&v.enabled);
@@ -223,18 +227,29 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
 
           }
         }
-        const tagOptions=(await rows(c,'SELECT DISTINCT t.name FROM tags t JOIN project_tags l ON l.tag_id=t.id JOIN projects p ON p.id=l.project_id AND p.deleted_at IS NULL ORDER BY t.name')).map(row=>row.name);
+        const tagOptions=(await rows(c,`SELECT DISTINCT t.name FROM tags t JOIN project_tags l ON l.tag_id=t.id JOIN projects p ON p.id=l.project_id AND p.deleted_at ${active} ORDER BY t.name`)).map(row=>row.name);
         const filterOptions:Record<string,string[]>={};
-        for (const [key,table,catalog,column] of [['customer','project_customers','customers','customer_id'],['productLine','project_product_lines','product_lines','product_line_id'],['chip','project_chip_selections','chips','chip_id']]) filterOptions[key]=(await rows(c,`SELECT DISTINCT r.name FROM ${catalog} r JOIN ${table} l ON l.${column}=r.id JOIN projects p ON p.id=l.project_id AND p.deleted_at IS NULL ORDER BY r.name`)).map(row=>row.name);
+        for (const [key,table,catalog,column] of [['customer','project_customers','customers','customer_id'],['productLine','project_product_lines','product_lines','product_line_id'],['chip','project_chip_selections','chips','chip_id']]) filterOptions[key]=(await rows(c,`SELECT DISTINCT r.name FROM ${catalog} r JOIN ${table} l ON l.${column}=r.id JOIN projects p ON p.id=l.project_id AND p.deleted_at ${active} ORDER BY r.name`)).map(row=>row.name);
         const suggested=await suggestedProjects(c,accountId);for(const item of items)item.suggested=suggested.some(value=>value.id===item.id);
         return {items,tagOptions,filterOptions,suggestedCount:suggested.length,pagination:{page,pageSize,total,pageCount}};
+      });
+    },
+    tasksSummary(accountId:string,perspective?:'responsible'|'management') {
+      return database.readSnapshot(async c=>{
+        const user=(await rows(c,'SELECT enabled,is_admin,is_project_manager FROM users WHERE id=?',[accountId]))[0];
+        if(!user?.enabled)failure('AUTH_REQUIRED',401);
+        const management=!!user.is_admin&&(perspective==='management'||!user.is_project_manager);
+        const items=await rows(c,`SELECT CAST(p.id AS CHAR) id,p.name,p.tasks_unified tasksUnified,p.status_description statusDesc FROM projects p WHERE p.deleted_at IS NULL ${management?'':'AND EXISTS(SELECT 1 FROM project_responsibilities r JOIN users u ON u.id=r.user_id WHERE r.project_id=p.id AND r.user_id=? AND u.enabled=1 AND u.is_project_manager=1)'} ORDER BY p.id`,management?[]:[accountId]);
+        await enrich(c,items);
+        for(const item of items)item.tasks=(item.tasks??[]).filter((task:{completedAt:string;deletedAt:string})=>!task.completedAt&&!task.deletedAt);
+        return {items:items.filter(item=>item.tasks.length).map(({id,name,tasks})=>({id,name,tasks}))};
       });
     },
     sourceHistory(id: string, kind: SourceHistoryKind, sourceNamespace?: string, adoptionId?: string, before?: string, accountId?:string) { return database.readSnapshot(async connection => { if(accountId)await assertProjectAccess(connection,id,accountId);return sourceHistory(connection, id, kind, sourceNamespace, adoptionId, before); }); },
     summary(accountId: string) {
       const now=clock(),today=businessToday(now);
       return database.readSnapshot(async connection=>{
-        const items=await enrich(connection,await rows(connection,`SELECT ${columns},p.summary_note summaryNote,p.chipstat_note chipstatNote,p.detail_note detailNote,${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress ${joins} WHERE p.deleted_at IS NULL AND (EXISTS(SELECT 1 FROM users admin WHERE admin.id=? AND admin.enabled=1 AND admin.is_admin=1) OR EXISTS(SELECT 1 FROM project_responsibilities own JOIN users owner ON owner.id=own.user_id WHERE own.project_id=p.id AND own.user_id=? AND owner.enabled=1)) ORDER BY p.id`,[accountId,accountId]));
+        const items=await enrich(connection,await rows(connection,`SELECT ${columns},p.summary_note summaryNote,p.chipstat_note chipstatNote,p.detail_note detailNote,${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress ${joins} WHERE p.deleted_at IS NULL AND (EXISTS(SELECT 1 FROM users admin WHERE admin.id=? AND admin.enabled=1 AND admin.is_admin=1) OR EXISTS(SELECT 1 FROM project_responsibilities own JOIN users owner ON owner.id=own.user_id WHERE own.project_id=p.id AND own.user_id=? AND owner.enabled=1 AND owner.is_project_manager=1)) ORDER BY p.id`,[accountId,accountId]));
         await enrichChecks(connection,items,{businessDate:today});
         const nodes=await rows(connection,"SELECT CAST(project_id AS CHAR) projectId,CAST(id AS CHAR) id,title,DATE_FORMAT(target_date,'%Y-%m-%d') targetDate FROM project_nodes WHERE kind='project' AND deleted_at IS NULL AND completed_on IS NULL ORDER BY project_id,sort_order,id");
         const engineers=await rows(connection,'SELECT name FROM engineers ORDER BY name,id'),engineerNames=engineers.map(item=>String(item.name));

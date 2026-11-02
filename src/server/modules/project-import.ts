@@ -188,7 +188,7 @@ export async function lockImportProject(c: PoolConnection, input: ImportProjectI
   if (Object.keys(ordinary).length) validateSave({ changes: ordinary, expectedVersion: '1', idempotencyKey: '00000000-0000-4000-8000-000000000001' });
   const references: Record<string, RowDataPacket[]> = lock ? await lockReferences(c, ordinary) : {};
   if (!lock) for (const [key, table] of Object.entries(referenceFields)) if (own(ordinary, key)) {
-    const value = ordinary[key as keyof typeof ordinary], ids = key === 'people' ? ordinary.people!.map(v => v.id) : Array.isArray(value) ? value as string[] : value ? [value as string] : [];
+    const value = ordinary[key as keyof typeof ordinary], ids = key === 'chipSelections' ? ordinary.chipSelections!.map(v => v.chipId) : key === 'people' ? ordinary.people!.map(v => v.id) : Array.isArray(value) ? value as string[] : value ? [value as string] : [];
     references[table] ??= [];
     if (ids.length) references[table].push(...await rows(c, `SELECT CAST(id AS CHAR) id,name,enabled FROM ${table} WHERE id IN (${ids.map(() => '?').join(',')})`, ids));
   }

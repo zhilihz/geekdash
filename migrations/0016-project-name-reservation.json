@@ -1,0 +1,12 @@
+{
+  "version": "0016-project-name-reservation",
+  "steps": [
+    {"table":"projects","data":"check-reserved-project-names"},
+    {"table":"projects","data":"fill-project-name-keys"},
+    {
+      "table":"projects",
+      "sql":"ALTER TABLE projects MODIFY COLUMN name_key VARBINARY(1020) NOT NULL",
+      "columns":[{"name":"name_key","type":"varbinary(1020)","nullable":false,"default":null,"autoIncrement":false,"charset":null,"collation":null}]
+    }
+  ]
+}

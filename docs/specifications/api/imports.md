@@ -2,7 +2,7 @@
 
 对应代码：`src/server/routes/imports.ts`、`modules/imports.ts`、`modules/project-import.ts`。本文件描述P05的实际协议；固定发布版本及通过范围查系统真相和P05报告。业务规则只维护于[SPEC-009](../specification.md#spec-009-导入迁移与删除恢复)。
 
-**协议版本**：已部署产品`4ebd377`使用`0009-project-space`、执行命令`formatVersion:2`；准确运行与验证范围以系统真相为准。旧来源设置及独立review/adopt写入口返回410，只保留原结果与来源读取。
+**协议版本**：本文件随2026-11-02修复代码描述`formatVersion:2`的两步提交协议；应用和数据库部署事实查系统真相。旧来源设置及独立review/adopt写入口返回410，只保留原结果与来源读取。
 
 ## 身份与文件
 
@@ -22,7 +22,7 @@
 
 公共正文：`expectedBatchVersion,expectedReviewVersion,expectedVersion,idempotencyKey`；写入还带服务端返回的`basis`。`selected`是明确选择的差异键；`payload`仅表达本次纠正，未提供的内容保持。目标选择使用`mode`及`targetId`；有关生命周期的必要意图使用`intent`。账号、来源、资料和项目实际权限均由服务端重新核验。
 
-候选返回`classification=ready|needs_attention|unchanged`、`defaultSelected`、`conflictKeys`、`keptOnline`及`needsMapping`。本轮按SPEC-009名称规则识别目标：新增项目默认选择，已有项目实际差异默认不选择。每条差异的`status=normal|conflict|needs_choice|keep_online`说明处理类别，阶段或子记录用`members`保留同一事项的字段差异；不携带同对象未选字段。只读候选校验通过才列入`ready`，保存时仍重新核验。
+候选返回`classification=ready|needs_attention|unchanged`、`defaultSelected`、`conflictKeys`、`keptOnline`及`needsMapping`。按SPEC-009名称规则识别目标：新项目与已有项目实际差异默认纳入，`keepOnline`表达用户排除；唯一启用同名公共资料默认保留线上内容，`binding`仅保存使用该对象的对应关系。每条差异的`status=normal|conflict|needs_choice|keep_online`说明处理类别，阶段或子记录用`members`保留同一事项的字段差异。`targetDeleted/deletedVersion`区分历史目标与真正缺失，不以`previousResult`覆盖当前事实。保存时仍重新核验。
 
 `pendingInvitations`为候选仍需发出协作邀请的显示名称。正文一致但有待邀请对象时仍可确认该项目；`selected=[]`只创建邀请，不伪造正文修改或推进项目版本。`managerMatches`随单次执行集中确认存在歧义的备份经理；已加入或已有请求不自动重邀。准确身份和接受规则引用SPEC-014。
 
@@ -45,22 +45,24 @@
 
 成功返回`outcome=committed`及`result`。正式结果包含项目或资料ID、版本、采用与未采用计数、来源、操作号、采用ID和保存时间。短期回执清理后，正式采用通过不可改写的`import_adoptions`恢复原结果；`review`与`adopt`动作不能共用同一操作键。跨项目批量由服务器执行，单项冲突不撤销其他已成功项目。
 
-## 一次提交与自动接续
+## 分步提交与原操作接续
 
-`POST /api/imports/:batchId/executions`接收`{formatVersion:2,idempotencyKey,items:[{id,command,resolveReferences?}]}`，正文上限16MiB。`command`为上述原子项正文；`resolveReferences:true`明确允许完成本项目缺失但已明确的资料关联，未选择时不扩大所选范围。接收事务冻结依赖、输入、版本和原子操作号，返回202及执行记录；一次批次只能有一个未结束执行，同键同正文返回原执行，同键不同正文409。旧已完成命令可按原正文重放查询，未被接受的旧格式命令410。
+`POST /api/imports/:batchId/executions`接收`{formatVersion:2,stage:'catalogs'|'projects',idempotencyKey,items:[{id,command,resolveReferences?}]}`，正文上限16MiB。`command`为上述原子项正文。资料步骤可冻结资料间依赖；项目步骤只采用已保存或已确定复用的资料，不夹带新增资料。缺少stage的新请求410，范围混用422。接收事务冻结输入、版本和操作号，返回202；同批只能有一个accepted/running执行。paused仅占住未确定项，不挡无关项目。原已受理旧命令仍可按原键、原正文查询或恢复，不改写已冻结命令。
 
-`GET /api/imports/:batchId/executions`读取该批最新执行；`?operation=<UUID>`读取当前账号的指定执行。返回`id,batchId,actorId,operationId,status,items,operationIds`，不返回冻结命令或个人凭据。
+`GET /api/imports/:batchId/executions`读取该批最新执行；`?operation=<UUID>`读取指定执行，优先同账号同编号。返回`id,batchId,actorId,operationId,stage,status,items,operationIds,canResume,resumeMode`及本批`unfinished`清单，不返回冻结命令或个人凭据。刷新或换设备仍从服务器清单显示恢复入口，不依赖浏览器原正文。
+
+`POST /api/imports/:batchId/executions/:operation/resume`正文为`{}`，沿原操作继续。本人可继续；原处理人停用后，已明确接管的当前处理人仅核对原执行（`resumeMode=reconcile`）：已提交按原回执恢复，尚未提交因旧身份失效终止释放，再以接管人的当前资格重新提交。不能把原请求身份换成新处理人重放。
 
 | 层级 | 状态及客户端行为 |
 |---|---|
-| 整次执行 | `accepted/running/finished`；finished表示本次逐项结果均确定，不等于所有项目成功 |
-| 每项 | `pending/saving/committed/failed/confirming`；成功含原result，失败含code/statusCode/fields，confirming由服务器按原键继续核实 |
+| 整次执行 | `accepted/running/paused/finished`；paused有原处查询/继续入口，停止自动轮询；finished表示逐项结果均确定，不等于全部成功 |
+| 每项 | `pending/saving/committed/failed/confirming/waiting`；成功含原result，失败含code/statusCode/fields；未知与依赖等待不阻止无依赖项执行 |
 | 接收响应未知 | 保留原批次、操作号和正文，先GET确认；不存在才重发相同接收命令，不生成替代操作 |
 | 页面离开/服务重启 | MySQL保留范围及进度，执行器重新领取过期租约；业务提交后进度丢失优先读永久采用，不重复保存 |
 | 账号变化 | 原已成功结果可回读；停用、改密、处理人或项目权限变化在后续写入前重新检查 |
 | 老页面未知请求 | 原结果查询先锁项确认；有结果返回committed；仍有执行返回not_found；无执行无结果返回not_committed，保留输入后重新使用当前入口 |
 
-页面只发送一次范围命令、读取进度和展示结果；正常资料依赖自动处理，业务冲突仍停在原项目直接修正。公司信息不自动加入依赖。
+页面每步只发送一次范围命令。查询失败保留原请求，不能当作保存未提交清空；恢复后的轮询始终绑定原operation。资料冲突在资料原行处理，项目依赖问题可返回同页对应资料；企业信息不自动采用。
 
 ## 批次接续与正式项目读取
 
