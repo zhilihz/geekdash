@@ -1,5 +1,11 @@
 # 导入与面板修复：本地用户测试入口
 
+## 2026-11-03 Docker 测试版 V0.1.2-6b394db
+
+本机 41874 已运行本轮交给同事的完整镜像 `geekdash:V0.1.2-6b394db`。产品构建取自 Git 提交 `6b394db9cad9b10cc80aa32c2aac3b444a900109` 的干净归档，构建时间 2026-11-03T07:56:06.697Z，schema 0016。镜像 ID 为 `sha256:0c3a276410630ecfec5a26d8446a4ba04fd7379595647151b852242633c51ca8`。同事拿到的 linux/amd64 镜像文件 SHA256 为 `2f79e11c7928b67ac539c85dbd1b6c0ee4b5c6790a76363c8274a9dd3dbc7953`。配套的小型脚本包与镜像文件放在本机构建机 `D:/geekwon/geekdash-data/docker-delivery-V0.1.2-6b394db/`。
+
+已经从宿主回读 live、ready 以及14个页面、39个直接引用的静态资源和图标，并与交付构建逐文件比对。本机用户库仍是35项目、1账号、1条系统配置。上传脚本通过本地 -CheckOnly，Harbor 上传及 K3s 整合由部署同事执行。SQL 的适用版本与停服升级命令见[运维流程](../release-maintenance.md#2026-11-02-导入与面板修复的升级要求)，真实界面的改动范围见[更新记录](../../changelog/CHANGELOG.md)。
+
 ## 2026-11-03 驾驶舱与项目卡片本地更新
 
 41874 本轮从 16daf52 经 b5ffc17、d051677 更新到 `d93dbcbb001ebdeee899e4b935de27c2a0bfb963`。最终使用该提交的 Git 归档在容器 Linux 目录中洁净构建，时间 2026-11-03T06:33:22.568Z。镜像 `geekdash:local-repair-d93dbcb`，ID `sha256:e09d01a3af4d87dbf79c8654bf501e2e549fa578fbbd99faac8264695a67b47c`。
