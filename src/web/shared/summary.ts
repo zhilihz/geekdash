@@ -6,17 +6,22 @@ export type SummarySnapshot={items:SummaryProject[];businessDate:string;captured
 export const summaryColumns={customer:'客户',group:'分组',name:'项目名称',chips:'核心芯片',status:'任务清单',projectOwners:'项目负责人',hardwareOwners:'硬件负责人',softwareOwners:'软件负责人',participants:'参与者',risks:'项目风险',changes:'需求变更',note:'备注',chipNote:'芯片备注',stage:'当前阶段',node:'关键节点',dueDate:'预计结案日期',delay:'是否延期'};
 export type SummaryColumn=keyof typeof summaryColumns;
 export const defaultColumns=Object.keys(summaryColumns).filter(key=>key!=='chipNote') as SummaryColumn[];
-export const summaryFilterTitles={customer:'客户',productLine:'产品线',odmFactory:'ODM 工厂',app:'配套 APP',status:'项目状态',priority:'优先级',signal:'信号灯',stage:'项目阶段',progress:'进度',chip:'芯片',tags:'项目标签',group:'分组',assignment:'分工人员',owner:'任务负责人',risk:'项目风险',change:'需求变更',deadline:'计划结果'};
+export const summaryFilterTitles={customer:'客户',productLine:'产品线',odmFactory:'ODM 工厂',app:'配套 APP',status:'项目状态',priority:'优先级',signal:'信号灯',stage:'项目阶段',progress:'进度',chip:'芯片',tags:'项目标签',group:'分组',projectOwners:'项目负责人',hardwareOwners:'硬件负责人',softwareOwners:'软件负责人',participants:'参与者',owner:'任务负责人',risk:'项目风险',change:'需求变更',deadline:'计划结果'};
 export type SummaryFilter=keyof typeof summaryFilterTitles;
-export type SummaryFilters=Partial<Record<SummaryFilter,string[]>> & {search?:string;contentFrom?:string;contentTo?:string};
+export type SummaryFilters=Partial<Record<SummaryFilter,string[]>> & {assignment?:string[];search?:string;contentFrom?:string;contentTo?:string};
 export type SummarySort='customer'|'group'|'chip'|'stage'|'dueDate';
 const personName=(name:string)=>name.trim()!==''&&name.trim()!=='-';
 function assignmentNames(project:SummaryProject,role:string){return [...new Set(project.people.filter(person=>person.role===role&&personName(person.name)).map(person=>person.name))];}
-export function summaryParticipants(project:SummaryProject){
+function participantPeople(project:SummaryProject){
   const owners=new Set(project.people.filter(person=>['hardware_owner','software_owner'].includes(person.role)).map(person=>person.id));
   // 账号与工程师不是同一编号空间；此处只按完整姓名去除重复展示，不建立人员或权限关联。
   const managers=new Set(project.managers.filter(person=>person.enabled&&personName(person.name)).map(person=>person.name));
-  return [...new Set(project.people.filter(person=>person.role==='participant'&&personName(person.name)&&!owners.has(person.id)&&!managers.has(person.name)).map(person=>person.name))];
+  return project.people.filter(person=>person.role==='participant'&&personName(person.name)&&!owners.has(person.id)&&!managers.has(person.name));
+}
+export const summaryParticipants=(project:SummaryProject)=>[...new Set(participantPeople(project).map(person=>person.name))];
+// 早期偏好把不同职责作为同一组选项，不可直接拆成多个相交的筛选条件。
+export function oldAssignmentOptions(project:SummaryProject):[string,string][]{
+  return [...project.managers.map(person=>['user:'+person.id,person.name] as [string,string]),...project.people.filter(person=>person.role!=='pm').map(person=>['engineer:'+person.id,person.name] as [string,string])];
 }
 export function summaryValue(project:SummaryProject,column:SummaryColumn):string {
   switch(column){
@@ -47,7 +52,9 @@ function filterChoices(project:SummaryProject,kind:SummaryFilter):[string,string
   if(kind==='risk'){const risks=project.risks??[];return (!risks.length?['none']:['present',...new Set(risks.map(risk=>risk.resolved?'resolved':'unresolved'))]).map(value=>[value,riskNames[value as keyof typeof riskNames]]);}
   if(kind==='change'){const changes=project.changes??[];return (!changes.length?['none']:['present',...new Set(changes.map(change=>change.decision))]).map(value=>[value,changeNames[value as keyof typeof changeNames]]);}
   if(kind==='chip' || kind==='tags')return (kind==='chip'?project.chips:project.tags).map(item=>[item.id,item.name]);
-  if(kind==='assignment')return [...project.managers.map(person=>['user:'+person.id,person.name] as [string,string]),...project.people.filter(person=>person.role!=='pm').map(person=>['engineer:'+person.id,person.name] as [string,string])];
+  if(kind==='projectOwners')return project.managers.filter(person=>person.enabled&&personName(person.name)).map(person=>[person.id,person.name]);
+  if(kind==='participants')return participantPeople(project).map(person=>[person.id,person.name]);
+  if(kind==='hardwareOwners'||kind==='softwareOwners'){const role=kind==='hardwareOwners'?'hardware_owner':'software_owner';return project.people.filter(person=>person.role===role&&personName(person.name)).map(person=>[person.id,person.name]);}
   if(kind==='owner')return project.statusOwners.map(name=>[name,name]);
   if(['customer','productLine','odmFactory','app','group'].includes(kind)){const values=project[(kind+'Items') as keyof SummaryProject] as {id:string;name:string}[]|undefined;if(values?.length)return values.map(item=>[item.name,item.name]);}
   if(kind==='group'){const value=project.projectGroup || '未分组';return [[value,value]];}
@@ -66,6 +73,7 @@ export function summaryFilterOptions(snapshot:SummarySnapshot):Record<SummaryFil
 export function summaryRows(items:SummaryProject[],filters:SummaryFilters,sort:SummarySort,order:string[]=[],hidden:string[]=[],quickIds?:string[]) {
   const omitted=new Set(hidden),scope=quickIds ? new Set(quickIds) : null,positions=new Map(order.map((id,index)=>[id,index])),search=filters.search?.trim().toLowerCase();
   const result=items.filter(project=>(!filters.contentFrom&&!filters.contentTo||!!project.contentUpdatedOn&&(!filters.contentFrom||project.contentUpdatedOn>=filters.contentFrom)&&(!filters.contentTo||project.contentUpdatedOn<=filters.contentTo)) && !omitted.has(project.id) && (!scope || scope.has(project.id))
+    && (!filters.assignment?.length||oldAssignmentOptions(project).some(([value])=>filters.assignment!.includes(value)))
     && (Object.keys(summaryFilterTitles) as SummaryFilter[]).every(kind=>!filters[kind]?.length || filterChoices(project,kind).some(([value])=>filters[kind]!.includes(value)))
     && (!search || [[project.name,project.customer,project.productLine,project.odmFactory,project.app,project.marketExpectation,project.statusDesc].filter(Boolean).join(' '),...project.chips.map(chip=>chip.name),...project.people.filter(person=>person.role!=='pm').map(person=>person.name),...project.managers.map(person=>person.name)].some(value=>value.toLowerCase().includes(search))));
   return result.sort((a,b)=>{

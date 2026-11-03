@@ -1,3 +1,4 @@
+import {projectFilters,toggleFilter} from './shared/filter-panel';
 import { bindTaskEditor } from './shared/task-editor';
 import { validTaskDraft } from './shared/task-text';
 import { changedTaskOps,taskPanel,taskList,taskCopy,taskText,applyTaskText,confirmTaskDeletes } from './shared/tasks';
@@ -13,6 +14,8 @@ import { attachStatusMentions } from './shared/status-mentions';
 declare const __GEEKDASH_STAGES__: { id: number; name: string; milestone: string }[];
 
 const element = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+const dimensions = { customer: '客户', productLine: '产品线', odmFactory: 'ODM 工厂', app: '配套 APP', status: '状态', priority: '优先级', signal: '信号灯', stage: '项目阶段', progress: '进度', chip: '芯片', tags: '项目标签', group: '分组', manager:'项目负责人', owner: '业务分工', taskOwner:'任务负责人', deadline: '计划结果' };
+const panel=projectFilters(element('board-filters'),'',dimensions,()=>{remember();if(currentData)filters(currentData.options,currentData.optionLabels);});
 const search = element<HTMLInputElement>('search');
 const message = element<HTMLParagraphElement>('message');
 const filterRows = element<HTMLDivElement>('filter-rows');
@@ -22,8 +25,7 @@ let preference:PersonalPreference|undefined;
 let restoredScroll:number|undefined;
 let scrollTimer:ReturnType<typeof setTimeout>|undefined;
 query.set('view', ['active', 'proposal', 'closed', 'maintenance', 'all'].includes(query.get('view') ?? '') ? query.get('view')! : 'active');
-const dimensions = { customer: '客户', productLine: '产品线', odmFactory: 'ODM 工厂', app: '配套 APP', status: '状态', priority: '优先级', signal: '信号灯', stage: '项目阶段', progress: '进度', chip: '芯片', tags: '项目标签', group: '分组', manager:'项目负责人', owner: '业务分工', taskOwner:'任务负责人', deadline: '计划结果' };
-let filterOrder=[...Object.keys(dimensions),'contentDate'],hiddenFilters:string[]=[],cardContent:'status'|'tasks'='status',chartPercent=true;
+let cardContent:'status'|'tasks'='status',chartPercent=true;
 const allowed = new Set(['perspective','contentFrom','contentTo','view', 'search', 'page', 'layout', ...Object.keys(dimensions)]);
 for (const key of [...query.keys()]) if (!allowed.has(key)) query.delete(key);
 let controller: AbortController | undefined;
@@ -74,19 +76,15 @@ search.value = query.get('search') ?? '';
 filterRows.hidden=true;
 filterToggle();
 
-function filterToggle() {
-  element('filter-toggle').setAttribute('aria-expanded', String(!filterRows.hidden));
-  element('filter-toggle').textContent = filterRows.hidden ? '▸ 展开筛选' : '▾ 收起筛选';
-}
-function remember(){preference?.update({view:query.get('view'),page:Number(query.get('page') ?? 1),filters:Object.fromEntries(['search','contentFrom','contentTo',...Object.keys(dimensions)].filter(key=>query.has(key)).map(key=>[key,['search','contentFrom','contentTo'].includes(key)?query.get(key):query.getAll(key)])),filtersOpen:!filterRows.hidden,distributions:visibleDistributions,filterOrder,hiddenFilters,cardContent,chartPercent,scrollY:window.scrollY});}
+function filterToggle(){panel.expand(!filterRows.hidden);}
+function remember(){preference?.update({view:query.get('view'),page:Number(query.get('page') ?? 1),filters:Object.fromEntries(['search','contentFrom','contentTo',...Object.keys(dimensions)].filter(key=>query.has(key)).map(key=>[key,['search','contentFrom','contentTo'].includes(key)?query.get(key):query.getAll(key)])),filtersOpen:!filterRows.hidden,distributions:visibleDistributions,filterOrder:panel.layout.order,hiddenFilters:panel.layout.hidden,cardContent,chartPercent,scrollY:window.scrollY});}
 function filterValue(key: string, value: string) {
   const deadlineNames: Record<string, string> = { upcoming: '未到期', due: '今日到期', overdue: '已超期', unset: '计划未定', closed_on_time: '按期结案', closed_late: '超期结案', closed_unplanned: '无计划结案', closed_unknown: '结案日期待核对', terminated: '终止结案' };
   return currentData?.optionLabels?.[key]?.[value] ?? (key === 'deadline' ? deadlineNames[value] ?? value : key === 'progress' ? value + '%' : ['status', 'priority', 'signal', 'stage'].includes(key) ? label(value) : value);
 }
 function selectedFilters() {
   const selected = [['search','搜索'],['contentFrom','内容更新起日'],['contentTo','内容更新止日'],...Object.entries(dimensions)].filter(([key]) => query.get(key)).map(([key, title]) => ({ key, text: `${title}：${query.getAll(key).map(value=>filterValue(key,value)).join('、')}` }));
-  element('selected-filters').hidden = !selected.length;
-  element('selected-filters').innerHTML = selected.map(item => `<button class="chip active" data-remove-filter="${item.key}" aria-label="取消${esc(item.text)}">${esc(item.text)} <span aria-hidden="true">×</span></button>`).join('');
+  panel.selected(selected);
   return selected.map(item => item.text);
 }
 function milestoneText(stageCode: string) {
@@ -360,21 +358,9 @@ function filters(options: List['options'], labels: List['optionLabels']) {
   options.stage = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'completed', 'unconfigured'];
   options.progress = ['0', '5', '10', '20', '60', '80', '90', '100'];
   options.deadline = ['upcoming', 'due', 'overdue', 'unset', 'closed_on_time', 'closed_late', 'closed_unplanned', 'closed_unknown', 'terminated'];
-  filterRows.innerHTML = `<div class="filter-row" data-dimension="contentDate"><span class="filter-label">内容更新时间</span><label>从 <input type="date" data-content-date="contentFrom" value="${esc(query.get('contentFrom')??'')}" max="${esc(query.get('contentTo')??'')}"></label><label>至 <input type="date" data-content-date="contentTo" value="${esc(query.get('contentTo')??'')}" min="${esc(query.get('contentFrom')??'')}"></label><span>按说明与任务修改日期筛选</span></div>`+filterOrder.filter(key=>key!=='contentDate').map(key => {
-    const title=dimensions[key as keyof typeof dimensions];
-    const values = options[key] ?? [];
-    const selected = query.getAll(key);
-    const choices = [...new Set([...selected,...values])];
-    return `<div class="filter-row" data-dimension="${key}" role="group" aria-label="${title}"><span class="filter-label">${title}</span><button class="chip ${selected.length ? '' : 'active'}" aria-pressed="${!selected.length}" data-filter="${key}" data-value="">全部</button>${choices.map(value => `<button class="chip ${selected.includes(value) ? 'active' : ''}" aria-pressed="${selected.includes(value)}" data-filter="${key}" data-value="${esc(value)}">${esc(labels?.[key]?.[value] ?? filterValue(key, value))}</button>`).join('')}</div>`;
-  }).join('');
-  for(const key of filterOrder){const row=filterRows.querySelector<HTMLElement>(`[data-dimension="${key}"]`);if(row){row.hidden=hiddenFilters.includes(key)&&!(key==='contentDate'?query.has('contentFrom')||query.has('contentTo'):query.has(key));filterRows.append(row);}}
+  const choices=Object.fromEntries(Object.keys(dimensions).map(key=>[key,[...new Set([...query.getAll(key),...options[key]??[]])].map(value=>[value,labels?.[key]?.[value]??filterValue(key,value)] as [string,string])]));
+  panel.render(choices,key=>query.getAll(key),query.get('contentFrom')??'',query.get('contentTo')??'');
 }
-function filterSettings(){
-  element('filter-settings-panel').innerHTML=filterOrder.map((key,i)=>`<div class="filter-setting"><label><input type="checkbox" data-filter-visible="${key}"${hiddenFilters.includes(key)?'':' checked'}>${key==='contentDate'?'内容更新时间':dimensions[key as keyof typeof dimensions]}</label><button class="head-btn" data-filter-move="${key}" data-direction="-1"${i===0?' disabled':''} aria-label="上移">↑</button><button class="head-btn" data-filter-move="${key}" data-direction="1"${i===filterOrder.length-1?' disabled':''} aria-label="下移">↓</button></div>`).join('');
-}
-element('filter-settings').onclick=()=>{const panel=element('filter-settings-panel');panel.hidden=!panel.hidden;element('filter-settings').setAttribute('aria-expanded',String(!panel.hidden));filterSettings();};
-element('filter-settings-panel').onchange=event=>{const input=event.target as HTMLInputElement,key=input.dataset.filterVisible!;hiddenFilters=hiddenFilters.filter(value=>value!==key);if(!input.checked)hiddenFilters.push(key);remember();if(currentData)filters(currentData.options,currentData.optionLabels);};
-element('filter-settings-panel').onclick=event=>{const button=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-filter-move]');if(!button||button.disabled)return;const a=filterOrder.indexOf(button.dataset.filterMove!),b=a+Number(button.dataset.direction);[filterOrder[a],filterOrder[b]]=[filterOrder[b],filterOrder[a]];remember();filterSettings();if(currentData)filters(currentData.options,currentData.optionLabels);};
 element('chart-percent').onchange=event=>{chartPercent=(event.target as HTMLInputElement).checked;remember();distribution();};
 document.querySelectorAll<HTMLButtonElement>('[data-card-content]').forEach(button=>button.onclick=()=>{cardContent=button.dataset.cardContent==='tasks'?'tasks':'status';remember();preserveStatus();renderProjects();});
 async function load(active = true) {
@@ -458,7 +444,7 @@ document.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(button => bu
 });
 filterRows.onclick = event => {
   const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-filter]');
-  if(button){const key=button.dataset.filter!,value=button.dataset.value!,selected=query.getAll(key);query.delete(key);if(value)for(const item of selected.includes(value)?selected.filter(item=>item!==value):[...selected,value])query.append(key,item);query.delete('page');remember();void load();}
+  if(button){const key=button.dataset.filter!,value=button.dataset.value!,selected=query.getAll(key);query.delete(key);for(const item of toggleFilter(selected,value))query.append(key,item);query.delete('page');remember();void load();}
 };
 let searchTimer: ReturnType<typeof setTimeout>;
 search.oninput = () => { clearTimeout(searchTimer); controller?.abort(); generation++; freezeCheckEntry(); searchTimer = setTimeout(() => change('search', search.value), 200); };
@@ -509,8 +495,7 @@ void import('./shared/api').then(async ({ requireIdentity }) => {
   element('perspective-switch').hidden=!dualRole;
   document.querySelectorAll<HTMLButtonElement>('[data-perspective]').forEach(button=>button.onclick=()=>{query.set('perspective',button.dataset.perspective!);query.set('page','1');preserveStatus();void load();});
   preference=new PersonalPreference('board',feedback);const saved=await preference.load();if(Array.isArray(saved.distributions))visibleDistributions=saved.distributions.filter((key:unknown)=>typeof key==='string'&&Object.hasOwn(distributionNames,key));
-  if(Array.isArray(saved.filterOrder)){filterOrder=[...new Set([...saved.filterOrder.filter((key:unknown)=>typeof key==='string'&&filterOrder.includes(key)),...filterOrder])];}
-  if(Array.isArray(saved.hiddenFilters))hiddenFilters=saved.hiddenFilters.filter((key:unknown)=>typeof key==='string'&&filterOrder.includes(key));
+  panel.restore(saved.filterOrder,saved.hiddenFilters);
   cardContent=saved.cardContent==='tasks'?'tasks':'status';chartPercent=saved.chartPercent!==false;element<HTMLInputElement>('chart-percent').checked=chartPercent;
   try{const cached=JSON.parse(sessionStorage.getItem(statusCache()) ?? '[]');if(Array.isArray(cached))for(const edit of cached)if(typeof edit.id==='string' && /^[1-9][0-9]*$/.test(edit.id) && typeof edit.value==='string' && typeof edit.base==='string' && validTaskDraft(edit.ops) && (edit.taskBulk===undefined||typeof edit.taskBulk==='string') && (edit.summary===undefined||typeof edit.summary==='string') && (edit.summaryBase===undefined||typeof edit.summaryBase==='string') && typeof edit.version==='string' && (!edit.pending || ['status','project'].includes(edit.pending.scope)&&Object.keys(edit.pending.changes??{}).every(key=>['summary','statusDesc','taskOps'].includes(key))))statusEdits.set(edit.id,{...edit,busy:false});}catch{}
   if(!explicitQuery){if(typeof saved.view==='string')query.set('view',saved.view);if(typeof saved.page==='number')query.set('page',String(saved.page));for(const [key,value] of Object.entries(saved.filters ?? {}))if(allowed.has(key)){query.delete(key);for(const item of Array.isArray(value)?value:[value])if(typeof item==='string')query.append(key,item)};restoredScroll=typeof saved.scrollY==='number'?saved.scrollY:undefined;}

@@ -1,3 +1,4 @@
+import {projectFilters,toggleFilter} from './shared/filter-panel';
 import './shared/board.css';
 import './shared/read.css';
 import './shared/summary.css';
@@ -5,13 +6,14 @@ import './shared/design.css';
 import {get,send,requireIdentity,account,esc,SaveError,setupTheme,type SaveRequest,type SaveResult} from './shared/api';
 import {PersonalPreference,PersonalDrafts} from './shared/personal-state';
 import {ProjectNotifications} from './shared/notifications';
-import {summaryColumns,summaryFilterTitles,summaryFilterOptions,summaryRows,summaryValue,selectedSummary,visibleColumns,summaryCsv,summaryMarkdown,type SummaryColumn,type SummaryFilter,type SummaryFilters,type SummarySort,type SummarySnapshot} from './shared/summary';
+import {summaryColumns,summaryFilterTitles,summaryFilterOptions,oldAssignmentOptions,summaryRows,summaryValue,selectedSummary,visibleColumns,summaryCsv,summaryMarkdown,type SummaryColumn,type SummaryFilter,type SummaryFilters,type SummarySort,type SummarySnapshot} from './shared/summary';
 import {summaryPng,printSummary} from './shared/summary-output';
 import {statusHtml} from './shared/status-text';
 import {confirmAction} from './shared/action-confirm';
 
 const element=(id:string)=>document.getElementById(id)!;
 const table=element('summary-table');
+const panel=projectFilters(element('summary-filters'),'summary-',summaryFilterTitles,()=>{remember();renderFilters();});
 type NoteKind='summaryNote'|'chipstatNote';
 type NoteEdit={id:string;kind:NoteKind;value:string;base:string;version:string;pending?:SaveRequest;busy?:boolean;message?:string};
 type Directory={name:string;getFileHandle:(name:string,options:{create:boolean})=>Promise<{createWritable:()=>Promise<{write:(data:Blob)=>Promise<void>;close:()=>Promise<void>;abort:()=>Promise<void>}>}>};
@@ -51,27 +53,28 @@ function drafts(id:string){
   },{button:false,kinds:['summaryNote','chipstatNote']});draftStores.set(id,store);return store;
 }
 function capture(edit:NoteEdit){if(edit.value===edit.base || edit.pending)return;drafts(edit.id).capture(edit.kind,undefined,edit.version,{values:{[edit.kind]:edit.value},submission:{scope:edit.kind,changes:{[edit.kind]:edit.value}}});}
-function remember(){preference.update({filters,filtersOpen,sort,rowOrder:order,hiddenRows:hidden});}
-function renderSelectedFilters(){
-  if(!snapshot)return;
-  const options=summaryFilterOptions(snapshot);
-  element('summary-selected-filters').innerHTML=(filters.search?`<button data-clear-search>搜索：${esc(filters.search)} <span aria-hidden="true">×</span></button>`:'')+(['contentFrom','contentTo'] as const).filter(key=>filters[key]).map(key=>`<button data-clear-date="${key}">${key==='contentFrom'?'内容更新起日':'内容更新止日'}：${esc(filters[key]!)} ×</button>`).join('')+(Object.keys(summaryFilterTitles) as SummaryFilter[]).flatMap(kind=>(filters[kind] ?? []).map(value=>`<button data-remove-filter="${kind}" data-value="${esc(value)}">${summaryFilterTitles[kind]}：${esc(options[kind].find(option=>option[0]===value)?.[1] ?? value)} <span aria-hidden="true">×</span></button>`)).join('');
-  element('summary-selected-filters').hidden=!element('summary-selected-filters').childElementCount;
+function remember(){preference.update({filters,filtersOpen,filterOrder:panel.layout.order,hiddenFilters:panel.layout.hidden,sort,rowOrder:order,hiddenRows:hidden});}
+function renderSelectedFilters(options=snapshot?summaryFilterOptions(snapshot):undefined){
+  if(!snapshot||!options)return;
+  const items:{key:string;text:string;value?:string}[]=[];
+  if(filters.search)items.push({key:'search',text:'搜索：'+filters.search});
+  for(const key of ['contentFrom','contentTo'] as const)if(filters[key])items.push({key,text:(key==='contentFrom'?'内容更新起日：':'内容更新止日：')+filters[key]});
+  for(const key of Object.keys(summaryFilterTitles) as SummaryFilter[])for(const value of filters[key]??[]){
+    const label=options[key].find(([id])=>id===value)?.[1]??value;
+    items.push({key,value,text:summaryFilterTitles[key]+'：'+label});
+  }
+  if(filters.assignment?.length){
+    const legacy=new Map(snapshot.items.flatMap(oldAssignmentOptions));
+    for(const value of filters.assignment)items.push({key:'assignment',value,text:'旧分工筛选：'+(legacy.get(value)??'未匹配人员')});
+  }
+  panel.selected(items);
 }
 function renderFilters(){
   if(!snapshot)return;
-  if(!document.getElementById('summary-search')){
-    element('summary-filters').innerHTML=`<label class="summary-search">搜索项目<input id="summary-search" type="search" maxlength="255" placeholder="项目名称 / 客户 / 芯片 / 人员" value="${esc(filters.search ?? '')}"></label><div class="summary-filter-tools"><button id="summary-filter-toggle" aria-controls="summary-filter-rows"></button><span>全部筛选条件</span><button data-clear-filters>清空筛选</button></div><div id="summary-selected-filters"></div><div id="summary-filter-rows"></div>`;
-  }
   const options=summaryFilterOptions(snapshot);
-  element('summary-filter-rows').innerHTML=`<div class="summary-filter"><span>内容更新时间：</span><label>从 <input type="date" data-content-date="contentFrom" value="${esc(filters.contentFrom??'')}" max="${esc(filters.contentTo??'')}"></label><label>至 <input type="date" data-content-date="contentTo" value="${esc(filters.contentTo??'')}" min="${esc(filters.contentFrom??'')}"></label></div>`+(Object.keys(summaryFilterTitles) as SummaryFilter[]).map(kind=>{
-    const chosen=filters[kind] ?? [],values=[...options[kind],...chosen.filter(value=>!options[kind].some(option=>option[0]===value)).map(value=>[value,value])];
-    return `<div class="summary-filter" role="group" aria-label="${summaryFilterTitles[kind]}"><span>${summaryFilterTitles[kind]}：</span><button data-all="${kind}" aria-pressed="${!chosen.length}">全选</button>${values.map(([value,title])=>`<label><input type="checkbox" data-filter="${kind}" value="${esc(value)}" ${chosen.includes(value)?'checked':''}>${esc(title)}</label>`).join('')}</div>`;
-  }).join('');
-  element('summary-filter-rows').hidden=!filtersOpen;
-  element('summary-filter-toggle').textContent=filtersOpen?'▾ 收起筛选':'▸ 展开筛选';
-  element('summary-filter-toggle').setAttribute('aria-expanded',String(filtersOpen));
-  renderSelectedFilters();
+  panel.render(options,key=>filters[key as SummaryFilter]??[],filters.contentFrom??'',filters.contentTo??'');
+  panel.expand(filtersOpen);
+  renderSelectedFilters(options);
   element('summary-columns').innerHTML='<div class="summary-fields"><span>字段显示：</span>'+columnOrder.filter(c=>c!=='name').map(c=>`<label><input type="checkbox" data-column-toggle="${c}" ${!hiddenColumns.includes(c)?'checked':''}>${summaryColumns[c]}</label>`).join('')+'</div>';
 }
 function noteCell(id:string,kind:NoteKind){
@@ -130,14 +133,14 @@ element('summary-filters').onclick=event=>{
   const button=(event.target as HTMLElement).closest<HTMLButtonElement>('button');if(!button)return;
   if(button.id==='summary-filter-toggle'){filtersOpen=!filtersOpen;remember();renderFilters();return;}
   if(button.hasAttribute('data-clear-filters')){filters={};(element('summary-search') as HTMLInputElement).value='';}
-  else if(button.hasAttribute('data-clear-search')){delete filters.search;(element('summary-search') as HTMLInputElement).value='';}
-  else if(button.dataset.clearDate)delete filters[button.dataset.clearDate as 'contentFrom'|'contentTo'];
-  else if(button.dataset.removeFilter){const kind=button.dataset.removeFilter as SummaryFilter;filters[kind]=(filters[kind] ?? []).filter(value=>value!==button.dataset.value);}
-  else if(button.dataset.all)filters[button.dataset.all as SummaryFilter]=[];
+  else if(button.dataset.removeFilter==='search'){delete filters.search;(element('summary-search') as HTMLInputElement).value='';}
+  else if(button.dataset.removeFilter==='contentFrom'||button.dataset.removeFilter==='contentTo')delete filters[button.dataset.removeFilter];
+  else if(button.dataset.removeFilter){const kind=button.dataset.removeFilter as SummaryFilter|'assignment';filters[kind]=(filters[kind]??[]).filter(value=>value!==button.dataset.value);}
+  else if(button.dataset.filter){const kind=button.dataset.filter as SummaryFilter;filters[kind]=toggleFilter(filters[kind]??[],button.dataset.value??'');}
   else return;
   remember();renderFilters();renderTable();
 };
-element('summary-filters').onchange=event=>{const input=event.target as HTMLInputElement,kind=input.dataset.filter as SummaryFilter;if(input.dataset.contentDate){if(!input.reportValidity())return;filters[input.dataset.contentDate as 'contentFrom'|'contentTo']=input.value;remember();renderFilters();renderTable();return;}if(!kind)return;filters[kind]=input.checked?[...new Set([...(filters[kind] ?? []),input.value])]:(filters[kind] ?? []).filter(value=>value!==input.value);remember();renderFilters();renderTable();};
+element('summary-filters').onchange=event=>{const input=event.target as HTMLInputElement;if(!input.dataset.contentDate||!input.reportValidity())return;filters[input.dataset.contentDate as 'contentFrom'|'contentTo']=input.value;remember();renderFilters();renderTable();};
 function searchProjects(event:Event){const input=event.target as HTMLInputElement;if(input.id!=='summary-search' || event instanceof InputEvent && event.isComposing)return;filters.search=input.value;remember();renderSelectedFilters();renderTable();}
 element('summary-filters').addEventListener('input',searchProjects);
 element('summary-filters').addEventListener('compositionend',searchProjects);
@@ -195,7 +198,7 @@ async function initialize(){if(await requireIdentity()){
       quickIds=[...new Set(saved.ids as string[])];
       if(typeof saved.title==='string')(element('report-title') as HTMLInputElement).value=saved.title+' · 项目状态简要';
       const source=new URL(saved.sourceUrl,location.origin);
-      if(source.origin===location.origin && ['/', '/GeekDash.html'].includes(source.pathname) && !source.username && !source.password)document.querySelector<HTMLAnchorElement>('.summary-heading a')!.href=source.href;
+      if(source.origin===location.origin && ['/', '/GeekDash.html'].includes(source.pathname) && !source.username && !source.password){const back=document.querySelector<HTMLAnchorElement>('.summary-heading a');if(back)back.href=source.href;}
     }catch{scopeError='原统计范围无法恢复，请返回看板重新选择。未扩大到全部项目。';message('');}
   }
   preference=new PersonalPreference('summary',message);layout=new PersonalPreference('summary-layout',message);
@@ -204,10 +207,13 @@ async function initialize(){if(await requireIdentity()){
   if(state.filters && typeof state.filters==='object'){
     const saved=state.filters as Record<string,unknown>;
     for(const field of Object.keys(summaryFilterTitles) as SummaryFilter[])filters[field]=strings(saved[field]);
+    if(Array.isArray(saved.assignment))filters.assignment=strings(saved.assignment);
     if(typeof saved.search==='string')filters.search=saved.search;
     for(const key of ['contentFrom','contentTo'] as const)if(typeof saved[key]==='string')filters[key]=saved[key];
   }
   filtersOpen=state.filtersOpen===true;
+  panel.restore(state.filterOrder,state.hiddenFilters);
+  (element('summary-search') as HTMLInputElement).value=filters.search??'';
   if(['customer','group','chip','stage','dueDate'].includes(String(state.sort)))sort=state.sort as SummarySort;
   order=strings(state.rowOrder);hidden=strings(state.hiddenRows);columnOrder=visibleColumns(view.columns,[]);hiddenColumns=(view.hiddenColumns===undefined?['chipNote']:strings(view.hiddenColumns)).flatMap(key=>key==='engineers'?['hardwareOwners','softwareOwners']:key);
   (element('summary-sort') as HTMLSelectElement).value=sort;

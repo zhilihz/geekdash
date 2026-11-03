@@ -1,0 +1,22 @@
+.toolbar-panel.project-filter-panel { padding: 16px 18px; margin-bottom: 16px; }
+.project-filter-panel .read-label { margin: 0 0 7px; }
+.project-filter-panel input[type="search"] { width: 100%; box-sizing: border-box; background: var(--bg-soft); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 11px 13px; font: inherit; font-size: 14px; margin: 0; }
+.project-filter-panel input[type="search"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(88,166,255,.15); }
+.project-filter-panel .filter-head { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 12px 0 0; }
+.project-filter-panel .filter-toggle { font-size: 13px; padding: 8px 13px; color: var(--text); }
+.project-filter-panel [data-clear-filters] { margin-left: auto; }
+.project-filter-panel .filter-groups { margin-top: 16px; }
+.project-filter-panel .filter-row { align-items: baseline; padding: 10px 0; margin: 0; border-top: 1px solid var(--border); gap: 8px; }
+.project-filter-panel .filter-label { flex: 0 0 76px; font-size: 13px; }
+.project-filter-panel button.chip { font-size: 13px; padding: 6px 13px; max-width: 100%; overflow-wrap: anywhere; }
+.project-filter-panel button.chip.active { background: var(--accent-dim); border-color: var(--accent-dim); }
+.project-filter-panel .selected-filter-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.project-filter-panel .selected-filter-chips .chip { border-radius: 6px; }
+.project-filter-panel .filter-settings-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 8px; padding: 16px; margin: 12px 0; border: 1px solid var(--border); border-radius: 8px; }
+.project-filter-panel .filter-setting { display: flex; align-items: center; gap: 8px; }
+.project-filter-panel .filter-setting label { flex: 1; display: flex; align-items: center; gap: 8px; }
+.project-filter-panel .filter-setting .head-btn { padding: 4px 10px; min-height: 32px; }
+.project-filter-panel [hidden] { display: none; }
+@media (max-width: 700px) {
+  .project-filter-panel .filter-label { flex-basis: 100%; }
+}
