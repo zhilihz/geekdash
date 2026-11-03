@@ -15,6 +15,7 @@ type MigrationStep = { table: string; sql?: string; create?: Table; columns?: Co
 type ResolvedStep = MigrationStep & { before: Table | undefined; after: Table };
 type ActualTable = { name: string; engine: string; collation: string; columns: Column[]; indexes: Index[]; checks: Check[]; foreignKeys: Omit<ForeignKey, 'sql'>[] };
 type Difference = { table: string; object: string; expected: unknown; actual: unknown };
+type MigrationDigest = { version: string; checksum: Buffer; alternateChecksum?: Buffer };
 
 function fail(code: string, differences: Difference[] = []): never {
   throw Object.assign(new Error(code), { code, differences });
@@ -25,7 +26,7 @@ export async function loadSchema() {
   const foundation = JSON.parse(bytes.toString('utf8')) as Manifest;
   if (foundation.version !== '0001-foundation' || foundation.tables.length !== 34) fail('DB_MIGRATION_RESOURCE_INVALID');
   let manifest = structuredClone(foundation);
-  const history = [{ version: foundation.version, checksum: createHash('sha256').update(bytes).digest() }];
+  const history: MigrationDigest[] = [{ version: foundation.version, checksum: createHash('sha256').update(bytes).digest() }];
   const increments: { previous: Manifest; manifest: Manifest; steps: ResolvedStep[] }[] = [];
   for (const [version, count] of [['0002-trial-save', 3], ['0003-node-recovery', 1], ['0004-project-compatibility', 2], ['0005-check-facts', 1], ['0006-imports', 11], ['0007-import-executions', 1], ['0008-import-name-bindings', 1], ['0009-project-space', 8], ['0010-project-editing', 9], ['0011-accounts-check-settings', 4], ['0012-account-management', 2], ['0013-account-capabilities', 1], ['0014-project-tasks', 2], ['0015-project-deletion', 2], ['0016-project-name-reservation', 3]] as const) {
     const bytes = await readFile(new URL('../../migrations/' + version + '.json', import.meta.url));
@@ -55,7 +56,19 @@ export async function loadSchema() {
       steps.push({ ...step, before, after: structuredClone(table) });
     }
     increments.push({ previous, manifest, steps });
-    history.push({ version, checksum: createHash('sha256').update(bytes).digest() });
+    const digest: MigrationDigest = { version, checksum: createHash('sha256').update(bytes).digest() };
+    if (version === '0009-project-space') {
+      // 两份已发布的 0009 只有换行不同。验证原字节和换行转换后的散列，保留原库账本。
+      const lf = 'ae13b1b36fadacea3f46542b4033d2b181e0732e8dc09bbdb62d10d0de670a43';
+      const crlf = '2cff897dd8ade0bfcfdd43ef2f54050443c39740eb55082ec17dc6b772a68d45';
+      const packaged = digest.checksum.toString('hex');
+      if (packaged !== lf && packaged !== crlf) fail('DB_MIGRATION_RESOURCE_INVALID');
+      const source = bytes.toString('utf8');
+      const alternate = packaged === lf ? source.replaceAll('\n', '\r\n') : source.replaceAll('\r\n', '\n');
+      digest.alternateChecksum = createHash('sha256').update(alternate).digest();
+      if (digest.alternateChecksum.toString('hex') !== (packaged === lf ? crlf : lf)) fail('DB_MIGRATION_RESOURCE_INVALID');
+    }
+    history.push(digest);
   }
   return { manifest, foundation, increments, history, checksum: history.at(-1)!.checksum };
 }
@@ -252,7 +265,8 @@ async function verifyStructure(connection: Connection, manifest: Manifest) {
 async function checkHistory(connection: Connection, history: Awaited<ReturnType<typeof loadSchema>>['history'], required: boolean) {
   const rows = await query(connection, 'SELECT version, checksum FROM schema_migrations ORDER BY version');
   if (rows.some((row, index) => row.version !== history[index]?.version)) fail('DB_SCHEMA_VERSION_UNSUPPORTED');
-  if (rows.some((row, index) => !Buffer.isBuffer(row.checksum) || !row.checksum.equals(history[index].checksum))) fail('DB_MIGRATION_CHECKSUM_MISMATCH');
+  if (rows.some((row, index) => !Buffer.isBuffer(row.checksum) ||
+    (!row.checksum.equals(history[index].checksum) && !history[index].alternateChecksum?.equals(row.checksum)))) fail('DB_MIGRATION_CHECKSUM_MISMATCH');
   if (required && rows.length !== history.length) fail('DB_SCHEMA_VERSION_MISSING');
   return rows.length;
 }
