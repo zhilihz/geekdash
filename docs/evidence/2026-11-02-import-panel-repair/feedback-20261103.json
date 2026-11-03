@@ -48,5 +48,28 @@
   "typecheck": "passed",
   "productBrowserTested": false,
   "databaseMigration": false,
-  "publicDeployment": false
+  "publicDeployment": false,
+  "localDeployment": {
+    "url": "http://localhost:41874",
+    "build": {
+      "revision": "16daf527e6f936b09960efbe7337ef5e7826e980",
+      "dirty": false,
+      "builtAt": "2026-11-03T02:29:28.115Z",
+      "stage": "P05-project-editing",
+      "schemaVersion": "0016-project-name-reservation"
+    },
+    "image": "geekdash:local-repair-16daf52",
+    "imageId": "sha256:55f70ad19159983f14eec7c4174529026df052f3f2cd630c5c6e907fa76c826e",
+    "health": "ready",
+    "pages": 14,
+    "assets": 37,
+    "sharedStyleLast": true,
+    "databaseBeforeAndAfter": {
+      "projects": 35,
+      "accounts": 1,
+      "uuid": "222bfde8-d6b3-11f1-83c3-c223ed5403e0",
+      "configurations": 1
+    },
+    "userDataWritten": false
+  }
 }
