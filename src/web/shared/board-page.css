@@ -150,10 +150,10 @@
 }
 .distribution-charts .chart-card { min-width: 0; margin: 0; padding: 18px; container-type: inline-size; }
 .distribution-charts h3 { margin: 0; font-size: 18px; }
-.board-pie-layout { display: grid; grid-template-columns: 112px minmax(0,1fr); align-items: start; gap: 16px; margin-top: 16px; }
-.board-pie { width: 112px; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; }
-.board-pie > span { width: 82px; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; background: var(--card); font-size: 26px; font-variant-numeric: tabular-nums; font-weight: 700; line-height: 1.1; }
-.board-pie small { color: var(--text-dim); font-size: 13px; font-weight: 400; line-height: 1.5; }
+.board-pie-layout { --pie-size:156px; display: grid; grid-template-columns: var(--pie-size) minmax(0,1fr); align-items: start; gap: 16px; margin-top: 16px; }
+.board-pie { width: var(--pie-size); aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; }
+.board-pie > span { width: 71%; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; background: var(--card); font-size: 34px; font-variant-numeric: tabular-nums; font-weight: 700; line-height: 1.1; }
+.board-pie small { color: var(--text-dim); font-size: 14px; font-weight: 400; line-height: 1.5; }
 .board-pie-legend { list-style: none; margin: 0; padding: 0; width: fit-content; max-width: 100%; min-width: 0; }
 .board-pie-legend li { display: grid; grid-template-columns: 8px minmax(0,1fr) auto; align-items: baseline; gap: 8px; padding-block: 3px; font-size: 16px; line-height: 1.55; }
 .board-pie-legend .distribution-empty { display: block; color: var(--text-dim); }
@@ -166,7 +166,10 @@
 .distribution-title { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; }
 .board-page .distribution-reset { min-height: 28px; padding: 2px 9px; }
 .board-page .legend-filter[aria-pressed="true"] { color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
-@container (max-width:345px) { .board-pie-layout { grid-template-columns: minmax(0,1fr); } }
+@container (max-width:370px) {
+  .board-pie-layout { --pie-size:128px; grid-template-columns: minmax(0,1fr); }
+  .board-pie > span { font-size: 30px; }
+}
 
 .board-perspective { width: fit-content; margin: 0 0 16px; }
 
