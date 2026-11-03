@@ -1,7 +1,7 @@
 name: geekdash-harbor
 services:
   geekdash:
-    image: ${GEEKDASH_IMAGE:-harbor.geekwontek.com/geek-dash/geekdash:V0.1.1-cc4a34b}
+    image: ${GEEKDASH_IMAGE:-harbor.geekwontek.com/geek-dash/geekdash:V0.1.2-ec27bbd}
     restart: unless-stopped
     init: true
     security_opt: [no-new-privileges:true]

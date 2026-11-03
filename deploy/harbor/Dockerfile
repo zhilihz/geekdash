@@ -14,10 +14,17 @@ COPY --from=database / /
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 COPY --from=application /usr/local/bin/node /usr/local/bin/node
 RUN node --version
-COPY --from=application /app/ /app/
 WORKDIR /app
+COPY --from=application /app/node_modules/ ./node_modules/
+COPY --from=application /app/package.json ./
+# geekdash_dist 指向本次发布从干净源码构建的 dist 目录。
+COPY --from=geekdash_dist / ./dist/
+ARG PRODUCT_REVISION
+RUN node -e "const b=require('./dist/build-info.json'); if(!/^[a-f0-9]{40}$/.test(process.env.PRODUCT_REVISION)||b.revision!==process.env.PRODUCT_REVISION||b.dirty!==false) throw Error('dist build-info does not match clean PRODUCT_REVISION')"
+LABEL org.opencontainers.image.revision=$PRODUCT_REVISION
 COPY initialize.mjs container-entrypoint.sh ./
-RUN chmod 755 /app/container-entrypoint.sh
+RUN node -e "if(require('node:fs').readFileSync('container-entrypoint.sh').includes(13))throw Error('entrypoint must use LF')" \
+ && bash -n /app/container-entrypoint.sh && chmod 755 /app/container-entrypoint.sh
 ENV HOST=0.0.0.0 PORT=3000 GEEKDASH_DB_PROFILE=dev_app GEEKDASH_IMPORT_DIR=/var/lib/mysql/imports
 EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=5s --start-period=180s --retries=12 CMD node -e "fetch('http://127.0.0.1:3000/api/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"

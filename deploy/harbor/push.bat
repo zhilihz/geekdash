@@ -2,9 +2,12 @@
 chcp 65001 >nul
 setlocal
 set "HARBOR_HOST=harbor.geekwontek.com"
-set "IMAGE_TARGET=harbor.geekwontek.com/geek-dash/geekdash:V0.1.1-cc4a34b"
-set "SOURCE_IMAGE=geekdash:V0.1.1-cc4a34b"
-set "EXPECTED_ID=sha256:87c653894be0f325484df41df092e8f27d29fbc2a50741e7c3e33e773398f408"
+set "IMAGE_TARGET=harbor.geekwontek.com/geek-dash/geekdash:V0.1.2-ec27bbd"
+set "SOURCE_IMAGE=geekdash:V0.1.2-ec27bbd"
+set "EXPECTED_ID=sha256:5591a17b0b4d40ec10cd24388029f3f3d7038ced53b37e2c9bc679e7f7f45922"
+set "EXPECTED_REVISION=ec27bbd454c9405f0cd92c50a0cfa4e3cd4240a6"
+if not "%~2"=="" goto usage
+if not "%~1"=="" if /I not "%~1"=="-CheckOnly" goto usage
 set "ACTUAL_ID="
 set "PLATFORM="
 set "CHECK_OUTPUT=%TEMP%\geekdash-image-%RANDOM%-%RANDOM%.txt"
@@ -19,6 +22,8 @@ for /f "usebackq tokens=1,2,3 delims=/" %%I in ("%CHECK_OUTPUT%") do (
 del "%CHECK_OUTPUT%"
 if not "%ACTUAL_ID%"=="%EXPECTED_ID%" goto invalid
 if not "%PLATFORM%"=="linux/amd64" goto invalid
+docker run --rm --pull=never --network none --read-only --entrypoint node %EXPECTED_ID% -e "const b=require('/app/dist/build-info.json'); if(b.revision!==process.argv[1]||b.dirty!==false){console.error('Unexpected product build:',b.revision,b.dirty);process.exit(1)} console.log('Product revision:',b.revision)" %EXPECTED_REVISION%
+if errorlevel 1 goto invalid
 echo 已核验一个完整镜像：%SOURCE_IMAGE%
 echo 上传位置：%IMAGE_TARGET%
 if /I "%~1"=="-CheckOnly" goto checked
@@ -36,10 +41,14 @@ exit /b 0
 echo 本地校验完成，没有执行上传。
 exit /b 0
 :invalid
-echo 本地镜像版本或平台不符，停止上传。
+echo 本地镜像、平台或镜像内产品版本未通过核验，停止上传。
 echo 预期：%EXPECTED_ID% / linux/amd64
 echo 实际：%ACTUAL_ID% / %PLATFORM%
+echo 预期产品版本：%EXPECTED_REVISION% ^(clean^)
 exit /b 1
+:usage
+echo 用法：push.bat [-CheckOnly]
+exit /b 2
 :query_failed
 if exist "%CHECK_OUTPUT%" del "%CHECK_OUTPUT%"
 echo Docker 本地镜像查询失败，原始错误见上方；尚未开始上传。
