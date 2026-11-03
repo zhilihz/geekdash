@@ -36,6 +36,8 @@ try{
   user=String((await c.execute(insert,[prefix,hash,prefix,1]))[0].insertId);otherUser=String((await c.execute(insert,[prefix+'_peer',hash,prefix+'_peer',0]))[0].insertId);
   app=await createApp(await openRuntimeDatabase('test_app'),{origin:'http://localhost',secure:false});origin=await app.listen({host:'127.0.0.1',port:0});
   await login(prefix+'_peer');otherId=(await api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:'其他负责人 '+prefix}})).result.projectId;
+  // 让同一搜索范围既有 0% 又有 100% 的合成项目，驾驶舱读取真实分布。
+  const [stageSeed]=await c.execute("UPDATE project_stages SET state='completed' WHERE project_id=?",[otherId]);assert.equal(stageSeed.affectedRows,7);
   const foreignTask=randomUUID();await api('/api/projects/'+otherId,'PATCH',{scope:'status',expectedVersion:'1',idempotencyKey:randomUUID(),changes:{taskOps:[{op:'add',id:foreignTask,text:'仅供管理员查看'}]}});
   const peer={cookies:CookieJar.deserializeSync(jar.serializeSync()),account:otherUser};await login(prefix);
   id=(await api('/api/projects','POST',{idempotencyKey:randomUUID(),fields:{name:prefix,summary:'原项目状态'}})).result.projectId;
@@ -151,6 +153,22 @@ try{
   input(bulk,'直接录入任务');click(save);await wait(()=>settled(11)&&$(save)?.disabled&&$(bulk)?.value.includes('直接录入任务'),'默认输入大框直接保存并保留回读');
   assert((await api('/api/projects/'+id)).project.tasks.some(t=>t.text==='直接录入任务'));assert((await facts()).tasks.some(t=>t.text==='直接录入任务'));show('status');
   checks.push('卡片默认按任务列表、整栏输入、保存任务展示，新增可直接保存并读回；卡片与汇总行显示相同时间，状态保存时间不随任务动作改变');
+  click('#layout-toggle');click('#distribution-options [value="progress"]');
+  const progressButton=value=>'#distribution-charts button[data-filter="progress"][data-value="'+value+'"]';
+  const visibleIds=()=>Array.from(w.document.querySelectorAll('#card-grid .card[data-project-id]'),el=>el.dataset.projectId).sort().join(',');
+  async function checkProgress(value,ids){
+    await wait(()=>inFlight===0&&$('#card-grid').getAttribute('aria-busy')!=='true'&&visibleIds()===ids.sort().join(',')&&new URL(w.location.href).searchParams.get('progress')===value,'驾驶舱选中进度 '+(value??'全部'));
+    const query=new URL(w.location.href).searchParams;assert.equal(query.get('search'),prefix);assert.equal($('#search').value,prefix);assert.equal(query.get('perspective'),'responsible');assert.equal(query.get('view'),'all');assert(!$('#dashboard-view').hidden);
+    if(value)assert.equal($(progressButton(value)).getAttribute('aria-pressed'),'true');
+    else for(const percentage of ['0','100'])assert.equal($(progressButton(percentage)).getAttribute('aria-pressed'),'false');
+  }
+  await checkProgress(null,[id,otherId]);
+  click(progressButton('100'));await checkProgress('100',[otherId]);
+  click(progressButton('100'));await checkProgress(null,[id,otherId]);
+  click(progressButton('0'));await checkProgress('0',[id]);
+  click('[data-clear-distribution="progress"]');await checkProgress(null,[id,otherId]);
+  click('#layout-cards');assert.equal(writes.length,11,'筛选不应修改项目');
+  checks.push('驾驶舱同图点击100%筛出完成项目，重复点击恢复两个进度；选择0%后用图内全部进度恢复。每次均保留原搜索、负责人视角及项目范围');
   const beforeRecovery=writes.length;
   click(card+' [data-status-action="edit"]');input(summary,'读取失败后仍可确认');failRead=true;click(save);
   await wait(()=>writes.length===beforeRecovery+1&&$(card+' [data-status-action="query"]')&&!$(card+' [data-status-action="query"]').disabled,'保存成功但读回失败保留确认入口');

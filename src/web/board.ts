@@ -252,6 +252,16 @@ const semanticSliceColors:Record<string,Record<string,string>>={
   priority:{high:'var(--p-high)',mid:'var(--p-mid)',low:'var(--p-low)'},
   status:{proposal:'var(--s-proposal)',ongoing:'var(--s-active)',paused:'var(--s-hold)',closed:'var(--s-closed)'},
 };
+function distributionReset(key:string,name:string) {
+  return query.has(key)?`<button type="button" class="head-btn distribution-reset" data-clear-distribution="${key}">全部${name}</button>`:'';
+}
+function selectDistribution(key:string,value:string) {
+  const selected=query.getAll(key);
+  if(!selected.includes(value)){change(key,value);return;}
+  query.delete(key);
+  for(const other of selected)if(other!==value)query.append(key,other);
+  query.delete('page');remember();void load();
+}
 function distribution() {
   if (!currentData?.dashboard) return;
   element('distribution-options').innerHTML=Object.entries(distributionNames).map(([key,name])=>`<label><input type="checkbox" value="${key}"${visibleDistributions.includes(key)?' checked':''}>${name}</label>`).join('');
@@ -259,7 +269,7 @@ function distribution() {
     const slices=currentData!.dashboard!.distributions[key]??[],total=slices.reduce((sum,item)=>sum+item.count,0);let angle=0;
     const colors=slices.map((slice,index)=>slice.value?semanticSliceColors[key]?.[slice.value]??chartColors[index%chartColors.length]:'var(--text-faint)');
     const gradient=slices.map((slice,index)=>{const start=angle;angle+=slice.count/Math.max(1,total)*360;return `${colors[index]} ${start}deg ${angle}deg`;}).join(',');
-    return `<section class="chart-card"><h3>${distributionNames[key]}</h3><div class="board-pie-layout"><div class="board-pie" aria-hidden="true" style="background:${total?'conic-gradient('+gradient+')':'var(--border)'}"><span>${total}<small>${['customer','productLine','odmFactory','app','group','chip','tags'].includes(key)?'项目关联':'项目'}</small></span></div><ul class="board-pie-legend">${slices.map((slice,index)=>`<li><i style="background:${colors[index]}"></i>${slice.value?`<button class="legend-filter" data-filter="${key}" data-value="${esc(slice.value)}">${esc(filterValue(key,slice.value))}</button>`:'<span>未选择</span>'}<b>${slice.count}${chartPercent?`<small> ${Math.round(slice.count/Math.max(1,total)*100)}%</small>`:''}</b></li>`).join('')||'<li class="distribution-empty">暂无匹配项目</li>'}</ul></div></section>`;
+    return `<section class="chart-card"><div class="distribution-title"><h3>${distributionNames[key]}</h3>${distributionReset(key,distributionNames[key])}</div><div class="board-pie-layout"><div class="board-pie" aria-hidden="true" style="background:${total?'conic-gradient('+gradient+')':'var(--border)'}"><span>${total}<small>${['customer','productLine','odmFactory','app','group','chip','tags'].includes(key)?'项目关联':'项目'}</small></span></div><ul class="board-pie-legend">${slices.map((slice,index)=>`<li><i style="background:${colors[index]}"></i>${slice.value?`<button class="legend-filter" data-filter="${key}" data-value="${esc(slice.value)}" aria-pressed="${query.getAll(key).includes(slice.value)}">${esc(filterValue(key,slice.value))}</button>`:'<span>未选择</span>'}<b>${slice.count}${chartPercent?`<small> ${Math.round(slice.count/Math.max(1,total)*100)}%</small>`:''}</b></li>`).join('')||'<li class="distribution-empty">暂无匹配项目</li>'}</ul></div></section>`;
 
   }).join('');
 }
@@ -267,7 +277,7 @@ function charts(data: Dashboard) {
   element('focus-count').textContent = `当前范围 ${data.focusTotal} 个非结案项目 · 按优先级和进度排序`;
   element('focus-projects').innerHTML = data.focus.map(project => {const progress=Math.max(0,Math.min(100,Number(project.progress))),color=project.priority==='high'?'var(--red)':project.priority==='mid'?'var(--yellow)':'var(--accent)';return `<a class="pp-item" data-project-id="${project.id}" href="project-detail.html?id=${project.id}"><div class="pp-ring"><svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18" fill="none" stroke="var(--border)" stroke-width="4"/><circle cx="22" cy="22" r="18" fill="none" stroke="${color}" stroke-width="4" pathLength="100" stroke-dasharray="${progress} 100" transform="rotate(-90 22 22)"/></svg><span class="pp-ring-pct">${progress}%</span></div><div class="pp-info"><div class="pp-name">${esc(project.name)}</div><div class="pp-meta">${esc(label(project.stage))} · ${esc(label(project.status))}</div></div></a>`;}).join('') || '<p class="pp-empty">当前范围没有匹配项目</p>';
   const maximum=Math.max(1,...data.managers.map(person=>person.count));
-  element('manager-project-counts').innerHTML=`<ul class="board-distribution">${data.managers.map(person=>`<li><button class="legend-filter" data-manager="${esc(person.id)}">${esc(person.name)}</button><span class="board-distribution-track" aria-hidden="true"><i style="width:${person.count/maximum*100}%;background:var(--accent)"></i></span><b>${person.count}</b></li>`).join('')||'<li>暂无负责项目</li>'}</ul>`;
+  element('manager-project-counts').innerHTML=`${distributionReset('manager','负责人')}<ul class="board-distribution">${data.managers.map(person=>`<li><button class="legend-filter" data-manager="${esc(person.id)}" aria-pressed="${query.getAll('manager').includes(person.id)}">${esc(person.name)}</button><span class="board-distribution-track" aria-hidden="true"><i style="width:${person.count/maximum*100}%;background:var(--accent)"></i></span><b>${person.count}</b></li>`).join('')||'<li>暂无负责项目</li>'}</ul>`;
   void loadTaskSummary();
   distribution();
 }
@@ -448,8 +458,16 @@ element('next').onclick = () => { if (pagination) { query.set('page', String(pag
 element('filter-toggle').onclick = () => { filterRows.hidden = !filterRows.hidden; filterToggle();remember(); };
 element('selected-filters').onclick = event => { const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-remove-filter]'); if (button) { clearTimeout(searchTimer); if (button.dataset.removeFilter === 'search') search.value = ''; change(button.dataset.removeFilter!, ''); } };
 element('distribution-options').onchange=()=>{visibleDistributions=[...document.querySelectorAll<HTMLInputElement>('#distribution-options input:checked')].map(input=>input.value);remember();distribution();};
-element('manager-project-counts').onclick=event=>{const button=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-manager]');if(button)change('manager',button.dataset.manager!);};
-element('distribution-charts').onclick = event => { const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-filter]'); if (button) change(button.dataset.filter!, button.dataset.value!); };
+function distributionClick(event:MouseEvent){
+  const button=(event.target as HTMLElement).closest<HTMLButtonElement>('button');
+  if(!button)return;
+  const {clearDistribution,filter,value,manager}=button.dataset;
+  if(clearDistribution)change(clearDistribution,'');
+  else if(filter&&value)selectDistribution(filter,value);
+  else if(manager)selectDistribution('manager',manager);
+}
+element('manager-project-counts').onclick=distributionClick;
+element('distribution-charts').onclick=distributionClick;
 element('layout-toggle').onclick = () => { query.set('layout', 'progress');appearance?.update({layout:'progress'}); history.replaceState(null, '', location.pathname + '?' + query); renderProjects(); };
 element('layout-cards').onclick = () => { query.delete('layout');appearance?.update({layout:'cards'}); history.replaceState(null, '', location.pathname + '?' + query); renderProjects(); };
 document.addEventListener('click', event => {
