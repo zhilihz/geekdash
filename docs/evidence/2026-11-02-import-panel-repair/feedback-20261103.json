@@ -1,0 +1,52 @@
+{
+  "date": "2026-11-03",
+  "board": {
+    "status": "passed",
+    "database": {
+      "db": "geekdash_test",
+      "uuid": "d4a0d9ce-d6a3-11f1-a298-4a1aca926e84"
+    },
+    "requests": 88,
+    "checks": [
+      "项目状态与任务清单分别展示，切换不提交；任务按钮常驻；真实单任务完成只提交taskOps，未保存summary与云稿保留，切回后保存仅提交summary",
+      "新任务尚未整体保存时可以直接完成或编辑保存，只保存这条任务，另有summary输入保留",
+      "两区都有输入时，项目状态保存只写summary并保留隐藏的任务大框；任务清单保存只写taskOps，SQL和新GET一致",
+      "取消只撤销当前区输入，隐藏的另一类内容保留，切换及取消均不写正式项目",
+      "已提交但新读失败可核对原结果，无重复PATCH/版本；其他窗口更新产生真实冲突并保留未保存文字，不能覆盖"
+    ],
+    "productBrowserTested": false
+  },
+  "detail": {
+    "status": "passed",
+    "database": {
+      "db": "geekdash_test",
+      "uuid": "d4a0d9ce-d6a3-11f1-a298-4a1aca926e84"
+    },
+    "requests": 99,
+    "checks": [
+      "实际详情初始化及自身保存后，待办/完成任务操作持续存在；编辑、完成、恢复只暂存，标题保存后SQL和新请求一致",
+      "风险新增/纠正通过实际输入和submit只保存当前风险，名称等其他区输入保留，原处可见按钮不依赖未发生的预览",
+      "风险解除、撤销误解除预览和确认、删除均真实提交当前记录；撤销预览不提前写入，原风险历史保留",
+      "需求新增、文字/接受拒绝/理由纠正原处保存，独立SQL与新GET一致，不夹带其他区输入",
+      "原处风险保存后未保存的需求表单和基本信息仍保留；标题只发一次project请求保存剩余修改，未重复保存风险",
+      "标题前端验证失败后暂存的另一条风险不会被原处保存夹带；暂存新增风险可纠正后按原临时ID保存一次；取消第N条任务编辑保持原编号",
+      "实际校验失败无写入且原处可纠正；COMMIT后丢响应可以确认原操作，不重复创建/增加项目版本",
+      "真实版本冲突拒绝风险旧版本写入；个人草稿可核对保留文字，不放宽权限或并发保护"
+    ],
+    "productBrowserTested": false
+  },
+  "sharedInterface": {
+    "status": "passed",
+    "command": "node scripts/verify-interface-state.mjs",
+    "checks": [
+      "hidden visibility for six control classes",
+      "risk/change submit visible, inactive accept hidden",
+      "six dialog selectors fixed inset 0 margin auto, closed remains hidden",
+      "task number and first-line alignment"
+    ]
+  },
+  "typecheck": "passed",
+  "productBrowserTested": false,
+  "databaseMigration": false,
+  "publicDeployment": false
+}

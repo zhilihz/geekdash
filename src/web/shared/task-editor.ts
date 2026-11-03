@@ -3,7 +3,7 @@ import { applyTaskText, putTaskOp, taskCopy, taskList, taskText } from './tasks'
 import { bulkTaskOperations } from './task-text';
 import { attachStatusMentions } from './status-mentions';
 
-type State={tasks:ProjectTask[];ops:TaskOperation[];bulk?:string;editable:boolean};
+type State={tasks:ProjectTask[];ops:TaskOperation[];bulk?:string;editable:boolean;showActions?:boolean};
 const bindings=new WeakMap<HTMLElement,AbortController>();
 const strip=(line:string)=>line.replace(/^\s*\d+[、.．)）]\s*/,'');
 function fit(input:HTMLTextAreaElement){input.style.height='0px';input.style.height=Math.max(input.scrollHeight, input.hasAttribute('data-task-bulk')?160:64)+'px';}
@@ -16,7 +16,7 @@ export function bindTaskEditor(root:HTMLElement,read:()=>State,write:(ops:TaskOp
   function preview(){
     const state=read();previewOps=state.ops;issue='';
     try{if(state.bulk!==undefined)previewOps=applyTaskText(state.tasks,state.ops,state.bulk);}catch(error){issue=(error as Error).message;}
-    const list=panel?.querySelector('.task-list');if(list)list.innerHTML=taskList(taskCopy(state.tasks,previewOps),state.editable);
+    const list=panel?.querySelector('.task-list');if(list)list.innerHTML=taskList(taskCopy(state.tasks,previewOps),state.showActions??state.editable);
     const message=panel?.querySelector('.task-issue');if(message)message.textContent=issue;
     const discard=panel?.querySelector<HTMLElement>('[data-task-discard]');if(discard)discard.hidden=!issue;
   }
@@ -55,7 +55,12 @@ export function bindTaskEditor(root:HTMLElement,read:()=>State,write:(ops:TaskOp
         actions.querySelectorAll<HTMLButtonElement>('[data-task-action]').forEach(action=>{if(action!==button){action.disabled=true;action.title='请先保存或取消本条文字修改';}});
         const save=document.createElement('button'),cancel=document.createElement('button');save.type=cancel.type='button';save.textContent='保存';cancel.textContent='取消';
         save.onclick=()=>{if(read().editable)saveOne({op:'edit',id,text:text.value});};
-        cancel.onclick=()=>{write([...read().ops.filter(op=>op.id!==id),...previousOps],undefined);previewOps=read().ops;row.outerHTML=taskList(taskCopy(read().tasks,read().ops).filter(task=>task.id===id),read().editable);};
+        cancel.onclick=()=>{
+          write([...read().ops.filter(op=>op.id!==id),...previousOps],undefined);previewOps=read().ops;
+          if(input){input.value=taskText(taskCopy(read().tasks,read().ops));fit(input);}
+          const restored=document.createElement('div');restored.innerHTML=taskList(taskCopy(read().tasks,read().ops).filter(task=>task.id===id),read().editable);
+          restored.querySelector('.task-number')!.textContent=row.querySelector('.task-number')!.textContent;row.replaceWith(restored.firstElementChild!);
+        };
         actions.prepend(save,cancel);
       }
       text.addEventListener('input',()=>{if(!read().editable)return;write(putTaskOp(read().ops,{op:'edit',id,text:text.value}),undefined);previewOps=read().ops;if(input){input.value=taskText(taskCopy(read().tasks,read().ops));fit(input);}fit(text);},options);

@@ -1,6 +1,7 @@
 /* 1056的系统字体、三主题与密度；所有业务页使用同一页头和控件尺度。 */
 :root { --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif; --control-radius: 8px; --app-header-height: 84px; }
 html body { font-family: var(--font-ui); font-size: 14px; line-height: 1.6; }
+html body dialog { position: fixed; inset: 0; margin: auto; height: fit-content; max-height: calc(100dvh - 48px); box-sizing: border-box; }
 html body .page.page { max-width: 1440px; margin-inline: auto; padding: 0 48px 60px; }
 html body .page.auth-page { max-width: 840px; padding-top: 32px; }
 .page h1 { font-size: 26px; line-height: 1.4; font-weight: 700; }
@@ -42,7 +43,7 @@ html body .page.auth-page { max-width: 840px; padding-top: 32px; }
 .page.password-page .auth-panel { max-width: 720px; margin-inline: auto; }
 .task-history-switch { display: flex; gap: 8px; margin: 12px 0 16px; flex-wrap: wrap; }
 .task-history-switch [aria-pressed=true] { background: var(--accent-dim); color: #fff; border-color: var(--accent-dim); }
-.space-delete-dialog { position: fixed; inset: 0; margin: auto; width: min(520px,calc(100vw - 32px)); height: fit-content; max-height: calc(100dvh - 48px); box-sizing: border-box; overflow: auto; border: 1px solid var(--border); border-radius: 12px; padding: 24px; background: var(--card); color: var(--text); }
+.space-delete-dialog { width: min(520px,calc(100vw - 32px)); overflow: auto; border: 1px solid var(--border); border-radius: 12px; padding: 24px; background: var(--card); color: var(--text); }
 .space-delete-dialog::backdrop { background: #0007; }
 .space-delete-dialog form { display: flex; justify-content: flex-end; gap: 12px; }
 @media(max-width:1100px) { .page .app-header { align-items: flex-start; } .app-header .primary-nav { width: 100%; justify-content: flex-end; } }
@@ -81,14 +82,17 @@ html body .page.auth-page { max-width: 840px; padding-top: 32px; }
 .board-project-state { margin-bottom: 16px; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 /* 统计卡按紧急程度排列；余下卡片沿用同一列宽，不拉伸占满最后一行。 */
-.page .board-stat-line { display: grid; grid-template-columns: repeat(auto-fill,minmax(min(100%,180px),1fr)); gap: 14px; overflow: visible; }
-.page .board-stat-line .stat { min-width: 0; min-height: 112px; padding: 18px 20px; gap: 10px; background: color-mix(in srgb,var(--kpi-color) 7%,var(--card)); border-color: color-mix(in srgb,var(--kpi-color) 30%,var(--border)); }
-.page .board-stat-line .stat-label { color: var(--kpi-color); font-size: 17px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+.page .board-stat-line { display: grid; grid-template-columns: repeat(auto-fill,minmax(min(100%,132px),1fr)); gap: 10px; overflow: visible; }
+.page .board-stat-line .stat { min-width: 0; min-height: 76px; padding: 10px 14px; gap: 4px; background: color-mix(in srgb,var(--kpi-color) 7%,var(--card)); border-color: color-mix(in srgb,var(--kpi-color) 30%,var(--border)); }
+.page .board-stat-line .stat-label { color: var(--kpi-color); font-size: 14px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
 .page .board-stat-line .stat-label::after { font-size: 13px; color: inherit; }
-.page .board-stat-line .stat b { font-size: 36px; line-height: 1.1; }
+.page .board-stat-line .stat b { font-size: 26px; line-height: 1.1; }
 .board-stat-line [data-tone="red"] { --kpi-color: #ff7b72; }
 .board-stat-line [data-tone="yellow"] { --kpi-color: #e3b341; }
 .board-stat-line [data-tone="green"] { --kpi-color: #56d364; }
 [data-theme="light"] .board-stat-line [data-tone="red"], [data-theme="warm"] .board-stat-line [data-tone="red"] { --kpi-color: #b42318; }
 [data-theme="light"] .board-stat-line [data-tone="yellow"], [data-theme="warm"] .board-stat-line [data-tone="yellow"] { --kpi-color: #805400; }
 [data-theme="light"] .board-stat-line [data-tone="green"], [data-theme="warm"] .board-stat-line [data-tone="green"] { --kpi-color: #166534; }
+
+/* 隐藏状态由行为代码控制，不能被按钮/布局的 display 样式重新显示。 */
+html body [hidden] { display: none !important; }

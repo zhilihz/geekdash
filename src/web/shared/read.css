@@ -44,7 +44,7 @@ button[hidden], a[hidden] { display: none; }
 .field-error { color: var(--p-high); font-size: 13px; }
 .edit-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 20px; }
 button:disabled { opacity: .5; cursor: not-allowed; }
-#editor-dialog, #draft-dialog, .draft-dialog { color: var(--text); background: var(--card); border: 1px solid var(--border); border-radius: 12px; max-width: 560px; width: calc(100% - 32px); box-sizing: border-box; padding: 24px; inset: clamp(72px, 14dvh, 128px) 0 auto; margin: 0 auto; max-height: calc(100dvh - 160px); overflow: auto; box-shadow: 0 16px 48px #0004; }
+#editor-dialog, #draft-dialog, .draft-dialog { color: var(--text); background: var(--card); border: 1px solid var(--border); border-radius: 12px; max-width: 560px; width: calc(100% - 32px); box-sizing: border-box; padding: 24px; overflow: auto; box-shadow: 0 16px 48px #0004; }
 #editor-dialog::backdrop, #draft-dialog::backdrop, .draft-dialog::backdrop { background: #0009; }
 .draft-dialog pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .draft-recovery { position: fixed; inset: clamp(72px, 12dvh, 112px) 0 auto; margin: 0 auto; box-sizing: border-box; width: min(460px, calc(100% - 32px)); padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); color: var(--text); box-shadow: 0 12px 36px #0005; z-index: 1400; }

@@ -23,7 +23,7 @@ let restoredScroll:number|undefined;
 let scrollTimer:ReturnType<typeof setTimeout>|undefined;
 query.set('view', ['active', 'proposal', 'closed', 'maintenance', 'all'].includes(query.get('view') ?? '') ? query.get('view')! : 'active');
 const dimensions = { customer: '客户', productLine: '产品线', odmFactory: 'ODM 工厂', app: '配套 APP', status: '状态', priority: '优先级', signal: '信号灯', stage: '项目阶段', progress: '进度', chip: '芯片', tags: '项目标签', group: '分组', manager:'项目负责人', owner: '业务分工', taskOwner:'任务负责人', deadline: '计划结果' };
-let filterOrder=[...Object.keys(dimensions),'contentDate'],hiddenFilters:string[]=[],chartPercent=true;
+let filterOrder=[...Object.keys(dimensions),'contentDate'],hiddenFilters:string[]=[],cardContent:'status'|'tasks'='status',chartPercent=true;
 const allowed = new Set(['perspective','contentFrom','contentTo','view', 'search', 'page', 'layout', ...Object.keys(dimensions)]);
 for (const key of [...query.keys()]) if (!allowed.has(key)) query.delete(key);
 let controller: AbortController | undefined;
@@ -53,11 +53,11 @@ function drafts(id:string){
     const next:StatusEdit={...newStatusEdit(current),taskBulk:(row.payload.editors?.task as {text?:string}|undefined)?.text,value:typeof value==='string'?value:current.statusDesc,summary:typeof summary==='string'?summary:current.summary,ops:Array.isArray(ops)?ops:[]};statusEdits.set(id,next);activeStatus=id;captureStatus(next);preserveStatus();renderProjects();return true;
   },{button:false,kinds:['project','status']});statusDrafts.set(id,store);return store;
 }
-const statusChanges=(edit:StatusEdit):SaveRequest['changes']=>{
+const statusChanges=(edit:StatusEdit,content?:'status'|'tasks'):SaveRequest['changes']=>{
   const ops=changedTaskOps(currentProject(edit.id)?.tasks??[],edit.ops??[]);
-  return {...edit.summary!==undefined&&edit.summary!==(edit.summaryBase??currentProject(edit.id)?.summary)?{summary:edit.summary}:{},...ops.length?{taskOps:ops}:edit.value!==edit.base?{statusDesc:edit.value}:{}};
+  return {...content!=='tasks'&&edit.summary!==undefined&&edit.summary!==(edit.summaryBase??currentProject(edit.id)?.summary)?{summary:edit.summary}:{},...content==='status'?{}:ops.length?{taskOps:ops}:edit.value!==edit.base?{statusDesc:edit.value}:{}};
 };
-const statusChanged=(edit:StatusEdit)=>!!Object.keys(statusChanges(edit)).length||edit.taskBulk!==undefined&&edit.taskBulk!==taskText(taskCopy(currentProject(edit.id)?.tasks??[],edit.ops??[]));
+const statusChanged=(edit:StatusEdit,content?:'status'|'tasks')=>!!Object.keys(statusChanges(edit,content)).length||content!=='status'&&edit.taskBulk!==undefined&&edit.taskBulk!==taskText(taskCopy(currentProject(edit.id)?.tasks??[],edit.ops??[]));
 function captureStatus(edit:StatusEdit){if(!frozen && !edit.pending && !edit.stale)drafts(edit.id).capture('project',undefined,edit.version,{values:statusChanges(edit),...edit.taskBulk!==undefined&&edit.taskBulk!==taskText(taskCopy(currentProject(edit.id)?.tasks??[],edit.ops??[]))?{editors:{task:{text:edit.taskBulk}}}:{},submission:{scope:'project',changes:statusChanges(edit)}});}
 function clearEditors(){editors.clear();document.querySelectorAll('[data-project-editors]').forEach(node=>node.replaceChildren());}
 async function loadMentionPeople(){
@@ -75,7 +75,7 @@ function filterToggle() {
   element('filter-toggle').setAttribute('aria-expanded', String(!filterRows.hidden));
   element('filter-toggle').textContent = filterRows.hidden ? '▸ 展开筛选' : '▾ 收起筛选';
 }
-function remember(){preference?.update({view:query.get('view'),page:Number(query.get('page') ?? 1),filters:Object.fromEntries(['search','contentFrom','contentTo',...Object.keys(dimensions)].filter(key=>query.has(key)).map(key=>[key,['search','contentFrom','contentTo'].includes(key)?query.get(key):query.getAll(key)])),filtersOpen:!filterRows.hidden,distributions:visibleDistributions,filterOrder,hiddenFilters,chartPercent,scrollY:window.scrollY});}
+function remember(){preference?.update({view:query.get('view'),page:Number(query.get('page') ?? 1),filters:Object.fromEntries(['search','contentFrom','contentTo',...Object.keys(dimensions)].filter(key=>query.has(key)).map(key=>[key,['search','contentFrom','contentTo'].includes(key)?query.get(key):query.getAll(key)])),filtersOpen:!filterRows.hidden,distributions:visibleDistributions,filterOrder,hiddenFilters,cardContent,chartPercent,scrollY:window.scrollY});}
 function filterValue(key: string, value: string) {
   const deadlineNames: Record<string, string> = { upcoming: '未到期', due: '今日到期', overdue: '已超期', unset: '计划未定', closed_on_time: '按期结案', closed_late: '超期结案', closed_unplanned: '无计划结案', closed_unknown: '结案日期待核对', terminated: '终止结案' };
   return currentData?.optionLabels?.[key]?.[value] ?? (key === 'deadline' ? deadlineNames[value] ?? value : key === 'progress' ? value + '%' : ['status', 'priority', 'signal', 'stage'].includes(key) ? label(value) : value);
@@ -102,14 +102,17 @@ function card(project: ListProject) {
     ${project.marketExpectation ? `<p class="board-card-market"><span>市场预期</span>${esc(project.marketExpectation)}</p>` : ''}</section>
     ${project.managers.length>1?`<p class="read-label">协作者：${project.managers.filter(person=>person.id!==account?.id).map(person=>esc(person.name)+(person.enabled?'':'（当前不可管理）')).join('、')}</p>`:''}
     <div class="board-card-stage"><div class="board-stage-heading"><span>当前阶段：${esc(stageName)}</span><strong>${project.progress}%</strong></div><div class="board-card-progress"><div class="stage-bar-track"><div class="stage-bar-fill" style="width:${Number(project.progress)}%"></div></div></div><p class="board-card-milestone">${stage ? '里程碑：' + esc(stage.milestone) : project.stage === 'completed' ? '七阶段里程碑已全部完成。' : '阶段待确认'}</p></div>
-    <div class="board-card-status"><div class="board-status-heading"><span>项目状态</span></div>${statusContent(project)}</div>
+    <div class="board-card-status"><div class="board-status-heading"><span>${cardContent==='status'?'项目状态':'任务清单'}</span></div>${statusContent(project)}</div>
     <div class="board-card-footer"><div class="board-check-time">最近检查：${project.checkStatus.latest ? `<time datetime="${esc(project.checkStatus.latest.checkedAt)}">${esc(checkTime(project.checkStatus))}</time>${project.checkStatus.latest.actorName ? ' · ' + esc(project.checkStatus.latest.actorName) : ''}` : '尚未检查'}${project.checkStatus.updatedAfterCheck ? '<span class="board-check-updated">检查后有更新</span>' : ''}</div><a href="project-detail.html?id=${project.id}">查看详情 ↗</a></div></article>`;
 }
 function statusContent(project:ListProject){
   const edit=statusEdits.get(project.id),editable=canEditStatus(project),stale=!!edit && (edit.stale || edit.version!==project.version || !editable);
   const notice=frozen?(edit?.committed?'修改已保存，无需重新保存。请重新登录后读取结果，输入保留供复制。':'账号状态已改变，输入和原保存请求保留，请重新登录。'):edit?.committed?edit.message ?? '修改已保存，正在读取正式内容。':stale?'项目已被他人更新，请重新进入项目。未保存文字保留供复制。':edit?.message ?? '';
-  if(edit && activeStatus===project.id)return `<textarea class="board-project-state" data-project-summary="${project.id}" aria-label="项目状态" rows="2" placeholder="输入项目状态" ${frozen||stale||edit.busy||edit.pending?'readonly':''}>${esc(edit.summary??project.summary)}</textarea>${edit.value!==edit.base?`<textarea data-status-input="${project.id}" aria-label="旧任务说明草稿" rows="5" ${frozen||stale||edit.busy||edit.pending?'readonly':''}>${esc(edit.value)}</textarea>`:taskPanel(project.tasks??[],edit.ops??[],!frozen&&!stale&&!edit.busy&&!edit.pending,edit.taskBulk)}<p class="board-status-feedback" role="status">${esc(notice)}</p><div class="board-status-actions">${edit.committed?`<button data-status-action="query" ${edit.busy || frozen?'disabled':''}>读取已保存结果</button>`:edit.pending?`<button data-status-action="query" ${edit.busy || frozen?'disabled':''}>核对原保存结果</button><button data-status-action="retry" ${edit.busy || frozen?'disabled':''}>重试原保存</button>`:`<button data-status-action="save" ${edit.busy || frozen || stale?'disabled':''}>保存修改</button><button data-status-action="cancel" ${edit.busy || frozen?'disabled':''}>取消修改</button><button data-status-action="drafts" ${edit.busy || frozen?'disabled':''}>个人草稿</button>`}${stale || frozen?`<button data-status-action="copy">复制输入</button><a href="project-detail.html?id=${project.id}">重新进入项目</a>`:''}</div>`;
-  return `<p class="board-project-state">${esc((edit?.summary??project.summary)||'尚未填写项目状态')}</p><div class="board-status-lines">${taskList(taskCopy(project.tasks??[],edit?.ops??[]),editable&&!stale&&!edit?.busy&&!edit?.pending)}</div><p class="board-status-feedback" role="status">${esc(notice)}</p>${edit?.pending?`<button data-status-action="query">核对保存结果</button><button data-status-action="retry">继续本次操作</button>`:''}${editable || edit?`<button data-status-action="edit" ${frozen?'disabled':''}>状态更新</button>`:''}`;
+  if(edit && activeStatus===project.id){
+    const content=cardContent==='status'?`<textarea class="board-project-state" data-project-summary="${project.id}" aria-label="项目状态" rows="2" placeholder="输入项目状态" ${frozen||stale||edit.busy||edit.pending?'readonly':''}>${esc(edit.summary??project.summary)}</textarea>`:edit.value!==edit.base?`<textarea data-status-input="${project.id}" aria-label="旧任务说明草稿" rows="5" ${frozen||stale||edit.busy||edit.pending?'readonly':''}>${esc(edit.value)}</textarea>`:taskPanel(project.tasks??[],edit.ops??[],!frozen&&!stale&&!edit.busy&&!edit.pending,edit.taskBulk);
+    return `${content}<p class="board-status-feedback" role="status">${esc(notice)}</p><div class="board-status-actions">${edit.committed?`<button data-status-action="query" ${edit.busy || frozen?'disabled':''}>读取已保存结果</button>`:edit.pending?`<button data-status-action="query" ${edit.busy || frozen?'disabled':''}>核对原保存结果</button><button data-status-action="retry" ${edit.busy || frozen?'disabled':''}>重试原保存</button>`:`<button data-status-action="save" ${edit.busy || frozen || stale?'disabled':''}>保存修改</button><button data-status-action="cancel" ${edit.busy || frozen?'disabled':''}>取消修改</button><button data-status-action="drafts" ${edit.busy || frozen?'disabled':''}>个人草稿</button>`}${stale || frozen?`<button data-status-action="copy">复制输入</button><a href="project-detail.html?id=${project.id}">重新进入项目</a>`:''}</div>`;
+  }
+  return `${cardContent==='status'?`<p class="board-project-state">${esc((edit?.summary??project.summary)||'尚未填写项目状态')}</p>`:`<div class="board-status-lines">${taskList(taskCopy(project.tasks??[],edit?.ops??[]),editable&&!stale&&!edit?.busy&&!edit?.pending)}</div>`}<p class="board-status-feedback" role="status">${esc(notice)}</p>${edit?.pending?`<button data-status-action="query">核对保存结果</button><button data-status-action="retry">继续本次操作</button>`:''}${editable || edit?`<button data-status-action="edit" ${frozen?'disabled':''}>${cardContent==='status'?'状态更新':'编辑任务'}</button>`:''}`;
 }
 function renderProjects() {
   if (!currentData) return;
@@ -130,6 +133,7 @@ function renderProjects() {
   for(const row of editingRows)if(row.task!==focus?.task && row.id && statusEdits.get(row.id)?.ops?.some(op=>op.id===row.task && op.op==='edit'))document.querySelector<HTMLButtonElement>(`[data-project-id="${row.id}"] [data-task-row="${CSS.escape(row.task!)}"] [data-task-action="edit"]`)?.click();
   if(focus?.task)document.querySelector<HTMLButtonElement>(`[data-project-id="${focus.project}"] [data-task-row="${CSS.escape(focus.task)}"] [data-task-action="edit"]`)?.click();
   if(focus){const input=document.querySelector<HTMLTextAreaElement>(focus.summary?`[data-project-summary="${focus.project}"]`:focus.bulk?`[data-project-id="${focus.project}"] [data-task-bulk]`:focus.task?`[data-project-id="${focus.project}"] [data-task-row="${CSS.escape(focus.task)}"] textarea`:`[data-status-input="${focus.id}"]`);if(input){input.focus({preventScroll:true});input.setSelectionRange(focus.start,focus.end);input.scrollTop=focus.scrollTop;}}
+  document.querySelectorAll<HTMLButtonElement>('[data-card-content]').forEach(button=>{const active=button.dataset.cardContent===cardContent;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});
   element('cards-view').hidden = progress; element('dashboard-view').hidden = !progress;
   for (const [id, active] of [['layout-cards', !progress], ['layout-toggle', progress]] as const) { element(id).classList.toggle('active', active); element(id).setAttribute('aria-pressed', String(active)); }
   updateEditing();
@@ -138,8 +142,8 @@ async function saveStatus(edit:StatusEdit,queryResult=false,direct?:import('./sh
   if(edit.busy || frozen)return;
   const project=currentProject(edit.id);
   if(!edit.pending && (!canEditStatus(project) || edit.stale || project?.version!==edit.version)){edit.stale=true;renderProjects();return;}
-  if(!edit.pending && !direct && !statusChanged(edit)){await cancelStatus(edit);return;}
-  if(!edit.pending && !direct){try{if(edit.taskBulk!==undefined){edit.ops=applyTaskText(project?.tasks??[],edit.ops??[],edit.taskBulk);edit.taskBulk=undefined;captureStatus(edit);preserveStatus();}}catch(error){edit.message=(error as Error).message;renderProjects();return;}edit.busy=true;try{if(!await confirmTaskDeletes(project?.tasks??[],edit.ops??[]))return;}finally{edit.busy=false;}if(edit.stale||frozen)return;if(!statusChanged(edit)){await cancelStatus(edit);return;}}
+  if(!edit.pending && !direct && !statusChanged(edit,cardContent)){await cancelStatus(edit);return;}
+  if(!edit.pending && !direct && cardContent==='tasks'){try{if(edit.taskBulk!==undefined){edit.ops=applyTaskText(project?.tasks??[],edit.ops??[],edit.taskBulk);edit.taskBulk=undefined;captureStatus(edit);preserveStatus();}}catch(error){edit.message=(error as Error).message;renderProjects();return;}edit.busy=true;try{if(!await confirmTaskDeletes(project?.tasks??[],edit.ops??[]))return;}finally{edit.busy=false;}if(edit.stale||frozen)return;if(!statusChanged(edit,'tasks')){await cancelStatus(edit);return;}}
   if(direct && !edit.pending){
     if(direct.op==='edit' && !direct.text.trim()){edit.message='任务内容不能为空，请修改后保存。';renderProjects();return;}
     const added=edit.ops?.find(op=>op.op==='add'&&op.id===direct.id);
@@ -157,7 +161,7 @@ async function saveStatus(edit:StatusEdit,queryResult=false,direct?:import('./sh
   edit.busy=true;edit.message=queryResult?'正在核对原保存结果…':'正在保存…';renderProjects();
   try{
     if(!edit.pending){
-      const original:SaveRequest={expectedVersion:edit.version,idempotencyKey:crypto.randomUUID(),scope:edit.direct?'status':'project',changes:edit.direct?{taskOps:edit.direct}:statusChanges(edit)};
+      const original:SaveRequest={expectedVersion:edit.version,idempotencyKey:crypto.randomUUID(),scope:edit.direct?'status':'project',changes:edit.direct?{taskOps:edit.direct}:statusChanges(edit,cardContent)};
       captureStatus(edit);const exactDraft=!edit.direct && edit.taskBulk===undefined && JSON.stringify(statusChanges(edit))===JSON.stringify(original.changes);const ref=exactDraft?await drafts(edit.id).prepare('project'):undefined;if(ref)original.draft=ref;
       edit.pending=original;preserveStatus();
     }
@@ -177,12 +181,13 @@ async function saveStatus(edit:StatusEdit,queryResult=false,direct?:import('./sh
     const result=edit.committed;
     const fresh=await get<Detail>('/api/projects/'+edit.id,undefined,false);
     if(frozen)return;
-    const submitted=JSON.stringify(statusChanges(edit))===JSON.stringify(original.changes);
+    const submitted=edit.taskBulk===undefined && JSON.stringify(statusChanges(edit))===JSON.stringify(original.changes);
     const wasDirect=!!edit.direct,unchangedText=edit.value===edit.base,unchangedSummary=edit.summary===undefined || edit.summary===(edit.summaryBase??project?.summary);
-    if(edit.direct){const completed=new Set(edit.direct.map(op=>JSON.stringify(op)));edit.ops=(edit.ops??[]).filter(op=>!completed.has(JSON.stringify(op)));if(unchangedText)edit.value=fresh.project.statusDesc;}
-    edit.base=fresh.project.statusDesc;edit.summaryBase=fresh.project.summary;if(unchangedSummary)edit.summary=fresh.project.summary;if(submitted && !wasDirect){edit.value=edit.base;edit.summary=fresh.project.summary;edit.ops=[];edit.taskBulk=undefined;}edit.version=result.savedVersion;edit.pending=undefined;edit.committed=undefined;
+    if(original.changes.taskOps){const completed=new Set(original.changes.taskOps.map(op=>JSON.stringify(op)));edit.ops=(edit.ops??[]).filter(op=>!completed.has(JSON.stringify(op)));}
+    if(unchangedText || original.changes.statusDesc!==undefined&&edit.value===original.changes.statusDesc)edit.value=fresh.project.statusDesc;
+    edit.base=fresh.project.statusDesc;edit.summaryBase=fresh.project.summary;if(unchangedSummary || original.changes.summary!==undefined&&edit.summary===original.changes.summary)edit.summary=fresh.project.summary;edit.version=result.savedVersion;edit.pending=undefined;edit.committed=undefined;
     edit.stale=fresh.project.version!==result.savedVersion || !fresh.capabilities.editOrdinary;
-    await drafts(edit.id).advance(result,wasDirect?undefined:{kind:original.scope==='status'?'status':'project'});edit.direct=undefined;
+    await drafts(edit.id).advance(result,submitted&&!wasDirect?{kind:'project'}:undefined);edit.direct=undefined;
     const displayed=currentProject(edit.id);if(displayed)Object.assign(displayed,fresh.project);
     if(!statusChanged(edit)){statusEdits.delete(edit.id);if(activeStatus===edit.id)activeStatus=undefined;}
     else edit.message='上次提交已保存，后来输入仍待保存。';
@@ -196,7 +201,7 @@ async function saveStatus(edit:StatusEdit,queryResult=false,direct?:import('./sh
 async function cancelStatus(edit:StatusEdit){
   if(edit.pending || edit.busy || frozen)return;
   edit.busy=true;edit.cancelling=true;renderProjects();
-  try{await drafts(edit.id).discard('project');await drafts(edit.id).discard('status');statusEdits.delete(edit.id);if(activeStatus===edit.id)activeStatus=undefined;}
+  try{if(cardContent==='status')edit.summary=edit.summaryBase??currentProject(edit.id)?.summary;else{edit.ops=[];edit.taskBulk=undefined;edit.value=edit.base;}if(statusChanged(edit))captureStatus(edit);else{await drafts(edit.id).discard('project');await drafts(edit.id).discard('status');statusEdits.delete(edit.id);}if(activeStatus===edit.id)activeStatus=undefined;}
   catch(error){edit.message=(error as Error).message;}
   finally{edit.busy=false;edit.cancelling=false;preserveStatus();renderProjects();}
 }
@@ -217,7 +222,7 @@ element('card-grid').addEventListener('click',async event=>{
   if(button.dataset.statusAction==='edit'){
     const project=currentProject(id);if(!project || frozen || !edit && !canEditStatus(project))return;
     if(!edit){edit=newStatusEdit(project);statusEdits.set(id,edit);}
-    activeStatus=id;preserveStatus();renderProjects();document.querySelector<HTMLTextAreaElement>(`[data-project-summary="${id}"]`)?.focus({preventScroll:true});
+    activeStatus=id;preserveStatus();renderProjects();document.querySelector<HTMLTextAreaElement>(cardContent==='status'?`[data-project-summary="${id}"]`:`[data-project-id="${id}"] [data-task-bulk], [data-status-input="${id}"]`)?.focus({preventScroll:true});
     if(!mentionPeople)void loadMentionPeople();
     if(!edit.pending && !statusChanged(edit))void drafts(id).offer();
   }else if(edit){
@@ -281,6 +286,7 @@ element('filter-settings').onclick=()=>{const panel=element('filter-settings-pan
 element('filter-settings-panel').onchange=event=>{const input=event.target as HTMLInputElement,key=input.dataset.filterVisible!;hiddenFilters=hiddenFilters.filter(value=>value!==key);if(!input.checked)hiddenFilters.push(key);remember();if(currentData)filters(currentData.options,currentData.optionLabels);};
 element('filter-settings-panel').onclick=event=>{const button=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-filter-move]');if(!button||button.disabled)return;const a=filterOrder.indexOf(button.dataset.filterMove!),b=a+Number(button.dataset.direction);[filterOrder[a],filterOrder[b]]=[filterOrder[b],filterOrder[a]];remember();filterSettings();if(currentData)filters(currentData.options,currentData.optionLabels);};
 element('chart-percent').onchange=event=>{chartPercent=(event.target as HTMLInputElement).checked;remember();distribution();};
+document.querySelectorAll<HTMLButtonElement>('[data-card-content]').forEach(button=>button.onclick=()=>{cardContent=button.dataset.cardContent==='tasks'?'tasks':'status';remember();preserveStatus();renderProjects();});
 async function load(active = true) {
   freezeCheckEntry();
   controller?.abort();
@@ -406,7 +412,7 @@ void import('./shared/api').then(async ({ requireIdentity }) => {
   preference=new PersonalPreference('board',feedback);const saved=await preference.load();if(Array.isArray(saved.distributions))visibleDistributions=saved.distributions.filter((key:unknown)=>typeof key==='string'&&Object.hasOwn(distributionNames,key));
   if(Array.isArray(saved.filterOrder)){filterOrder=[...new Set([...saved.filterOrder.filter((key:unknown)=>typeof key==='string'&&filterOrder.includes(key)),...filterOrder])];}
   if(Array.isArray(saved.hiddenFilters))hiddenFilters=saved.hiddenFilters.filter((key:unknown)=>typeof key==='string'&&filterOrder.includes(key));
-  chartPercent=saved.chartPercent!==false;element<HTMLInputElement>('chart-percent').checked=chartPercent;
+  cardContent=saved.cardContent==='tasks'?'tasks':'status';chartPercent=saved.chartPercent!==false;element<HTMLInputElement>('chart-percent').checked=chartPercent;
   try{const cached=JSON.parse(sessionStorage.getItem(statusCache()) ?? '[]');if(Array.isArray(cached))for(const edit of cached)if(typeof edit.id==='string' && /^[1-9][0-9]*$/.test(edit.id) && typeof edit.value==='string' && typeof edit.base==='string' && validTaskDraft(edit.ops) && (edit.taskBulk===undefined||typeof edit.taskBulk==='string') && (edit.summary===undefined||typeof edit.summary==='string') && (edit.summaryBase===undefined||typeof edit.summaryBase==='string') && typeof edit.version==='string' && (!edit.pending || ['status','project'].includes(edit.pending.scope)&&Object.keys(edit.pending.changes??{}).every(key=>['summary','statusDesc','taskOps'].includes(key))))statusEdits.set(edit.id,{...edit,busy:false});}catch{}
   if(!explicitQuery){if(typeof saved.view==='string')query.set('view',saved.view);if(typeof saved.page==='number')query.set('page',String(saved.page));for(const [key,value] of Object.entries(saved.filters ?? {}))if(allowed.has(key)){query.delete(key);for(const item of Array.isArray(value)?value:[value])if(typeof item==='string')query.append(key,item)};restoredScroll=typeof saved.scrollY==='number'?saved.scrollY:undefined;}
   const priorOwners=query.getAll('owner');if(priorOwners.some(value=>value.startsWith('user:'))){query.delete('owner');for(const value of priorOwners)query.append(value.startsWith('user:')?'manager':'owner',value.startsWith('user:')?value.slice(5):value);}

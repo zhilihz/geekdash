@@ -1308,7 +1308,7 @@ function bindEditor() {
   });
   document.getElementById('old-status-copied')?.addEventListener('click',()=>{values!.statusDesc=snapshot!.project.statusDesc;persist();render();});
   bindTaskEditor(element('detail-body'),
-    ()=>({tasks:snapshot!.project.tasks??[],ops:values!.taskOps??[],bulk:taskBulk,editable:!inFlight&&!loading&&!checksLoading&&!pending&&!stagePending&&!responsibilityPending&&!stale&&!authFrozen&&!!snapshot?.capabilities.editText}),
+    ()=>({tasks:snapshot!.project.tasks??[],ops:values!.taskOps??[],bulk:taskBulk,showActions:!!snapshot?.capabilities.editText,editable:!inFlight&&!loading&&!checksLoading&&!pending&&!stagePending&&!responsibilityPending&&!stale&&!authFrozen&&!!snapshot?.capabilities.editText}),
     (ops,bulk)=>{values!.taskOps=changedTaskOps(snapshot!.project.tasks??[],ops);taskBulk=bulk;delete validationErrors.taskOps;persist();controls();},
     ()=>(catalog?.engineers??[]).filter(person=>person.enabled));
   const statusInput = document.getElementById('edit-statusDesc') as HTMLTextAreaElement | null;
@@ -1391,24 +1391,31 @@ async function savePage(){
 async function saveNew(scope: SaveScope = 'project', target?: string, explicit?: Partial<EditValues>) {
   if (!snapshot?.capabilities.editText || !values || stale || pending || stagePending || responsibilityPending || inFlight || loading || authFrozen) return;
   if(scope!=='project') {
+    const directRecord=!submittingPage && (scope==='risk'||scope==='change');
+    const staged=directRecord?structuredClone(values):values;
     for(const op of explicit?.riskOps ?? []) {
-      const added=op.op!=='add'?values.riskOps?.find(row=>row.op==='add'&&row.tempId===op.id):undefined;
+      const added=op.op!=='add'?staged.riskOps?.find(row=>row.op==='add'&&row.tempId===op.id):undefined;
       if(op.op==='correct'&&added?.op==='add') {Object.assign(added,op.changes);continue;}
-      if(op.op==='delete'&&added?.op==='add') {values.riskOps=values.riskOps!.filter(row=>row.op==='add'?row.tempId!==op.id:row.id!==op.id);continue;}
-      const prior=op.op==='correct'?values.riskOps?.findLast(row=>row.op==='correct'&&row.id===op.id):undefined;
+      if(op.op==='delete'&&added?.op==='add') {staged.riskOps=staged.riskOps!.filter(row=>row.op==='add'?row.tempId!==op.id:row.id!==op.id);continue;}
+      const prior=op.op==='correct'?staged.riskOps?.findLast(row=>row.op==='correct'&&row.id===op.id):undefined;
       if(op.op==='correct'&&prior?.op==='correct'){Object.assign(prior.changes,op.changes);prior.reason=op.reason;continue;}
-      if(!values.riskOps?.some(row=>JSON.stringify(row)===JSON.stringify(op)))(values.riskOps??=[]).push(op);
+      if(!staged.riskOps?.some(row=>JSON.stringify(row)===JSON.stringify(op)))(staged.riskOps??=[]).push(op);
     }
     for(const op of explicit?.changeOps ?? []) {
-      const added=op.op==='correct'?values.changeOps?.find(row=>row.op==='add'&&row.tempId===op.id):undefined;
+      const added=op.op==='correct'?staged.changeOps?.find(row=>row.op==='add'&&row.tempId===op.id):undefined;
       if(op.op==='correct'&&added?.op==='add'){Object.assign(added,op.changes);continue;}
-      const prior=op.op==='correct'?values.changeOps?.findLast(row=>row.op==='correct'&&row.id===op.id):undefined;
+      const prior=op.op==='correct'?staged.changeOps?.findLast(row=>row.op==='correct'&&row.id===op.id):undefined;
       if(op.op==='correct'&&prior?.op==='correct'){Object.assign(prior.changes,op.changes);prior.correctionReason=op.correctionReason;continue;}
-      if(!values.changeOps?.some(row=>JSON.stringify(row)===JSON.stringify(op)))(values.changeOps??=[]).push(op);
+      if(!staged.changeOps?.some(row=>JSON.stringify(row)===JSON.stringify(op)))(staged.changeOps??=[]).push(op);
     }
-    for(const op of explicit?.nodeOps ?? [])if(!values.nodeOps?.some(row=>JSON.stringify(row)===JSON.stringify(op)))(values.nodeOps??=[]).push(op);
-    if(scope==='risk')riskDraft=undefined;if(scope==='change')changeDraft=undefined;if(scope==='customerNode'||scope==='projectNodes'){nodeDraft=undefined;nodeRestoreExtras=[];}
-    persist();render();if(!submittingPage)return savePage();return;
+    for(const op of explicit?.nodeOps ?? [])if(!staged.nodeOps?.some(row=>JSON.stringify(row)===JSON.stringify(op)))(staged.nodeOps??=[]).push(op);
+    if(directRecord){
+      explicit=scope==='risk'?{riskOps:staged.riskOps?.filter(op=>('tempId' in op?op.tempId:op.id)===target)}:{changeOps:staged.changeOps?.filter(op=>('tempId' in op?op.tempId:op.id)===target)};
+      if(!(explicit.riskOps??explicit.changeOps)?.length){if(scope==='risk'){values.riskOps=staged.riskOps;riskDraft=undefined;}else{values.changeOps=staged.changeOps;changeDraft=undefined;}persist();render();return;}
+    }else{
+      if(scope==='risk')riskDraft=undefined;if(scope==='change')changeDraft=undefined;if(scope==='customerNode'||scope==='projectNodes'){nodeDraft=undefined;nodeRestoreExtras=[];}
+      persist();render();if(!submittingPage)return savePage();return;
+    }
   }
   const patch = explicit ?? scopeChanges(baseline(), values, scope, target);
   const errors: Record<string, string> = {};
@@ -1416,10 +1423,11 @@ async function saveNew(scope: SaveScope = 'project', target?: string, explicit?:
   for (const key of textKeys.slice(1)) if (key in patch && new TextEncoder().encode(patch[key]).length > 65535) errors[key] = '说明超过 65535 字节';
   if (patch.stagePlans?.some(plan => plan.plannedDays !== null && (!Number.isInteger(plan.plannedDays) || plan.plannedDays < 0 || plan.plannedDays > 65535) || new TextEncoder().encode(plan.note).length > 65535)) errors.stagePlans = '工期须为空或0～65535的整数天；阶段评述最多65535字节';
   if (Object.keys(errors).length) { fieldErrors(errors, scope); return; }
-  const intent=basicDraft && basicIntentChanged(snapshot,basicDraft)?structuredClone(basicDraft):undefined;
-  if (!Object.keys(patch).length && !intent && !queuedCommands.length) { note('没有未保存的修改。'); return; }
-  const submission={scope,...target?{target}:{},changes:patch,...intent?{basicIntent:intent}:{},commands:structuredClone(queuedCommands)};
-  const closureChange = intent && (intent.state === 'closed') !== (snapshot.project.status === 'closed') || queuedCommands.some(command => ['closeProject','reopenProject'].includes(command.action));
+  const intent=scope==='project' && basicDraft && basicIntentChanged(snapshot,basicDraft)?structuredClone(basicDraft):undefined;
+  const commands=scope==='project'?structuredClone(queuedCommands):[];
+  if (!Object.keys(patch).length && !intent && !commands.length) { note('没有未保存的修改。'); return; }
+  const submission={scope,...target?{target}:{},changes:patch,...intent?{basicIntent:intent}:{},...scope==='project'?{commands}:{}};
+  const closureChange = intent && (intent.state === 'closed') !== (snapshot.project.status === 'closed') || commands.some(command => ['closeProject','reopenProject'].includes(command.action));
   if (closureChange) {
     const exact = JSON.stringify({patch,intent,commands:queuedCommands});
     inFlight=true;controls();
@@ -1440,7 +1448,7 @@ async function saveNew(scope: SaveScope = 'project', target?: string, explicit?:
     } finally {inFlight=false;controls();}
     if(stale || authFrozen || exact!==JSON.stringify({patch:explicit ?? scopeChanges(baseline(),values,scope,target),intent:basicDraft&&basicIntentChanged(snapshot,basicDraft)?basicDraft:undefined,commands:queuedCommands})){note('输入或项目已有变化，请重新核对后保存。',true);return;}
   }
-  personalDrafts?.capture(scope,target,editBaseVersion,{values:patch,...basicDraft?{intent:structuredClone(basicDraft) as unknown as Record<string,unknown>}:{},submission});
+  personalDrafts?.capture(scope,target,editBaseVersion,{values:patch,...intent?{intent:structuredClone(intent) as unknown as Record<string,unknown>}:{},submission});
   inFlight=true;controls();const draft=await personalDrafts?.prepare(scope,target);inFlight=false;
   if(stale || authFrozen){controls();return;}
   pending = structuredClone({ expectedVersion: editBaseVersion, idempotencyKey: crypto.randomUUID(),...submission,...draft?{draft}:{} });
@@ -1462,6 +1470,9 @@ async function readAfterOwnSave(version: string, request?: SaveRequest, result?:
   const hadBasicInput = basicDraft && basicIntentChanged(previousDetail, basicDraft);
   snapshot = current; observedVersion = version; editBaseVersion = version; stale = false;
   values = carryInputs(oldBase, input, baseline(), request);
+  // 原处提交包含该记录全部已暂存操作；其他记录和区域仍由标题栏保存。
+  if(request?.scope==='risk')values.riskOps=values.riskOps?.filter(op=>('tempId' in op?op.tempId:op.id)!==request.target);
+  if(request?.scope==='change')values.changeOps=values.changeOps?.filter(op=>('tempId' in op?op.tempId:op.id)!==request.target);
   if (request?.scope === validationScope) { validationErrors = {}; validationScope = undefined; }
   if (request?.scope === 'basic' || request?.scope==='project' && JSON.stringify(basicDraft)===JSON.stringify(request.basicIntent) || !hadBasicInput) basicDraft = basicIntent(current);
   audit = undefined; auditGeneration++; auditMessage = ''; clearSourceHistory();
@@ -1487,7 +1498,7 @@ async function execute(confirm: boolean) {
       if (original.scope === 'change') changeDraft = undefined;
       if (original.scope === 'customerNode' || original.scope === 'projectNodes') { nodeDraft = undefined; nodeRestoreExtras = []; }
       const refreshed = await readAfterOwnSave(result.savedVersion, original,result);
-      if (refreshed) note(result.changed ? '全部修改已保存。' : '内容一致，已确认。');
+      if (refreshed) note(result.changed ? original.scope==='risk'?'本条风险已保存。':original.scope==='change'?'本条需求变更已保存。':'全部修改已保存。' : '内容一致，已确认。');
       if (tab === 'history') void loadAudit();
     } else { note('暂未查到原操作回执，结果仍未确认。可稍后确认或重试原操作。', true); persist(); }
   } catch (error) {
@@ -1549,7 +1560,8 @@ function renderStatusHistory() {
   const box = document.getElementById('status-history-content');
   if (!box || !statusHistoryOpen) return;
   const tabs=`<div class="task-history-switch"><button type="button" data-task-history="history" aria-pressed="${statusHistoryView==='history'}">说明历史</button><button type="button" data-task-history="completed" aria-pressed="${statusHistoryView==='completed'}">已完成任务</button></div>`;
-  box.innerHTML = tabs + (statusHistoryView==='completed'?`<div class="task-history-list">${taskList(taskCopy(snapshot!.project.tasks??[],values!.taskOps??[]),!inFlight&&!loading&&!checksLoading&&!pending&&!stagePending&&!responsibilityPending&&!stale&&!authFrozen&&!!snapshot?.capabilities.editText,true)}</div>`:(audit ? statusDescriptionHistory(audit.items) : '') + sourceHistoryPanel('status_description') + `<p class="read-message">${esc(auditMessage)}</p>${!audit || auditMessage ? '<button class="back-btn" data-status-history-load>读取历史</button>' : ''}${audit?.nextCursor ? '<button class="back-btn" data-status-history-more>读取更早记录</button>' : ''}`);
+  box.innerHTML = tabs + (statusHistoryView==='completed'?`<div class="task-history-list">${taskList(taskCopy(snapshot!.project.tasks??[],values!.taskOps??[]),!!snapshot?.capabilities.editText,true)}</div>`:(audit ? statusDescriptionHistory(audit.items) : '') + sourceHistoryPanel('status_description') + `<p class="read-message">${esc(auditMessage)}</p>${!audit || auditMessage ? '<button class="back-btn" data-status-history-load>读取历史</button>' : ''}${audit?.nextCursor ? '<button class="back-btn" data-status-history-more>读取更早记录</button>' : ''}`);
+  box.querySelectorAll<HTMLButtonElement>('[data-task-action]').forEach(button=>{button.disabled=!!(inFlight||loading||checksLoading||pending||stagePending||responsibilityPending||stale||authFrozen)||!snapshot?.capabilities.editText;});
   box.querySelectorAll<HTMLButtonElement>('[data-task-history]').forEach(button=>button.onclick=()=>{statusHistoryView=button.dataset.taskHistory as 'history'|'completed';renderStatusHistory();});
   box.querySelector<HTMLButtonElement>('[data-status-history-load]')?.addEventListener('click', () => { void loadAudit(); });
   box.querySelector<HTMLButtonElement>('[data-status-history-more]')?.addEventListener('click', () => { void loadAudit(true); });
