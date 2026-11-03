@@ -2,10 +2,10 @@
 chcp 65001 >nul
 setlocal
 set "HARBOR_HOST=harbor.geekwontek.com"
-set "IMAGE_TARGET=harbor.geekwontek.com/geek-dash/geekdash:V0.1.2-ec27bbd"
-set "SOURCE_IMAGE=geekdash:V0.1.2-ec27bbd"
-set "EXPECTED_ID=sha256:5591a17b0b4d40ec10cd24388029f3f3d7038ced53b37e2c9bc679e7f7f45922"
-set "EXPECTED_REVISION=ec27bbd454c9405f0cd92c50a0cfa4e3cd4240a6"
+set "IMAGE_TARGET=harbor.geekwontek.com/geek-dash/geekdash:V0.1.2-6b394db"
+set "SOURCE_IMAGE=geekdash:V0.1.2-6b394db"
+set "EXPECTED_ID=sha256:0c3a276410630ecfec5a26d8446a4ba04fd7379595647151b852242633c51ca8"
+set "EXPECTED_REVISION=6b394db9cad9b10cc80aa32c2aac3b444a900109"
 if not "%~2"=="" goto usage
 if not "%~1"=="" if /I not "%~1"=="-CheckOnly" goto usage
 set "ACTUAL_ID="
