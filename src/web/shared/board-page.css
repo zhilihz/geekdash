@@ -122,8 +122,16 @@
 .board-page .chart-card h2 { font-size: 16px; }
 .board-page .chart-card h2::before { display: none; }
 .board-page .pp-subtitle { display: block; font-size: 12px; margin: 8px 0 16px; }
-.board-page .pp-item { display: flex; flex-direction: row; align-items: center; gap: 12px; padding: 12px 0; background: transparent; border-radius: 0; border-bottom: 1px solid var(--border); }
+.board-page .pp-item { display: flex; flex-direction: row; align-items: center; gap: clamp(12px, 2vw, 24px); padding: 16px 0; background: transparent; border-radius: 0; border-bottom: 1px solid var(--border); }
+.board-page .pp-item:hover .pp-name, .board-page .pp-item:focus-visible .pp-name { color: var(--accent); text-decoration: underline; }
+.board-page .pp-ring { width: clamp(64px, 7vw, 80px); height: auto; aspect-ratio: 1; background: none; }
+.board-page .pp-ring::before { content: none; }
+.board-page .pp-ring svg { width: 100%; height: 100%; }
+.board-page .pp-ring-pct { font-size: clamp(15px, 1.5vw, 18px); color: var(--text); }
 .board-page .pp-info { flex: 1; min-width: 0; }
+.board-page .pp-name { font-size: clamp(18px, 2vw, 22px); line-height: 1.35; white-space: normal; overflow-wrap: anywhere; }
+.board-page .pp-meta { margin-top: 4px; font-size: 16px; line-height: 1.5; }
+.board-page .pp-milestone { margin: 4px 0 0; font-size: 15px; line-height: 1.6; color: var(--text-dim); overflow-wrap: anywhere; }
 .board-page .board-focus-progress { width: 100%; margin: 0 0 6px; }
 .board-distribution { width: 100%; list-style: none; padding: 0; margin: 12px 0; }
 .board-distribution li { display: grid; grid-template-columns: minmax(70px, 1fr) minmax(60px, 1.4fr) 24px; align-items: center; gap: 12px; margin: 18px 0; font-size: 13px; }

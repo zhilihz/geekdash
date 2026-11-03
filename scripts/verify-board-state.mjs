@@ -167,6 +167,17 @@ try{
   click(progressButton('100'));await checkProgress(null,[id,otherId]);
   click(progressButton('0'));await checkProgress('0',[id]);
   click('[data-clear-distribution="progress"]');await checkProgress(null,[id,otherId]);
+  const focusRow=projectId=>$('#focus-projects a[data-project-id="'+projectId+'"]');
+  const milestone=projectId=>focusRow(projectId)?.querySelector('.pp-milestone')?.textContent;
+  assert.equal(milestone(id),'里程碑：'+w.__GEEKDASH_STAGES__[0].milestone);
+  assert.equal(milestone(otherId),'七阶段里程碑已全部完成。');
+  // 只改变本次合成项目的阶段投影，重读同一列表，按每条实际 ID 校验。
+  await c.execute("UPDATE project_stages SET state=CASE WHEN stage_code<'S4' THEN 'completed' WHEN stage_code='S4' THEN 'active' ELSE 'locked' END WHERE project_id=?",[id]);
+  await c.execute('DELETE FROM project_stages WHERE project_id=?',[otherId]);
+  w.dispatchEvent(new w.Event('focus'));
+  await wait(()=>milestone(id)==='里程碑：'+w.__GEEKDASH_STAGES__[3].milestone && milestone(otherId)==='阶段待确认','阶段变更后读回本条里程碑');
+  for(const projectId of [id,otherId])assert.equal(new URL(focusRow(projectId).href).searchParams.get('id'),projectId);
+  checks.push('重点进度逐项目读取 S1、S4、全部完成及未配置阶段，各自链接对应详情');
   click('#layout-cards');assert.equal(writes.length,11,'筛选不应修改项目');
   checks.push('驾驶舱同图点击100%筛出完成项目，重复点击恢复两个进度；选择0%后用图内全部进度恢复。每次均保留原搜索、负责人视角及项目范围');
   const beforeRecovery=writes.length;

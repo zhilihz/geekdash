@@ -89,8 +89,12 @@ function selectedFilters() {
   element('selected-filters').innerHTML = selected.map(item => `<button class="chip active" data-remove-filter="${item.key}" aria-label="取消${esc(item.text)}">${esc(item.text)} <span aria-hidden="true">×</span></button>`).join('');
   return selected.map(item => item.text);
 }
+function milestoneText(stageCode: string) {
+  const stage = __GEEKDASH_STAGES__.find(item => 'S' + item.id === stageCode);
+  if (stage) return '里程碑：' + stage.milestone;
+  return stageCode === 'completed' ? '七阶段里程碑已全部完成。' : '阶段待确认';
+}
 function card(project: ListProject) {
-  const stage = __GEEKDASH_STAGES__.find(item => 'S' + item.id === project.stage);
   const checkedOn = project.checkStatus.latest ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date(project.checkStatus.latest.checkedAt)) : null;
   const daysUnchecked = checkedOn ? Math.round((Date.parse(businessDate) - Date.parse(checkedOn)) / 86400000) : null;
   const checkLabel = project.checkedToday ? '✓ 今日已检查' : daysUnchecked !== null && daysUnchecked > 0 ? `○ 已 ${daysUnchecked} 天未检查` : '○ 尚未检查';
@@ -104,7 +108,7 @@ function card(project: ListProject) {
     <section class="board-card-section"><h4>基本资料</h4><dl class="board-card-facts">${facts}</dl>${project.tags.length ? `<div class="board-card-tags">${project.tags.map(tag=>`<span>${esc(tag.name)}</span>`).join('')}</div>` : ''}
     ${project.marketExpectation ? `<p class="board-card-market"><span>市场预期</span>${esc(project.marketExpectation)}</p>` : ''}</section>
     ${project.managers.length>1?`<p class="read-label">协作者：${project.managers.filter(person=>person.id!==account?.id).map(person=>esc(person.name)+(person.enabled?'':'（当前不可管理）')).join('、')}</p>`:''}
-    <div class="board-card-stage"><div class="board-stage-heading"><span>当前阶段：${esc(stageName)}</span><strong>${project.progress}%</strong></div><div class="board-card-progress"><div class="stage-bar-track"><div class="stage-bar-fill" style="width:${Number(project.progress)}%"></div></div></div><p class="board-card-milestone">${stage ? '里程碑：' + esc(stage.milestone) : project.stage === 'completed' ? '七阶段里程碑已全部完成。' : '阶段待确认'}</p></div>
+    <div class="board-card-stage"><div class="board-stage-heading"><span>当前阶段：${esc(stageName)}</span><strong>${project.progress}%</strong></div><div class="board-card-progress"><div class="stage-bar-track"><div class="stage-bar-fill" style="width:${Number(project.progress)}%"></div></div></div><p class="board-card-milestone">${esc(milestoneText(project.stage))}</p></div>
     <div class="board-card-status">${statusContent(project)}</div>
     <div class="board-card-footer"><div class="board-check-time">最近检查：${project.checkStatus.latest ? `<time datetime="${esc(project.checkStatus.latest.checkedAt)}">${esc(checkTime(project.checkStatus))}</time>${project.checkStatus.latest.actorName ? ' · ' + esc(project.checkStatus.latest.actorName) : ''}` : '尚未检查'}${project.checkStatus.updatedAfterCheck ? '<span class="board-check-updated">检查后有更新</span>' : ''}</div><a href="project-detail.html?id=${project.id}">查看详情 ↗</a></div></article>`;
 }
@@ -275,7 +279,14 @@ function distribution() {
 }
 function charts(data: Dashboard) {
   element('focus-count').textContent = `当前范围 ${data.focusTotal} 个非结案项目 · 按优先级和进度排序`;
-  element('focus-projects').innerHTML = data.focus.map(project => {const progress=Math.max(0,Math.min(100,Number(project.progress))),color=project.priority==='high'?'var(--red)':project.priority==='mid'?'var(--yellow)':'var(--accent)';return `<a class="pp-item" data-project-id="${project.id}" href="project-detail.html?id=${project.id}"><div class="pp-ring"><svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18" fill="none" stroke="var(--border)" stroke-width="4"/><circle cx="22" cy="22" r="18" fill="none" stroke="${color}" stroke-width="4" pathLength="100" stroke-dasharray="${progress} 100" transform="rotate(-90 22 22)"/></svg><span class="pp-ring-pct">${progress}%</span></div><div class="pp-info"><div class="pp-name">${esc(project.name)}</div><div class="pp-meta">${esc(label(project.stage))} · ${esc(label(project.status))}</div></div></a>`;}).join('') || '<p class="pp-empty">当前范围没有匹配项目</p>';
+  element('focus-projects').innerHTML = data.focus.map(project => {
+    const progress = Math.max(0, Math.min(100, Number(project.progress)));
+    const color = project.priority === 'high' ? 'var(--red)' : project.priority === 'mid' ? 'var(--yellow)' : 'var(--accent)';
+    return `<a class="pp-item" data-project-id="${project.id}" href="project-detail.html?id=${project.id}">
+      <div class="pp-ring"><svg viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18" fill="none" stroke="var(--border)" stroke-width="4"/><circle cx="22" cy="22" r="18" fill="none" stroke="${color}" stroke-width="4" pathLength="100" stroke-dasharray="${progress} 100" transform="rotate(-90 22 22)"/></svg><span class="pp-ring-pct">${progress}%</span></div>
+      <div class="pp-info"><div class="pp-name">${esc(project.name)}</div><div class="pp-meta">${esc(label(project.stage))} · ${esc(label(project.status))}</div><p class="pp-milestone">${esc(milestoneText(project.stage))}</p></div>
+    </a>`;
+  }).join('') || '<p class="pp-empty">当前范围没有匹配项目</p>';
   const maximum=Math.max(1,...data.managers.map(person=>person.count));
   element('manager-project-counts').innerHTML=`${distributionReset('manager','负责人')}<ul class="board-distribution">${data.managers.map(person=>`<li><button class="legend-filter" data-manager="${esc(person.id)}" aria-pressed="${query.getAll('manager').includes(person.id)}">${esc(person.name)}</button><span class="board-distribution-track" aria-hidden="true"><i style="width:${person.count/maximum*100}%;background:var(--accent)"></i></span><b>${person.count}</b></li>`).join('')||'<li>暂无负责项目</li>'}</ul>`;
   void loadTaskSummary();
