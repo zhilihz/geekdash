@@ -97,8 +97,8 @@
 .board-card-status .board-state-note p{margin:0;line-height:1.65}
 .board-state-note strong,.board-state-note small{color:var(--text-dim)}
 .board-state-foot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:3px 12px;margin-top:3px}
-.board-card-status .board-state-foot button{margin:0;padding:2px 5px;border:0;background:transparent;color:var(--accent);font-size:12px}
-.board-state-foot button:hover{text-decoration:underline}
+.board-card-status .board-state-foot button{margin:0 0 0 auto;border-color:var(--accent);color:var(--accent);font-weight:600}
+.board-state-foot button:hover:not(:disabled){background:var(--accent);color:var(--on-accent,#fff)}
 .board-tasks-heading{font-size:14px;font-weight:600;margin-bottom:8px}
 .board-card-status .card-tasks .task-list{margin:0 0 12px}
 .board-card-status .card-tasks .task-input-label{margin:0;color:var(--text);font-size:15px;font-weight:600}
