@@ -18,11 +18,11 @@ export async function attachContentDates(c:PoolConnection,projects:RowDataPacket
   for(const source of sources){
     const facts=typeof source.facts==='string'?JSON.parse(source.facts):source.facts,raw=typeof source.source==='string'?JSON.parse(source.source):source.source;
     versions.set(source.projectId,source.version);
-    add(source.projectId,...(facts.tasks??[]).flatMap((task:ProjectTask)=>[task.updatedAt,task.completedAt,task.deletedAt]),...(facts.statusEntries??[]).map((entry:StatusEntry)=>entry.date));
+    add(source.projectId,...(facts.tasks??[]).flatMap((task:ProjectTask)=>[task.createdAt,task.updatedAt,task.completedAt,task.deletedAt]),...(facts.statusEntries??[]).map((entry:StatusEntry)=>entry.date));
     if(facts.tasks)add(source.projectId,raw.tasksUpdatedAt);else add(source.projectId,raw.statusDescUpdatedAt);
   }
-  const tasks=await rows(c,'SELECT CAST(project_id AS CHAR) projectId,updated_at_text updatedAt,completed_at_text completedAt,deleted_at_text deletedAt FROM project_tasks WHERE project_id IN (?)',[ids]);
-  for(const task of tasks)add(task.projectId,task.updatedAt,task.completedAt,task.deletedAt);
+  const tasks=await rows(c,'SELECT CAST(project_id AS CHAR) projectId,created_at_text createdAt,updated_at_text updatedAt,completed_at_text completedAt,deleted_at_text deletedAt FROM project_tasks WHERE project_id IN (?)',[ids]);
+  for(const task of tasks)add(task.projectId,task.createdAt,task.updatedAt,task.completedAt,task.deletedAt);
   const audits=await rows(c,`SELECT CAST(project_id AS CHAR) projectId,CAST(version_after AS CHAR) version,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%s.%fZ') at FROM audit_log WHERE project_id IN (?) AND entity_type='project' AND action<>'project.import' AND
     (action='project.tasks.save' OR JSON_TYPE(JSON_EXTRACT(after_json,'$.statusDesc'))='STRING' AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(before_json,'$.statusDesc')),'')<>JSON_UNQUOTE(JSON_EXTRACT(after_json,'$.statusDesc')))`,[ids]);
   for(const audit of audits)if(!versions.has(audit.projectId)||BigInt(audit.version)>BigInt(versions.get(audit.projectId)!))add(audit.projectId,audit.at);
@@ -52,17 +52,22 @@ export function sourceTasks(value:unknown):ProjectTask[] {
   if(new Set(tasks.map(t=>t.id)).size!==tasks.length)failure('INVALID_IMPORT_TASKS',422,{fields:{tasks:'备份中存在重复的任务编号，请修正后导入。'}});
   return tasks;
 }
-export function textTaskOperations(before:ProjectTask[],text:string):TaskOperation[] {
-  const available=before.filter(t=>!t.completedAt&&!t.deletedAt),used=new Set<string>(),ops:TaskOperation[]=[];
-  for(const line of text.replace(/\r\n?/g,'\n').split('\n').map(stripNumber).filter(Boolean)){
+export function importedTextOperations(before:ProjectTask[],text:string,entries:StatusEntry[]=[]) {
+  const available=before.filter(t=>!t.completedAt&&!t.deletedAt),used=new Set<string>(),ops:TaskOperation[]=[],bodyDates=new Map<string,string>();
+  for(const [index,raw] of text.replace(/\r\n?/g,'\n').split('\n').entries()){
+    const line=stripNumber(raw);
+    if(!line)continue;
     const old=available.find(t=>!used.has(t.id)&&t.text===line);
-    if(old)used.add(old.id);else ops.push({op:'add',id:crypto.randomUUID(),text:line});
+    if(old){used.add(old.id);continue;}
+    const id=crypto.randomUUID();
+    ops.push({op:'add',id,text:line});
+    bodyDates.set(id,entries[index]?.text===raw?entries[index].date:'');
   }
   for(const task of available)if(!used.has(task.id))ops.push({op:'delete',id:task.id});
-  return ops;
+  return {ops,bodyDates};
 }
 export function legacyTasks(projectId:string,entries:StatusEntry[]):ProjectTask[] {
-  return entries.map((entry,index)=>({id:`legacy-status-${projectId}-${index}`,text:stripNumber(entry.text),createdAt:entry.date,updatedAt:entry.date,completedAt:'',deletedAt:''})).filter(task=>task.text&&task.text!=='-');
+  return entries.map((entry,index)=>({id:`legacy-status-${projectId}-${index}`,text:stripNumber(entry.text),createdAt:'',updatedAt:entry.date,completedAt:'',deletedAt:''})).filter(task=>task.text&&task.text!=='-');
 }
 export function validateTaskOps(value:unknown):asserts value is TaskOperation[] {
   if(!Array.isArray(value)||!value.length)failure('INVALID_TASK_OPERATIONS',400);
@@ -90,19 +95,28 @@ export async function readTasks(c:PoolConnection,id:string) {
   }
   await attachTasks(c,[project]);return {unified:!!project.tasksUnified,tasks:project.tasks as ProjectTask[]};
 }
-export async function taskCandidate(c:PoolConnection,id:string,operations:TaskOperation[],at:string) {
+export async function taskCandidate(c:PoolConnection,id:string,operations:TaskOperation[],at:string,importedBodyDates?:Map<string,string>) {
   const before=await readTasks(c,id),after=structuredClone(before.tasks);
   for(const operation of operations){
     const task=after.find(value=>value.id===operation.id);
     if(operation.op==='add'){
       if(task)failure('TASK_ID_CONFLICT',422);
-      after.push({id:operation.id,text:operation.text.trim(),createdAt:at,updatedAt:at,completedAt:'',deletedAt:''});continue;
+      const imported=importedBodyDates?.get(operation.id);
+      after.push({id:operation.id,text:operation.text.trim(),createdAt:imported===undefined?at:'',updatedAt:imported??at,completedAt:'',deletedAt:''});continue;
     }
     if(!task||task.deletedAt)failure('TASK_NOT_FOUND',422,{fields:{taskOps:'这条任务已被删除或不存在，请保留输入后重新读取。'}});
-    if(operation.op==='edit'&&task.text!==operation.text.trim()){task.text=operation.text.trim();task.updatedAt=at;}
-    if(operation.op==='complete'&&!task.completedAt){task.completedAt=at;task.updatedAt=at;}
-    if(operation.op==='reopen'&&task.completedAt){task.completedAt='';task.updatedAt=at;}
-    if(operation.op==='delete'){task.deletedAt=at;task.updatedAt=at;}
+    if(operation.op==='edit')task.text=operation.text.trim();
+    if(operation.op==='complete'&&!task.completedAt)task.completedAt=at;
+    if(operation.op==='reopen')task.completedAt='';
+    if(operation.op==='delete')task.deletedAt=at;
+  }
+  // 同次提交把文字改回或恢复后又完成，最后没有变化的事实沿用原日期。
+  const originals=new Map(before.tasks.map(task=>[task.id,task]));
+  for(const task of after){
+    const original=originals.get(task.id);
+    if(!original)continue;
+    if(task.text!==original.text)task.updatedAt=at;
+    if(task.completedAt&&original.completedAt)task.completedAt=original.completedAt;
   }
   const description=taskDescription(after);
   if(Buffer.byteLength(description,'utf8')>65535)failure('INVALID_PROJECT_FIELDS',422,{fields:{taskOps:'待完成任务正文合计不能超过65535字节，请减少本次输入。'}});

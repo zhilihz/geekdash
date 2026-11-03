@@ -375,7 +375,7 @@ export function projectSaves(database: RuntimeDatabase) {
           if (current.stagePlans.length !== 7) failure('STAGE_SEQUENCE_REVIEW_REQUIRED', 422);
           effective = { ...request.changes, stagePlans: current.stagePlans.map((item: StagePlan) => ({ ...item, ...request.changes.stagePlans!.find(change => change.code === item.code) })) };
         }
-        if(tasks)effective={...effective,statusDesc:tasks.description};
+        if(tasks?.changed)effective={...effective,statusDesc:tasks.description};
         const errors: Record<string, string> = {};
         for (const [key, table] of Object.entries(referenceFields)) if (Object.hasOwn(request.changes, key)) {
           const previous = new Set(key === 'people' ? (current.people as Person[]).map(person => person.id + ':' + person.role) : idsOf(key, current[key]));

@@ -37,6 +37,12 @@ export function attachStatusMentions(input:HTMLTextAreaElement,people:()=>Person
     if(event.key==='ArrowDown' || event.key==='ArrowUp'){event.preventDefault();active=(active+(event.key==='ArrowDown'?1:matches.length-1))%matches.length;render(true);}
     else if(event.key==='Enter'){event.preventDefault();choose(matches[active].name);}
   });
-  menu.addEventListener('mousedown',event=>{const option=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-mention-name]');if(option){event.preventDefault();choose(option.dataset.mentionName!);}});
+  // 保持输入焦点，让候选按钮一直留在原处直到本次点击结束。
+  menu.addEventListener('mousedown',event=>{if(event.button===0)event.preventDefault();});
+  menu.addEventListener('click',event=>{
+    event.stopPropagation();
+    const option=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-mention-name]');
+    if(!menu.hidden && option && event.button===0)choose(option.dataset.mentionName!);
+  });
   input.addEventListener('blur',close);
 }

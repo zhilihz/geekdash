@@ -12,6 +12,7 @@ import { ProjectNotifications } from './shared/notifications';
 import { refreshProjectOptions } from './shared/project-options';
 import { attachStatusMentions } from './shared/status-mentions';
 import { readableFields } from './shared/history';
+import { confirmAction } from './shared/action-confirm';
 setupTheme(); setupDateZone();
 const form = document.getElementById('create') as HTMLFormElement;
 const message = document.getElementById('message')!;
@@ -129,10 +130,10 @@ document.addEventListener('geekdash-login-leave', () => { remember(); leaving = 
 document.querySelectorAll<HTMLAnchorElement>('.project-nav a, .topbar a.back-btn').forEach(link=>{link.onclick=event=>{if(leaving && new URL(link.href).pathname==='/login.html')return;event.preventDefault();void leave(link.href);};});
 window.addEventListener('beforeunload', event => { if (!leaving && (pending || hasInput())){remember();event.preventDefault();} });
 void requireIdentity().then(async () => {
-  personalDrafts=new PersonalDrafts(null,()=>({version:null,editable:!identityChanged && !pending && !busy}),row=>{
+  personalDrafts=new PersonalDrafts(null,()=>({version:null,editable:!identityChanged && !pending && !busy}),async row=>{
     if(pending || busy || identityChanged)return false;
     const before=JSON.stringify(fields());
-    if(hasInput() && !confirm('恢复底稿将替换当前新建输入，是否继续？'))return false;
+    if(hasInput() && !await confirmAction('用草稿替换当前输入？','当前新建表单会改为所选个人草稿的内容。','保留当前输入','用草稿替换'))return false;
     if(pending || busy || identityChanged || before!==JSON.stringify(fields()))return false;
     const restored=row.payload.values;if(!restored)return false;
     restoreFields(restored);render();remember();message.textContent='底稿已恢复，点击保存才会创建正式项目。';return true;

@@ -239,10 +239,12 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
         const user=(await rows(c,'SELECT enabled,is_admin,is_project_manager FROM users WHERE id=?',[accountId]))[0];
         if(!user?.enabled)failure('AUTH_REQUIRED',401);
         const management=!!user.is_admin&&(perspective==='management'||!user.is_project_manager);
-        const items=await rows(c,`SELECT CAST(p.id AS CHAR) id,p.name,p.tasks_unified tasksUnified,p.status_description statusDesc FROM projects p WHERE p.deleted_at IS NULL ${management?'':'AND EXISTS(SELECT 1 FROM project_responsibilities r JOIN users u ON u.id=r.user_id WHERE r.project_id=p.id AND r.user_id=? AND u.enabled=1 AND u.is_project_manager=1)'} ORDER BY p.id`,management?[]:[accountId]);
+        const items=await rows(c,`SELECT CAST(p.id AS CHAR) id,CAST(p.version AS CHAR) version,p.name,p.tasks_unified tasksUnified,p.status_description statusDesc FROM projects p WHERE p.deleted_at IS NULL ${management?'':'AND EXISTS(SELECT 1 FROM project_responsibilities r JOIN users u ON u.id=r.user_id WHERE r.project_id=p.id AND r.user_id=? AND u.enabled=1 AND u.is_project_manager=1)'} ORDER BY p.id`,management?[]:[accountId]);
         await enrich(c,items);
         for(const item of items)item.tasks=(item.tasks??[]).filter((task:{completedAt:string;deletedAt:string})=>!task.completedAt&&!task.deletedAt);
-        return {items:items.filter(item=>item.tasks.length).map(({id,name,tasks})=>({id,name,tasks}))};
+        return {items:items.filter(item=>item.tasks.length).map(({id,name,version,tasks,managers})=>({
+          id,name,version,tasks,canEdit:managers.some((member:{id:string;enabled:boolean})=>member.id===accountId && member.enabled),
+        }))};
       });
     },
     sourceHistory(id: string, kind: SourceHistoryKind, sourceNamespace?: string, adoptionId?: string, before?: string, accountId?:string) { return database.readSnapshot(async connection => { if(accountId)await assertProjectAccess(connection,id,accountId);return sourceHistory(connection, id, kind, sourceNamespace, adoptionId, before); }); },
@@ -303,8 +305,22 @@ export function projectReads(database: RuntimeDatabase, clock = () => new Date()
         const pageCount = Math.max(1, Math.ceil(total / pageSize));
         const page = Math.min(query.page ?? 1, pageCount);
         const items = await enrich(connection, await rows(connection, `SELECT ${columns},${query.dashboard ? 'p.summary_note summaryNote,' : ''}${stageExpression} stage,${stageStateExpression} stageState,${progressExpression} progress,${todayCheck.sql} checkedToday,EXISTS (SELECT 1 FROM project_responsibilities r WHERE r.project_id=p.id AND r.user_id=?) canCheck ${joins} ${filtered.sql} ORDER BY p.id DESC LIMIT ? OFFSET ?`, [...todayCheck.values, accountId ?? null, ...filtered.values, pageSize, (page - 1) * pageSize]));
+        // 只读本页项目实际改动 summary 的最后一条记录；导入审计仅证明采用时间，不能给旧正文补日期。
+        const summaryEvents=items.length?await rows(connection,`SELECT CAST(a.project_id AS CHAR) projectId,
+          JSON_UNQUOTE(a.after_json->'$.summary') summary,
+          CASE WHEN a.action<>'project.import' THEN DATE_FORMAT(a.created_at,'%Y-%m-%dT%H:%i:%s.%fZ') END changedAt
+          FROM audit_log a JOIN (
+            SELECT MAX(id) id FROM audit_log WHERE project_id IN (?) AND entity_type='project'
+              AND action IN ('project.create','project.text.save','project.ordinary.save','project.import')
+              AND JSON_TYPE(after_json->'$.summary')='STRING'
+              AND CAST(JSON_UNQUOTE(after_json->'$.summary') AS BINARY)<>CAST(CASE WHEN JSON_TYPE(before_json->'$.summary')='STRING' THEN JSON_UNQUOTE(before_json->'$.summary') ELSE '' END AS BINARY)
+            GROUP BY project_id
+          ) latest ON latest.id=a.id`,[items.map(project=>project.id)]):[];
+        const summaryByProject=new Map(summaryEvents.map(event=>[event.projectId,event]));
         const risks = items.length ? await rows(connection, `SELECT CAST(project_id AS CHAR) projectId,COUNT(*) unresolvedCount,ELT(MAX(FIELD(level,'low','mid','high')),'low','mid','high') highestLevel FROM project_risks WHERE project_id IN (${items.map(() => '?').join(',')}) AND deleted_at IS NULL AND resolved=0 GROUP BY project_id`, items.map(project => project.id)) : [];
         for (const project of items) {
+          const event=summaryByProject.get(project.id);
+          project.summaryUpdatedAt=event?.changedAt&&event.summary===project.summary?new Date(event.changedAt).toISOString():null;
           const risk = risks.find(risk => risk.projectId === project.id);
           project.riskSummary = { unresolvedCount: Number(risk?.unresolvedCount ?? 0), highestLevel: risk?.highestLevel ?? null };
           project.deadline = deadlineResult(project as RowDataPacket & DateFacts, today);

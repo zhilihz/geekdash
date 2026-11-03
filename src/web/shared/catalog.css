@@ -31,7 +31,6 @@
 .catalog-impact ul { max-height:220px;overflow:auto;padding-left:20px; }
 .catalog-impact li { margin:8px 0; }
 .catalog-impact a { color:var(--accent); }
-.catalog-footer { display:flex;gap:12px;margin-top:24px; }
 .catalog-toast { position:fixed;top:80px;left:50%;transform:translateX(-50%);max-width:calc(100vw - 40px);padding:14px 22px;background:var(--card);border:1px solid var(--accent);border-radius:8px;box-shadow:var(--shadow);z-index:20; }
 @media(max-width:800px) { .catalog-page .page { padding:0 20px 32px; }.catalog-layout { grid-template-columns:1fr; }.catalog-header { gap:16px;padding:12px 0; }.catalog-header .head-actions { width:100%;margin:0; }.catalog-toolbar { flex-wrap:wrap; }.catalog-fields { grid-template-columns:1fr; } }
 

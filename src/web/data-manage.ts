@@ -4,6 +4,7 @@ import './shared/catalog.css';
 import './shared/design.css';
 import { get,send,requireIdentity,account,esc,SaveError,setupTheme } from './shared/api';
 import { ProjectNotifications } from './shared/notifications';
+import { confirmAction } from './shared/action-confirm';
 
 const kinds: Record<string,string>={odmFactories:'ODM 工厂',customers:'客户',engineers:'工程师',productLines:'产品线',apps:'APP',tags:'项目标签',company:'企业信息',groups:'项目分组',chips:'核心芯片'};
 const fields: Record<string,Record<string,string>>={
@@ -30,7 +31,13 @@ function explain(error:unknown){return error instanceof SaveError ? errorMessage
 function persist(){try{if(pending)sessionStorage.setItem(storageKey(),JSON.stringify(pending));else sessionStorage.removeItem(storageKey());}catch{message.textContent='本标签恢复存储不可用，请保留页面并核对原保存结果。';}}
 function toast(text:string){const box=document.createElement('div');box.className='catalog-toast';box.role='status';box.textContent=text;document.body.append(box);setTimeout(()=>box.remove(),4000);}
 function changes():Values{return Object.fromEntries(Object.entries(values).filter(([key,value])=>!selected || !same(selected[key],value)));}
-function leave(){return !busy && !pending && (!editing || !Object.keys(changes()).length || window.confirm('此资料的修改尚未保存，是否放弃本次输入？'));}
+async function leave(){
+  if(busy||pending||frozen)return false;
+  if(!editing||!Object.keys(changes()).length)return true;
+  const originalKind=kind,original=selected,input=JSON.stringify(values);
+  const confirmed=await confirmAction('放弃这次资料修改？','离开后，本次尚未保存的输入会被丢弃。','继续编辑','放弃修改');
+  return confirmed&&!busy&&!pending&&!frozen&&editing&&originalKind===kind&&original===selected&&input===JSON.stringify(values);
+}
 function controls(){
   newButton.hidden=!canMaintain || kind==='company';newButton.disabled=busy || frozen || !!pending;
   reload.disabled=busy || frozen || !!pending;
@@ -52,7 +59,7 @@ function renderList(){
     if(card){card.querySelector('.catalog-card-info')?.remove();card.querySelector('footer')?.remove();card.append(detail);}else list.before(detail);
   }
   list.querySelectorAll<HTMLButtonElement>('[data-card-edit],[data-card-remove]').forEach(button=>button.onclick=async()=>{
-    if(!leave())return;const id=button.dataset.cardEdit??button.dataset.cardRemove!;await select(id);
+    if(!await leave())return;const id=button.dataset.cardEdit??button.dataset.cardRemove!;await select(id);
     if(selected?.id!==id||busy||frozen)return;
     document.getElementById(button.dataset.cardEdit?'catalog-edit':'catalog-toggle')?.click();
   });controls();
@@ -60,7 +67,7 @@ function renderList(){
 function display(key:string,value:unknown){return key==='enabled' ? value?'可用':'已删除' : key==='tagIds' ? (value as string[] ?? []).map(id=>tags.find(tag=>tag.id===id)?.name ?? id).join('、') || '—' : String(value ?? '') || '—';}
 function render(){
   document.getElementById('catalog-tabs')!.innerHTML=Object.entries(kinds).map(([key,title])=>`<button class="head-btn" data-kind="${key}" aria-current="${key===kind}">${title}</button>`).join('');
-  document.querySelectorAll<HTMLButtonElement>('[data-kind]').forEach(button=>button.onclick=()=>{if(leave()){kind=button.dataset.kind!;showRemoved=false;selected=undefined;items=[];editing=false;search='';(document.getElementById('catalog-search') as HTMLInputElement).value='';void load();}});
+  document.querySelectorAll<HTMLButtonElement>('[data-kind]').forEach(button=>button.onclick=async()=>{if(await leave()){kind=button.dataset.kind!;showRemoved=false;selected=undefined;items=[];editing=false;search='';(document.getElementById('catalog-search') as HTMLInputElement).value='';void load();}});
   if(!selected && !editing){detail.innerHTML='<p>查看资料卡，需修改时点击对应资料的“修改”。</p>';renderList();return;}
   const fieldHtml=Object.entries(fields[kind]).map(([key,title])=>{
     const value=editing ? values[key] : selected?.[key],wide=['contact','background','description','managerText','tagIds'].includes(key);
@@ -149,9 +156,9 @@ async function save(confirm:boolean){
   }finally{busy=false;render();}
 }
 setupTheme();
-newButton.onclick=()=>{if(!leave() || !canMaintain)return;showRemoved=false;selected=undefined;review=undefined;editing=true;values=Object.fromEntries(Object.keys(fields[kind]).map(key=>[key,key==='tagIds'?[]:'']));render();};
-reload.onclick=()=>{if(leave()){editing=false;review=undefined;void load();}};
-document.getElementById('catalog-removed')!.onclick=()=>{if(leave()){showRemoved=!showRemoved;editing=false;review=undefined;selected=undefined;values={};void load();}};
+newButton.onclick=async()=>{if(!await leave()||!canMaintain)return;showRemoved=false;selected=undefined;review=undefined;editing=true;values=Object.fromEntries(Object.keys(fields[kind]).map(key=>[key,key==='tagIds'?[]:'']));render();};
+reload.onclick=async()=>{if(await leave()){editing=false;review=undefined;void load();}};
+document.getElementById('catalog-removed')!.onclick=async()=>{if(await leave()){showRemoved=!showRemoved;editing=false;review=undefined;selected=undefined;values={};void load();}};
 document.getElementById('catalog-search')!.oninput=event=>{search=(event.target as HTMLInputElement).value;renderList();};
 window.addEventListener('beforeunload',event=>{if(pending || editing && Object.keys(changes()).length){event.preventDefault();event.returnValue='';}});
 document.addEventListener('geekdash-identity-changed',()=>{frozen=true;message.textContent='账号已变化，请重新登录原账号后核对。当前输入保留。';controls();});

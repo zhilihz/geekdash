@@ -1,4 +1,4 @@
-import { sourceTasks,readTasks,writeTasks,taskDescription,textTaskOperations,taskCandidate,type ProjectTask } from './project-tasks.js';
+import { sourceTasks,readTasks,writeTasks,taskDescription,importedTextOperations,taskCandidate,type ProjectTask } from './project-tasks.js';
 import { projectReferences, readProjectReferences } from './project-references.js';
 import { projectNameKey } from './project-name.js';
 import { createHash } from 'node:crypto';
@@ -160,7 +160,7 @@ export function normalizeImportProject(raw: Record<string, unknown>, resolver: I
     try {
       input.tasks=sourceTasks(raw.tasks);
       if(raw.taskUnifiedVersion!==1&&typeof raw.statusDesc==='string'){
-        const legacy=raw.statusDesc.replace(/\r\n?/g,'\n').split('\n').map((line,index)=>({id:'legacy-source-'+createHash('sha256').update(JSON.stringify([raw.id??'',index,line])).digest('hex').slice(0,32),text:line.replace(/^\s*\d+[、.．)）]\s*/, '').trim(),createdAt:input.statusEntries?.[index]?.text===line?input.statusEntries[index].date:'',updatedAt:input.statusEntries?.[index]?.text===line?input.statusEntries[index].date:'',completedAt:'',deletedAt:''})).filter(task=>task.text&&task.text!=='-');
+        const legacy=raw.statusDesc.replace(/\r\n?/g,'\n').split('\n').map((line,index)=>({id:'legacy-source-'+createHash('sha256').update(JSON.stringify([raw.id??'',index,line])).digest('hex').slice(0,32),text:line.replace(/^\s*\d+[、.．)）]\s*/, '').trim(),createdAt:'',updatedAt:input.statusEntries?.[index]?.text===line?input.statusEntries[index].date:'',completedAt:'',deletedAt:''})).filter(task=>task.text&&task.text!=='-');
         input.tasks.push(...legacy);
       }
       delete fields.statusDesc;
@@ -431,7 +431,8 @@ async function prepareImportProject(c: PoolConnection, actor: Actor, input: Impo
     const incoming=sourceTasks(input.tasks);tasks=[...(before?.tasks??[]).filter(old=>!incoming.some(task=>task.id===old.id)),...incoming];
     next.statusDesc=taskDescription(tasks);
   } else if(id&&own(input.fields??{},'statusDesc')&&(await readTasks(c,id)).unified){
-    tasks=(await taskCandidate(c,id,textTaskOperations(before?.tasks??[],next.statusDesc??''),now.toISOString())).after;next.statusDesc=taskDescription(tasks);
+    const {ops,bodyDates}=importedTextOperations(before?.tasks??[],next.statusDesc??'',input.statusEntries);
+    tasks=(await taskCandidate(c,id,ops,now.toISOString(),bodyDates)).after;next.statusDesc=taskDescription(tasks);
   }
   const tasksChanged=tasks!==undefined&&JSON.stringify(tasks)!==JSON.stringify(before?.tasks??[]);
   const ordinary = Object.fromEntries(Object.entries(input.fields ?? {}).filter(([key]) => ordinaryKeys().has(key))) as SaveRequest['changes'];

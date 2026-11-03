@@ -1,4 +1,5 @@
 export type ProjectTask = {id:string;text:string;createdAt:string;updatedAt:string;completedAt:string;deletedAt:string};
+export type TaskSummaryProject = {id:string;name:string;version:string;canEdit:boolean;tasks:ProjectTask[]};
 export type TaskOperation = {op:'add'|'edit';id:string;text:string}|{op:'complete'|'reopen'|'delete';id:string};
 import { loginTarget, accountLinkTarget } from './auth-return';
 
@@ -21,7 +22,7 @@ export type Project = {
   chips: { id: string; name: string; selectionId?:string; note?:string }[]; people: { id: string; name: string; role: string }[]; tags: { id: string; name: string }[];
   managers: { id: string; name: string; enabled: number }[];
 };
-export type ListProject = Project & { checkedToday: boolean; capabilities: { canCheck: boolean }; riskSummary?: { unresolvedCount: number; highestLevel: 'high' | 'mid' | 'low' | null }; inspection?: Detail };
+export type ListProject = Project & { summaryUpdatedAt:string|null; checkedToday: boolean; capabilities: { canCheck: boolean }; riskSummary?: { unresolvedCount: number; highestLevel: 'high' | 'mid' | 'low' | null }; inspection?: Detail };
 export type Dashboard = { distributions: Record<string, { value: string; count: number }[]>; focusTotal: number; focus: Pick<Project, 'id' | 'name' | 'status' | 'priority' | 'stage' | 'progress'>[]; latest: {projectId:string;name:string;date:string;text:string;kind:'online'|'source'}[]; managers: { id: string; name: string; count: number }[] };
 export type List = { checkPolicy?:CheckPolicy; items: ListProject[]; businessDate: string; company?:Company|null; stats: Record<string, number> & { todayChecked: number; todayUnchecked: number }; options: Record<string, string[]>; optionLabels?: Record<string, Record<string, string>>; stageCounts: { value: string; count: string | number }[]; pagination: { page: number; pageSize: number; total: number; pageCount: number }; readOnly: true; dashboard?: Dashboard; globalChecks?: { cycleChecked:number;cycleUnchecked:number; total: number; todayChecked: number; todayUnchecked: number }; quickRanges?: Record<string,string[]> };
 export type Entry = Record<string, string | number | null>;
@@ -173,14 +174,14 @@ export function setupAccountHeader() {
   if(!account)return;
   const toolbar = document.querySelector('[data-app-header] .head-actions');
   if(toolbar && !toolbar.querySelector('.primary-nav')){
-    const links=[['/','个人项目'],['/project-status-summary.html','项目状态简要'],['/imports.html','导入项目'],['/data-manage.html','资料与设置'],['/project-space.html',account.suggestedProjectCount?`项目空间 · ${account.suggestedProjectCount} 个待加入`:'项目空间']];
+    const links=[['/','个人项目','projects'],['/project-status-summary.html','项目状态简要','summary'],['/imports.html','导入项目','import'],['/data-manage.html','资料与设置','catalog'],['/project-space.html',account.suggestedProjectCount?`项目空间 · ${account.suggestedProjectCount} 个待加入`:'项目空间','space']];
     if(!account.isProjectManager)links.splice(2,1);
     const paths=new Set(links.map(([href])=>href));toolbar.querySelectorAll<HTMLAnchorElement>('a').forEach(link=>{if(paths.has(new URL(link.href,location.origin).pathname))link.remove();});
-    const nav=document.createElement('nav');nav.className='primary-nav';nav.setAttribute('aria-label','主导航');nav.innerHTML=links.map(([href,title])=>`<a class="head-btn" href="${href}"${new URL(href,location.origin).pathname===location.pathname?' aria-current="page"':''}>${title}</a>`).join('');toolbar.append(nav);
+    const nav=document.createElement('nav');nav.className='primary-nav';nav.setAttribute('aria-label','主导航');nav.innerHTML=links.map(([href,title,icon])=>`<a class="head-btn" href="${href}"${new URL(href,location.origin).pathname===location.pathname?' aria-current="page"':''}><svg class="ui-icon" aria-hidden="true"><use href="/geekdash-icons.svg#${icon}"/></svg>${title}</a>`).join('');toolbar.append(nav);
   }
   if(toolbar && !document.getElementById('account-menu')) {
     const menu=document.createElement('details');menu.id='account-menu';menu.className='read-nav-menu';
-    menu.innerHTML=`<summary class="head-btn">${esc(account.name)} ▾</summary><div class="account-options"><a class="head-btn" href="/profile.html">个人信息与设置</a><a class="head-btn" href="${esc(loginUrl(true))}">修改密码</a><a class="head-btn" href="/login.html?logout=1">退出登录</a>${account.isMaintenance?'<a class="head-btn" href="/accounts.html">账号管理</a><a class="head-btn" href="/settings.html">项目设置</a>':''}</div>`;
+    menu.innerHTML=`<summary class="head-btn"><svg class="ui-icon" aria-hidden="true"><use href="/geekdash-icons.svg#account"/></svg>${esc(account.name)} ▾</summary><div class="account-options"><a class="head-btn" href="/profile.html">个人信息与设置</a><a class="head-btn" href="${esc(loginUrl(true))}">修改密码</a><a class="head-btn" href="/login.html?logout=1">退出登录</a>${account.isMaintenance?'<a class="head-btn" href="/accounts.html">账号管理</a><a class="head-btn" href="/settings.html">项目设置</a>':''}</div>`;
     toolbar.append(menu);
   }
   if(!account.isProjectManager)document.querySelectorAll<HTMLAnchorElement>('a[href="/project-new.html"],a[href="/imports.html"]').forEach(link=>link.hidden=true);
@@ -274,11 +275,16 @@ export function setupTheme() {
 }
 export function setupDateZone() {
   const zone = document.getElementById('date-zone'); if (!zone) return;
+  const timeZone = 'Asia/Shanghai';
+  const isoDay = new Intl.DateTimeFormat('en-CA', {timeZone});
+  const dateText = new Intl.DateTimeFormat('zh-CN', {timeZone,year:'numeric',month:'long',day:'numeric'});
+  const weekday = new Intl.DateTimeFormat('zh-CN', {timeZone,weekday:'long'});
+  const timeText = new Intl.DateTimeFormat('zh-CN', {timeZone,hourCycle:'h23',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  zone.classList.add('clock-block');
   const clock = () => {
-    const now = new Date(), date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(now);
-    const days = Math.round((Date.parse(date.slice(0, 4) + '-12-31') - Date.parse(date)) / 86400000);
-    zone.classList.add('clock-block');
-    zone.innerHTML = `<span class="clock-date">${new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(now)}</span><time class="clock-time" datetime="${now.toISOString()}">${new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', hourCycle:'h23', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(now)}</time><span class="clock-countdown">距年底 <strong>${days}</strong> 天</span>`;
+    const now = new Date(), date = isoDay.format(now);
+    const days = Math.round((Date.parse(date.slice(0,4) + '-12-31') - Date.parse(date)) / 86400000);
+    zone.innerHTML = `<span class="clock-calendar"><span class="clock-date">${dateText.format(now)}</span><span class="clock-weekday">${weekday.format(now)}</span></span><time class="clock-time" datetime="${now.toISOString()}">${timeText.format(now)}</time><span class="clock-countdown">距年底 <strong>${days}</strong> 天</span>`;
   };
   clock(); setInterval(clock, 1000);
 }

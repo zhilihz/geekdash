@@ -28,9 +28,10 @@ for(const selector of ['.space-delete-dialog','.task-delete-dialog','.draft-dial
   assert.equal(style.position,'fixed',selector+' 以视口定位');assert.equal(style.inset,'0',selector+' 四侧同一定位');assert.equal(style.margin,'auto',selector+' 共用居中规则');
   dialog.remove();
 }
-page.innerHTML='<div class="task-row"><span class="task-number">10</span><div class="task-body"><div class="task-text">第一行\n第二行</div></div><div class="task-actions"><button>编辑</button></div></div>';
-assert.equal(getComputedStyle(page.firstChild).alignItems,'flex-start');
-assert.equal(getComputedStyle(page.querySelector('.task-number')).lineHeight,getComputedStyle(page.querySelector('.task-text')).lineHeight);
-assert.equal(getComputedStyle(page.querySelector('.task-number')).flexBasis,'2ch');
+page.innerHTML='<div class="task-row"><div class="task-body"><span class="task-number">10</span>、<span class="task-text">第一行\n第二行</span> <small class="task-date">创建 10:20</small></div><div class="task-actions"><button>编辑</button><button>完成</button><button>删除</button></div></div>';
+assert.equal(getComputedStyle(page.firstChild).alignItems,'center');
+assert.equal(getComputedStyle(page.firstChild).flexWrap,'wrap');
+assert.equal(getComputedStyle(page.querySelector('.task-date')).display,'inline');
+for(const button of page.querySelectorAll('.task-actions button'))assert.equal(getComputedStyle(button).minInlineSize,'4em');
 dom.window.close();
 console.log(JSON.stringify({status:'passed',scope:'实际共享CSS的隐藏状态、原位按钮、六类dialog定位及任务行程序检查；不代表浏览器几何或用户视觉验收'}));

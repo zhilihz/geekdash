@@ -24,6 +24,14 @@ class Input extends EventTarget {
 }
 const input=new Input(),root=new EventTarget();root.querySelector=()=>input;
 const original={id:'saved',text:'PS5手柄',completedAt:'',deletedAt:'',createdAt:'',updatedAt:''};
+const savedTimes={...original,createdAt:'2026-11-03T02:20:00Z',updatedAt:'2026-11-03T04:12:04Z'};
+const dueRow=tasks.taskList([savedTimes],true);
+assert.match(dueRow,/>1<\/span>、<span class="task-text">PS5手柄<\/span>\s*<small class="task-date">/);
+assert.match(dueRow,/创建 [^<]+10:20:00 · 正文更新 [^<]+12:12:04/);
+assert(tasks.taskPanel([savedTimes],[],true).includes(dueRow),'详情用同一任务行');
+assert.match(tasks.taskList([{...savedTimes,completedAt:'2026-11-03T05:33:40Z'}],true,true),/正文更新 [^<]+12:12:04 · 完成 [^<]+13:33:40/);
+assert.match(tasks.taskList([original]),/正文时间未记录/);
+assert.match(tasks.taskPanel([],[{op:'add',id:'local',text:'未保存任务'}],true),/class="task-date">待保存</);
 const state={tasks:[original],ops:[],editable:true};let writes=0;
 editor.bindTaskEditor(root,()=>state,(ops,bulk)=>{state.ops=ops;state.bulk=bulk;writes++;},()=>[]);
 function edit(value,caret=value.length,composing=false) {
@@ -46,4 +54,4 @@ assert(enter().defaultPrevented);assert.equal(input.value,'1、PS5手柄\n','空
 edit('1、PS5手柄\n2、');edit('1、PS5手柄');assert.equal(state.bulk,undefined,'选中删除空编号行后不补回');
 const beforeReadonly=writes;state.editable=false;edit('只读期间的外部事件');assert.equal(writes,beforeReadonly);
 assert.equal(original.text,'PS5手柄','输入预览不修改正式任务');
-console.log(JSON.stringify({status:'passed',scope:'共享任务输入事件回归；无数据库和浏览器操作',checks:['delete_number','delete_blank_number_row','clear_all','multiline_order','composition','caret','enter_number','leave_empty_number','readonly']}));
+console.log(JSON.stringify({status:'passed',scope:'共享任务输入事件和显示回归',checks:['delete_number','delete_blank_number_row','clear_all','multiline_order','composition','caret','enter_number','leave_empty_number','readonly','shared_task_date_labels']}));

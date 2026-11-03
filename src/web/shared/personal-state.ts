@@ -1,5 +1,6 @@
 import { account, get, send, SaveError, esc, label, actionLabels, type SaveScope } from './api';
 import { readableFields } from './history';
+import { confirmAction } from './action-confirm';
 
 export type DraftRef = { clientDraftId: string; draftVersion: string };
 export type DraftData = { values?: Record<string, unknown>; intent?: Record<string, unknown>; record?: Record<string, unknown>; command?: Record<string, unknown>; submission?: Record<string, unknown>; editors?: Record<string,unknown> };
@@ -128,6 +129,7 @@ export class PersonalDrafts {
   private readonly actor = account!.id;
   private slots = new Map<string,Slot>();
   private stopped = false;
+  private resuming = false;
   private button: HTMLButtonElement;
   private dialog: HTMLDialogElement;
   private recovery: HTMLElement | undefined;
@@ -251,6 +253,7 @@ export class PersonalDrafts {
   private async discardListed(row:PersonalDraft){
     const entry=[...this.slots].find(([,slot])=>slot.desired.clientDraftId===row.clientDraftId),slot=entry?.[1];
     if(slot){clearTimeout(slot.timer);if(slot.running)await slot.running;}
+    if(this.stopped)throw new Error('账号已变化，请重新登录原账号后核对草稿。');
     const localKey=this.localKey(row.clientDraftId);
     let local:{desired?:Write}|null,localUnavailable=false;
     try{local=JSON.parse(localStorage.getItem(localKey) ?? 'null');}
@@ -280,11 +283,22 @@ export class PersonalDrafts {
     return {candidates:[...rows,...local].filter(row=>!this.options.kinds || this.options.kinds.includes(row.formKind)),cloudUnavailable};
   }
   private async continueDraft(row:PersonalDraft){
-    if(this.stopped || !this.context().editable || row.baseVersion!==this.context().version)return;
+    const usable=()=>!this.stopped&&this.context().editable&&row.baseVersion===this.context().version;
+    if(this.resuming||!usable())return;
+    this.resuming=true;
     const key=this.key(row.formKind,row.payload.target),slot=this.slots.get(key);
-    if(slot){clearTimeout(slot.timer);if(slot.running)await slot.running;if(this.stopped)return;this.slots.delete(key);}
-    this.dialog.close();this.recovery?.remove();
-    if(!await this.restore(row) && slot){this.slots.set(key,slot);this.store(slot);slot.timer=setTimeout(()=>{void this.flush(key);},1000);}
+    let detached=false,restored=false;
+    try{
+      if(slot?.running)await slot.running;
+      if(!usable()||this.slots.get(key)!==slot)return;
+      if(slot){clearTimeout(slot.timer);detached=this.slots.delete(key);}
+      restored=await this.restore(row);
+      if(restored){this.dialog.close();this.recovery?.remove();}
+    }catch(error){this.status=(error as Error).message;this.updateStatus();}
+    finally{
+      if(detached&&slot&&!restored&&!this.stopped&&!this.slots.has(key)){this.slots.set(key,slot);slot.timer=setTimeout(()=>{void this.flush(key);},1000);}
+      this.resuming=false;
+    }
   }
   async offer(local?:{text:string;restore:()=>boolean|Promise<boolean>;discard:()=>void|Promise<void>}){
     if(this.stopped || this.slots.size)return;
@@ -320,7 +334,17 @@ export class PersonalDrafts {
       const content=JSON.stringify(row.payload,null,2);
       box.querySelector<HTMLButtonElement>('[data-copy]')!.onclick=()=>{void(async()=>{try{await navigator.clipboard.writeText(preview);}catch{const pre=box.querySelector<HTMLElement>('[data-copy-fallback]')!;pre.hidden=false;pre.textContent=preview;}})();};
       box.querySelector<HTMLButtonElement>('[data-export]')!.onclick=()=>{const url=URL.createObjectURL(new Blob([content],{type:'application/json'})),link=document.createElement('a');link.href=url;link.download='GeekDash-个人草稿.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
-      box.querySelector<HTMLButtonElement>('[data-discard]')!.onclick=()=>{void(async()=>{if(!confirm('仅丢弃所选草稿？当前表单输入和正式项目信息保持。'))return;try{const warning=await this.discardListed(row);await this.open();if(warning){this.status=warning;this.updateStatus();}}catch(error){this.status=(error as Error).message;this.updateStatus();}})();};
+      const discardButton=box.querySelector<HTMLButtonElement>('[data-discard]')!;
+      discardButton.onclick=async()=>{
+        if(!await confirmAction('丢弃所选草稿？','只丢弃列表中的这份草稿，正在填写的内容会保留。','保留草稿','丢弃这份草稿'))return;
+        if(this.stopped||!this.dialog.open||!box.isConnected)return;
+        discardButton.disabled=true;
+        try{
+          const warning=await this.discardListed(row);await this.open();
+          this.dialog.querySelector<HTMLButtonElement>('[data-close]')?.focus({preventScroll:true});
+          if(warning){this.status=warning;this.updateStatus();}
+        }catch(error){discardButton.disabled=false;this.status=(error as Error).message;this.updateStatus();}
+      };
       list.append(box);
     });
   }

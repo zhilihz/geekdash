@@ -8,6 +8,7 @@ import {ProjectNotifications} from './shared/notifications';
 import {summaryColumns,summaryFilterTitles,summaryFilterOptions,summaryRows,summaryValue,selectedSummary,visibleColumns,summaryCsv,summaryMarkdown,type SummaryColumn,type SummaryFilter,type SummaryFilters,type SummarySort,type SummarySnapshot} from './shared/summary';
 import {summaryPng,printSummary} from './shared/summary-output';
 import {statusHtml} from './shared/status-text';
+import {confirmAction} from './shared/action-confirm';
 
 const element=(id:string)=>document.getElementById(id)!;
 const table=element('summary-table');
@@ -37,10 +38,15 @@ document.addEventListener('click',event=>{
 function preserve(){try{sessionStorage.setItem(cacheKey(),JSON.stringify([...edits.values()].map(edit=>({...edit,busy:false}))));}catch{message('本机副本未能保留，请保持页面打开或复制未保存备注。');}}
 function drafts(id:string){
   let store=draftStores.get(id);if(store)return store;
-  store=new PersonalDrafts(id,()=>{const p=snapshot?.items.find(p=>p.id===id);return {version:p?.version ?? null,editable:!frozen && !!p?.canEdit};},row=>{
+  store=new PersonalDrafts(id,()=>{const p=snapshot?.items.find(p=>p.id===id);return {version:p?.version ?? null,editable:!frozen && !!p?.canEdit};},async row=>{
     const kind=row.formKind as NoteKind,current=edits.get(key(id,kind)),project=snapshot?.items.find(p=>p.id===id),value=row.payload.values?.[kind];
     if(!project || frozen || !project.canEdit || row.baseVersion!==project.version || !['summaryNote','chipstatNote'].includes(kind) || typeof value!=='string' || current?.pending || current?.busy)return false;
-    if(current && current.value!==current.base && !window.confirm('本格已有未保存输入，是否用选中的个人草稿替换？'))return false;
+    if(current && current.value!==current.base){
+      const before=current.value;
+      if(!await confirmAction('用草稿替换这格备注？','当前未保存的备注会改为所选个人草稿的内容。','保留当前备注','用草稿替换'))return false;
+      const latest=snapshot?.items.find(p=>p.id===id);
+      if(frozen||!latest?.canEdit||latest.version!==row.baseVersion||edits.get(key(id,kind))!==current||current.value!==before||current.pending||current.busy)return false;
+    }
     const edit={id,kind,value,base:project[kind] ?? '',version:project.version};edits.set(key(id,kind),edit);capture(edit);preserve();renderTable();return true;
   },{button:false,kinds:['summaryNote','chipstatNote']});draftStores.set(id,store);return store;
 }

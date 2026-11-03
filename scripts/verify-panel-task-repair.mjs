@@ -17,7 +17,7 @@ async function start(){
  app=await createApp(runtime,{origin:'http://localhost',secure:false});origin=await app.listen({host:'127.0.0.1',port:0});
 }
 function client(){let cookie='',csrf='',actor;return {async api(path,method='GET',body,status=200){const response=await fetch(origin+path,{method,headers:{Cookie:cookie,Origin:'http://localhost','Content-Type':'application/json','X-GeekDash-Request':'1','X-GeekDash-CSRF':csrf,...actor?{'X-GeekDash-Account':actor.id}:{}},...body?{body:JSON.stringify(body)}:{}});for(const value of response.headers.getSetCookie()){const part=value.split(';')[0];if(part.startsWith('geekdash_dev='))cookie=part;if(part.startsWith('geekdash_dev_csrf='))csrf=part.split('=')[1];}const data=await response.json();assert.equal(response.status,status,path+' '+JSON.stringify(data));if(data.account)actor=data.account;return data;},async login(index){await this.api('/api/auth/login','POST',{loginName:users[index].login,password});await this.api('/api/auth/me');}};}
-async function sqlTasks(id){const {connection}=await connectDatabase('test_app');try{return (await connection.execute('SELECT task_key,content,completed_at_text,deleted_at_text FROM project_tasks WHERE project_id=? ORDER BY sort_order',[id]))[0];}finally{await connection.end();}}
+async function sqlTasks(id){const {connection}=await connectDatabase('test_app');try{return (await connection.execute('SELECT task_key,content,created_at_text,updated_at_text,completed_at_text,deleted_at_text FROM project_tasks WHERE project_id=? ORDER BY sort_order',[id]))[0];}finally{await connection.end();}}
 try{
  for(let i=0;i<2;i++){const login=prefix+i;await c.execute('INSERT INTO users (login_name,password_hash,display_name,must_change_password,is_admin,is_project_manager,created_at,updated_at) VALUES (?,?,?,0,?,1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))',[login,await hashPassword(password),login,i===0?1:0]);users.push({id:(await c.query('SELECT CAST(LAST_INSERT_ID() AS CHAR) id'))[0][0].id,login});}
  await start();const a=client(),b=client();await a.login(0);await b.login(1);
@@ -27,6 +27,21 @@ try{
  const taskA=randomUUID(),taskB=randomUUID(),request=ops=>({expectedVersion:version,idempotencyKey:randomUUID(),scope:'status',changes:{taskOps:ops}});
  const saved=await a.api(path,'PATCH',request([{op:'add',id:taskA,text:'核对图纸'},{op:'add',id:taskB,text:'安排发货'}]));version=saved.result.savedVersion;
  const direct=request([{op:'edit',id:taskA,text:'核对第二版图纸'}]);const edited=await a.api(path,'PATCH',direct);version=edited.result.savedVersion;
+ const createdAt=saved.result.savedAt,editedAt=edited.result.savedAt;
+ assert(Date.parse(createdAt)<Date.parse(editedAt),'各次真实提交须能区分');
+ async function verifyDates(key,creation,bodyTime,completion,deletion,contentTime){
+   const project=(await a.api(path)).project,task=project.tasks.find(item=>item.id===key);
+   const persisted=(await sqlTasks(id)).find(item=>item.task_key===key);
+   assert.deepEqual([task.createdAt,task.updatedAt,task.completedAt,task.deletedAt],[creation,bodyTime,completion,deletion]);
+   assert.deepEqual([persisted.created_at_text,persisted.updated_at_text,persisted.completed_at_text,persisted.deleted_at_text],[creation,bodyTime,completion,deletion]);
+   assert.equal(project.contentUpdatedAt,contentTime);
+ }
+ await verifyDates(taskA,createdAt,editedAt,'','',editedAt);await verifyDates(taskB,createdAt,createdAt,'','',editedAt);
+ const noChange=await a.api(path,'PATCH',request([{op:'edit',id:taskA,text:' 核对第二版图纸 '}]));
+ assert.equal(noChange.result.changed,false);assert.equal(noChange.result.savedVersion,version);assert.equal(noChange.result.savedAt,null);
+ const reverted=await a.api(path,'PATCH',request([{op:'edit',id:taskA,text:'临时输入'},{op:'edit',id:taskA,text:'核对第二版图纸'},{op:'complete',id:taskA},{op:'reopen',id:taskA}]));
+ assert.equal(reverted.result.changed,false);assert.equal(reverted.result.savedVersion,version);
+ await verifyDates(taskA,createdAt,editedAt,'','',editedAt);
  let fresh=await a.api(path);assert.equal(fresh.project.tasks.find(t=>t.id===taskA).text,'核对第二版图纸');assert.equal(fresh.project.tasks.find(t=>t.id===taskB).text,'安排发货');assert.equal((await sqlTasks(id)).find(t=>t.task_key===taskA).content,'核对第二版图纸');
  const countBefore=(await c.execute('SELECT COUNT(*) n FROM audit_log WHERE project_id=?',[id]))[0][0].n;
  assert.deepEqual((await a.api(path,'PATCH',direct)).result,edited.result);assert.equal((await c.execute('SELECT COUNT(*) n FROM audit_log WHERE project_id=?',[id]))[0][0].n,countBefore);
@@ -35,6 +50,7 @@ try{
  const stale=request([{op:'edit',id:taskB,text:'不应覆盖'}]);const complete=request([{op:'complete',id:taskA}]);loseAck=true;const unknown=await a.api(path,'PATCH',complete,503);loseAck=false;assert.equal(unknown.outcome,'unknown');
  await app.close();app=undefined;await start();await a.login(0);await b.login(1);
  const receipt=await a.api(path+'/save-results/query','POST',complete);assert.equal(receipt.outcome,'committed');version=receipt.result.savedVersion;
+ assert(Date.parse(receipt.result.savedAt)>Date.parse(editedAt));await verifyDates(taskA,createdAt,editedAt,receipt.result.savedAt,'',receipt.result.savedAt);
  assert.deepEqual((await a.api(path,'PATCH',complete)).result,receipt.result);
  await a.api(path,'PATCH',stale,409);
  fresh=await a.api(path);assert(fresh.project.tasks.find(t=>t.id===taskA).completedAt);assert.equal(fresh.project.tasks.find(t=>t.id===taskB).text,'安排发货');assert(!fresh.project.statusDesc.includes('核对第二版图纸'));assert(fresh.project.statusDesc.includes('安排发货'));
@@ -47,6 +63,10 @@ try{
  const deleted=await a.api(path,'PATCH',request([{op:'delete',id:taskB}]));version=deleted.result.savedVersion;
  assert((await sqlTasks(id)).find(t=>t.task_key===taskB).deleted_at_text);assert(!(await a.api('/api/projects/tasks-summary?perspective=responsible')).items.some(p=>p.id===id));
  fresh=await a.api(path);assert(fresh.project.tasks.find(t=>t.id===taskA).completedAt);assert.equal(fresh.project.statusDesc,'');
+ const reopened=await a.api(path,'PATCH',request([{op:'reopen',id:taskA}]));version=reopened.result.savedVersion;
+ assert(Date.parse(reopened.result.savedAt)>Date.parse(receipt.result.savedAt));await verifyDates(taskA,createdAt,editedAt,'','',reopened.result.savedAt);
+ await verifyDates(taskB,createdAt,createdAt,'',deleted.result.savedAt,reopened.result.savedAt);
+ checks.push('新建取实际提交时间，改正文保留创建时间，同文保存不改时间或版本；完成、重开、删除均保留原正文时间，项目内容时间推进；各动作重新GET与独立SQL核对');
  checks.push('TK06：单条删除保留SQL事实/历史，不影响另一已完成任务，汇总和兼容正文同步');
  await mkdir('test-results',{recursive:true});await writeFile('test-results/panel-task-repair.json',JSON.stringify({status:'passed',checks,productBrowserTested:false},null,2));console.log(JSON.stringify({status:'passed',checks,evidence:'test-results/panel-task-repair.json'}));
 }finally{
