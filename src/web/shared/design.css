@@ -10,6 +10,7 @@ html body .page.auth-page { max-width: 840px; padding-top: 32px; }
 .page .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 24px 0; }
 .page .page-heading h1 { margin: 0; }
 .page .app-header { display: flex; align-items: center; gap: 18px; min-height: 64px; margin: 0 0 16px; padding: 12px 0; border: 0; border-bottom: 1px solid var(--border); background: var(--bg); position: sticky; top: 0; z-index: 150; box-sizing: border-box; }
+.product-version { font-size: 0.55em; font-weight: 500; color: var(--text-dim); white-space: nowrap; }
 .app-header .app-brand { flex: none; color: var(--text); font-size: 24px; line-height: 1.4; font-weight: 700; text-decoration: none; }
 .app-header .head-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px; margin-left: auto; min-width: 0; }
 .app-header .primary-nav { order: 0; gap: 5px; }

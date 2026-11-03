@@ -36,7 +36,10 @@ try {
     throw new Error('前端脚本或样式产物缺失');
   }
   for (const asset of assets) await access(new URL(`web${asset}`, candidate));
-  const build = { revision, dirty: dirty === 'true', builtAt: new Date().toISOString(), stage: 'P05-project-editing', schemaVersion };
+  const manifest = new URL('../package.json', import.meta.url);
+  await cp(manifest, new URL('package.json', candidate));
+  const productVersion = 'v' + JSON.parse(await readFile(manifest, 'utf8')).version;
+  const build = { productVersion, revision, dirty: dirty === 'true', builtAt: new Date().toISOString(), stage: 'P05-project-editing', schemaVersion };
   await writeFile(new URL('build-info.json', candidate), JSON.stringify(build, null, 2) + '\n');
   const { createApp } = await import(new URL('server/app.js', candidate));
   const app = await createApp();

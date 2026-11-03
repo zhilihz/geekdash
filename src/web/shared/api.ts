@@ -265,6 +265,14 @@ export function applyTheme(value: string) {
 export function setupTheme() {
   const header=document.querySelector<HTMLElement>('[data-app-header]');
   if(header && !header.children.length)header.innerHTML='<a class="app-brand" href="/">GeekDash</a><div class="head-actions"><div class="view-switch theme-switch" aria-label="主题"><button data-theme="dark">深色</button><button data-theme="light">浅色</button><button data-theme="warm">暖色</button></div></div>';
+  const brand = header?.querySelector('.app-brand');
+  const version = document.querySelector<HTMLMetaElement>('meta[name="application-version"]')?.content;
+  if (brand && version && !brand.querySelector('.product-version')) {
+    const badge = document.createElement('small');
+    badge.className = 'product-version';
+    badge.textContent = version;
+    brand.append(' ', badge);
+  }
   if(header && !header.dataset.measured){header.dataset.measured='true';new ResizeObserver(()=>document.documentElement.style.setProperty('--app-header-height',header.offsetHeight+'px')).observe(header);}
   applyTheme(document.documentElement.dataset.theme ?? 'dark');
   document.querySelectorAll<HTMLButtonElement>('button[data-theme]').forEach(button => button.onclick = () => {

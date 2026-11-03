@@ -10,9 +10,11 @@ const stages = runInNewContext(stageSource[1], Object.create(null), { timeout: 1
 if (!Array.isArray(stages) || stages.length !== 7 || stages.some((stage, index) => stage.id !== index + 1)) throw new Error('原面板七阶段定义无效');
 const themeInit = readFileSync(new URL('./src/web/shared/theme-init.js', import.meta.url), 'utf8');
 
+const productVersion = 'v' + JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version;
+
 export default defineConfig({
   plugins: [
-    { name: 'geekdash-initial-theme', transformIndexHtml: { order: 'pre', handler: () => [{ tag: 'script', attrs: { 'data-theme-init': '' }, children: themeInit, injectTo: 'head-prepend' }] } },
+    { name: 'geekdash-initial-theme', transformIndexHtml: { order: 'pre', handler: () => [{ tag: 'meta', attrs: { name: 'application-version', content: productVersion }, injectTo: 'head' }, { tag: 'script', attrs: { 'data-theme-init': '' }, children: themeInit, injectTo: 'head-prepend' }] } },
     { name: 'geekdash-shared-design', transformIndexHtml: { order: 'post', handler(html, context) {
       if (!context.bundle) return html;
       // Vite 会提前抽取共享 CSS；统一设计必须在各页旧样式之后生效。
@@ -22,7 +24,7 @@ export default defineConfig({
       return html.replace(link[0], '').replace('</head>', `  ${link[0]}\n</head>`);
     } } },
   ],
-  define: { __GEEKDASH_STAGES__: JSON.stringify(stages) },
+  define: { 'import.meta.env.VITE_GEEKDASH_VERSION': JSON.stringify(productVersion), __GEEKDASH_STAGES__: JSON.stringify(stages) },
   root: fileURLToPath(new URL('./src/web/', import.meta.url)),
   envDir: false,
   build: {
