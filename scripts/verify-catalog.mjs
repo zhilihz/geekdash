@@ -40,7 +40,7 @@ async function waitFor(predicate,label){const end=Date.now()+10000;while(Date.no
 async function page(user,session={},name='data-manage',realtime=false,query='',faults={}){
   const console=new VirtualConsole();console.on('jsdomError',error=>{if(name==='project-new' && /Not implemented: navigation/.test(error.message))return;errors.push(error);});
   const dom=new JSDOM(await readFile('src/web/'+name+'.html','utf8'),{url:origin+'/'+name+'.html'+query,runScripts:'outside-only',virtualConsole:console});views.push(dom);const w=dom.window;
-  Object.assign(w,{TextEncoder,TextDecoder,structuredClone,AbortSignal,AbortController});w.BroadcastChannel=class{postMessage(){}};w.confirm=()=>true;
+  Object.assign(w,{TextEncoder,TextDecoder,structuredClone,AbortSignal,AbortController});w.BroadcastChannel=class{postMessage(){}};w.ResizeObserver=class{observe(){}disconnect(){}};w.confirm=()=>true;
   w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};w.HTMLDialogElement.prototype.close=function(){this.open=false;};
   dom.events=[];dom.streams=[];dom.requests=[];Object.assign(dom,faults);
   if(realtime)w.EventSource=class extends w.EventTarget{
@@ -218,7 +218,7 @@ try{
   assert.match(csv,/核心芯片/);assert.match(csv,/页面改名/);assert.match(csv,/状态简要备注/);assert(!csv.includes('=芯片备注'));
   assert.match(chipCsv,/"'=芯片备注"/);assert(!chipCsv.includes('状态简要备注'));assert.equal(chipCsv.split('\r\n')[0].split(',').length,10);
   assert.match(md,/原始项目状态/);assert.match(md,/展示状态依据/);assert.match(md,/&lt;检查&gt;/);assert(!md.includes('不混入客户节点'));
-  const completeFilters={customer:[prefix+' 客户'],productLine:[prefix+' 产品线'],odmFactory:[prefix+' 客户'],app:[prefix+' APP'],status:['proposal'],priority:['high'],signal:['green'],stage:['S1'],progress:['0'],chip:[uiChip.id],tags:[tag],group:[prefix+' 分组'],assignment:['engineer:'+engineer],owner:['王工'],deadline:[summary.deadline.kind]};
+  const completeFilters={customer:[prefix+' 客户'],productLine:[prefix+' 产品线'],odmFactory:[prefix+' 客户'],app:[prefix+' APP'],status:['proposal'],priority:['high'],signal:['green'],stage:['S1'],progress:['0'],chip:[uiChip.id],tags:[tag],group:[prefix+' 分组'],hardwareOwners:[engineer],owner:['王工'],deadline:[summary.deadline.kind]};
   for(const [kind,value] of Object.entries(completeFilters)){
     assert(model.summaryRows(snapshot.items,{[kind]:value},'customer').some(row=>row.id===summary.id),kind+'筛选命中正式项目');
     assert.equal(model.summaryRows(snapshot.items,{[kind]:['无匹配项']},'customer').length,0,kind+'无匹配不显示全部');
@@ -233,8 +233,8 @@ try{
   const selectBeforeFilter=f$('#select-all');selectBeforeFilter.checked=true;selectBeforeFilter.dispatchEvent(new fw.Event('change',{bubbles:true}));
   f$(`tr[data-row="${summary.id}"] [data-edit="summaryNote"]`).click();filterPage.input(`tr[data-row="${summary.id}"] textarea`,'筛选切换保留未保存备注');
   for(const [kind,[value]] of Object.entries(completeFilters)){
-    const input=[...fw.document.querySelectorAll(`[data-filter="${kind}"]`)].find(input=>input.value===value);assert(input,kind+'具有可选项');
-    input.checked=true;input.dispatchEvent(new fw.Event('change',{bubbles:true}));
+    const button=[...fw.document.querySelectorAll(`button.chip[data-filter="${kind}"]`)].find(button=>button.dataset.value===value);assert(button,kind+'具有可选项');
+    button.click();
   }
   assert.deepEqual([...fw.document.querySelectorAll('tbody tr[data-row]')].map(row=>row.dataset.row),[summary.id]);
   f$('#summary-filter-toggle').click();assert.equal(f$('#summary-filter-rows').hidden,true);assert.equal(fw.document.querySelectorAll('[data-remove-filter]').length,15,'收起保留全部已选摘要');
@@ -253,7 +253,7 @@ try{
   assert.equal(filteredText,csv.slice(1),'即使之前全选过其他项目，实际CSV完整正文仅含当前筛选表格所选正式值');
   assert(!filteredText.includes('筛选切换保留未保存备注'));await writeFile('test-results/p04-summary-filtered.csv',filteredFile);
   const deviceKey=fw.localStorage.getItem('geekdash_device');
-  await waitFor(async()=>{const saved=await b.api('/api/personal/preferences?'+new URLSearchParams({scope:'summary',deviceKey}));return saved.value?.filters?.assignment?.[0]==='engineer:'+engineer && saved.value.filtersOpen===false;},'全部筛选及折叠状态持久化');
+  await waitFor(async()=>{const saved=await b.api('/api/personal/preferences?'+new URLSearchParams({scope:'summary',deviceKey}));return saved.value?.filters?.hardwareOwners?.[0]===engineer && saved.value.filtersOpen===false;},'全部筛选及折叠状态持久化');
   const cachedFilters=Object.fromEntries(Object.entries(fw.sessionStorage)),filterReturn=await page(b,cachedFilters,'project-status-summary');
   assert.equal(filterReturn.$('#summary-search').value,'页面引用');assert.equal(filterReturn.$('#summary-filter-rows').hidden,true);
   assert.deepEqual([...filterReturn.window.document.querySelectorAll('tbody tr[data-row]')].map(row=>row.dataset.row),[summary.id],'返回保留完整筛选与表格范围');
@@ -279,9 +279,9 @@ try{
   const summaryUi=await page(b,{},'project-status-summary'),sw=summaryUi.window,s$=summaryUi.$,rowSelector=`tr[data-row="${summary.id}"]`;
   assert.equal(sw.document.querySelectorAll('[data-select]:checked').length,0,'普通入口不预选');
   assert.equal(new URL(s$(rowSelector+' a').href).searchParams.get('returnTo'),'/project-status-summary.html','详情链接携带同页返回来源');
-  assert(s$(`[data-filter="chip"][value="${uiChip.id}"]`),'芯片同级直接选择');
+  assert(s$(`button.chip[data-filter="chip"][data-value="${uiChip.id}"]`),'芯片同级直接选择');
   const change=selector=>{const input=s$(selector);input.checked=!input.checked;input.dispatchEvent(new sw.Event('change',{bubbles:true}));};
-  change(`[data-filter="chip"][value="${uiChip.id}"]`);assert.equal(sw.document.querySelectorAll('tbody tr[data-row]').length,1);
+  s$(`button.chip[data-filter="chip"][data-value="${uiChip.id}"]`).click();assert.equal(sw.document.querySelectorAll('tbody tr[data-row]').length,1);
   change('[data-column-toggle="chipNote"]');
   s$(rowSelector+' [data-edit="summaryNote"]').click();s$(rowSelector+' [data-edit="chipstatNote"]').click();
   summaryUi.input(rowSelector+' [data-note="summaryNote"] textarea','页面保存备注');summaryUi.input(rowSelector+' [data-note="chipstatNote"] textarea','另一格待保存');
@@ -395,7 +395,7 @@ try{
   assert.equal(exporting.$(exportRow+' textarea').value,'未保存的输出验证备注');
   assert.equal(exporting.window.document.querySelectorAll('[data-select]:checked').length,1);
   assert.equal((await b.api(livePath)).project.version,beforeExport.project.version);
-  for(const kind of ['group','status','owner','chip'])exporting.$(`[data-all="${kind}"]`).click();
+  for(const kind of ['group','status','owner','chip'])exporting.$(`button.chip[data-filter="${kind}"][data-value=""]`).click();
   exporting.$('#show-hidden').click();
   const rowIds=()=>[...ew.document.querySelectorAll('tbody [data-row]')].map(row=>row.dataset.row);
   const initialRows=rowIds();assert(initialRows.length>1);
@@ -555,8 +555,8 @@ try{
   assert(summarySaved.ownerOptions.includes(mentionedName));assert(!mentionSummary.statusOwners.includes(prefix));
   const mentionPage=await page(a,{},'project-status-summary'),mw=mentionPage.window,m$=mentionPage.$;
   m$('#summary-filter-toggle').click();
-  const fullNameFilter=[...mw.document.querySelectorAll('[data-filter="owner"]')].find(input=>input.value===mentionedName);assert(fullNameFilter);
-  fullNameFilter.checked=true;fullNameFilter.dispatchEvent(new mw.Event('change',{bubbles:true}));
+  const fullNameFilter=[...mw.document.querySelectorAll('button.chip[data-filter="owner"]')].find(button=>button.dataset.value===mentionedName);assert(fullNameFilter);
+  fullNameFilter.click();
   assert.deepEqual([...mw.document.querySelectorAll('tbody tr[data-row]')].map(row=>row.dataset.row),[cardId],'按完整提及姓名筛选命中已保存项目');
   assert(m$(`tr[data-row="${cardId}"] [data-column="status"]`).textContent.includes(mentionedName),'任务清单显示完整提名姓名');
   assert.equal(m$(`tr[data-row="${cardId}"] [data-column="hardwareOwners"]`).textContent,'—','提名不冒充硬件负责人');

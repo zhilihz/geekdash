@@ -40,14 +40,56 @@ async function sqlFacts(id) {
     };
   } finally { await connection.end(); }
 }
-async function loadSummary() {
-  const context = vm.createContext({ document: { addEventListener() {} }, BroadcastChannel: class {}, Intl, structuredClone });
-  async function load(path, dependencies) {
+async function summaryUI(snapshot, engineers, users, projectIds) {
+  const {JSDOM}=await import(process.env.GEEKDASH_DOM_LIBRARY??'../test-results/ui-dom-tools/node_modules/jsdom/lib/api.js');
+  const dom=new JSDOM(await readFile('src/web/project-status-summary.html','utf8'),{url:'http://localhost/project-status-summary.html',runScripts:'outside-only',pretendToBeVisual:true});
+  const w=dom.window,doc=w.document,context=dom.getInternalVMContext(),next=()=>new Promise(resolve=>setTimeout(resolve,0));
+  Object.assign(w,{structuredClone,Blob,BroadcastChannel:class{},scrollTo(){}});
+  async function load(path, dependencies={}) {
     const code = ts.transpileModule(await readFile(path, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.CommonJS } }).outputText, module = { exports: {} };
     vm.runInContext('(function(require,exports,module){' + code + '\n})', context)(name => dependencies[name] ?? {}, module.exports, module); return module.exports;
   }
   const api = await load('src/web/shared/api.ts', {}), status = await load('src/web/shared/status-text.ts', { './api': api });
-  return load('src/web/shared/summary.ts', { './api': api, './status-text': status });
+  const model=await load('src/web/shared/summary.ts', { './api': api, './status-text': status });
+  const panel=await load('src/web/shared/filter-panel.ts',{'./api':api});
+  const [hardware,software,manager,participant]=engineers.map(person=>person.id);
+  const [first,hidden,reversed]=projectIds;
+  let download;
+  w.URL.createObjectURL=blob=>{download=blob;return 'blob:summary';};w.URL.revokeObjectURL=()=>{};
+  w.HTMLAnchorElement.prototype.click=function(){assert.match(this.download,/\.csv$/);};
+  try{
+    await load('src/web/project-status-summary.ts',{'./shared/api':{...api,setupTheme(){},requireIdentity:async()=>true,account:{id:users[0].id},get:async path=>{assert.equal(path,'/api/project-summary');return snapshot;}},
+      './shared/personal-state':{PersonalPreference:class{async load(){return {};}update(){}}},'./shared/notifications':{ProjectNotifications:class{}},'./shared/status-text':status,'./shared/summary':model,'./shared/filter-panel':panel});
+    for(let i=0;i<40&&!doc.querySelector('[data-row]');i++)await next();
+    const el=s=>doc.querySelector(s),click=s=>{const b=el(s);assert(b,s);b.click();};
+    const button=(key,val)=>`button.chip[data-filter="${key}"][data-value="${val}"]`;
+    const choose=(key,val)=>click(button(key,val)),ids=()=>Array.from(doc.querySelectorAll('#summary-table tbody [data-row]'),row=>row.dataset.row).sort();
+    const expectIds=(...idsExpected)=>assert.deepEqual(ids(),idsExpected.sort());
+    expectIds(first,reversed);assert(!ids().includes(hidden));
+    click('#select-all');click('#summary-filter-toggle');
+    choose('hardwareOwners',hardware);expectIds(first);assert.equal(el(button('hardwareOwners',hardware)).getAttribute('aria-pressed'),'true');
+    click('#summary-filter-settings');assert(!el('#summary-filter-settings-panel').hidden);
+    const position=()=>Array.from(doc.querySelectorAll('#summary-filter-rows [data-dimension]'),r=>r.dataset.dimension).indexOf('hardwareOwners');
+    const before=position();click('[data-filter-move="hardwareOwners"][data-direction="-1"]');assert.equal(position(),before-1);
+    click('[data-filter-visible="hardwareOwners"]');assert(!el('[data-dimension="hardwareOwners"]').hidden,'选中人员时该岗位仍可见');
+    click('#summary-filter-settings');
+    choose('hardwareOwners',software);expectIds(first,reversed);
+    click(`#summary-selected-filters [data-remove-filter="hardwareOwners"][data-value="${software}"]`);expectIds(first);
+    assert.equal(el(button('hardwareOwners',hardware)).getAttribute('aria-pressed'),'true');
+    assert.equal(el(button('hardwareOwners',software)).getAttribute('aria-pressed'),'false');
+    choose('softwareOwners',hardware);expectIds();click('[data-export=csv]');
+    assert.equal(download,undefined);assert.match(el('#summary-feedback').textContent,/请先选择/);
+    choose('softwareOwners',hardware);choose('softwareOwners',software);expectIds(first);
+    click('[data-export=csv]');await next();const csv=await download.text();
+    assert(csv.includes(snapshot.items.find(p=>p.id===first).name));assert(!csv.includes(snapshot.items.find(p=>p.id===reversed).name));
+    click('[data-clear-filters]');expectIds(first,reversed);
+    choose('softwareOwners',hardware);expectIds(reversed);choose('softwareOwners','');expectIds(first,reversed);
+    choose('owner',engineers[3].name);expectIds(first);
+    choose('projectOwners',users[0].id);choose('participants',participant);choose('risk','unresolved');choose('change','reject');expectIds(first);
+    assert(!el(button('participants',hardware)));assert(!el(button('participants',manager)));
+    checks.push('分工真实双项目交叉：点击硬件/软件分别筛同一工程师，同一岗位多选并集、不同岗位组合交集，取消/全部/清空与空结果正确；筛后实际CSV只含名单，项目负责人/参与者/任务负责人/风险与变更入口保留');
+  }finally{dom.window.close();}
+  return model;
 }
 try {
   for (let index = 0; index < 2; index++) {
@@ -62,7 +104,8 @@ try {
   app = await createApp(await openRuntimeDatabase('test_app'), { origin: 'http://localhost', secure: false }); origin = await app.listen({ host: '127.0.0.1', port: 0 });
   const a = client(), b = client(); await a.login(users[0]); await b.login(users[1]);
   const people = [{ id: engineers[0].id, role: 'hardware_owner' }, { id: engineers[1].id, role: 'software_owner' }, ...engineers.map(person => ({ id: person.id, role: 'participant' }))];
-  for (const [user, fields] of [[a, { name: prefix + ' 可见项目', people }], [b, { name: prefix + ' 无关项目' }]]) {
+  const reversedPeople=[{id:engineers[1].id,role:'hardware_owner'},{id:engineers[0].id,role:'software_owner'}];
+  for (const [user, fields] of [[a, { name: prefix + ' 可见项目', people, statusDesc:'跟进 @'+engineers[3].name }], [b, { name: prefix + ' 无关项目' }], [a,{name:prefix+' 分工反向项目',people:reversedPeople}]]) {
     projects.push((await user.api('/api/projects', 'POST', { idempotencyKey: randomUUID(), fields })).result.projectId);
   }
   const path = '/api/projects/' + projects[0], riskIds = [randomUUID(), randomUUID(), randomUUID()];
@@ -79,7 +122,9 @@ try {
   assert.deepEqual(project.risks.map(({ content, resolved, resolution }) => ({ content, resolved, resolution })), facts.risks.filter(row => !row.deletedAt).map(({ content, resolved, resolution }) => ({ content, resolved, resolution })));
   assert.deepEqual(project.changes.map(({ source, content, decision, reason }) => ({ source, content, decision, reason })), facts.changes.map(row => ({ ...row })));
   checks.push('新摘要请求只返回本人可见项目；风险排除已删除记录并与 SQL 内容一致，变更保留接受/拒绝');
-  const summary = await loadSummary();
+  const reversedFacts=await sqlFacts(projects[2]);
+  assert.deepEqual(reversedFacts.people.map(row=>[row.id,row.role]).sort(),reversedPeople.map(row=>[row.id,row.role]).sort());
+  const summary = await summaryUI(snapshot,engineers,users,projects);
   assert.equal(summary.summaryValue(project, 'projectOwners'), users[0].name); assert.equal(summary.summaryValue(project, 'hardwareOwners'), engineers[0].name); assert.equal(summary.summaryValue(project, 'softwareOwners'), engineers[1].name); assert.equal(summary.summaryValue(project, 'participants'), engineers[3].name);
   assert.equal(summary.summaryRows([project], { risk: ['unresolved'], change: ['reject'] }, 'customer').length, 1); assert.equal(summary.summaryRows([project], { risk: ['none'] }, 'customer').length, 0);
   const columns = ['projectOwners', 'hardwareOwners', 'softwareOwners', 'participants', 'risks', 'changes'], csv = summary.summaryCsv([project], columns);
