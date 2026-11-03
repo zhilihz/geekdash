@@ -2,7 +2,7 @@
 
 ## 当前交接：Docker 测试版上传与服务器整合（2026-11-03）
 
-- 最新接手：本地 `http://localhost:41874` 正在运行 Docker 测试版 `V0.1.2-6b394db`（产品 `6b394db`，0016）。用户保有原35个项目和1个账号。[交付位置与镜像身份](../operations/deployments/2026-11-02-import-panel-local.md)。
+- 最新接手：本地 `http://localhost:41874` 正在运行 `geekdash:v1.1.0`（源码 `0a9d890`，数据库 0016）。用户保有原35个项目和1个账号。[交付位置与镜像身份](../operations/deployments/2026-11-02-import-panel-local.md)。
 - 工作树：`D:/geekwon/geekdash-repair-20261102`；分支`codex/import-panel-repair-20261102`；Docker基线`813f4d8`。原`D:/geekwon/geekdash`的K3s分支及未提交文件保持。
 - 施工入口：[计划1.5](../implementation/execution-plan.md#import-usability-repair-plan)、[PRD9.29](../product/PRD.md#import-usability-results)、TEST-045。两步导入、删除恢复、任务与入口合并已改；不得按旧混合导入或删除释放名称继续。
 - 用户已授权代码修复；只在本轮独立MySQL进行API/迁移验证。真实页面由用户验收，Harbor上传、发布和线上SQL均交同事。

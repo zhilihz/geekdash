@@ -1,5 +1,9 @@
 # 当前系统真相
 
+## 2026-11-03：产品版本 v1.1.0
+
+41874 的 `/api/health/live` 返回 `build.productVersion=v1.1.0`、源码 `0a9d890`。14个页面的应用版本均与构建一致。当前交付文件见[部署记录](../operations/deployments/2026-11-02-import-panel-local.md)。
+
 ## 2026-11-03：Docker 测试版 V0.1.2-6b394db
 
 41874 当前运行 `6b394db` clean，数据库 0016。个人项目和状态简要共用筛选控件；状态简要按硬件、软件等真实职责返回并导出对应名单。驾驶舱重点项目使用本项目阶段的里程碑。用户已认可此前本地版本，随后补充的筛选与展示通过程序验证，实际操作验收由用户进行。[修正范围](../changelog/CHANGELOG.md)与[本机运行记录](../operations/deployments/2026-11-02-import-panel-local.md)。

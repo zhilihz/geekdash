@@ -1,5 +1,11 @@
 # 导入与面板修复：本地用户测试入口
 
+## 2026-11-03 产品版本 v1.1.0
+
+本机 41874 运行 `geekdash:v1.1.0`，应用源码 `0a9d89053506e0e493efc48ae9ed55fba42b7fb2`，schema 0016。live、ready 和14个页面39份关联静态资源回读成功。上传脚本离线核验同时校对产品版本、源码和镜像 ID。
+
+交付目录 `D:/geekwon/geekdash-data/docker-delivery-v1.1.0/`。linux/amd64 压缩镜像 SHA256 为 `db57b308289bc1414bca5c51895b887fa8d6cbb49df222ab0672f4c5fa45afab`，本地镜像 ID 为 `sha256:9812d9b583b7d334dc74f1b4bfd283c6d65e702df0dc5641c19eef480f9ed978`。
+
 ## 2026-11-03 Docker 测试版 V0.1.2-6b394db
 
 本机 41874 已运行本轮交给同事的完整镜像 `geekdash:V0.1.2-6b394db`。产品构建取自 Git 提交 `6b394db9cad9b10cc80aa32c2aac3b444a900109` 的干净归档，构建时间 2026-11-03T07:56:06.697Z，schema 0016。镜像 ID 为 `sha256:0c3a276410630ecfec5a26d8446a4ba04fd7379595647151b852242633c51ca8`。同事拿到的 linux/amd64 镜像文件 SHA256 为 `2f79e11c7928b67ac539c85dbd1b6c0ee4b5c6790a76363c8274a9dd3dbc7953`。配套的小型脚本包与镜像文件放在本机构建机 `D:/geekwon/geekdash-data/docker-delivery-V0.1.2-6b394db/`。
