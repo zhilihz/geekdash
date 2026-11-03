@@ -446,11 +446,23 @@ MySQL 官方区分“连接加密”和“验证服务端身份”；部署时�
 
 本节只交付本地修复的运行要求；Harbor上传、服务器发布和线上SQL由部署同事执行。实际版本和验证结果查系统真相，不把本节当成已发布记录。
 
-1. 先确认同事部署代码与本轮Docker main基线的差异，尤其数据库连接和启动入口；合入产品修复时保留其已确认的环境配置，不整包覆盖未知改动。
-2. 本轮新增`migrations/0016-project-name-reservation.json`，没有新表。它检查所有现存及已删除项目的名称，按应用既有名称算法回填`projects.name_key`，再将该列收紧为NOT NULL；0001～0015不改字节。不能只更新前端。
-3. 数据库完整备份后停止业务写入及导入执行器，核对不在途，再运行本轮构建中的迁移命令：`node dist/server/commands/database.js migrate dev_migrator`。此处profile只是本仓库Docker配置名，部署同事须映射到实际目标；不得把本机测试凭据带去服务器。
-4. 用`node dist/server/commands/database.js verify dev_migrator`核对目标为`0016-project-name-reservation`且差异为0。若预检发现重复/非法名称，输出具体项目交人处理，迁移停止；不自动改名、合并或删除。若DDL完成但迁移登记失败，按原命令重跑，不能重写旧迁移校验和。
-5. 同时更新前后端产品文件。新导入提交必须携带`stage`；旧已受理命令仍保留原范围、原编号及回执。发布后验证“保存资料→查看项目→确认导入”，以及历史空间恢复原ID。
-6. 不能只回退到会将删除项目`name_key`写NULL的旧应用：新约束会拒绝该写入。恢复策略按变更前备份及相容版本整体判断，不在运行中临时去掉唯一约束。
+交付对象为带内置 MySQL 8.4 的 Docker 测试版。下列命令从原 Compose 目录执行，沿用原项目名、卷和受控的管理员种子挂载。将 Compose 的 `GEEKDASH_IMAGE` 设为本次加载的确切镜像标签后，默认启动与一次性升级使用同一镜像。SQL 文件可单独交给 DBA。
 
-本轮不重新初始化账号、不执行清库、不补造企业资料、不修改检查规则。导入文件仍需原受控目录/卷可写；数据库迁移不会代替服务器目录权限配置。真实文件采用和页面使用体验由用户验收。
+| 目标状态 | 操作 |
+|---|---|
+| 全新空卷 | 按正常 Compose 流程启动。默认入口在空库上执行迁移至 0016 并创建初始管理员和系统配置。就绪后运行下面的只读核查。 |
+| 已初始化的 0015 卷 | 按下列顺序预检、备份、停服、升级再核验。 |
+| 已初始化的 0016 卷 | 核对全部散列和数据，再启动候选镜像并确认 ready。日常重启只验证已有结构。 |
+| 不认识的库、部分配置或其他版本 | 保留原卷及备份，核对目标、旧发布原件和恢复入口后再处理。 |
+
+1. 在原服务仍运行时暂停业务写入并等导入执行器收尾。从仓库取[升级前后核查 SQL](../../deploy/sql/geekdash-0016-check.sql)，用一次新的 MySQL 客户端连接执行。示例假设文件放在当前目录。
+
+   ```sh
+   docker compose cp ./geekdash-0016-check.sql geekdash:/tmp/geekdash-0016-check.sql
+   docker compose exec -T geekdash sh -ec 'mysql --defaults-extra-file=/run/secrets/mysql_health.cnf geekdash_dev < /tmp/geekdash-0016-check.sql'
+   ```
+
+2. 记录库名、实例 UUID、项目（含已删）、账号及配置行数。确认 `docker_initialized=1`、`unfinished_imports=0`。0015 的前 15 行应为 `MATCH`，0009 也接受 `MATCH_RELEASED_LF`，只有 0016 应显示 `PENDING_0016`。这两种已发布的 0009 原件仅换行不同，程序按完整散列识别并保留原账本。见到 `STOP_*`、多余版本、缺表或索引不符，停止并核对原镜像文件的 SHA-256、账本和结构。保留差异，勿改写校验和。名称检查中长度应为 1～255，`same_name_count` 必须为 1；发现重名或非法名，按返回的项目 ID 交业务负责人处理后重查。0015 的 `key_needs_fill=1` 可由 0016 回填，唯一索引应为 `uk_projects_name_key(name_key)`。
+3. 阻止新的访问，停止原服务（`docker compose stop geekdash`）。确认没有其他容器使用此卷，完整备份原卷中的 MySQL 数据、配置和导入原件，并保留恢复所需的原镜像。核对备份可恢复，再运行 `docker compose run --rm --no-deps geekdash upgrade`。此命令只启动 MySQL，运行同包的 `database.js migrate dev_migrator` 和独立 `verify` 后退出。项目名称处理使用应用的 UTF-8 身份算法，包含历史项目。迁移器负责事务回填、DDL 及登记。若已执行部分 DDL，维持停服、核对错误，再从同一命令接续。
+4. 仅当命令退出 0 且验证输出 `0016-project-name-reservation`、`differences=0` 时，执行 `docker compose up -d --no-build geekdash`。等待应用 ready，然后用**新连接**重跑第 1 步。核对 UUID 和业务计数，16 条账本均匹配；名称问题列表为空、`null_name_keys=0`，列为 `varbinary(1020) / NO`，唯一索引只含一列（`NON_UNIQUE=0`、`SEQ_IN_INDEX=1`）。最后在测试入口验证“保存资料→查看项目→确认导入”和历史项目恢复原 ID。若须回退，用备份及相容的旧版本整套恢复。
+5. 只有 0016 结构验证通过、原管理员存在且 `configuration_rows=0` 时，才在维护时段运行[系统配置补缺 SQL](../../deploy/sql/geekdash-system-configuration.sql)。沿用第 1 步复制和执行方式，将两处文件名和输入路径都换为该脚本。单个连接运行整份脚本，客户端遇错即停并回滚。它使用启用且未删除的原 `admin` 创建单例与一条同事务审计。结果 `ADDED` 或 `ALREADY_PRESENT` 后另开连接重查配置行数为 1。若为 `STOP_*`，查目标和管理员资格。已存在的企业信息、账号凭据及检查规则保持原样。

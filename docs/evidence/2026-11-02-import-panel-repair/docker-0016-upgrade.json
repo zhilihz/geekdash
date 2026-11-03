@@ -1,0 +1,26 @@
+{
+  "日期": "2026-11-03",
+  "范围": "Docker 测试版数据库交付。无端口、network=none 的专用卷和合成数据，未访问用户实例或线上。",
+  "验证输入": {
+    "旧镜像": "geekdash:V0.1.1-cc4a34b",
+    "候选验证方式": "在本机 local-repair-d93dbcb 容器以只读挂载使用候选 entrypoint 和 ec27bbd 编译出的 schema.js；最终分发镜像的验收另查交付报告。",
+    "数据库": "MySQL 8.4.11",
+    "合成库_UUID": "04485e50-d754-11f1-b9e1-5028d5b50c1b",
+    "命令": "container-entrypoint.sh upgrade，随后按默认入口启动，另开 mysql 客户端执行两份交付 SQL"
+  },
+  "旧Docker_0015到0016": {
+    "0009原件": "旧镜像 LF 与候选 CRLF 分别为14945和15287字符，去除 CRLF 与 LF 的差别后内容相等；独立 JSON 解析结果也相等。",
+    "升级前": "0015，原 LF 账本 AE13B1B36FADACEA3F46542B4033D2B181E0732E8DC09BBDB62D10D0DE670A43。项目2，其中已删除1，账号1，配置1，NULL名称键1。",
+    "名称预检": "现存 C 与首尾 U+2028/U+FEFF 的已删除 C 返回 ID 1、2，各自 same_name_count=2。迁移器拒绝重名；处理合成冲突后原账本仍为0015。",
+    "首跑": {"exit":0,"applied":true,"version":"0016-project-name-reservation","tables":48,"columns":415,"foreignKeys":84,"differences":0},
+    "重复升级": {"exit":0,"applied":false,"differences":0},
+    "新连接和重启": "默认启动 ready HTTP 200；0016散列匹配；0009原账本完整保留。库UUID和上述项目/账号/配置计数保持，两个项目的ID、名称、版本、创建/更新时间及删除时间保持。历史名称键回填，NULL数0，名称问题列表为空；varbinary(1020) NOT NULL 和唯一索引 uk_projects_name_key 保持。"
+  },
+  "其他场景": [
+    "标准 CRLF 的独立0015卷通过同一 upgrade 命令（退出0、applied=true、48表/415列/84外键/零差异）。",
+    "仅在合成卷注入未知0009散列后，SQL报告STOP_CHECKSUM；upgrade报告DB_MIGRATION_CHECKSUM_MISMATCH并退出1。",
+    "对空数据目录尝试upgrade，初始化前退出1。",
+    "在合成0016中模拟缺失配置，新连接第一次执行补缺SQL为ADDED/1，第二次为ALREADY_PRESENT/0，第三个连接见1条配置和1条修复审计，检查规则行数始终为0；在0015上运行显示STOP_WRONG_TARGET且写入0。",
+    "专用CRLF隔离库单独运行 scripts/verify-project-name-reservation-migration.mjs，覆盖重名拒绝、回填、DDL已执行后接续、兼容0009账本和未知散列拒绝。"
+  ]
+}

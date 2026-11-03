@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID, createHash } from 'node:crypto';
 import { connectDatabase } from '../dist/server/infrastructure/db.js';
-import { migrateDatabase } from '../dist/server/infrastructure/schema.js';
+import { loadSchema, migrateDatabase, verifyDatabase } from '../dist/server/infrastructure/schema.js';
 
 // 专用隔离升级演练。此脚本会模拟0015结构，必须停止同库其他测试/应用后单独运行。
 assert.equal(process.env.GEEKDASH_NAME_MIGRATION_PROBE,'1');
@@ -37,5 +37,17 @@ try{
   await migrateDatabase('dev_migrator');
   assert.equal(await facts(),before);
   assert.equal((await rows('SELECT COUNT(*) n FROM schema_migrations WHERE version=?',[version]))[0].n,'1');
-  console.log(JSON.stringify({status:'passed',scope:'隔离0015至0016升级演练',checks:['现存与已删重名预检拒绝且不写入','历史NULL键回填且业务事实不变','NOT NULL及唯一索引继续生效','DDL完成但登记丢失可重跑']}));
+  // 在上述专用隔离库轮换测试值，退出前原样放回；运维升级不改旧账本。
+  const legacy=(await loadSchema()).history.find(entry=>entry.version==='0009-project-space');
+  const readDigest=async()=>(await rows('SELECT checksum FROM schema_migrations WHERE version=?',[legacy.version]))[0].checksum;
+  const writeDigest=value=>c.execute('UPDATE schema_migrations SET checksum=? WHERE version=?',[value,legacy.version]);
+  const original=await readDigest();
+  try{
+    await writeDigest(legacy.alternateChecksum);
+    await verifyDatabase('dev_migrator');
+    assert.deepEqual(await readDigest(),legacy.alternateChecksum);
+    await writeDigest(Buffer.alloc(32));
+    await assert.rejects(verifyDatabase('dev_migrator'),{code:'DB_MIGRATION_CHECKSUM_MISMATCH'});
+  }finally{await writeDigest(original);}
+  console.log(JSON.stringify({status:'passed',scope:'隔离0015至0016升级演练',checks:['现存与已删重名预检拒绝且不写入','历史NULL键回填且业务事实不变','NOT NULL及唯一索引继续生效','DDL完成但登记丢失可重跑','0009已发布换行可读且账本原样保留，未知散列拒绝']}));
 }finally{await c.end();}
