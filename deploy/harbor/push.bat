@@ -2,10 +2,11 @@
 chcp 65001 >nul
 setlocal
 set "HARBOR_HOST=harbor.geekwontek.com"
-set "IMAGE_TARGET=harbor.geekwontek.com/geek-dash/geekdash:V0.1.2-6b394db"
-set "SOURCE_IMAGE=geekdash:V0.1.2-6b394db"
-set "EXPECTED_ID=sha256:0c3a276410630ecfec5a26d8446a4ba04fd7379595647151b852242633c51ca8"
-set "EXPECTED_REVISION=6b394db9cad9b10cc80aa32c2aac3b444a900109"
+set "PRODUCT_VERSION=v1.1.0"
+set "IMAGE_TARGET=harbor.geekwontek.com/geek-dash/geekdash:%PRODUCT_VERSION%"
+set "SOURCE_IMAGE=geekdash:%PRODUCT_VERSION%"
+set "EXPECTED_ID=sha256:9812d9b583b7d334dc74f1b4bfd283c6d65e702df0dc5641c19eef480f9ed978"
+set "EXPECTED_REVISION=0a9d89053506e0e493efc48ae9ed55fba42b7fb2"
 if not "%~2"=="" goto usage
 if not "%~1"=="" if /I not "%~1"=="-CheckOnly" goto usage
 set "ACTUAL_ID="
@@ -22,7 +23,7 @@ for /f "usebackq tokens=1,2,3 delims=/" %%I in ("%CHECK_OUTPUT%") do (
 del "%CHECK_OUTPUT%"
 if not "%ACTUAL_ID%"=="%EXPECTED_ID%" goto invalid
 if not "%PLATFORM%"=="linux/amd64" goto invalid
-docker run --rm --pull=never --network none --read-only --entrypoint node %EXPECTED_ID% -e "const b=require('/app/dist/build-info.json'); if(b.revision!==process.argv[1]||b.dirty!==false){console.error('Unexpected product build:',b.revision,b.dirty);process.exit(1)} console.log('Product revision:',b.revision)" %EXPECTED_REVISION%
+docker run --rm --pull=never --network none --read-only --entrypoint node %EXPECTED_ID% -e "const b=require('/app/dist/build-info.json'),p=require('/app/package.json'); if(b.productVersion!==process.argv[1]||'v'+p.version!==process.argv[1]||b.revision!==process.argv[2]||b.dirty!==false){console.error('Unexpected product build:',b.productVersion,p.version,b.revision,b.dirty);process.exit(1)} console.log('Verified product:',b.productVersion,'source:',b.revision)" %PRODUCT_VERSION% %EXPECTED_REVISION%
 if errorlevel 1 goto invalid
 echo 已核验一个完整镜像：%SOURCE_IMAGE%
 echo 上传位置：%IMAGE_TARGET%
@@ -44,7 +45,7 @@ exit /b 0
 echo 本地镜像、平台或镜像内产品版本未通过核验，停止上传。
 echo 预期：%EXPECTED_ID% / linux/amd64
 echo 实际：%ACTUAL_ID% / %PLATFORM%
-echo 预期产品版本：%EXPECTED_REVISION% ^(clean^)
+echo 预期产品版本：%PRODUCT_VERSION% / %EXPECTED_REVISION% ^(clean^)
 exit /b 1
 :usage
 echo 用法：push.bat [-CheckOnly]

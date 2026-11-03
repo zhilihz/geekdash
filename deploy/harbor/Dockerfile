@@ -16,12 +16,13 @@ COPY --from=application /usr/local/bin/node /usr/local/bin/node
 RUN node --version
 WORKDIR /app
 COPY --from=application /app/node_modules/ ./node_modules/
-COPY --from=application /app/package.json ./
 # geekdash_dist 指向本次发布从干净源码构建的 dist 目录。
+COPY --from=geekdash_dist /package.json ./
 COPY --from=geekdash_dist / ./dist/
 ARG PRODUCT_REVISION
-RUN node -e "const b=require('./dist/build-info.json'); if(!/^[a-f0-9]{40}$/.test(process.env.PRODUCT_REVISION)||b.revision!==process.env.PRODUCT_REVISION||b.dirty!==false) throw Error('dist build-info does not match clean PRODUCT_REVISION')"
-LABEL org.opencontainers.image.revision=$PRODUCT_REVISION
+ARG PRODUCT_VERSION=v1.1.0
+RUN node -e "const b=require('./dist/build-info.json'), p=require('./package.json'); if(!/^[a-f0-9]{40}$/.test(process.env.PRODUCT_REVISION)||b.revision!==process.env.PRODUCT_REVISION||b.dirty!==false) throw Error('dist build-info does not match clean PRODUCT_REVISION'); if(b.productVersion!==process.env.PRODUCT_VERSION||'v'+p.version!==b.productVersion||p.name!=='geekdash'||p.type!=='module') throw Error('package and build-info do not match PRODUCT_VERSION')"
+LABEL org.opencontainers.image.version=$PRODUCT_VERSION org.opencontainers.image.revision=$PRODUCT_REVISION
 COPY initialize.mjs container-entrypoint.sh ./
 RUN node -e "if(require('node:fs').readFileSync('container-entrypoint.sh').includes(13))throw Error('entrypoint must use LF')" \
  && bash -n /app/container-entrypoint.sh && chmod 755 /app/container-entrypoint.sh
